@@ -1,0 +1,89 @@
+/* ============================================================
+   Telefónica — Forms (TextField, Select, Checkbox, Radio, Switch)
+   Outlined controls, 8px radius, blue focus ring.
+   ============================================================ */
+
+.tf-field{ display:flex; flex-direction:column; gap:6px; }
+.tf-field__label{ font:var(--fw-medium) 14px/1.4 var(--font-sans); color:var(--text-primary); }
+.tf-field__req{ color:var(--tf-error); margin-left:2px; }
+.tf-field__help{ font:var(--fw-regular) 13px/1.4 var(--font-sans); color:var(--text-secondary); }
+.tf-field.is-error .tf-field__help{ color:var(--tf-error); }
+
+.tf-input-wrap{
+  display:flex; align-items:center; gap:8px; height:48px; padding:0 14px;
+  border:1.5px solid var(--border-strong); border-radius:var(--radius-md);
+  background:var(--surface-card);
+  transition:border-color var(--duration-fast) var(--ease-standard),
+             box-shadow var(--duration-fast) var(--ease-standard);
+}
+.tf-input-wrap:focus-within{ border-color:var(--border-focus); box-shadow:var(--focus-ring); }
+.tf-field.is-error .tf-input-wrap{ border-color:var(--tf-error); }
+.tf-field.is-disabled .tf-input-wrap{ background:var(--tf-grey-50); border-color:var(--border-default); }
+.tf-input{
+  flex:1; min-width:0; border:none; outline:none; background:transparent; height:100%;
+  font:var(--fw-regular) 16px/1 var(--font-sans); color:var(--text-primary);
+}
+.tf-input::placeholder{ color:var(--tf-grey-400); }
+.tf-input:disabled{ cursor:not-allowed; color:var(--text-disabled); }
+.tf-input__affix{ color:var(--text-secondary); font-size:15px; display:inline-flex; align-items:center; }
+.tf-input__affix svg{ width:20px; height:20px; }
+
+/* ---- Select ------------------------------------------------ */
+.tf-select-wrap{ position:relative; display:block; }
+.tf-select{
+  appearance:none; -webkit-appearance:none; width:100%; height:48px;
+  padding:0 40px 0 14px; border:1.5px solid var(--border-strong);
+  border-radius:var(--radius-md); background:var(--surface-card);
+  font:var(--fw-regular) 16px/1 var(--font-sans); color:var(--text-primary); cursor:pointer;
+  transition:border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard);
+}
+.tf-select:focus-visible{ outline:none; border-color:var(--border-focus); box-shadow:var(--focus-ring); }
+.tf-field.is-error .tf-select{ border-color:var(--tf-error); }
+.tf-select:disabled{ background:var(--tf-grey-50); color:var(--text-disabled); cursor:not-allowed; }
+.tf-select__chevron{
+  position:absolute; right:16px; top:calc(50% - 6px); width:9px; height:9px;
+  border-right:2px solid var(--text-secondary); border-bottom:2px solid var(--text-secondary);
+  transform:rotate(45deg); pointer-events:none;
+}
+
+/* ---- Checkbox & Radio -------------------------------------- */
+.tf-check, .tf-radio{
+  display:inline-flex; align-items:center; gap:10px; cursor:pointer;
+  font:var(--fw-regular) 15px/1.4 var(--font-sans); color:var(--text-primary);
+}
+.tf-check input, .tf-radio input{
+  appearance:none; -webkit-appearance:none; margin:0; width:20px; height:20px; flex:none;
+  border:1.5px solid var(--border-strong); background:var(--surface-card); cursor:pointer; position:relative;
+  transition:background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.tf-check input{ border-radius:4px; }
+.tf-radio input{ border-radius:50%; }
+.tf-check input:checked{ background:var(--color-primary); border-color:var(--color-primary); }
+.tf-check input:checked::after{
+  content:''; position:absolute; left:6px; top:2px; width:5px; height:10px;
+  border:solid #fff; border-width:0 2px 2px 0; transform:rotate(45deg);
+}
+.tf-radio input:checked{ border-color:var(--color-primary); }
+.tf-radio input:checked::after{
+  content:''; position:absolute; left:50%; top:50%; width:10px; height:10px;
+  border-radius:50%; background:var(--color-primary); transform:translate(-50%,-50%);
+}
+.tf-check input:focus-visible, .tf-radio input:focus-visible{ outline:none; box-shadow:var(--focus-ring); }
+.tf-check.is-disabled, .tf-radio.is-disabled{ opacity:.5; cursor:not-allowed; }
+
+/* ---- Switch ------------------------------------------------ */
+.tf-switch{ display:inline-flex; align-items:center; gap:10px; cursor:pointer; font:var(--fw-regular) 15px/1.4 var(--font-sans); color:var(--text-primary); }
+.tf-switch input{ position:absolute; opacity:0; width:0; height:0; }
+.tf-switch__track{
+  width:44px; height:24px; border-radius:var(--radius-pill); background:var(--tf-grey-300);
+  position:relative; flex:none; transition:background var(--duration-fast) var(--ease-standard);
+}
+.tf-switch__thumb{
+  position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%;
+  background:#fff; box-shadow:var(--elevation-1);
+  transition:transform var(--duration-base) var(--ease-standard);
+}
+.tf-switch input:checked + .tf-switch__track{ background:var(--color-primary); }
+.tf-switch input:checked + .tf-switch__track .tf-switch__thumb{ transform:translateX(20px); }
+.tf-switch input:focus-visible + .tf-switch__track{ box-shadow:var(--focus-ring); }
+.tf-switch.is-disabled{ opacity:.5; cursor:not-allowed; }

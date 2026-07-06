@@ -1,0 +1,39 @@
+/* ============================================================
+   Telefónica — Feedback (Callout, ProgressBar)
+   ============================================================ */
+
+/* ---- Callout ----------------------------------------------- */
+.tf-callout{
+  display:flex; gap:12px; padding:16px; border-radius:var(--radius-md);
+  border:1px solid transparent; background:var(--tf-info-bg);
+}
+.tf-callout__icon{ width:22px; height:22px; flex:none; display:inline-flex; align-items:center; justify-content:center; }
+.tf-callout__icon svg{ width:22px; height:22px; }
+.tf-callout__mark{ display:block; width:18px; height:18px; border-radius:50%; background:currentColor; }
+.tf-callout__body{ flex:1; min-width:0; }
+.tf-callout__title{ margin:0 0 2px; font:var(--fw-bold) 15px/1.35 var(--font-sans); color:var(--text-primary); }
+.tf-callout__desc{ font:var(--fw-regular) 14px/1.5 var(--font-sans); color:var(--text-secondary); }
+.tf-callout__action{ margin-top:12px; display:flex; gap:12px; }
+.tf-callout__close{
+  appearance:none; border:none; background:transparent; cursor:pointer;
+  color:var(--text-secondary); font-size:15px; line-height:1; padding:2px 4px; flex:none; border-radius:var(--radius-sm);
+}
+.tf-callout__close:hover{ color:var(--text-primary); }
+
+.tf-callout--info    { background:var(--tf-info-bg);    border-color:#B3D1FF; }
+.tf-callout--info    .tf-callout__icon{ color:var(--tf-blue); }
+.tf-callout--success { background:var(--tf-success-bg); border-color:#A6E4C0; }
+.tf-callout--success .tf-callout__icon{ color:var(--tf-success); }
+.tf-callout--warning { background:var(--tf-warning-bg); border-color:#F5D98A; }
+.tf-callout--warning .tf-callout__icon{ color:#B37F00; }
+.tf-callout--error   { background:var(--tf-error-bg);   border-color:#F6B3AD; }
+.tf-callout--error   .tf-callout__icon{ color:var(--tf-error); }
+
+/* ---- ProgressBar ------------------------------------------- */
+.tf-progress-field{ display:flex; flex-direction:column; gap:8px; }
+.tf-progress__head{ display:flex; justify-content:space-between; font:var(--fw-medium) 13px/1.2 var(--font-sans); color:var(--text-secondary); }
+.tf-progress{ height:8px; background:var(--tf-grey-200); border-radius:var(--radius-pill); overflow:hidden; }
+.tf-progress__fill{
+  height:100%; background:var(--color-primary); border-radius:var(--radius-pill);
+  transition:width var(--duration-slow) var(--ease-standard);
+}

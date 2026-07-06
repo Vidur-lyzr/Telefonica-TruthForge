@@ -1,0 +1,172 @@
+# FOUNDATION.md
+### Telefónica SSoT — the master build brief for Replit (read this first, in full)
+
+You are building **Hub SSoT** — a governed, agentic "Single Source of Truth" for Telefónica's Communication & Brand teams. It ingests internal + external knowledge, governs it (metadata, permissions, citation, validity), and lets users **ask, generate, track, and plan** over it — every answer defensible, every claim cited, and an honest "I don't have evidence" when there's no basis.
+
+This is not a chatbot. It is an **agentic workbench**: a home, four workspace apps, a living knowledge/wiki layer, and a backend — all over one governed knowledge core. Build to the experience in files `01–03` and the page specs `04–10`. This file is the technical + structural spine they all sit on.
+
+---
+
+## 0. Non-negotiables (the product's soul)
+
+1. **Every claim carries its evidence.** Nothing renders without provenance one tap away (the *Evidence Chip*).
+2. **The system says "I don't know."** A confident wrong answer is the only unforgivable failure.
+3. **Access control is early-binding, at retrieval, never by the LLM.** The model never sees a chunk the user can't access.
+4. **One core, many lenses.** Chat / Generate / KPIs / Planning are the same governed knowledge, rendered differently. Learn the Canvas once.
+5. **Knowledge compounds.** The LLM Wiki gets smarter as documentalists validate — the opposite of static SharePoint.
+6. **Restraint.** Dense where it earns it, calm everywhere else. No decoration that isn't information.
+
+---
+
+## 1. Architecture — what powers what
+
+```
+┌── EXPERIENCE (GitAgent app layer) ───────────────────────────────────┐
+│  Home · Ask · Generate · KPIs · Planning · Wiki · Data/Admin/Brand   │
+│  Shared: Canvas editor · Evidence Chip · Citation drawer · axis pills │
+├── AGENT RUNTIME (GitAgent) ──────────────────────────────────────────┤
+│  ONE agent, MANY skills · query() loop · SSE streaming ·             │
+│  systemPromptSuffix = page context only · task_tracker skill discovery│
+│  hybrid retrieval = semantic + agentic + graph + keyword             │
+│  persistent per-user memory & history (Lyzr Agent Memory)            │
+├── KNOWLEDGE LAYERS ──────────────────────────────────────────────────┤
+│  Lyzr KB (vector+metadata, early-binding filter)  ← "what did we say" │
+│  Lyzr KG (Neo4j: markets/brands/execs/AXES as nodes) ← "how related"  │
+│  Numeric zone (Text-to-SQL over validated figures)  ← "the number"    │
+│  GitAgent LLM Wiki (compiled corporate memory)  ← "the truth we defend"│
+├── GOVERNANCE ENVELOPE (wraps all of the above) ──────────────────────┤
+│  metadata contract · Entra-style permissions · validity · citation ·  │
+│  audit trail · Responsible-AI guardrails (Brand Guardian, groundedness)│
+└── PLATFORM (demo: Replit; prod: Telefónica corporate Azure) ─────────┘
+```
+
+**Division of labour:** GitAgent owns the surface + the agent loop + the compiled Wiki. Lyzr owns the governed retrieval (KB), the entity graph (KG), and the guardrails. Claude is the routed inference model. In production this deploys **inside Telefónica's Azure perimeter** (sovereignty / non-feeding).
+
+**The 3-layer taxonomy (canonical — used to filter, cite, and classify everywhere):**
+**① Deterministic** — *what the document is* (declared): country·brand·entity·quarter·type·confidentiality·owner·validity·language.
+**② Semantic** — *what it talks about* (derived): topics, entities, summary.
+**③ Strategic** — *what it serves in the Plan* (derived, **live/configurable**): the 5 Transform & Grow axes; editable from the back-office without re-embedding.
+
+---
+
+## 2. Stack & setup (Replit)
+
+```bash
+# Agent runtime
+pip install gitagent            # GitClaw/GitAgent SDK — the query() runtime
+# Knowledge
+pip install lyzr                # Lyzr SDK — KB (RAG) + KG primitives
+pip install qdrant-client       # local vector store (KB backend)
+pip install neo4j               # KG (Neo4j Aura free tier; local fallback)
+# Model + app
+pip install anthropic           # Claude — routed demo model
+# web: React + Vite + Tailwind (design tokens in §5)
+```
+
+**Env (all optional-with-fallback so it runs clean in Replit):**
+```
+ANTHROPIC_API_KEY      required — Claude inference
+LYZR_API_KEY           optional — if set, use live Lyzr; else SDK-local adapters
+NEO4J_URI/USER/PASS    optional — if set, use Aura; else local graph fallback
+```
+
+**Adapter rule:** wrap KB, KG, and numeric stores behind interfaces named to match Lyzr's API (`kb.retrieve()`, `kg.traverse()`, `numeric.query()`). Demo backs them with local Qdrant/Neo4j; production swaps the adapter to Telefónica's Lyzr deployment. **Never hard-code a store into a page** — pages call the interface.
+
+---
+
+## 3. Repository structure
+
+```
+/agent                         # the GitAgent repo (ONE agent)
+  agent.yaml                   # config: model routing, tools
+  SOUL.md                      # who the agent is: evidential, honest, on-brand
+  RULES.md                     # hard rules: never cite without source; permission-first; no off-record in external
+  skills/                      # ONE agent, MANY skills (see §4)
+  knowledge/                   # raw governed sources + index.yaml (always_load: axes, brand rules)
+  memory/
+    wiki/                      # LLM Wiki: compiled pages, index.md, log.md
+/pipeline                      # the 7-stage ingestion (see §6)
+/server                        # HTTP + SSE; calls agent.query(); enforces permission scope
+/web                           # React workbench (files 01–10)
+/data                          # synthetic corpus (file 00) + corpus_manifest.csv
+```
+
+---
+
+## 4. The agent: ONE agent, MANY skills
+
+Do **not** build separate agents per use case. Build **one** Hub SSoT agent whose skills the LLM discovers via `task_tracker`. Skills are lean runbooks, not code dumps.
+
+| Skill | Does | Reads |
+|---|---|---|
+| `retrieve_cited` | four-way hybrid (semantic+agentic+graph+keyword) + citation, permission-filtered | Lyzr KB |
+| `graph_lookup` | entity/relationship/axis traversal | Lyzr KG |
+| `recall_history` | resume prior tasks; per-user memory (never crosses users/permissions) | Lyzr Agent Memory |
+| `query_numbers` | NL→SQL over validated figures | numeric zone |
+| `compose_onbrand` | fill corporate template, cited, tone-correct | Brand Room + retrieval |
+| `brand_guardian` | deterministic on-brand + claim-approval check | brand rules |
+| `wiki_ingest / wiki_query / wiki_lint` | maintain the compiled LLM Wiki | knowledge/ → memory/wiki/ |
+| `track_goal` | KPI vs target + external signal cross-ref | numeric + KB |
+| `plan_calendar` | unify calendars, detect conflicts, predict | KG + numeric |
+
+The agent decides *which* skills to call and replans if needed. **Page context** (which app the user is in, their permission scope) is injected via `systemPromptSuffix` only — never preload skills server-side.
+
+---
+
+## 5. Design tokens (from File 01 — apply globally)
+
+```css
+--tef-blue:#0B5FFF;  --ink:#0A1633;  --paper:#F7F9FC;  --surface:#FFF;
+--evidence:#1B9E77;  --historic:#C77B08;  --locked:#5B6480;  --hairline:#E4E9F2;
+/* type: brand/humanist grotesque display; Inter-class body;
+   MONO/tabular for ALL figures, citations, versions, confidence — the signature */
+```
+- **Evidence Chip** = the product's atom. `[ value · source›loc · vX · owner · valid→ · conf ]`, collapsed to value + blue dot, tap → full receipt drawer.
+- **Axis pills** = 5 fixed colors, identical across every surface.
+- **Validity badges** (`approved`/`historic`/`review`/`superseded`) and **slate locks** appear only where relevant.
+- Blue used with restraint (action + brand). Most of the screen is paper/ink/hairline. Motion minimal and functional.
+
+---
+
+## 6. The data pipeline (7 stages — the actual moat)
+
+Build this before any use case; it's where value + scored points live.
+
+1. **Intake / entry contract** — the **deterministic layer**: mandatory fields (country·brand·entity·quarter·type·confidentiality·owner·validity·language) or **quarantine**. Confidentiality from the doc's sensitivity label.
+2. **Extraction** — structure-preserving: PPT→slides+notes, Excel→cell refs, Word→hierarchy. Remember *where* every sentence/cell came from.
+3. **Chunking** — hierarchical parent-child (children ~300–500 tok, parents ~1,500–2,000), cut on H1/H2/H3, breadcrumb + table travel with each chunk.
+4. **Embedding** — multilingual (ES/EN/DE/PT), computed once, **taxonomy-agnostic**.
+5. **Classification** — derive the **semantic layer** (topics, entities, summary — *what it talks about*) and the **strategic layer** (the 5 Transform & Grow axes — *what it serves in the Plan*), zero-shot, as a *separate cheap final stage*. The strategic layer is live/configurable → axis change = **re-classify, never re-embed** (the investment-protection story).
+6. **Three-way write** — same tagged chunk → **KB** (vector+metadata), **KG** (entities/relationships/axes as nodes), **numeric zone** (validated figures).
+7. **Compile** — as documentalists validate, `wiki_ingest` crystallizes durable truth into `memory/wiki/`.
+
+**Governance clamp (wraps 1–7):** at query time, resolve `user_scope × doc_confidentiality` and inject the filter *before* retrieval. Citation/validity/owner ride *with* each chunk so honesty is a property of the data, not a hope.
+
+---
+
+## 7. Global shell & routes
+
+Left rail: **Workspace** (Ask · Generate · KPIs · Planning) │ **Wiki** │ **Backend** (Data · Admin · Brand — permitted roles only). Top bar: Telefónica dot-T + "Hub SSoT", area switcher (Comunicación/Marca/Gabinete), notifications, user. Role-adaptive landing (File 01 §7).
+
+```
+/                home            /kpis            KPI panel
+/ask             cited chat      /planning        calendar + predict
+/generate        the engine      /wiki            Map · Pages · Sources
+/generate/canvas the Canvas      /data /admin /brand   backend trio
+```
+
+---
+
+## 8. Build sequence (do in this order)
+
+1. Shell + design tokens + Evidence Chip + Citation drawer + axis pills (the shared vocabulary).
+2. Pipeline §6 over the synthetic corpus (file 00) → KB + KG + numeric populated, permission-filtered.
+3. **Ask/Chat** (file 04) — the hero: €8,127M Q1 2026 cited, "no evidence," permission block, historic flag.
+4. **Generate** (file 05) — the engine + Canvas + Brand Guardian.
+5. **Wiki** (file 03) — Map + compiled Pages + Sources; wire the compounding pulse.
+6. **KPIs** (06) + **Planning** (07).
+7. **Data Center / Admin / Brand Room** (08–10) — self-sufficiency (scored).
+
+**Real vs represented in the demo:** real = pipeline, KB/KG retrieval, citation, classification, generation, Brand Guardian, the Wiki compounding. Represented = full SharePoint migration (one live connector, rest configured), the Azure landing zone (sandbox + narration), most external connectors. Keep the hero retrieval path (Ask) on Lyzr KB — never gate it on the Wiki.
+
+**The bar for every page:** defensibility · honesty · restraint · learnability · sovereignty feel. If a page fails one, it's not done.
