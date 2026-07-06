@@ -1,0 +1,112 @@
+// kb.retrieve — Lyzr-named knowledge-base retrieval adapter.
+// Backed natively by a local TF-IDF + BM25 hybrid over the synthetic corpus.
+// A real Lyzr Knowledge Base can be swapped in behind this same interface later.
+
+import { DOCS, getDoc, CLEARANCE_RANK, type Clearance } from "../data/corpus";
+import { tokenize } from "./text";
+
+export interface RetrievedChunk {
+  chunkId: string;
+  docId: string;
+  score: number;
+  heading: string;
+  breadcrumb: string;
+  text: string;
+  accessible: boolean;
+}
+
+interface IndexedChunk {
+  chunkId: string;
+  docId: string;
+  heading: string;
+  breadcrumb: string;
+  text: string;
+  confidentiality: Clearance;
+  terms: string[];
+  termFreq: Map<string, number>;
+  length: number;
+}
+
+const BM25_K1 = 1.5;
+const BM25_B = 0.75;
+
+const index: IndexedChunk[] = [];
+const docFreq = new Map<string, number>();
+let avgLen = 0;
+
+for (const doc of DOCS) {
+  for (const chunk of doc.chunks) {
+    const haystack = `${doc.title} ${chunk.heading} ${chunk.text} ${doc.topics.join(" ")}`;
+    const terms = tokenize(haystack);
+    const termFreq = new Map<string, number>();
+    for (const t of terms) termFreq.set(t, (termFreq.get(t) ?? 0) + 1);
+    for (const t of new Set(terms)) docFreq.set(t, (docFreq.get(t) ?? 0) + 1);
+    index.push({
+      chunkId: chunk.id,
+      docId: doc.id,
+      heading: chunk.heading,
+      breadcrumb: chunk.breadcrumb,
+      text: chunk.text,
+      confidentiality: doc.confidentiality,
+      terms,
+      termFreq,
+      length: terms.length,
+    });
+  }
+}
+avgLen = index.reduce((sum, c) => sum + c.length, 0) / Math.max(index.length, 1);
+const N = index.length;
+
+function idf(term: string): number {
+  const df = docFreq.get(term) ?? 0;
+  return Math.log(1 + (N - df + 0.5) / (df + 0.5));
+}
+
+export interface RetrieveOptions {
+  question: string;
+  clearance: Clearance;
+  topK?: number;
+}
+
+export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
+  const { question, clearance, topK = 6 } = opts;
+  const qTerms = tokenize(question);
+  if (qTerms.length === 0) return [];
+  const qSet = new Set(qTerms);
+  const roleRank = CLEARANCE_RANK[clearance];
+
+  const scored = index.map((chunk) => {
+    let score = 0;
+    for (const term of qSet) {
+      const tf = chunk.termFreq.get(term);
+      if (!tf) continue;
+      const denom = tf + BM25_K1 * (1 - BM25_B + (BM25_B * chunk.length) / avgLen);
+      score += idf(term) * ((tf * (BM25_K1 + 1)) / denom);
+    }
+    // Small boost for phrase overlap in the raw text.
+    const lowerText = chunk.text.toLowerCase();
+    for (const term of qSet) {
+      if (term.length > 4 && lowerText.includes(term)) score += 0.15;
+    }
+    return { chunk, score };
+  });
+
+  const relevant = scored
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, Math.max(topK, 8));
+
+  return relevant.map(({ chunk, score }) => ({
+    chunkId: chunk.chunkId,
+    docId: chunk.docId,
+    score: Number(score.toFixed(4)),
+    heading: chunk.heading,
+    breadcrumb: chunk.breadcrumb,
+    text: chunk.text,
+    accessible: CLEARANCE_RANK[chunk.confidentiality] <= roleRank,
+  }));
+}
+
+export function resolveDoc(docId: string) {
+  return getDoc(docId);
+}

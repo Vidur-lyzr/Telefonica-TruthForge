@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Hub SSoT — governed, agentic Single Source of Truth for Telefónica
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: ask
+    description: Cited agentic question answering
+  - name: knowledge
+    description: Governed knowledge corpus, axes, roles
 paths:
   /healthz:
     get:
@@ -24,6 +28,130 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /ask:
+    post:
+      operationId: ask
+      tags: [ask]
+      summary: Ask a question over the governed knowledge core
+      description: >
+        Runs the Hub SSoT agent. Resolves the user's permission scope, retrieves
+        permission-filtered evidence, and composes a cited answer — or returns an
+        honest "no evidence" or "permission blocked" result. The model never sees
+        a chunk the user cannot access.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskInput"
+      responses:
+        "200":
+          description: Agent result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskResult"
+
+  /suggestions:
+    get:
+      operationId: listSuggestions
+      tags: [ask]
+      summary: Suggested starter questions
+      description: Example questions, including ones that showcase no-evidence, permission blocks, and historic flags.
+      responses:
+        "200":
+          description: Suggested questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SuggestedQuery"
+
+  /axes:
+    get:
+      operationId: listAxes
+      tags: [knowledge]
+      summary: The five Transform & Grow strategic axes
+      responses:
+        "200":
+          description: Strategic axes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StrategicAxis"
+
+  /roles:
+    get:
+      operationId: listRoles
+      tags: [knowledge]
+      summary: Selectable permission scopes (demo personas)
+      responses:
+        "200":
+          description: Roles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Role"
+
+  /corpus:
+    get:
+      operationId: listDocuments
+      tags: [knowledge]
+      summary: Governed corpus documents with their metadata contract
+      responses:
+        "200":
+          description: Corpus documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CorpusDocument"
+
+  /corpus/stats:
+    get:
+      operationId: getCorpusStats
+      tags: [knowledge]
+      summary: Corpus governance overview (counts and breakdowns)
+      responses:
+        "200":
+          description: Corpus statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpusStats"
+
+  /documents/{id}:
+    get:
+      operationId: getDocument
+      tags: [knowledge]
+      summary: A single document with its extracted chunks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CorpusDocumentDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +162,284 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    AskInput:
+      type: object
+      required: [question, area, roleId]
+      properties:
+        question:
+          type: string
+          minLength: 1
+        area:
+          type: string
+          description: Comunicación | Marca | Gabinete
+        roleId:
+          type: string
+          description: The active permission scope / persona id
+
+    AskResult:
+      type: object
+      required: [status, answer, citations, historic, axisIds]
+      properties:
+        status:
+          type: string
+          description: answered | no_evidence | permission_blocked
+        answer:
+          type: string
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Citation"
+        historic:
+          type: boolean
+        historicNote:
+          type: ["string", "null"]
+        permissionNote:
+          type: ["string", "null"]
+        axisIds:
+          type: array
+          items:
+            type: string
+        numeric:
+          oneOf:
+            - $ref: "#/components/schemas/NumericFact"
+            - type: "null"
+        relatedEntities:
+          type: array
+          items:
+            $ref: "#/components/schemas/GraphEntity"
+
+    Citation:
+      type: object
+      required: [id, docId, docTitle, sourceLoc, version, owner, confidence, confidentiality, validity, snippet]
+      properties:
+        id:
+          type: string
+          description: Marker referenced in the answer, e.g. S1
+        docId:
+          type: string
+        docTitle:
+          type: string
+        sourceLoc:
+          type: string
+          description: Human-readable location, e.g. "Q1 2026 Results › slide 12"
+        version:
+          type: string
+        owner:
+          type: string
+        validUntil:
+          type: ["string", "null"]
+        confidence:
+          type: number
+        confidentiality:
+          type: string
+          description: public | internal | confidential | restricted
+        validity:
+          type: string
+          description: approved | historic | review | superseded
+        snippet:
+          type: string
+        value:
+          type: ["string", "null"]
+          description: Optional headline figure for numeric evidence
+        country:
+          type: ["string", "null"]
+        brand:
+          type: ["string", "null"]
+        axisIds:
+          type: array
+          items:
+            type: string
+
+    NumericFact:
+      type: object
+      required: [label, value, unit, period, source]
+      properties:
+        label:
+          type: string
+        value:
+          type: string
+        unit:
+          type: string
+        period:
+          type: string
+        source:
+          type: string
+
+    GraphEntity:
+      type: object
+      required: [id, name, kind]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          description: market | brand | executive | axis
+        relation:
+          type: ["string", "null"]
+
+    SuggestedQuery:
+      type: object
+      required: [id, text, kind]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        kind:
+          type: string
+          description: cited | no_evidence | permission | historic
+
+    StrategicAxis:
+      type: object
+      required: [id, name, color, description]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        color:
+          type: string
+        description:
+          type: string
+
+    Role:
+      type: object
+      required: [id, label, clearance, area, description]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        clearance:
+          type: string
+          description: public | internal | confidential | restricted
+        area:
+          type: string
+        description:
+          type: string
+
+    CorpusDocument:
+      type: object
+      required:
+        [id, title, country, brand, entity, quarter, type, confidentiality, owner, validity, language, topics, axisIds, summary, chunkCount]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        country:
+          type: string
+        brand:
+          type: string
+        entity:
+          type: string
+        quarter:
+          type: string
+        type:
+          type: string
+        confidentiality:
+          type: string
+        owner:
+          type: string
+        validity:
+          type: string
+        validUntil:
+          type: ["string", "null"]
+        language:
+          type: string
+        topics:
+          type: array
+          items:
+            type: string
+        axisIds:
+          type: array
+          items:
+            type: string
+        summary:
+          type: string
+        chunkCount:
+          type: integer
+
+    CorpusDocumentDetail:
+      type: object
+      required: [document, chunks]
+      properties:
+        document:
+          $ref: "#/components/schemas/CorpusDocument"
+        chunks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentChunk"
+
+    DocumentChunk:
+      type: object
+      required: [id, breadcrumb, heading, text]
+      properties:
+        id:
+          type: string
+        breadcrumb:
+          type: string
+        heading:
+          type: string
+        text:
+          type: string
+
+    CountBucket:
+      type: object
+      required: [key, count]
+      properties:
+        key:
+          type: string
+        count:
+          type: integer
+
+    AxisCount:
+      type: object
+      required: [axisId, count]
+      properties:
+        axisId:
+          type: string
+        count:
+          type: integer
+
+    CorpusStats:
+      type: object
+      required:
+        [totalDocuments, totalChunks, quarantined, byCountry, byType, byConfidentiality, byValidity, byAxis]
+      properties:
+        totalDocuments:
+          type: integer
+        totalChunks:
+          type: integer
+        quarantined:
+          type: integer
+        byCountry:
+          type: array
+          items:
+            $ref: "#/components/schemas/CountBucket"
+        byType:
+          type: array
+          items:
+            $ref: "#/components/schemas/CountBucket"
+        byConfidentiality:
+          type: array
+          items:
+            $ref: "#/components/schemas/CountBucket"
+        byValidity:
+          type: array
+          items:
+            $ref: "#/components/schemas/CountBucket"
+        byAxis:
+          type: array
+          items:
+            $ref: "#/components/schemas/AxisCount"

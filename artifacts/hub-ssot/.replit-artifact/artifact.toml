@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Hub SSoT"
+version = "1.0.0"
+id = "artifacts/hub-ssot"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23486
+
+[services.development]
+run = "pnpm --filter @workspace/hub-ssot run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hub-ssot", "run", "build" ]
+publicDir = "artifacts/hub-ssot/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23486"
+BASE_PATH = "/"
