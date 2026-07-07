@@ -1,0 +1,109 @@
+# 00 · Data & Corpus Plan
+### What data we need, and how it's engineered — on real Telefónica 2026 facts
+
+> **Core idea:** we don't need *a lot* of data. We need the *right* data — a small corpus built on **real Telefónica 2026 narratives** and deliberately engineered so every governance guarantee (citation, permissions, validity, honesty, axis-classification, multi-language) becomes **watchable**. Data proves the product; it doesn't fill it.
+>
+> ⚠️ The 2026 figures below are taken from Accenture's use-case working doc as demo anchors. **Confirm final figures against Telefónica IR before the live presentation.**
+
+---
+
+## 1. Why synthetic-on-real-facts is the correct posture
+
+- **Clause VI (non-feeding / closed circuit)** forbids feeding any LLM on Telefónica's real internal data. A closed-circuit synthetic corpus is the *compliant* vehicle.
+- But **anchoring the synthetic content on real, public 2026 events** (Q1 results, the Transform & Grow plan, the Chile sale, MWC) makes the demo feel unmistakably Telefónica — without touching a confidential document.
+- **Posture to state:** "We built a representative corpus on your real 2026 story so we could prove the platform end-to-end without ingesting one confidential file. Day one, the same pipeline points at your SharePoint."
+
+---
+
+## 2. The three-layer taxonomy every document carries
+
+The metadata model is **three layers** (this is Accenture's confirmed model — use it verbatim everywhere):
+
+- **① Deterministic — *what the document is*** (declared, truth-by-contract):
+  `country_market · brand · legal_entity · year_quarter · doc_type · confidentiality (+off_the_record) · owner · validity/version · language`
+- **② Semantic — *what it talks about*** (derived from content): topics, entities, summary.
+- **③ Strategic — *what it serves in the Plan*** (derived, **live/configurable**): the 5 Transform & Grow axes. Editable from the back-office without re-embedding.
+
+No document enters without the deterministic layer complete → otherwise **quarantine** (a demoable moment).
+
+The 5 axes (official, from the RFP glossary): **1** Consolidation & European leadership · **2** More innovative & competitive · **3** More & better customer services · **4** Ambitious, rigorous & effective management · **5** Institutional reference for Spain in Europe.
+
+---
+
+## 3. What we ask Telefónica for (low-sensitivity, high-value)
+
+| Ask | Why | Fallback |
+|---|---|---|
+| **Brand kit** — brand book + Word note template + PPT committee-deck template + tone of voice | Powers Brand Room + on-brand generation + Brand Guardian. Highest-value single ask. | Reconstruct from public Telefónica identity |
+| **The 5 axes — official one-line definitions** | The Strategic-layer classification target | Use the glossary names above |
+| **One results-deck *structure*** (figures can be dummy) | Match their real deck shape / note conventions | Model on a generic telco quarterly |
+| **One KPI/results Excel** | Cell-level extraction + KPI panel realism | Synthesize |
+| **One Asana calendar export + one Talkwalker export + a few press mentions** | Planning + Social/press realism; confirm connector shape | Synthesize representative exports |
+| **A sample approved Q&A + messaging doc** | On-tone generated outputs | Synthesize |
+| **Confirm: what is "SIC"? · which Microsoft sensitivity labels?** | Named source + permission tiers we must match | Flag as discovery |
+
+Give us the **brand kit + 5 axes + one results deck + one Talkwalker export** and the demo looks like Telefónica.
+
+---
+
+## 4. The corpus — built on four real 2026 narratives
+
+~40 documents, multi-language (ES/EN/DE/PT), multi-format (Word/Excel/PPT/PDF), across all 5 axes and 3 confidentiality levels. Anchored on:
+
+### Narrative A — Q1 2026 results (presented 14 May 2026)
+- `Results_Q1_2026.pptx` (vFinal · 14 May · owner IR · confidential-until-published) — **revenue €8,127M**, adjusted EBITDA & cash-flow growth, net-debt reduction, rising accesses; **2026 targets** (revenue/EBITDA +1.5–2.5%, FCF ~€3,000M, capex ~12%); **dividend €0.15/share**.
+- `Approved_messaging_Q1_results.docx` — validated key messages that corroborate the revenue figure.
+- A board note also citing €8,127M → **3 sources agree → high confidence.**
+
+### Narrative B — Transform & Grow 2026-2030 Plan (Marc Murtra)
+- `TG_Plan_2026-2030.pdf` — the 5 axes; **European consolidation synergies €18–22bn**; **4 key markets: Spain, Germany, UK, Brazil**; levers: networks, cybersecurity, cloud, Defence.
+- The Strategic-layer classification target for the whole corpus.
+
+### Narrative C — Chile subsidiary sale (10 Feb 2026)
+- `Chile_sale_dealnote.docx` (public) — **sold 100% to NJJ Holding + Millicom for up to $1,365M**; part of the orderly exit from Spanish America to focus on the 4 markets.
+- `Chile_press_release.docx` + `Chile_QA.docx` — including the **off-the-record note: "Venezuela also in process — do not confirm timelines."**
+
+### Narrative D — MWC Barcelona planning
+- `MWC_calendar.xlsx` + Asana-shape export — keynote, releases, launches, brand events; **two launches deliberately on the same day/market** (conflict) + a competitor move mid-week.
+
+### The living external layer
+- `Talkwalker_export.xlsx` — mentions, sentiment, SoV by market (ES/BR/DE), including a **Brazil sentiment dip** and Q1-results + Chile-sale coverage.
+- `Press_mentions.pdf` — Expansión / Cinco Días / FT clippings.
+
+---
+
+## 5. The engineered traps (each is a hero beat)
+
+| Trap | Built from | Proves |
+|---|---|---|
+| **Defensible figure** | €8,127M in deck + messaging + board note | citation to slide/note · version · owner (IR) · validity · confidence "3 sources agree" |
+| **Honesty (no evidence)** | Vivo is **Brazil-only**; no Mexico ops | "Vivo doesn't operate in Mexico — did you mean Brazil?" No fabrication |
+| **Historic** | a prior-quarter revenue marked `historic` | returns figure badged historic + "a Q1 2026 series is available" |
+| **Permission** | Q1 figures `confidential-until-published` | a Comms user *without* confidential access is blocked pre-publication; chunk never enters context |
+| **Off-the-record** | Venezuela "do not confirm timelines" note | informs internal Q&A but is **blocked from any external release** |
+| **Conflict** | an old messaging doc vs the newer Q1 release | surfaces the conflict → documentalist resolves → compiles into the Wiki |
+| **Axis + multilingual** | docs across 5 axes, native DE/PT | Strategic-layer filtering + cross-language retrieval |
+
+---
+
+## 6. Generation approach (buildable)
+
+1. **Schema-first** — one `corpus_manifest.csv` defines the deterministic metadata for every doc; content is generated to match. The contract is never violated.
+2. **Format-true** — real `.pptx` with speaker notes, real `.xlsx` with cell refs, structured `.docx` — because slide/cell citation is a scored differentiator.
+3. **Trap-checked** — a checklist maps each §5 trap to the exact query that demonstrates it. If a trap can't be triggered, the corpus is incomplete.
+4. **Multilingual by construction** — a few docs authored natively in DE/PT so retrieval genuinely crosses languages.
+
+---
+
+## 7. Every scored line has a data-backed moment
+
+| RFP scored area | Corpus moment |
+|---|---|
+| Metadata architecture (10%) | quarantine gate + the 3-layer taxonomy on every doc |
+| Security/governance | permission trap (unpublished Q1) + off-record trap (Venezuela) |
+| Citation / trust | €8,127M with full provenance, 3 sources agree |
+| Evolution (axis change) | re-classify the corpus to a changed axis, no re-embed |
+| Multi-LLM / no lock-in | same corpus answered via a routed model swap |
+| Beats SharePoint+Copilot | the conflict → Wiki-compounding loop Copilot can't do |
+
+**One line:** a small corpus built on Telefónica's real 2026 story that turns every governance promise into a moment you can *watch happen*.

@@ -1,0 +1,91 @@
+# 08 · Data Center (backend)
+### The documentalist's home — where quality starts before the LLM
+
+> Inherits FOUNDATION + File 01. This is where the Documentalist — the RFP's central role — lives. It makes the 7-stage pipeline and the metadata contract *operable by internal teams*, which is the self-sufficiency the RFP scores. The documentalist is a **criteria editor**, not a file clerk.
+
+---
+
+## 1. The job
+
+Manage the sources feeding the SSoT, watch documents flow through ingestion, and — the core loop — **validate the metadata and classification the system proposes**. The system prepares; the person decides. Every validation makes the Wiki smarter.
+
+---
+
+## 2. Three areas
+
+- **Sources & connectors** — what's connected, health, cadence.
+- **Ingestion** — the live pipeline view: what's flowing, what's quarantined.
+- **Validation queue** — the documentalist's daily work: approve/correct proposed metadata + classification, resolve conflicts.
+
+---
+
+## 3. Sources & connectors
+
+```
+┌─ Sources ─────────────────────────────────────────────────────────────┐
+│  SharePoint (SSoT dump)   ● live   1,180 docs   last sync 11m ago      │
+│  Asana                    ● live   calendar     hourly                 │
+│  Talkwalker               ● live   near-real-time · filtered           │
+│  Manual upload            —        drag files here ↴                   │
+│  SIC                      ◌ to configure                               │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+Each source shows type, status, cadence, doc count. **External sources filter before ingesting** (keywords/competitors/executives/topics) — only relevant mentions enter, per the RFP rule. Manual upload opens the guided metadata form.
+
+---
+
+## 4. Ingestion view (the pipeline, made legible)
+
+A calm horizontal flow showing the 7 stages with live counts:
+```
+Intake → Extract → Chunk → Embed → Classify → Index → (Compile)
+ 42 in    40        40      40       38 ✓        38       Wiki+2
+  └ 2 quarantined (missing metadata) →                    
+```
+- **Quarantine is visible and actionable** — 2 docs held for missing mandatory fields; click → fix metadata → release. This *shows* "quality starts before the LLM."
+- Each doc's lineage is inspectable (which stage, which taxonomy version) — feeds the Wiki Sources inspector.
+
+---
+
+## 5. The validation queue (the heart of this page)
+
+```
+┌─ Awaiting your review (3) ────────────────────────────────────────────┐
+│  Results_Q1_DE.pptx                                                   │
+│  system proposes:  market DE · brand Telefónica · axis Innovation ●   │
+│                    confidentiality confidential · owner Finance DE     │
+│                    validity valid→Q2 · v1.2                           │
+│  confidence 0.91   [ ✓ approve ]  [ edit ]  [ reject ]                │
+│  ───────────────────────────────────────────────────────────────      │
+│  ⚠ CONFLICT · Spain SoV                                                │
+│  old deck says 31% · Talkwalker says 34% →                            │
+│  [ keep 34% (fresh) · retain 31% as historic ]  → compiles to Wiki    │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+- **System proposes, person validates.** The AI fills all **3 taxonomy layers** — deterministic (what it is), semantic (what it says), strategic (which axis) — and the documentalist approves in one click or corrects. High-confidence auto-approves; medium goes here; low is flagged unlabeled.
+- **Every correction trains the system** — it becomes a compiled fact in the Wiki, and improves future classification. The screen should say so quietly ("this correction refined the German position page").
+- **Conflict resolution** — where two valid sources disagree, the documentalist fixes the "version of truth" and marks the loser historic. *This is the compounding moat, operated here and surfaced on the Wiki.*
+
+---
+
+## 6. Governance & taxonomy-as-configuration
+
+- A governance panel edits the taxonomy / axes; a change triggers **re-classification, not re-embedding** (the investment-protection story) — 4 steps: edit → mapping table → assisted re-classify → human validation. No IT, no redeploy.
+- Every action is logged (who uploaded/modified/validated) → audit-ready, satisfying Clause VI.
+- SLA/freshness per document: last check, validity, "review > 6 months" nudges.
+
+---
+
+## 7. States
+
+- **Nothing to review** → "You're all caught up — 96% of sources validated." Calm, not empty.
+- **Quarantine backlog** → surfaced as the primary task, since unvalidated data is the enemy of trust.
+- **Low-confidence classification** → clearly flagged as needing a human, never silently guessed.
+
+---
+
+## 8. Why this page matters
+
+It's the RFP's whole operating model made real: the documentalist as criteria editor, metadata AI-assisted-but-human-validated, taxonomy editable without IT, everything audited. And it's the engine of the moat — **this is where the knowledge becomes a compounding asset instead of a static pile.** Copilot has no equivalent because it has no one governing the truth.

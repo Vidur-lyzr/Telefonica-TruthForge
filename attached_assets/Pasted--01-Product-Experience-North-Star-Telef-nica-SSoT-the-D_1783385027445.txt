@@ -1,0 +1,133 @@
+# 01 · Product Experience — North Star
+### Telefónica SSoT · the DNA every page inherits
+
+> This is the file every other file answers to. It defines who we build for, what they feel, how it looks, and the pages that make up the product. Read this before building any page.
+
+---
+
+## 1. Who this is for
+
+Four users, one shared core. We design for the first two; the others are lighter.
+
+**① The Communication Director / spokesperson prep** — *primary hero user.*
+High stakes, low patience, reputational risk on every number. Opens the tool minutes before a committee. Wants: *a figure I can defend, a deck I can walk in with, and the confidence that nothing here will embarrass me.* Their enemy is the plausible-but-unverifiable answer.
+
+**② The Documentalist / Content Owner** — *the unsung hero; the RFP centers this role.*
+Lives in the tool all day. Uploads, validates metadata, resolves figure conflicts, approves what's publishable. The RFI reframes them from *file manager → criteria editor*. Their work is what makes the Director's confidence real. **Every correction they make must visibly make the system smarter** — that's the emotional payoff we owe them.
+
+**③ The Brand manager** — governs Brand Room: templates, tone, guardianship. Wants outputs that are unmistakably on-brand, without policing every draft by hand.
+
+**④ The Marketing/Comms analyst** (and, later, Cabinet/Presidency) — consumes KPIs, planning, the weekly pulse. Wants signal, not dashboards-for-dashboards' sake.
+
+---
+
+## 2. The one feeling we're selling: **defensibility**
+
+Copilot gives you *plausible*. We give you *defensible*. Every screen should move the user from anxiety ("is this right? can I say this publicly?") to confidence ("source, version, owner, validity — right there, I'll stand behind it"). If a screen doesn't increase defensibility or speed, it doesn't ship.
+
+---
+
+## 3. Product principles (the design DNA)
+
+1. **Every claim carries its evidence.** Citation isn't a feature, it's the substrate. Nothing — figure, sentence, KPI — appears without provenance one tap away.
+2. **The system says "I don't know."** Honesty over helpfulness. A confident wrong answer is the only unforgivable failure. Silence with a reason beats a guess.
+3. **Governance is invisible until it matters.** You *feel* the envelope (you can't see what you shouldn't; historic is marked historic) but it never nags. Locks appear only where there's a lock.
+4. **One core, many lenses.** Chat, generation, KPIs, planning are the same governed knowledge seen differently. Learn the Canvas once, use it everywhere.
+5. **Knowledge compounds.** The more the team uses and corrects it, the smarter it gets. The Wiki is the visible proof the tool improves — the opposite of a static SharePoint.
+6. **The human decides; the platform prepares.** The system proposes, the person validates. Anything published passes a human gate.
+7. **Sovereign by feel.** It's *your* Azure, your keys. The product should feel like an internal Telefónica instrument, not a foreign SaaS bolted on.
+
+**Anti-patterns (do not ship):** walls of text; over-formatted agent replies; agentic theater (fake multi-step where one pass is honest); chat where a form is faster; exposed plumbing; decoration that isn't information.
+
+---
+
+## 4. Look & feel — the design system
+
+**Thesis:** *evidential calm.* A trustworthy instrument — a well-run newsroom desk crossed with a private-banking dashboard. Deliberately **not** the AI-default looks (cream+serif+terracotta / near-black+acid / broadsheet hairlines).
+
+### Palette (anchor on Telefónica blue — confirm exact hex vs brand book)
+```
+--tef-blue     #0B5FFF   Telefónica blue — primary action, brand, links
+--ink          #0A1633   deep navy-ink — headings, authority, primary text
+--paper        #F7F9FC   cool near-white canvas (NOT cream — cream reads as AI)
+--surface      #FFFFFF   cards, canvas
+--evidence     #1B9E77   verified / high-confidence (calm green, not neon)
+--historic     #C77B08   historic / review / caution (amber)
+--locked       #5B6480   confidential / no-access (slate — a lock, not an alarm)
+--hairline     #E4E9F2   dividers, borders — quiet
+```
+Blue is used with **restraint** — for action and brand, not everywhere. Most of the screen is paper, ink, and hairline.
+
+### Type
+- **Display / headings:** Telefónica's brand face (Telefónica Sans) where licensable; else a clean humanist grotesque. Used large and confident, sparingly.
+- **Body / UI:** a highly legible neutral sans (Inter-class).
+- **The signature risk — evidence in mono:** *all figures, citations, versions, and confidence scores are set in a tabular/monospaced face.* Every number reads like it came from a ledger. This single choice makes the product feel evidential and is unmistakably ours, not templated. Tabular figures also make KPI columns align perfectly.
+
+### The signature element: **the Evidence Chip**
+A compact, expandable provenance object that rides on every claim, figure, and answer:
+```
+[ €8,127M ·  Results_Q1_2026.pptx › slide 4 · vFinal · IR · 14 May · conf. ·  3 sources ]
+```
+Collapsed: the figure + a small blue evidence dot. Tap: the full receipt (source, location, version, owner, validity, confidence, "3 sources agree"). It is the atom of the whole product. Its big sibling is the **knowledge graph** on the Wiki (see file 03). Spend our boldness here; keep everything else quiet.
+
+### Governance vocabulary (consistent, everywhere)
+- **Axis pills** — 5 fixed colors for the 5 Transform & Grow axes (the *strategic* taxonomy layer); the same pill appears in chat, docs, KPIs, wiki.
+- **3-layer taxonomy** (deterministic / semantic / strategic) is the metadata model behind every citation drawer — deterministic = *what it is*, semantic = *what it says*, strategic = *which axis it serves*.
+- **Validity badges** — `approved` / `historic` / `review` / `superseded`.
+- **Lock affordance** — a slate lock only where content is gated; tapping explains *why* ("Confidential · Finance-DE — request access from owner").
+- **Confidence** — quiet color-coded score, never a big gauge.
+
+### Density & motion
+Dense where it earns it (citation drawers, KPI grids); generous whitespace everywhere else. Motion is minimal and functional: a citation drawer slides, a fresh answer's evidence dots settle in once. No ambient animation — extra motion reads as AI-generated.
+
+---
+
+## 5. Voice & copy
+
+Plain, active, sovereign. Name things by what the user controls ("Sources," "Approve," "Publish"), never by how it's built ("vector index," "RAG"). An action keeps its name through the flow (button "Publish" → toast "Published"). Empty states are invitations ("No sources yet — connect SharePoint or upload a document to begin"). Errors state what happened and the fix, in the interface's voice, no apology. The system's honest line is a feature, phrased with dignity: *"I don't have evidence for that."*
+
+---
+
+## 6. The page map (information architecture)
+
+**Front door + four apps (Workspace):**
+- **Home** — the ask bar (chat front door) + four apps + the live radar. *(File 02)*
+- **Ask / Chat** — cross-cutting cited Q&A over all governed knowledge. *The core, naked.*
+- **Generate** — one engine, three shapes: Talking points · Press release & Q&A · Multi-format document. Canvas editing, on-brand, scheduled mode.
+- **KPIs** — configurable panel + composite internal/external metrics + embedded chat + forecast + alerts.
+- **Planning** — unified Comms/Brand calendar + conflict detection + prediction + 10-day forecast.
+
+**The knowledge layer (the moat, made visible):**
+- **Wiki / Knowledge** — the living graph + compiled corporate memory + Sources inspector. *(File 03)*
+
+**Backend (self-sufficiency — a scored requirement):**
+- **Data Center** — sources & connectors, the ingestion pipeline view, the **metadata validation queue** (documentalist's home).
+- **Administration** — users, profiles/permissions, scheduled documents.
+- **Brand Room** — templates, tone of voice, corporate resources, Brand Guardian rules.
+
+**Connective tissue (not a page — a shared surface):**
+- **The Canvas** — the common editing experience for *every* output: draft on the left/center, refine by chat + inline edit, every claim cited, export `.docx/.pptx/.pdf` on-brand, save versioned with tags. Learn once, everywhere.
+- **The Citation Drawer** — slides in from any Evidence Chip anywhere in the product.
+
+---
+
+## 7. Role-adaptive shell
+
+Same product, different center of gravity by role (from Entra ID):
+- **Director** lands on committee-prep shortcuts + the radar.
+- **Documentalist** lands on the validation queue + ingestion health.
+- **Brand manager** lands on Brand Room + guardian activity.
+- Everyone shares Home, Ask, and the Wiki.
+
+---
+
+## 8. The quality bar (how we judge every page)
+
+Before any page ships, it must pass:
+1. **Defensibility** — is every claim one tap from its evidence?
+2. **Honesty** — does it degrade gracefully to "no evidence"?
+3. **Restraint** — did we remove one accessory? (No decoration that isn't information.)
+4. **Learnability** — is it the same Canvas/Chip/pill vocabulary as everywhere else?
+5. **Sovereignty feel** — does it feel like Telefónica's own instrument?
+
+If a page fails any of these, it's not done.

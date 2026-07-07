@@ -1,0 +1,139 @@
+# 03 · Wiki / Knowledge
+### The knowledge layers, made visible — the moat you can *watch*
+
+> Inherits File 01. This is the most important differentiating surface in the product. It is where the three knowledge layers — the governed corpus, the entity graph, and the compiled corporate memory — become one navigable, living brain. It is the single clearest answer to *"why not just point Copilot at SharePoint?"*
+
+---
+
+## 1. The core idea
+
+Copilot re-reads raw documents on every query and forgets everything the moment it answers. Our system does the opposite: it **compiles** what the organization knows into durable, cross-referenced knowledge that **gets smarter every time a documentalist validates or resolves a conflict.** The Wiki is where that compounding intelligence is visible and navigable.
+
+Three layers, shown as one:
+
+| Layer | What it is | Powered by | What it answers |
+|---|---|---|---|
+| **Corpus** | every governed document chunk, cited | Lyzr KB (vector + metadata + permission filter) | "what did we say about X?" |
+| **Graph** | entities & relationships — markets, brands, execs, initiatives, **the 5 axes as nodes** | Lyzr KG (Neo4j) | "how does X relate to Y? who owns it? which axis?" |
+| **Compiled memory** | the *institutional truth* — approved claims, resolved figures, editorial criteria | GitAgent LLM Wiki | "what is the version of truth we defend, and why?" |
+
+The Wiki page renders these as **one graph you can explore, with compiled pages behind each node.**
+
+---
+
+## 2. The three connected views
+
+The Wiki is one destination with three tabs that share state:
+
+- **① Map** — the living knowledge graph. The default view. The moat, visualized.
+- **② Pages** — the compiled wiki page behind any node: the institutional truth on a topic.
+- **③ Sources** — the inspector: raw documents, ingestion lineage, the validation trail. For power users / documentalists.
+
+---
+
+## 3. ① Map — the living knowledge graph
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│  Wiki · Map                          [ Ask the knowledge base…    ➤ ] │
+│  Filter: Axis ▾  Market ▾  Brand ▾  Confidentiality ▾   language ▾    │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│            (Innovation & competitiveness)◉───────◯ O2 DE             │
+│                   │            ╲                    │                 │
+│         ◯ Fiber DE │             ╲ 0.94             │ sentiment ↓     │
+│                   │               ◉ Revenue €8,127M   │                 │
+│      (European ────◯ Deutschland ─┘        ╲        ◯ Talkwalker      │
+│       consolidation)   │                    ╲                        │
+│                        ◯ Carlos M.·Finance   ◯ Q1 Results deck       │
+│                                                                      │
+│   ◉ compiled page   ◯ entity   ◉ axis    ── citation  ╌╌ relationship │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+**Interaction model (purposeful, not a toy):**
+- **Node types are visually distinct:** the 5 axes (large, fixed-color anchors), compiled pages (blue-filled), entities (outline — markets, brands, execs, products, figures), and documents (small).
+- **Edges carry meaning:** solid = *citation* (this claim comes from that source), dashed = *relationship* (owned-by, mentions, classified-under). Edge labels can show confidence.
+- **Click an axis** → the graph focuses to everything under *Innovation & competitiveness*: the compiled pages, the docs, the figures, the markets. This is the RFP's "always tell me which axis it contributes to" — made spatial.
+- **Click a figure node** (e.g. €8,127M Q1 revenue) → its Evidence Chip + every source that agrees + confidence.
+- **Governance is on the graph:** locked nodes render slate + lock (you see *that* knowledge exists but not its contents — "request access"); historic nodes render amber. The graph is permission-filtered — you only see your world.
+- **Every node is tagged with the 3-layer taxonomy** (deterministic / semantic / strategic); filtering by the strategic axis, by market/brand (deterministic), or by topic (semantic) all reshape the same graph.
+- **Filters** (axis / market / brand / confidentiality / language) reshape the graph live.
+
+The graph is beautiful but every visual property **encodes something true** (color = axis, fill = layer, edge = citation vs relationship). No decoration. This restraint is what makes it read as an instrument, not a data-viz demo.
+
+---
+
+## 4. ② Pages — the compiled corporate memory (the heart of the moat)
+
+Click any compiled node → its page. This is *not* a document; it's the **institutional truth on a topic, compiled from many sources and refined by human validation.**
+
+Anatomy of a compiled page — e.g. **"What we defend on European consolidation"**:
+
+```
+━━ European consolidation                          axis ● · valid ✓ · 4 owners
+   Compiled from 14 sources · last refined by Carlos M. · 3 days ago
+
+   THE POSITION WE DEFEND
+   Telefónica's consolidation thesis rests on [scale in DE] and
+   [regulatory tailwind]. Key defended figure: EBITDA DE Q1
+   [ €8,127M · Results_Q1_2026 › s4 · vFinal · IR ·  3 sources agree ]
+
+   RESOLVED FACTS                         ← where conflicts were settled
+   • Spain SoV Q1 = 34%  (resolved 12/03 — Talkwalker over old deck,
+     by Ana R. — superseded figure retained as historic)
+
+   OPEN / WATCH
+   • German competitive pressure in AI ↑ — see [[O2 DE]] radar
+
+   RELATED  [[Innovation & competitiveness]] · [[Deutschland]] · [[Fiber DE]]
+   CHANGE LOG   who refined what, when — the version history of the TRUTH
+```
+
+Key product properties:
+- **`[[wiki-links]]`** cross-reference other pages and highlight the corresponding nodes in the Map — reading and graph stay in sync.
+- **Every claim is an Evidence Chip.** A compiled page is not the model's opinion; it's cited all the way down.
+- **"Resolved facts"** is the section that *only this product can have*: it shows where two sources disagreed and how a human documentalist settled it. This is the compounding moat, on screen.
+- **The change log is a version history of the *truth*, not the document** — who refined the position, when. This is "the documentalist as criteria editor" made real.
+
+---
+
+## 5. ③ Sources — the inspector
+
+For documentalists and technical evaluators. A calm file/lineage explorer:
+- The raw documents behind any page or node, with full metadata.
+- **Ingestion lineage** — this chunk came from *that* file, extracted *this* way, classified to *these* axes at *this* taxonomy version.
+- The **validation trail** — proposed metadata vs human-approved, corrections over time.
+- This view quietly proves auditability (Clause VI / audit-ready) without a compliance lecture.
+
+---
+
+## 6. Conversational search (over all three layers)
+
+A persistent ask bar on the Wiki that answers *from the compiled knowledge*, citing pages and highlighting nodes:
+> *"What patterns are emerging in our German competitive position?"* → a synthesized answer with `[[links]]` that light up the graph, each claim an Evidence Chip.
+
+Difference from Home's Ask: Home's chat searches everything; the Wiki's search reasons over the **compiled** layer — faster, more synthesized, relationship-aware — because the knowledge is already crystallized.
+
+---
+
+## 7. How compounding is made visible (the emotional payoff)
+
+The Wiki must *show its own improvement*, or the moat is invisible:
+- When a documentalist resolves a conflict or approves a claim, a subtle event appears: **"European consolidation page refined — 1 fact resolved."** The node briefly pulses on the Map.
+- A small, honest counter somewhere calm: **"This week: 12 facts resolved · 3 conflicts settled · 5 pages refined."**
+- Over the demo, you can literally point at a node and say *"that got smarter because Carlos validated it — Copilot can't do this."*
+
+This is the difference between a knowledge *base* and a knowledge *asset*. We're building the asset, and this page is where the buyer sees it appreciate.
+
+---
+
+## 8. Visual language
+
+Ink-on-paper, Telefónica blue for compiled/active nodes, the 5 fixed axis colors as the graph's anchors, mono for every figure and confidence score, slate locks and amber historic markers consistent with the rest of the product. The graph uses generous space and gentle physics; motion is limited to focus transitions and the validation pulse — nothing ambient. Spend the boldness on the graph; keep the pages quiet and editorial.
+
+---
+
+## 9. Why this is the sharpest slide in the demo
+
+Walk the evaluator from a question → a cited answer → the node that answer came from → the compiled page behind it → the resolved-conflict that made it trustworthy → the change log of the truth. That single path is the entire thesis of the product: **governed, cited, relationship-aware, and compounding.** It is the one thing SharePoint + Copilot structurally cannot show — and it's the reason the data layer, not the app layer, is where this deal is won.

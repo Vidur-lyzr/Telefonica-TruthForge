@@ -1,0 +1,81 @@
+# 06 · KPIs
+### Objective tracking that's cited all the way down
+
+> Inherits FOUNDATION + File 01. Not document generation — this is monitoring + querying over the numeric zone and the external signal layer, with the same governance vocabulary. Every number drills to its source.
+
+---
+
+## 1. The job
+
+A Comms/Marketing lead tracks the objectives Telefónica has set — combining internal results with external signals (social, media, competition) — sees deviations early, and can *ask why*. The RFP doesn't define the KPIs, so **KPIs are configured against objectives, never hard-coded.**
+
+---
+
+## 2. Layout
+
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│  KPIs   filters: axis ▾ market ▾ brand ▾ period ▾ source ▾   scope ▾   │
+├───────────────────────────────────────────────────────────────────────┤
+│  ┌─Technology SoV · ES────┐ ┌─Sentiment · BR─────┐ ┌─Coverage · DE──┐  │
+│  │  34%   ▲+18% vs Q-1    │ │  +0.12  ▼ off-track │ │  128   on-track │  │
+│  │  target 30 · ●on       │ │  target +0.30 ·amber│ │  target 120 · ● │  │
+│  │  ▁▂▄▆▇  [ source · 0.9 ]│ │  ▇▆▄▂▁ [ Talkwalker ]│ │  ▂▄▆▇▇          │  │
+│  └────────────────────────┘ └────────────────────┘ └────────────────┘  │
+│                                                                       │
+│  Innovation & competitiveness ● · forecast: closes quarter at 36 vs 30 │
+│                                                                       │
+│  [ Ask about these KPIs…  "why is sentiment falling in Brazil?"   ➤ ]  │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+Cards are calm, mono figures, tabular alignment. Color only where status demands (green on-track, amber off, evidence dot for the source). Sparklines, not chart-junk.
+
+---
+
+## 3. The KPI card anatomy
+
+Each card: **current value · target · % progress · trend (sparkline) · variation vs prior period · status · Evidence Chip (source + validity + confidence) · axis pill.** Composite KPIs (Share of Voice, sentiment, coverage) blend internal objectives + social listening + media — and the chip shows the blend ("internal + Talkwalker, 0.9"). Nothing is a number without a source.
+
+---
+
+## 4. Behaviors
+
+**Live filters.** Axis · market · brand · period (week/month/quarter/range) · source · initiative type — panel recalculates instantly. Permission-scoped: you only see KPIs your area/confidentiality allows.
+
+**Drill-down.** Click a KPI → full time series + breakdown by dimension (country/channel/brand) + the **list of sources that compose it**, each linkable (citation). A number is never a dead end.
+
+**Forecast.** With enough history, project to period-end and flag deviation risk: *"at this rate you close the quarter at 36 vs target 30."* Honest about confidence.
+
+**Alerts.** Threshold/deviation → notify the owner (Teams/email) and surface on the Home radar.
+
+**Embedded chat (the differentiator).** A conversational window *scoped to the KPI module and the user's permissions*: *"why is sentiment falling in Brazil this week?"* → a cited explanation + drill-down + probable causes drawn from the mentions behind the metric. Different from Home's cross-cutting Ask — this one reasons over the numbers and their sources.
+
+**Export → report.** "Generate KPI report" hands off to Generate (Case 3) → Canvas → on-brand export, versioned. KPIs feed documents; the loop closes.
+
+---
+
+## 5. Configuration (self-sufficiency — scored)
+
+An Admin defines/edits KPIs, their objectives, and their sources from the backend — versioned, no code. When Telefónica sets new objectives, the panel adapts by configuration. This is the "not hard-coded / maintainable by internal teams" requirement, made concrete.
+
+---
+
+## 6. States
+
+- **No objectives configured** → "Define your first objective to start tracking" — not an empty grid.
+- **Stale metric** → the card badges the underlying data historic and nudges toward the fresher series (same honesty rule as Ask).
+- **Composite with a conflicting source** → surfaces the conflict + routes to the Wiki resolution path.
+- **Restricted** → fewer cards; no "denied" theater.
+
+---
+
+## 7. Real anchored example
+
+After the **Q1 2026 results presentation (14 May)** and the Transform & Grow narrative, the Comms lead reviews the panel to measure reputational impact. Filters: last week · markets [Spain, Brazil, Germany] · axis *Ambitious management*. Sees SoV, sentiment, coverage. **Brazil sentiment card flips to off-track** → drills into the time series + the mentions driving it → embedded chat: *"why is sentiment dropping in Brazil this week?"* → cited insight (the specific news item) + probable causes. Forecast: *"at this pace SoV closes the quarter at X vs objective Y."* Sets a threshold alert → "generate KPI report" hands to Generate. Every number carries its source.
+
+---
+
+## 8. Why this page matters
+
+It proves the numeric layer is as governed as the prose: **every KPI drills to a cited source, composites show their blend, forecasts admit their uncertainty, and you can ask the panel *why*.** It's the difference between a dashboard that looks authoritative and one that *is* — and it feeds straight back into on-brand reporting.
