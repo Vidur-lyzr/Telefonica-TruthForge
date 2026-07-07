@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   useListAdminProfiles,
   useListPlatformUsers,
@@ -8,65 +8,51 @@ import {
   ScheduledDocument,
   AuditEntry,
 } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useApp } from "@/components/app-provider";
 import {
+  Box,
+  Boxed,
+  Stack,
+  Inline,
+  Grid,
+  Divider,
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
+  Tag,
+  Sheet,
+  Callout,
+  Circle,
+  TextField,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Shield,
-  Users,
-  CalendarClock,
-  ScrollText,
-  Crown,
-  SlidersHorizontal,
-  PenSquare,
-  Eye,
-  UserPlus,
-  Plus,
-  AlertTriangle,
-  ArrowRight,
-  FolderClock,
-  Layers,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  ButtonPrimary,
+  ButtonSecondary,
+  ButtonLink,
+  Text1,
+  Text2,
+  Text3,
+  Title2,
+  Title3,
+  skinVars,
+  IconUserAccountRegular,
+  IconSettingsRegular,
+  IconEditPencilRegular,
+  IconEyeRegular,
+  IconAddUserRegular,
+  IconCalendarRegular,
+  IconListRegular,
+  IconFolderRegular,
+  IconLayersRegular,
+  IconShieldCheckedOkRegular,
+  IconAlertRegular,
+  IconArrowLineRightRegular,
+  IconTrophyRegular,
+} from "@telefonica/mistica";
 
+type IconType = (props: { size?: number; color?: string }) => React.ReactElement;
 type Area = "Comunicación" | "Marca" | "Gabinete";
 type Clearance = "public" | "internal" | "confidential" | "restricted";
 type ProfileId = "superadmin" | "admin" | "editor" | "audit";
+
+type TagType = "promo" | "info" | "active" | "inactive" | "success" | "warning" | "error";
 
 const AREAS: Area[] = ["Comunicación", "Marca", "Gabinete"];
 const CLEARANCES: Clearance[] = ["public", "internal", "confidential", "restricted"];
@@ -77,53 +63,53 @@ const CLEARANCE_RANK: Record<Clearance, number> = {
   restricted: 3,
 };
 
-const PROFILE_ICON: Record<ProfileId, React.ComponentType<{ className?: string }>> = {
-  superadmin: Crown,
-  admin: SlidersHorizontal,
-  editor: PenSquare,
-  audit: Eye,
+const PROFILE_ICON: Record<ProfileId, IconType> = {
+  superadmin: IconTrophyRegular,
+  admin: IconSettingsRegular,
+  editor: IconEditPencilRegular,
+  audit: IconEyeRegular,
 };
 
-function clearanceBadgeClass(c: string) {
+function clearanceTagType(c: string): TagType {
   switch (c) {
     case "public":
-      return "bg-muted text-muted-foreground";
+      return "inactive";
     case "internal":
-      return "bg-tf-info-bg text-tf-info";
+      return "info";
     case "confidential":
-      return "bg-tf-warning-bg text-tf-warning";
+      return "warning";
     case "restricted":
-      return "bg-tf-error-bg text-tf-error";
+      return "error";
     default:
-      return "bg-muted text-muted-foreground";
+      return "inactive";
   }
 }
 
-function scheduleStatusClass(s: string) {
+function scheduleTagType(s: string): TagType {
   switch (s) {
     case "active":
-      return "bg-tf-success text-white";
+      return "success";
     case "paused":
-      return "bg-muted text-muted-foreground";
+      return "inactive";
     case "orphaned":
-      return "bg-tf-error text-white";
+      return "error";
     default:
-      return "bg-muted text-muted-foreground";
+      return "inactive";
   }
 }
 
-function auditKindClass(k: string) {
+function auditTagType(k: string): TagType {
   switch (k) {
     case "permission":
-      return "bg-tf-warning-bg text-tf-warning";
+      return "warning";
     case "user":
-      return "bg-tf-info-bg text-tf-info";
+      return "info";
     case "schedule":
-      return "bg-tf-blue-tint text-tf-blue";
+      return "promo";
     case "run":
-      return "bg-muted text-muted-foreground";
+      return "inactive";
     default:
-      return "bg-muted text-muted-foreground";
+      return "inactive";
   }
 }
 
@@ -157,28 +143,28 @@ export default function AdminPage() {
   const { data: seedAudit } = useListAuditEntries();
 
   // Session-only overlays layered on the seeded data (no database).
-  const [sessionUsers, setSessionUsers] = useState<SessionUser[]>([]);
-  const [userEdits, setUserEdits] = useState<Record<string, Partial<PlatformUser>>>({});
-  const [sessionSchedules, setSessionSchedules] = useState<SessionSchedule[]>([]);
-  const [sessionAudit, setSessionAudit] = useState<AuditEntry[]>([]);
+  const [sessionUsers, setSessionUsers] = React.useState<SessionUser[]>([]);
+  const [userEdits, setUserEdits] = React.useState<Record<string, Partial<PlatformUser>>>({});
+  const [sessionSchedules, setSessionSchedules] = React.useState<SessionSchedule[]>([]);
+  const [sessionAudit, setSessionAudit] = React.useState<AuditEntry[]>([]);
 
-  const profileLabel = useMemo(() => {
+  const profileLabel = React.useMemo(() => {
     const map: Record<string, string> = {};
     (profiles ?? []).forEach((p) => (map[p.id] = p.label));
     return map;
   }, [profiles]);
 
-  const users: PlatformUser[] = useMemo(() => {
+  const users: PlatformUser[] = React.useMemo(() => {
     const merged = [...(seedUsers ?? []), ...sessionUsers];
     return merged.map((u) => ({ ...u, ...userEdits[u.id] }));
   }, [seedUsers, sessionUsers, userEdits]);
 
-  const schedules: ScheduledDocument[] = useMemo(
+  const schedules: ScheduledDocument[] = React.useMemo(
     () => [...(seedSchedules ?? []), ...sessionSchedules],
     [seedSchedules, sessionSchedules],
   );
 
-  const auditEntries: AuditEntry[] = useMemo(() => {
+  const auditEntries: AuditEntry[] = React.useMemo(() => {
     const merged = [...sessionAudit, ...(seedAudit ?? [])];
     return merged.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
   }, [seedAudit, sessionAudit]);
@@ -197,10 +183,10 @@ export default function AdminPage() {
   }
 
   // ---- User register / edit ----
-  const [userDialogOpen, setUserDialogOpen] = useState(false);
-  const [editingUserId, setEditingUserId] = useState<string | null>(null);
-  const [userDraft, setUserDraft] = useState({ ...emptyUserDraft });
-  const [pendingUser, setPendingUser] = useState<null | { isEdit: boolean }>(null);
+  const [userDialogOpen, setUserDialogOpen] = React.useState(false);
+  const [editingUserId, setEditingUserId] = React.useState<string | null>(null);
+  const [userDraft, setUserDraft] = React.useState({ ...emptyUserDraft });
+  const [pendingUser, setPendingUser] = React.useState<null | { isEdit: boolean }>(null);
 
   function openRegister() {
     setEditingUserId(null);
@@ -277,8 +263,8 @@ export default function AdminPage() {
   const draftValid = userDraft.name.trim().length > 0 && userDraft.email.trim().length > 0;
 
   // ---- Schedule create ----
-  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
-  const [scheduleDraft, setScheduleDraft] = useState({
+  const [scheduleDialogOpen, setScheduleDialogOpen] = React.useState(false);
+  const [scheduleDraft, setScheduleDraft] = React.useState({
     template: "",
     frequency: "Weekly",
     languages: "es, en",
@@ -320,556 +306,469 @@ export default function AdminPage() {
     scheduleDraft.template.trim().length > 0 && scheduleDraft.owner.trim().length > 0;
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-title-lg text-tf-navy">Administration</h1>
-        <p className="text-muted-foreground text-lg max-w-3xl">
-          Run the platform without a vendor: register users, assign profiles, manage permissions by
-          area and confidentiality, and schedule recurring documents. This is the backend that
-          proves the platform is operable after implementation.
-        </p>
-      </div>
-
-      {/* Access model explainer */}
-      <Card className="shadow-sm border-border overflow-hidden">
-        <CardHeader className="bg-tf-navy text-white">
-          <CardTitle className="flex items-center space-x-2 text-white text-lg">
-            <Shield className="w-5 h-5 text-tf-blue-light" />
-            <span>Access = area × confidentiality</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto_1fr] gap-4 items-stretch">
-            <div className="rounded-xl border border-border p-5 bg-tf-blue-tint/40">
-              <div className="text-xs uppercase tracking-eyebrow font-bold text-tf-blue mb-2">
-                Set here
-              </div>
-              <p className="font-bold text-tf-navy">Who you are</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                User → area (Comunicación / Marca / Gabinete) and profile. Managed on this page.
-              </p>
-            </div>
-            <div className="hidden md:flex items-center justify-center text-2xl font-bold text-muted-foreground">
-              ×
-            </div>
-            <div className="rounded-xl border border-border p-5 bg-muted/40">
-              <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground mb-2">
-                Inherited
-              </div>
-              <p className="font-bold text-tf-navy">How sensitive the content is</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Confidentiality label inherited from each document's Microsoft sensitivity label —
-                not set here.
-              </p>
-            </div>
-            <div className="hidden md:flex items-center justify-center text-muted-foreground">
-              <ArrowRight className="w-6 h-6" />
-            </div>
-            <div className="rounded-xl border border-tf-blue p-5 bg-white">
-              <div className="text-xs uppercase tracking-eyebrow font-bold text-tf-blue mb-2">
-                Effective access
-              </div>
-              <p className="font-bold text-tf-navy">What each person sees</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Enforced at the index (early-binding) — the model never sees a chunk the user cannot
-                access.
-              </p>
-            </div>
+    <Box padding={24}>
+      <Stack space={32}>
+        {/* Header */}
+        <Stack space={8}>
+          <Title2>Administration</Title2>
+          <div style={{ maxWidth: 768 }}>
+            <Text3 regular color={skinVars.colors.textSecondary}>
+              Run the platform without a vendor: register users, assign profiles, manage permissions
+              by area and confidentiality, and schedule recurring documents. This is the backend that
+              proves the platform is operable after implementation.
+            </Text3>
           </div>
-        </CardContent>
-      </Card>
+        </Stack>
 
-      {/* Profiles overview */}
-      <div>
-        <div className="flex items-center space-x-2 mb-4">
-          <Layers className="w-5 h-5 text-tf-blue" />
-          <h2 className="text-title-sm font-bold text-tf-navy">Access profiles</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {(profiles ?? []).map((p) => {
-            const Icon = PROFILE_ICON[p.id as ProfileId] ?? Shield;
-            return (
-              <Card key={p.id} className="shadow-sm border-border">
-                <CardContent className="p-5 space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <div className="p-2 bg-tf-blue-tint rounded-lg text-tf-blue">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <h3 className="font-bold text-tf-navy">{p.label}</h3>
-                  </div>
-                  <p className="text-xs uppercase tracking-eyebrow font-bold text-tf-blue">
-                    {p.scope}
-                  </p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{p.detail}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-        <p className="text-sm text-muted-foreground mt-3">
-          Profiles can be added or unified as the organisation evolves — the four above are the RFP
-          baseline, not a fixed ceiling.
-        </p>
-      </div>
+        {/* Access model explainer */}
+        <Boxed>
+          <Stack space={0}>
+            <div
+              style={{
+                backgroundColor: skinVars.colors.brand,
+                padding: 16,
+                borderTopLeftRadius: skinVars.borderRadii.container,
+                borderTopRightRadius: skinVars.borderRadii.container,
+              }}
+            >
+              <Inline space={8} alignItems="center">
+                <IconShieldCheckedOkRegular color={skinVars.colors.inverse} />
+                <Text3 medium color={skinVars.colors.inverse}>
+                  Access = area × confidentiality
+                </Text3>
+              </Inline>
+            </div>
+            <Box padding={24}>
+              <Grid columns={3} gap={16}>
+                <Boxed>
+                  <Box padding={20}>
+                    <Stack space={4}>
+                      <Text1 medium color={skinVars.colors.brand} transform="uppercase">
+                        Set here
+                      </Text1>
+                      <Text3 medium color={skinVars.colors.textPrimary}>
+                        Who you are
+                      </Text3>
+                      <Text2 regular color={skinVars.colors.textSecondary}>
+                        User → area (Comunicación / Marca / Gabinete) and profile. Managed on this
+                        page.
+                      </Text2>
+                    </Stack>
+                  </Box>
+                </Boxed>
+                <Boxed>
+                  <Box padding={20}>
+                    <Stack space={4}>
+                      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                        Inherited
+                      </Text1>
+                      <Text3 medium color={skinVars.colors.textPrimary}>
+                        How sensitive the content is
+                      </Text3>
+                      <Text2 regular color={skinVars.colors.textSecondary}>
+                        Confidentiality label inherited from each document's Microsoft sensitivity
+                        label — not set here.
+                      </Text2>
+                    </Stack>
+                  </Box>
+                </Boxed>
+                <Boxed>
+                  <Box padding={20}>
+                    <Stack space={4}>
+                      <Inline space={4} alignItems="center">
+                        <Text1 medium color={skinVars.colors.brand} transform="uppercase">
+                          Effective access
+                        </Text1>
+                        <IconArrowLineRightRegular size={14} color={skinVars.colors.brand} />
+                      </Inline>
+                      <Text3 medium color={skinVars.colors.textPrimary}>
+                        What each person sees
+                      </Text3>
+                      <Text2 regular color={skinVars.colors.textSecondary}>
+                        Enforced at the index (early-binding) — the model never sees a chunk the user
+                        cannot access.
+                      </Text2>
+                    </Stack>
+                  </Box>
+                </Boxed>
+              </Grid>
+            </Box>
+          </Stack>
+        </Boxed>
 
-      {/* Users */}
-      <Card className="shadow-sm border-border overflow-hidden">
-        <CardHeader className="bg-muted/30 border-b border-border flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="flex items-center space-x-2 text-tf-navy text-lg">
-            <Users className="w-5 h-5 text-tf-blue" />
-            <span>Platform users</span>
-          </CardTitle>
-          <Button
-            onClick={openRegister}
-            size="sm"
-            className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold"
-          >
-            <UserPlus className="w-4 h-4 mr-2" /> Register user
-          </Button>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Name</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Area</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Profile</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">
-                  Confidentiality tier
-                </TableHead>
-                <TableHead className="w-[80px] text-right"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((u) => (
-                <TableRow key={u.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell>
-                    <div className="font-semibold text-tf-navy">{u.name}</div>
-                    <div className="text-xs text-muted-foreground">{u.email}</div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-medium">{u.area}</TableCell>
-                  <TableCell className="font-medium text-tf-navy">
-                    {profileLabel[u.profileId] ?? u.profileId}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={cn(
-                        "uppercase text-[10px] tracking-eyebrow rounded-full font-bold",
-                        clearanceBadgeClass(u.clearance),
-                      )}
-                    >
-                      {u.clearance}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="rounded-pill font-semibold text-tf-blue hover:bg-tf-blue-tint"
-                      onClick={() => openEdit(u)}
-                    >
-                      Edit
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        {/* Profiles overview */}
+        <Stack space={16}>
+          <Inline space={8} alignItems="center">
+            <IconLayersRegular color={skinVars.colors.brand} />
+            <Title3>Access profiles</Title3>
+          </Inline>
+          <Grid columns={4} gap={16}>
+            {(profiles ?? []).map((p) => {
+              const Icon = PROFILE_ICON[p.id as ProfileId] ?? IconShieldCheckedOkRegular;
+              return (
+                <Boxed key={p.id}>
+                  <Box padding={20}>
+                    <Stack space={12}>
+                      <Inline space={8} alignItems="center">
+                        <Circle size={36} backgroundColor={skinVars.colors.brandLow}>
+                          <Icon size={20} color={skinVars.colors.brand} />
+                        </Circle>
+                        <Text3 medium color={skinVars.colors.textPrimary}>
+                          {p.label}
+                        </Text3>
+                      </Inline>
+                      <Text1 medium color={skinVars.colors.brand} transform="uppercase">
+                        {p.scope}
+                      </Text1>
+                      <Text2 regular color={skinVars.colors.textSecondary}>
+                        {p.detail}
+                      </Text2>
+                    </Stack>
+                  </Box>
+                </Boxed>
+              );
+            })}
+          </Grid>
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            Profiles can be added or unified as the organisation evolves — the four above are the RFP
+            baseline, not a fixed ceiling.
+          </Text2>
+        </Stack>
 
-      {/* Scheduled documents */}
-      <Card className="shadow-sm border-border overflow-hidden">
-        <CardHeader className="bg-muted/30 border-b border-border flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="flex items-center space-x-2 text-tf-navy text-lg">
-            <CalendarClock className="w-5 h-5 text-tf-blue" />
-            <span>Scheduled documents</span>
-          </CardTitle>
-          <Button
-            onClick={() => setScheduleDialogOpen(true)}
-            size="sm"
-            className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold"
-          >
-            <Plus className="w-4 h-4 mr-2" /> Schedule document
-          </Button>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="flex items-start space-x-3 rounded-xl bg-tf-blue-tint/40 border border-border p-4">
-            <FolderClock className="w-5 h-5 text-tf-blue mt-0.5 shrink-0" />
-            <p className="text-sm text-tf-navy font-medium">
-              Human gate: every generated document lands in the owner's review folder and never
-              auto-publishes. A person always reviews before anything is released.
-            </p>
-          </div>
+        {/* Users */}
+        <Stack space={16}>
+          <Inline space="between" alignItems="center">
+            <Inline space={8} alignItems="center">
+              <IconUserAccountRegular color={skinVars.colors.brand} />
+              <Title3>Platform users</Title3>
+            </Inline>
+            <ButtonPrimary small onPress={openRegister} StartIcon={IconAddUserRegular}>
+              Register user
+            </ButtonPrimary>
+          </Inline>
+          <Table
+            heading={["Name", "Area", "Profile", "Confidentiality tier", ""]}
+            content={users.map((u) => [
+              <Stack space={2} key={`${u.id}-name`}>
+                <Text2 medium color={skinVars.colors.textPrimary}>
+                  {u.name}
+                </Text2>
+                <Text1 regular color={skinVars.colors.textSecondary}>
+                  {u.email}
+                </Text1>
+              </Stack>,
+              <Text2 regular color={skinVars.colors.textSecondary} key={`${u.id}-area`}>
+                {u.area}
+              </Text2>,
+              <Text2 medium color={skinVars.colors.textPrimary} key={`${u.id}-profile`}>
+                {profileLabel[u.profileId] ?? u.profileId}
+              </Text2>,
+              <Tag type={clearanceTagType(u.clearance)} key={`${u.id}-clearance`}>
+                {u.clearance}
+              </Tag>,
+              <ButtonLink small onPress={() => openEdit(u)} key={`${u.id}-edit`}>
+                Edit
+              </ButtonLink>,
+            ])}
+          />
+        </Stack>
+
+        {/* Scheduled documents */}
+        <Stack space={16}>
+          <Inline space="between" alignItems="center">
+            <Inline space={8} alignItems="center">
+              <IconCalendarRegular color={skinVars.colors.brand} />
+              <Title3>Scheduled documents</Title3>
+            </Inline>
+            <ButtonPrimary small onPress={() => setScheduleDialogOpen(true)} StartIcon={IconCalendarRegular}>
+              Schedule document
+            </ButtonPrimary>
+          </Inline>
+          <Callout
+            variant="default"
+            asset={<IconFolderRegular color={skinVars.colors.brand} />}
+            title=""
+            description="Human gate: every generated document lands in the owner's review folder and never auto-publishes. A person always reviews before anything is released."
+          />
           {orphanedCount > 0 && (
-            <div className="flex items-start space-x-3 rounded-xl bg-tf-error-bg border border-tf-error/30 p-4">
-              <AlertTriangle className="w-5 h-5 text-tf-error mt-0.5 shrink-0" />
-              <p className="text-sm text-tf-navy font-medium">
-                {orphanedCount} schedule{orphanedCount > 1 ? "s are" : " is"} orphaned — the source
-                document is missing. These are flagged rather than run silently, so no output is
-                generated from a broken source.
-              </p>
-            </div>
+            <Callout
+              variant="default"
+              asset={<IconAlertRegular color={skinVars.colors.error} />}
+              title=""
+              description={`${orphanedCount} schedule${orphanedCount > 1 ? "s are" : " is"} orphaned — the source document is missing. These are flagged rather than run silently, so no output is generated from a broken source.`}
+            />
           )}
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">
-                  Template
-                </TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">
-                  Frequency
-                </TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">
-                  Language(s)
-                </TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Owner</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">
-                  Review folder
-                </TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {schedules.map((s) => (
-                <TableRow key={s.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell>
-                    <div className="font-semibold text-tf-navy">{s.template}</div>
-                    {s.status === "orphaned" ? (
-                      <div className="text-xs text-tf-error font-medium">
-                        Source missing: {s.sourceDocId}
-                      </div>
-                    ) : s.sourceTitle ? (
-                      <div className="text-xs text-muted-foreground">Source: {s.sourceTitle}</div>
-                    ) : (
-                      <div className="text-xs text-muted-foreground">No bound source</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-medium">{s.frequency}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      {s.languages.map((l) => (
-                        <Badge
-                          key={l}
-                          variant="secondary"
-                          className="uppercase text-[10px] tracking-eyebrow rounded-full font-bold"
-                        >
-                          {l}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-medium">{s.owner}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{s.reviewFolder}</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={cn(
-                        "uppercase text-[10px] tracking-eyebrow rounded-full font-bold",
-                        scheduleStatusClass(s.status),
-                      )}
-                    >
-                      {s.status}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+          <Table
+            heading={["Template", "Frequency", "Language(s)", "Owner", "Review folder", "Status"]}
+            content={schedules.map((s) => [
+              <Stack space={2} key={`${s.id}-template`}>
+                <Text2 medium color={skinVars.colors.textPrimary}>
+                  {s.template}
+                </Text2>
+                {s.status === "orphaned" ? (
+                  <Text1 medium color={skinVars.colors.error}>
+                    Source missing: {s.sourceDocId}
+                  </Text1>
+                ) : s.sourceTitle ? (
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    Source: {s.sourceTitle}
+                  </Text1>
+                ) : (
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    No bound source
+                  </Text1>
+                )}
+              </Stack>,
+              <Text2 regular color={skinVars.colors.textSecondary} key={`${s.id}-freq`}>
+                {s.frequency}
+              </Text2>,
+              <Inline space={4} wrap key={`${s.id}-langs`}>
+                {s.languages.map((l) => (
+                  <Tag type="inactive" key={l}>
+                    {l}
+                  </Tag>
+                ))}
+              </Inline>,
+              <Text2 regular color={skinVars.colors.textSecondary} key={`${s.id}-owner`}>
+                {s.owner}
+              </Text2>,
+              <Text2 regular color={skinVars.colors.textSecondary} key={`${s.id}-folder`}>
+                {s.reviewFolder}
+              </Text2>,
+              <Tag type={scheduleTagType(s.status)} key={`${s.id}-status`}>
+                {s.status}
+              </Tag>,
+            ])}
+          />
+        </Stack>
 
-      {/* Audit trail */}
-      <Card className="shadow-sm border-border overflow-hidden">
-        <CardHeader className="bg-muted/30 border-b border-border">
-          <CardTitle className="flex items-center space-x-2 text-tf-navy text-lg">
-            <ScrollText className="w-5 h-5 text-tf-blue" />
-            <span>Audit trail</span>
-          </CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Read-only — this is exactly what the Audit profile sees: every permission change and
-            scheduled run, with actor, target and time.
-          </p>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">When</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Actor</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Action</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Target</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Detail</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {auditEntries.map((a) => (
-                <TableRow key={a.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
-                    {formatTimestamp(a.timestamp)}
-                  </TableCell>
-                  <TableCell className="font-medium text-tf-navy whitespace-nowrap">
-                    {a.actor}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      className={cn(
-                        "text-[10px] tracking-eyebrow rounded-full font-bold",
-                        auditKindClass(a.kind),
-                      )}
-                    >
-                      {a.action}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium text-tf-navy">{a.target}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[360px]">
-                    {a.detail}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        {/* Audit trail */}
+        <Stack space={16}>
+          <Stack space={4}>
+            <Inline space={8} alignItems="center">
+              <IconListRegular color={skinVars.colors.brand} />
+              <Title3>Audit trail</Title3>
+            </Inline>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              Read-only — this is exactly what the Audit profile sees: every permission change and
+              scheduled run, with actor, target and time.
+            </Text2>
+          </Stack>
+          <Table
+            heading={["When", "Actor", "Action", "Target", "Detail"]}
+            content={auditEntries.map((a) => [
+              <Text2 regular color={skinVars.colors.textSecondary} key={`${a.id}-when`}>
+                {formatTimestamp(a.timestamp)}
+              </Text2>,
+              <Text2 medium color={skinVars.colors.textPrimary} key={`${a.id}-actor`}>
+                {a.actor}
+              </Text2>,
+              <Tag type={auditTagType(a.kind)} key={`${a.id}-action`}>
+                {a.action}
+              </Tag>,
+              <Text2 medium color={skinVars.colors.textPrimary} key={`${a.id}-target`}>
+                {a.target}
+              </Text2>,
+              <Text2 regular color={skinVars.colors.textSecondary} key={`${a.id}-detail`}>
+                {a.detail}
+              </Text2>,
+            ])}
+          />
+        </Stack>
+      </Stack>
 
       {/* Register / Edit user dialog */}
-      <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-tf-navy">
-              {editingUserId ? "Edit user" : "Register user"}
-            </DialogTitle>
-            <DialogDescription>
-              Set who the person is — area and profile. Confidentiality is enforced at the index from
-              inherited document labels.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="user-name">Name</Label>
-                <Input
-                  id="user-name"
-                  value={userDraft.name}
-                  onChange={(e) => setUserDraft({ ...userDraft, name: e.target.value })}
-                  placeholder="Full name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="user-email">Email</Label>
-                <Input
-                  id="user-email"
-                  value={userDraft.email}
-                  onChange={(e) => setUserDraft({ ...userDraft, email: e.target.value })}
-                  placeholder="name@telefonica.com"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Area</Label>
+      {userDialogOpen && (
+        <Sheet onClose={() => setUserDialogOpen(false)}>
+          {({ closeModal }) => (
+            <Box paddingBottom={24}>
+              <Stack space={16}>
+                <Stack space={4}>
+                  <Title2>{editingUserId ? "Edit user" : "Register user"}</Title2>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    Set who the person is — area and profile. Confidentiality is enforced at the
+                    index from inherited document labels.
+                  </Text2>
+                </Stack>
+                <Grid columns={2} gap={16}>
+                  <TextField
+                    name="user-name"
+                    label="Name"
+                    value={userDraft.name}
+                    onChangeValue={(v) => setUserDraft({ ...userDraft, name: v })}
+                    fullWidth
+                  />
+                  <TextField
+                    name="user-email"
+                    label="Email"
+                    value={userDraft.email}
+                    onChangeValue={(v) => setUserDraft({ ...userDraft, email: v })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid columns={2} gap={16}>
+                  <Select
+                    name="user-area"
+                    label="Area"
+                    value={userDraft.area}
+                    onChangeValue={(v) => setUserDraft({ ...userDraft, area: v as Area })}
+                    options={AREAS.map((a) => ({ value: a, text: a }))}
+                    fullWidth
+                  />
+                  <Select
+                    name="user-profile"
+                    label="Profile"
+                    value={userDraft.profileId}
+                    onChangeValue={(v) => setUserDraft({ ...userDraft, profileId: v as ProfileId })}
+                    options={(profiles ?? []).map((p) => ({ value: p.id, text: p.label }))}
+                    fullWidth
+                  />
+                </Grid>
                 <Select
-                  value={userDraft.area}
-                  onValueChange={(v) => setUserDraft({ ...userDraft, area: v as Area })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AREAS.map((a) => (
-                      <SelectItem key={a} value={a}>
-                        {a}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Profile</Label>
-                <Select
-                  value={userDraft.profileId}
-                  onValueChange={(v) => setUserDraft({ ...userDraft, profileId: v as ProfileId })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(profiles ?? []).map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Confidentiality tier (max access)</Label>
-              <Select
-                value={userDraft.clearance}
-                onValueChange={(v) => setUserDraft({ ...userDraft, clearance: v as Clearance })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CLEARANCES.map((c) => (
-                    <SelectItem key={c} value={c} className="capitalize">
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+                  name="user-clearance"
+                  label="Confidentiality tier (max access)"
+                  value={userDraft.clearance}
+                  onChangeValue={(v) => setUserDraft({ ...userDraft, clearance: v as Clearance })}
+                  options={CLEARANCES.map((c) => ({ value: c, text: c }))}
+                  fullWidth
+                />
 
-            {/* Effective access preview */}
-            <div className="rounded-xl border border-tf-blue/30 bg-tf-blue-tint/30 p-4">
-              <div className="text-xs uppercase tracking-eyebrow font-bold text-tf-blue mb-2">
-                Effective access preview
-              </div>
-              <p className="text-sm text-tf-navy">
-                In <span className="font-bold">{userDraft.area}</span>, as{" "}
-                <span className="font-bold">
-                  {profileLabel[userDraft.profileId] ?? userDraft.profileId}
-                </span>
-                , this person would see documents in their area up to and including{" "}
-                <span className="font-bold capitalize">{userDraft.clearance}</span> sensitivity.
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                Applied at retrieval (early-binding). Higher-sensitivity documents stay invisible.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" className="rounded-pill" onClick={() => setUserDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold"
-              disabled={!draftValid}
-              onClick={handleSaveUser}
-            >
-              {editingUserId ? "Save changes" : "Register user"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                {/* Effective access preview */}
+                <Boxed>
+                  <Box padding={16}>
+                    <Stack space={8}>
+                      <Text1 medium color={skinVars.colors.brand} transform="uppercase">
+                        Effective access preview
+                      </Text1>
+                      <Text2 regular color={skinVars.colors.textSecondary}>
+                        In{" "}
+                        <Text2 as="span" medium color={skinVars.colors.textPrimary}>
+                          {userDraft.area}
+                        </Text2>
+                        , as{" "}
+                        <Text2 as="span" medium color={skinVars.colors.textPrimary}>
+                          {profileLabel[userDraft.profileId] ?? userDraft.profileId}
+                        </Text2>
+                        , this person would see documents in their area up to and including{" "}
+                        <Text2 as="span" medium color={skinVars.colors.textPrimary}>
+                          {userDraft.clearance}
+                        </Text2>{" "}
+                        sensitivity.
+                      </Text2>
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        Applied at retrieval (early-binding). Higher-sensitivity documents stay
+                        invisible.
+                      </Text1>
+                    </Stack>
+                  </Box>
+                </Boxed>
+
+                <Inline space={16} alignItems="center">
+                  <ButtonPrimary disabled={!draftValid} onPress={handleSaveUser}>
+                    {editingUserId ? "Save changes" : "Register user"}
+                  </ButtonPrimary>
+                  <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
+                </Inline>
+              </Stack>
+            </Box>
+          )}
+        </Sheet>
+      )}
 
       {/* Over-permissioning confirmation */}
-      <AlertDialog open={!!pendingUser} onOpenChange={(open) => !open && setPendingUser(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center space-x-2 text-tf-navy">
-              <AlertTriangle className="w-5 h-5 text-tf-warning" />
-              <span>Confirm elevated access</span>
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Granting <span className="font-bold capitalize">{userDraft.clearance}</span> access
-              exposes sensitive material — for example, Finance-DE {userDraft.clearance} documents —
-              to {userDraft.name || "this user"}. This widens what they can see across their area.
-              Continue?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-pill">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-pill bg-tf-warning hover:bg-tf-warning/90 text-tf-navy font-semibold"
-              onClick={commitUser}
-            >
-              Grant access
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {pendingUser && (
+        <Sheet onClose={() => setPendingUser(null)}>
+          {({ closeModal }) => (
+            <Box paddingBottom={24}>
+              <Stack space={16}>
+                <Inline space={8} alignItems="center">
+                  <IconAlertRegular color={skinVars.colors.warning} />
+                  <Title2>Confirm elevated access</Title2>
+                </Inline>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  Granting{" "}
+                  <Text2 as="span" medium color={skinVars.colors.textPrimary}>
+                    {userDraft.clearance}
+                  </Text2>{" "}
+                  access exposes sensitive material — for example, Finance-DE {userDraft.clearance}{" "}
+                  documents — to {userDraft.name || "this user"}. This widens what they can see across
+                  their area. Continue?
+                </Text2>
+                <Inline space={16} alignItems="center">
+                  <ButtonPrimary onPress={commitUser}>Grant access</ButtonPrimary>
+                  <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
+                </Inline>
+              </Stack>
+            </Box>
+          )}
+        </Sheet>
+      )}
 
       {/* Schedule document dialog */}
-      <Dialog open={scheduleDialogOpen} onOpenChange={setScheduleDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-tf-navy">Schedule document</DialogTitle>
-            <DialogDescription>
-              Define a recurring document. Output always lands in the review folder and never
-              auto-publishes.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="sched-template">Template</Label>
-              <Input
-                id="sched-template"
-                value={scheduleDraft.template}
-                onChange={(e) => setScheduleDraft({ ...scheduleDraft, template: e.target.value })}
-                placeholder="e.g. Weekly press digest"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Frequency</Label>
-                <Select
-                  value={scheduleDraft.frequency}
-                  onValueChange={(v) => setScheduleDraft({ ...scheduleDraft, frequency: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {["Daily", "Weekly", "Monthly", "Quarterly"].map((f) => (
-                      <SelectItem key={f} value={f}>
-                        {f}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sched-langs">Language(s)</Label>
-                <Input
-                  id="sched-langs"
-                  value={scheduleDraft.languages}
-                  onChange={(e) => setScheduleDraft({ ...scheduleDraft, languages: e.target.value })}
-                  placeholder="es, en"
+      {scheduleDialogOpen && (
+        <Sheet onClose={() => setScheduleDialogOpen(false)}>
+          {({ closeModal }) => (
+            <Box paddingBottom={24}>
+              <Stack space={16}>
+                <Stack space={4}>
+                  <Title2>Schedule document</Title2>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    Define a recurring document. Output always lands in the review folder and never
+                    auto-publishes.
+                  </Text2>
+                </Stack>
+                <TextField
+                  name="sched-template"
+                  label="Template"
+                  value={scheduleDraft.template}
+                  onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, template: v })}
+                  fullWidth
                 />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sched-owner">Owner</Label>
-              <Input
-                id="sched-owner"
-                value={scheduleDraft.owner}
-                onChange={(e) => setScheduleDraft({ ...scheduleDraft, owner: e.target.value })}
-                placeholder="e.g. Media Relations"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="sched-folder">Review folder</Label>
-              <Input
-                id="sched-folder"
-                value={scheduleDraft.reviewFolder}
-                onChange={(e) =>
-                  setScheduleDraft({ ...scheduleDraft, reviewFolder: e.target.value })
-                }
-                placeholder="e.g. Comunicación / Review / Press digest"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              className="rounded-pill"
-              onClick={() => setScheduleDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold"
-              disabled={!scheduleValid}
-              onClick={commitSchedule}
-            >
-              Create schedule
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+                <Grid columns={2} gap={16}>
+                  <Select
+                    name="sched-frequency"
+                    label="Frequency"
+                    value={scheduleDraft.frequency}
+                    onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, frequency: v })}
+                    options={["Daily", "Weekly", "Monthly", "Quarterly"].map((f) => ({
+                      value: f,
+                      text: f,
+                    }))}
+                    fullWidth
+                  />
+                  <TextField
+                    name="sched-langs"
+                    label="Language(s)"
+                    value={scheduleDraft.languages}
+                    onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, languages: v })}
+                    fullWidth
+                  />
+                </Grid>
+                <TextField
+                  name="sched-owner"
+                  label="Owner"
+                  value={scheduleDraft.owner}
+                  onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, owner: v })}
+                  fullWidth
+                />
+                <TextField
+                  name="sched-folder"
+                  label="Review folder"
+                  value={scheduleDraft.reviewFolder}
+                  onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, reviewFolder: v })}
+                  fullWidth
+                />
+                <Inline space={16} alignItems="center">
+                  <ButtonPrimary disabled={!scheduleValid} onPress={commitSchedule}>
+                    Create schedule
+                  </ButtonPrimary>
+                  <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
+                </Inline>
+              </Stack>
+            </Box>
+          )}
+        </Sheet>
+      )}
+    </Box>
   );
 }

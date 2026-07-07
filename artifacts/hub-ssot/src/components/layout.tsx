@@ -1,80 +1,186 @@
-import React, { useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import React from "react";
+import { useLocation } from "wouter";
 import { useApp } from "./app-provider";
 import { useListRoles } from "@workspace/api-client-react";
-import { 
-  Home, MessageSquare, Sparkles, LineChart, Calendar, BookOpen, 
-  Database, Settings, ShieldCheck, ChevronDown, Check
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import logoWhite from "@/assets/telefonica-logo-white.png";
-import logoBlue from "@/assets/telefonica-logo.png";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+  Logo,
+  ThemeVariant,
+  Touchable,
+  IconButton,
+  Text1,
+  Text2,
+  Text4,
+  Select,
+  skinVars,
+  applyAlpha,
+  IconHomeRegular,
+  IconChatRegular,
+  IconAiChatRegular,
+  IconBarChartRegular,
+  IconCalendarRegular,
+  IconBookRegular,
+  IconDatabaseRegular,
+  IconSettingsRegular,
+  IconShieldCheckedOkRegular,
+  IconChevronLeftDoubleRegular,
+  IconChevronRightDoubleRegular,
+} from "@telefonica/mistica";
 
-const navGroups = [
+const SIDEBAR_EXPANDED = 272;
+const SIDEBAR_COLLAPSED = 76;
+
+type NavItemDef = {
+  name: string;
+  path: string;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
+};
+
+const navGroups: { label: string; items: NavItemDef[] }[] = [
   {
     label: "Workspace",
     items: [
-      { name: "Home", path: "/", icon: Home },
-      { name: "Ask", path: "/ask", icon: MessageSquare },
-      { name: "Generate", path: "/generate", icon: Sparkles },
-      { name: "KPIs", path: "/kpis", icon: LineChart },
-      { name: "Planning", path: "/planning", icon: Calendar },
-    ]
+      { name: "Home", path: "/", icon: IconHomeRegular },
+      { name: "Ask", path: "/ask", icon: IconChatRegular },
+      { name: "Generate", path: "/generate", icon: IconAiChatRegular },
+      { name: "KPIs", path: "/kpis", icon: IconBarChartRegular },
+      { name: "Planning", path: "/planning", icon: IconCalendarRegular },
+    ],
   },
   {
     label: "Knowledge",
-    items: [
-      { name: "Wiki", path: "/wiki", icon: BookOpen },
-    ]
+    items: [{ name: "Wiki", path: "/wiki", icon: IconBookRegular }],
   },
   {
     label: "Backend",
     items: [
-      { name: "Data Center", path: "/data", icon: Database },
-      { name: "Admin", path: "/admin", icon: Settings },
-      { name: "Brand", path: "/brand", icon: ShieldCheck },
-    ]
-  }
+      { name: "Data Center", path: "/data", icon: IconDatabaseRegular },
+      { name: "Admin", path: "/admin", icon: IconSettingsRegular },
+      { name: "Brand", path: "/brand", icon: IconShieldCheckedOkRegular },
+    ],
+  },
 ];
 
-function Sidebar() {
-  const [location] = useLocation();
+function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) {
+  const [location, navigate] = useLocation();
+  const isActive = location === item.path;
+  const Icon = item.icon;
 
   return (
-    <div className="w-64 bg-tf-navy text-white flex flex-col h-full flex-shrink-0">
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
-        {navGroups.map((group, idx) => (
-          <div key={idx}>
-            <div className="text-xs uppercase tracking-eyebrow text-tf-navy-tint mb-3 px-3 font-bold">
-              {group.label}
-            </div>
-            <div className="space-y-1">
-              {group.items.map((item) => {
-                const isActive = location === item.path;
-                return (
-                  <Link key={item.path} href={item.path} className={cn(
-                    "flex items-center space-x-3 px-3 py-2.5 rounded-pill text-sm font-medium transition-colors",
-                    isActive 
-                      ? "bg-tf-blue text-white shadow-sm" 
-                      : "text-tf-grey-200 hover:bg-tf-navy-tint hover:text-white"
-                  )}>
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+    <Touchable onPress={() => navigate(item.path)} aria-label={item.name}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          justifyContent: collapsed ? "center" : "flex-start",
+          padding: collapsed ? "10px 0" : "10px 12px",
+          borderRadius: skinVars.borderRadii.button,
+          backgroundColor: isActive
+            ? applyAlpha(skinVars.rawColors.inverse, 0.16)
+            : "transparent",
+          transition: "background-color 150ms ease",
+        }}
+      >
+        <Icon size={20} color={skinVars.colors.inverse} />
+        {!collapsed && (
+          <Text2 medium color={skinVars.colors.textPrimaryInverse}>
+            {item.name}
+          </Text2>
+        )}
       </div>
-    </div>
+    </Touchable>
+  );
+}
+
+function Sidebar({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
+  const [, navigate] = useLocation();
+
+  return (
+    <ThemeVariant variant="brand">
+      <nav
+        aria-label="Main navigation"
+        style={{
+          width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED,
+          flexShrink: 0,
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          backgroundColor: skinVars.colors.navigationBarBackground,
+          transition: "width 200ms ease",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: collapsed ? "center" : "space-between",
+            flexDirection: collapsed ? "column" : "row",
+            gap: collapsed ? 8 : 0,
+            padding: collapsed ? "16px 8px" : "16px 16px",
+          }}
+        >
+          <Touchable onPress={() => navigate("/")} aria-label="Go to Home">
+            <Logo type={collapsed ? "isotype" : "imagotype"} size={collapsed ? 40 : 48} />
+          </Touchable>
+          <IconButton
+            aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+            onPress={onToggle}
+            Icon={collapsed ? IconChevronRightDoubleRegular : IconChevronLeftDoubleRegular}
+            small
+          />
+        </div>
+
+        {!collapsed && (
+          <div style={{ padding: "0 16px 8px" }}>
+            <Text4 medium color={skinVars.colors.textPrimaryInverse}>
+              Hub SSoT
+            </Text4>
+          </div>
+        )}
+
+        <div style={{ flex: 1, overflowY: "auto", padding: collapsed ? "8px 12px" : "8px 12px" }}>
+          {navGroups.map((group) => (
+            <div key={group.label} style={{ marginBottom: 24 }}>
+              {!collapsed && (
+                <div
+                  style={{
+                    padding: "0 12px",
+                    marginBottom: 8,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  <Text1 medium color={applyAlpha(skinVars.rawColors.inverse, 0.72)}>
+                    {group.label}
+                  </Text1>
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {group.items.map((item) => (
+                  <NavItem key={item.path} item={item} collapsed={collapsed} />
+                ))}
+              </div>
+              {collapsed && (
+                <div
+                  style={{
+                    height: 1,
+                    margin: "12px 8px 0",
+                    backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.24),
+                  }}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </nav>
+    </ThemeVariant>
   );
 }
 
@@ -82,66 +188,56 @@ function Topbar() {
   const { area, setArea, roleId, setRoleId } = useApp();
   const { data: roles } = useListRoles();
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (roles && roles.length > 0 && !roleId) {
       setRoleId(roles[0].id);
     }
   }, [roles, roleId, setRoleId]);
 
-  const activeRole = roles?.find(r => r.id === roleId) || roles?.[0];
-
   return (
-    <header className="h-16 border-b border-border bg-white flex items-center justify-between px-6 flex-shrink-0 space-x-4 sticky top-0 z-10">
-      <Link href="/" className="flex items-center space-x-3 group" aria-label="Go to Home">
-        <img src={logoBlue} alt="Telefónica" className="h-6" />
-        <span className="font-bold tracking-tight text-lg text-tf-navy border-l pl-3 border-border group-hover:text-tf-blue transition-colors">Hub SSoT</span>
-      </Link>
+    <header
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+        padding: "12px 24px",
+        flexShrink: 0,
+        backgroundColor: skinVars.colors.backgroundContainer,
+        borderBottom: `1px solid ${skinVars.colors.divider}`,
+      }}
+    >
+      <Text4 medium color={skinVars.colors.textPrimary}>
+        Hub SSoT
+      </Text4>
 
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2">
-          <span className="text-xs uppercase tracking-eyebrow text-muted-foreground font-bold">Area</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="rounded-pill h-8 px-4 font-semibold border-border bg-muted/50 hover:bg-muted">
-                {area} <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-xl w-40">
-              {["Comunicación", "Marca", "Gabinete"].map((a) => (
-                <DropdownMenuItem key={a} onClick={() => setArea(a as any)} className="rounded-lg font-medium cursor-pointer">
-                  <span className="flex-1">{a}</span>
-                  {area === a && <Check className="w-4 h-4 text-tf-blue" />}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ width: 180 }}>
+          <Select
+            name="area"
+            label="Area"
+            value={area}
+            onChangeValue={(v) => setArea(v as "Comunicación" | "Marca" | "Gabinete")}
+            options={[
+              { value: "Comunicación", text: "Comunicación" },
+              { value: "Marca", text: "Marca" },
+              { value: "Gabinete", text: "Gabinete" },
+            ]}
+            fullWidth
+          />
         </div>
-
-        <div className="w-px h-6 bg-border mx-1" />
-
-        <div className="flex items-center space-x-2">
-          <span className="text-xs uppercase tracking-eyebrow text-muted-foreground font-bold">Persona</span>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="rounded-pill h-8 px-4 font-semibold border-border bg-muted/50 hover:bg-muted">
-                {activeRole?.label || "Select Role"} <ChevronDown className="w-4 h-4 ml-2 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="rounded-xl w-64 p-2">
-              {roles?.map((r) => (
-                <DropdownMenuItem key={r.id} onClick={() => setRoleId(r.id)} className="rounded-lg flex flex-col items-start p-3 cursor-pointer mb-1 last:mb-0">
-                  <div className="flex items-center w-full">
-                    <span className="flex-1 font-bold text-tf-navy">{r.label}</span>
-                    {roleId === r.id && <Check className="w-4 h-4 text-tf-blue" />}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1 flex items-center justify-between w-full">
-                    <span className="truncate mr-2" title={r.description}>{r.description}</span>
-                    <span className="uppercase tracking-eyebrow text-[9px] font-bold px-1.5 py-0.5 rounded-sm bg-muted whitespace-nowrap">{r.clearance}</span>
-                  </div>
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div style={{ width: 280 }}>
+          <Select
+            name="persona"
+            label="Persona"
+            value={roleId}
+            onChangeValue={setRoleId}
+            options={(roles ?? []).map((r) => ({
+              value: r.id,
+              text: `${r.label} (${r.clearance})`,
+            }))}
+            fullWidth
+          />
         </div>
       </div>
     </header>
@@ -149,14 +245,30 @@ function Topbar() {
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
+  const [collapsed, setCollapsed] = React.useState(false);
+
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        width: "100%",
+        overflow: "hidden",
+        backgroundColor: skinVars.colors.background,
+      }}
+    >
+      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          overflow: "hidden",
+        }}
+      >
         <Topbar />
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
+        <main style={{ flex: 1, overflowY: "auto" }}>{children}</main>
       </div>
     </div>
   );

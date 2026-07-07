@@ -1,59 +1,77 @@
 import React from "react";
 import type { PlanningInsights } from "@workspace/api-client-react";
 import {
-  TriangleAlert,
-  CalendarClock,
-  Gauge,
-  Signal,
-  CalendarX2,
-  Lightbulb,
-  Shuffle,
-} from "lucide-react";
+  Box,
+  Stack,
+  Inline,
+  Text1,
+  Text2,
+  Touchable,
+  skinVars,
+  IconWarningRegular,
+  IconCalendarEventRegular,
+  IconTrendUpRegular,
+  IconAntennaRegular,
+  IconCalendarRegular,
+  IconInformationRegular,
+  IconShuffleRegular,
+} from "@telefonica/mistica";
 import { formatDayShort } from "./utils";
 
+type Tone = "warning" | "info" | "neutral";
+
+function toneColor(tone: Tone): string {
+  return tone === "warning"
+    ? skinVars.colors.warning
+    : tone === "info"
+      ? skinVars.colors.brand
+      : skinVars.colors.textSecondary;
+}
+
 function Card({
-  icon: Icon,
+  Icon,
   tone,
   title,
   children,
   onClick,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  tone: "warning" | "info" | "neutral";
+  Icon: React.ComponentType<{ size?: number; color?: string }>;
+  tone: Tone;
   title: string;
   children: React.ReactNode;
   onClick?: () => void;
 }) {
-  const toneClass =
-    tone === "warning"
-      ? "text-tf-warning"
-      : tone === "info"
-        ? "text-tf-blue"
-        : "text-tf-grey-600";
   const body = (
-    <>
-      <div className={`flex items-center space-x-2 ${toneClass}`}>
-        <Icon className="w-4 h-4" />
-        <span className="text-xs uppercase tracking-eyebrow font-bold">{title}</span>
-      </div>
-      <div className="space-y-2">{children}</div>
-    </>
+    <div
+      style={{
+        minWidth: 260,
+        maxWidth: 320,
+        flexShrink: 0,
+        backgroundColor: skinVars.colors.backgroundContainer,
+        border: `1px solid ${skinVars.colors.divider}`,
+        borderRadius: skinVars.borderRadii.container,
+        padding: 16,
+      }}
+    >
+      <Stack space={8}>
+        <Inline space={8} alignItems="center">
+          <Icon size={16} color={toneColor(tone)} />
+          <Text1 medium color={toneColor(tone)} transform="uppercase">
+            {title}
+          </Text1>
+        </Inline>
+        <Stack space={8}>{children}</Stack>
+      </Stack>
+    </div>
   );
   if (onClick) {
     return (
-      <button
-        onClick={onClick}
-        className="min-w-[260px] max-w-[320px] shrink-0 snap-start bg-card border border-border rounded-xl p-4 space-y-2 text-left hover:border-tf-blue hover:shadow-sm transition-all cursor-pointer"
-      >
+      <Touchable onPress={onClick} aria-label={title}>
         {body}
-      </button>
+      </Touchable>
     );
   }
-  return (
-    <div className="min-w-[260px] max-w-[320px] shrink-0 snap-start bg-card border border-border rounded-xl p-4 space-y-2">
-      {body}
-    </div>
-  );
+  return body;
 }
 
 export function PredictiveStrip({
@@ -76,124 +94,167 @@ export function PredictiveStrip({
 
   if (!hasAny) {
     return (
-      <div className="bg-card border border-border rounded-xl p-4 text-sm text-muted-foreground">
-        No predictive signals for the current filter. The Hub only surfaces heuristics it can back
-        with governed activity.
+      <div
+        style={{
+          backgroundColor: skinVars.colors.backgroundContainer,
+          border: `1px solid ${skinVars.colors.divider}`,
+          borderRadius: skinVars.borderRadii.container,
+          padding: 16,
+        }}
+      >
+        <Text2 regular color={skinVars.colors.textSecondary}>
+          No predictive signals for the current filter. The Hub only surfaces heuristics it can back
+          with governed activity.
+        </Text2>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center space-x-2 mb-3">
-        <Lightbulb className="w-4 h-4 text-tf-blue" />
-        <h3 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
+    <Stack space={12}>
+      <Inline space={8} alignItems="center">
+        <IconInformationRegular size={16} color={skinVars.colors.brand} />
+        <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
           Predictive signals — suggestions, not decisions
-        </h3>
-      </div>
-      <div className="flex overflow-x-auto pb-3 space-x-3 snap-x -mx-1 px-1">
+        </Text1>
+      </Inline>
+      <div style={{ display: "flex", overflowX: "auto", gap: 12, paddingBottom: 12 }}>
         {conflicts.map((c) => (
           <Card
             key={c.id}
-            icon={TriangleAlert}
+            Icon={IconWarningRegular}
             tone="warning"
             title={`Conflict · ${c.market}`}
             onClick={
-              onOpenEvent && c.eventIds.length > 0
-                ? () => onOpenEvent(c.eventIds[0])
-                : undefined
+              onOpenEvent && c.eventIds.length > 0 ? () => onOpenEvent(c.eventIds[0]) : undefined
             }
           >
-            <p className="text-sm font-medium text-foreground">{formatDayShort(c.date)}</p>
-            <div className="space-y-0.5">
-              <p className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              {formatDayShort(c.date)}
+            </Text2>
+            <Stack space={2}>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
                 What collides
-              </p>
+              </Text1>
               {c.events.map((e) => (
-                <p key={e.id} className="text-xs text-foreground leading-snug">
+                <Text1 key={e.id} regular color={skinVars.colors.textPrimary}>
                   {e.title}
-                </p>
+                </Text1>
               ))}
-            </div>
-            <div className="space-y-0.5">
-              <p className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
+            </Stack>
+            <Stack space={2}>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
                 Suggested resolution
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">{c.suggestion}</p>
-            </div>
+              </Text1>
+              <Text2 regular color={skinVars.colors.textSecondary}>
+                {c.suggestion}
+              </Text2>
+            </Stack>
             {onOpenEvent && c.eventIds.length > 0 && (
-              <p className="text-xs font-semibold text-tf-blue">Open activity to review →</p>
+              <Text1 medium color={skinVars.colors.brand}>
+                Open activity to review →
+              </Text1>
             )}
           </Card>
         ))}
 
         {predictions.cascade && (
-          <Card icon={Shuffle} tone="info" title="Move preview">
-            <p className="text-sm font-medium text-foreground">
+          <Card Icon={IconShuffleRegular} tone="info" title="Move preview">
+            <Text2 medium color={skinVars.colors.textPrimary}>
               {predictions.cascade.eventTitle}: {formatDayShort(predictions.cascade.fromDate)} →{" "}
               {formatDayShort(predictions.cascade.toDate)}
-            </p>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            </Text2>
+            <Text2 regular color={skinVars.colors.textSecondary}>
               {predictions.cascade.note}
-            </p>
+            </Text2>
             {predictions.cascade.shifts.length > 0 && (
-              <ul className="space-y-1 pt-1">
+              <Stack space={4}>
                 {predictions.cascade.shifts.map((s) => (
-                  <li key={s.eventId} className="text-xs text-muted-foreground leading-relaxed">
+                  <Text1 key={s.eventId} regular color={skinVars.colors.textSecondary}>
                     {s.note}
-                  </li>
+                  </Text1>
                 ))}
-              </ul>
+              </Stack>
             )}
           </Card>
         )}
 
         {predictions.signalWarnings.map((w) => (
-          <Card key={w.id} icon={Signal} tone="warning" title={`Signal · ${w.market}`}>
-            <p className="text-sm font-medium text-foreground">{formatDayShort(w.date)}</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{w.note}</p>
+          <Card key={w.id} Icon={IconAntennaRegular} tone="warning" title={`Signal · ${w.market}`}>
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              {formatDayShort(w.date)}
+            </Text2>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {w.note}
+            </Text2>
           </Card>
         ))}
 
         {predictions.futureConflicts.map((f) => (
-          <Card key={f.id} icon={CalendarClock} tone="warning" title={`Watch · ${f.market}`}>
-            <p className="text-sm font-medium text-foreground">{formatDayShort(f.date)}</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{f.note}</p>
+          <Card
+            key={f.id}
+            Icon={IconCalendarEventRegular}
+            tone="warning"
+            title={`Watch · ${f.market}`}
+          >
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              {formatDayShort(f.date)}
+            </Text2>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {f.note}
+            </Text2>
           </Card>
         ))}
 
         {predictions.workloadPeriods.map((p) => (
-          <Card key={p.id} icon={Gauge} tone="info" title={p.label}>
-            <p className="text-sm font-medium text-foreground">{p.count} activities</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{p.note}</p>
+          <Card key={p.id} Icon={IconTrendUpRegular} tone="info" title={p.label}>
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              {p.count} activities
+            </Text2>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {p.note}
+            </Text2>
           </Card>
         ))}
 
         {gaps.map((g, i) => (
-          <Card key={`gap-${i}`} icon={CalendarX2} tone="neutral" title="Activity gap">
-            <p className="text-sm font-medium text-foreground">
+          <Card key={`gap-${i}`} Icon={IconCalendarRegular} tone="neutral" title="Activity gap">
+            <Text2 medium color={skinVars.colors.textPrimary}>
               {formatDayShort(g.start)} – {formatDayShort(g.end)} · {g.days} days
-            </p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{g.note}</p>
+            </Text2>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {g.note}
+            </Text2>
           </Card>
         ))}
 
         {predictions.suggestedDates.map((s, i) => (
-          <Card key={`sug-${i}`} icon={Lightbulb} tone="info" title="Suggested window">
-            <p className="text-sm font-medium text-foreground">{formatDayShort(s.date)}</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{s.note}</p>
+          <Card
+            key={`sug-${i}`}
+            Icon={IconInformationRegular}
+            tone="info"
+            title="Suggested window"
+          >
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              {formatDayShort(s.date)}
+            </Text2>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {s.note}
+            </Text2>
           </Card>
         ))}
 
         {signals.map((s) => (
-          <Card key={s.id} icon={Signal} tone="neutral" title={`External · ${s.market}`}>
-            <p className="text-sm font-medium text-foreground">
+          <Card key={s.id} Icon={IconAntennaRegular} tone="neutral" title={`External · ${s.market}`}>
+            <Text2 medium color={skinVars.colors.textPrimary}>
               {s.title} · {formatDayShort(s.date)}
-            </p>
-            <p className="text-sm text-muted-foreground leading-relaxed">{s.description}</p>
+            </Text2>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {s.description}
+            </Text2>
           </Card>
         ))}
       </div>
-    </div>
+    </Stack>
   );
 }

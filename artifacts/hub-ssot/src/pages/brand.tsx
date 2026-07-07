@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   useGetBrandTemplates,
   useGetBrandTemplate,
@@ -14,162 +14,167 @@ import {
   type GuardianResult,
   type GuardianFinding,
 } from "@workspace/api-client-react";
-import { cn } from "@/lib/utils";
 import { useApp } from "@/components/app-provider";
 import {
-  FileText,
-  Megaphone,
-  Library,
-  ShieldCheck,
-  ShieldAlert,
-  Lock,
-  Check,
-  X,
-  Palette,
-  MessageSquareQuote,
-  Scale,
-  BookOpen,
-  ArrowRight,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
+  Box,
+  Boxed,
+  Stack,
+  Inline,
+  Grid,
+  Divider,
+  Tabs,
+  Tag,
+  Callout,
   Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import { ScrollArea } from "@/components/ui/scroll-area";
+  Touchable,
+  Circle,
+  TextField,
+  ButtonPrimary,
+  ButtonLink,
+  Spinner,
+  Text1,
+  Text2,
+  Text3,
+  Title2,
+  Title3,
+  skinVars,
+  IconFileTextRegular,
+  IconChatRegular,
+  IconLibraryRegular,
+  IconShieldCheckedOkRegular,
+  IconAlertRegular,
+  IconLockClosedRegular,
+  IconCheckRegular,
+  IconCloseRegular,
+  IconArrowLineRightRegular,
+  IconImageRegular,
+  IconBalanceRegular,
+  IconBookRegular,
+} from "@telefonica/mistica";
 
-type IconType = React.ComponentType<{ className?: string }>;
+type IconType = (props: { size?: number; color?: string }) => React.ReactElement;
 type TabId = "templates" | "tone" | "resources" | "guardian";
 
 const TABS: { id: TabId; label: string; icon: IconType }[] = [
-  { id: "templates", label: "Templates", icon: FileText },
-  { id: "tone", label: "Tone of voice", icon: Megaphone },
-  { id: "resources", label: "Resources", icon: Library },
-  { id: "guardian", label: "Brand Guardian", icon: ShieldCheck },
+  { id: "templates", label: "Templates", icon: IconFileTextRegular },
+  { id: "tone", label: "Tone of voice", icon: IconChatRegular },
+  { id: "resources", label: "Resources", icon: IconLibraryRegular },
+  { id: "guardian", label: "Brand Guardian", icon: IconShieldCheckedOkRegular },
 ];
 
 // ---- Shared pieces ----------------------------------------------------------
 
 function IntroLine({ children }: { children: React.ReactNode }) {
-  return <p className="text-muted-foreground max-w-3xl">{children}</p>;
+  return (
+    <div style={{ maxWidth: 768 }}>
+      <Text3 regular color={skinVars.colors.textSecondary}>
+        {children}
+      </Text3>
+    </div>
+  );
 }
 
 function Loading() {
-  return <div className="py-16 text-center text-muted-foreground text-sm">Loading…</div>;
+  return (
+    <Box paddingY={64}>
+      <Inline space={12} alignItems="center">
+        <Spinner />
+        <Text2 regular color={skinVars.colors.textSecondary}>
+          Loading…
+        </Text2>
+      </Inline>
+    </Box>
+  );
 }
 
 function ClearanceBadge({ clearance }: { clearance: string }) {
   return (
-    <Badge
-      variant="outline"
-      className="uppercase tracking-eyebrow text-[9px] border-border text-muted-foreground shrink-0"
-    >
-      {clearance}
-    </Badge>
+    <Tag type="inactive">{clearance}</Tag>
   );
 }
 
 function ValidityBadge({ validity }: { validity: string }) {
-  const tone =
-    validity === "approved"
-      ? "text-tf-success border-tf-success/40"
-      : validity === "review"
-        ? "text-tf-warning border-tf-warning/40"
-        : "text-muted-foreground border-border";
-  return (
-    <Badge variant="outline" className={cn("uppercase tracking-eyebrow text-[9px]", tone)}>
-      {validity}
-    </Badge>
-  );
+  const type = validity === "approved" ? "success" : validity === "review" ? "warning" : "inactive";
+  return <Tag type={type}>{validity}</Tag>;
 }
 
 function BlockedNote({ count, noun }: { count: number; noun: string }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-tf-warning bg-tf-warning-bg px-4 py-2.5 rounded-xl border border-tf-warning/20">
-      <Lock className="w-4 h-4 shrink-0" />
-      <span>
-        {count} {noun}
-        {count === 1 ? "" : "s"} hidden by your persona's clearance.
-      </span>
-    </div>
+    <Callout
+      variant="default"
+      asset={<IconLockClosedRegular color={skinVars.colors.warning} />}
+      title=""
+      description={`${count} ${noun}${count === 1 ? "" : "s"} hidden by your persona's clearance.`}
+    />
   );
 }
 
 function PermissionBlocked({ count, noun }: { count: number; noun: string }) {
   return (
-    <div className="rounded-2xl border border-tf-error/20 bg-tf-error-bg p-6 flex items-start gap-4">
-      <div className="p-2.5 rounded-full bg-tf-error text-white shrink-0">
-        <Lock className="w-5 h-5" />
-      </div>
-      <div>
-        <p className="font-bold text-tf-navy">Permission blocked</p>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {count} {noun}
-          {count === 1 ? " is" : "s are"} governed above your persona's clearance. Switch to a
-          higher-clearance persona to view {count === 1 ? "it" : "them"}.
-        </p>
-      </div>
-    </div>
+    <Callout
+      variant="default"
+      asset={<IconLockClosedRegular color={skinVars.colors.error} />}
+      title="Permission blocked"
+      description={`${count} ${noun}${count === 1 ? " is" : "s are"} governed above your persona's clearance. Switch to a higher-clearance persona to view ${count === 1 ? "it" : "them"}.`}
+    />
   );
 }
 
 // ---- Templates --------------------------------------------------------------
 
-function TemplateMeta({ label, value }: { label: string; value: string; }) {
+function TemplateMeta({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-0">
-      <dt className="text-[10px] uppercase tracking-eyebrow text-muted-foreground">{label}</dt>
-      <dd className="text-sm text-foreground font-medium truncate">{value}</dd>
-    </div>
+    <Stack space={2}>
+      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+        {label}
+      </Text1>
+      <Text2 medium color={skinVars.colors.textPrimary}>
+        {value}
+      </Text2>
+    </Stack>
   );
 }
 
 function TemplateCard({ t, onOpen }: { t: BrandTemplateSummary; onOpen: () => void }) {
   return (
-    <button
-      onClick={onOpen}
-      className="text-left w-full rounded-2xl border border-border p-6 space-y-4 bg-white hover:border-tf-blue/40 hover:shadow-sm transition-all"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="font-bold text-tf-navy text-lg">{t.name}</h3>
-          <p className="text-sm text-muted-foreground mt-1">{t.purpose}</p>
-        </div>
-        <Badge
-          variant="outline"
-          className="uppercase tracking-eyebrow text-[9px] border-tf-blue/30 text-tf-blue shrink-0"
-        >
-          {t.shape}
-        </Badge>
-      </div>
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <TemplateMeta label="Owner" value={t.owner} />
-        <TemplateMeta label="Format" value={t.format} />
-        <div>
-          <dt className="text-[10px] uppercase tracking-eyebrow text-muted-foreground">Version</dt>
-          <dd className="text-sm text-foreground font-medium tabular-nums">{t.version}</dd>
-        </div>
-        <div>
-          <dt className="text-[10px] uppercase tracking-eyebrow text-muted-foreground">Sections</dt>
-          <dd className="text-sm text-foreground font-medium tabular-nums">{t.sectionCount}</dd>
-        </div>
-      </dl>
-      <div className="flex items-center justify-between gap-2 pt-3 border-t border-border/60">
-        <div className="flex items-center gap-2">
-          <ClearanceBadge clearance={t.clearance} />
-          <ValidityBadge validity={t.validity} />
-        </div>
-        <span className="inline-flex items-center gap-1 text-sm text-tf-blue font-medium">
-          View structure
-          <ArrowRight className="w-3.5 h-3.5" />
-        </span>
-      </div>
-    </button>
+    <Boxed>
+      <Touchable onPress={onOpen} aria-label={`Open template ${t.name}`}>
+        <Box padding={24}>
+          <Stack space={16}>
+            <Inline space={12} alignItems="center">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Stack space={4}>
+                  <Title3>{t.name}</Title3>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {t.purpose}
+                  </Text2>
+                </Stack>
+              </div>
+              <Tag type="info">{t.shape}</Tag>
+            </Inline>
+            <Grid columns={2} gap={12}>
+              <TemplateMeta label="Owner" value={t.owner} />
+              <TemplateMeta label="Format" value={t.format} />
+              <TemplateMeta label="Version" value={t.version} />
+              <TemplateMeta label="Sections" value={String(t.sectionCount)} />
+            </Grid>
+            <Divider />
+            <Inline space="between" alignItems="center">
+              <Inline space={8} alignItems="center">
+                <ClearanceBadge clearance={t.clearance} />
+                <ValidityBadge validity={t.validity} />
+              </Inline>
+              <Inline space={4} alignItems="center">
+                <Text2 medium color={skinVars.colors.textLink}>
+                  View structure
+                </Text2>
+                <IconArrowLineRightRegular size={16} color={skinVars.colors.textLink} />
+              </Inline>
+            </Inline>
+          </Stack>
+        </Box>
+      </Touchable>
+    </Boxed>
   );
 }
 
@@ -181,105 +186,98 @@ function TemplateDetail({ templateId, roleId }: { templateId: string; roleId?: s
   if (!data) return null;
   if (data.blocked || !data.template) {
     return (
-      <>
-        <SheetHeader>
-          <SheetTitle className="text-tf-navy">Template</SheetTitle>
-          <SheetDescription>Governed brand template</SheetDescription>
-        </SheetHeader>
-        <div className="mt-6">
-          <PermissionBlocked count={1} noun="template" />
-        </div>
-      </>
+      <Stack space={16}>
+        <Stack space={4}>
+          <Title2>Template</Title2>
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            Governed brand template
+          </Text2>
+        </Stack>
+        <PermissionBlocked count={1} noun="template" />
+      </Stack>
     );
   }
   const t = data.template;
   return (
-    <>
-      <SheetHeader>
-        <SheetTitle className="text-tf-navy">{t.name}</SheetTitle>
-        <SheetDescription>{t.purpose}</SheetDescription>
-      </SheetHeader>
-      <div className="flex items-center gap-2 mt-3 flex-wrap">
-        <Badge
-          variant="outline"
-          className="uppercase tracking-eyebrow text-[9px] border-tf-blue/30 text-tf-blue"
-        >
-          {t.shape}
-        </Badge>
+    <Stack space={16}>
+      <Stack space={4}>
+        <Title2>{t.name}</Title2>
+        <Text2 regular color={skinVars.colors.textSecondary}>
+          {t.purpose}
+        </Text2>
+      </Stack>
+      <Inline space={8} alignItems="center" wrap>
+        <Tag type="info">{t.shape}</Tag>
         <ClearanceBadge clearance={t.clearance} />
         <ValidityBadge validity={t.validity} />
-      </div>
-      <ScrollArea className="flex-1 -mx-6 px-6 mt-4">
-        <div className="space-y-5 pb-6">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-            <TemplateMeta label="Owner" value={t.owner} />
-            <TemplateMeta label="Format" value={t.format} />
-            <div>
-              <dt className="text-[10px] uppercase tracking-eyebrow text-muted-foreground">
-                Version
-              </dt>
-              <dd className="text-sm text-foreground font-medium tabular-nums">{t.version}</dd>
-            </div>
-          </dl>
-          <p className="text-sm text-muted-foreground">{t.description}</p>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-eyebrow text-muted-foreground mb-2">
-              Section structure
-            </p>
-            <ol className="space-y-2">
-              {t.sections.map((s, i) => (
-                <li
-                  key={s.key}
-                  className="flex items-start gap-3 rounded-xl border border-border p-3"
-                >
-                  <span className="text-xs font-bold text-tf-blue tabular-nums mt-0.5">
+      </Inline>
+      <Grid columns={2} gap={12}>
+        <TemplateMeta label="Owner" value={t.owner} />
+        <TemplateMeta label="Format" value={t.format} />
+        <TemplateMeta label="Version" value={t.version} />
+      </Grid>
+      <Text2 regular color={skinVars.colors.textSecondary}>
+        {t.description}
+      </Text2>
+      <Stack space={8}>
+        <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+          Section structure
+        </Text1>
+        <Stack space={8}>
+          {t.sections.map((s, i) => (
+            <Boxed key={s.key}>
+              <Box padding={12}>
+                <Inline space={12} alignItems="center">
+                  <Text2 medium color={skinVars.colors.textLink}>
                     {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-semibold text-foreground text-sm">{s.label}</span>
-                      <span className="text-xs text-muted-foreground">· {s.kind}</span>
-                      {s.perAxis && (
-                        <Badge
-                          variant="outline"
-                          className="uppercase tracking-eyebrow text-[9px] border-border text-muted-foreground"
-                        >
-                          per axis
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-          {t.disclaimers.length > 0 && (
-            <div className="rounded-xl bg-muted/50 p-4">
-              <p className="text-xs font-bold uppercase tracking-eyebrow text-muted-foreground mb-2">
+                  </Text2>
+                  <Inline space={8} alignItems="center" wrap>
+                    <Text2 medium color={skinVars.colors.textPrimary}>
+                      {s.label}
+                    </Text2>
+                    <Text2 regular color={skinVars.colors.textSecondary}>
+                      · {s.kind}
+                    </Text2>
+                    {s.perAxis && <Tag type="inactive">per axis</Tag>}
+                  </Inline>
+                </Inline>
+              </Box>
+            </Boxed>
+          ))}
+        </Stack>
+      </Stack>
+      {t.disclaimers.length > 0 && (
+        <Boxed>
+          <Box padding={16}>
+            <Stack space={8}>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
                 Required disclaimers
-              </p>
-              <ul className="space-y-2">
+              </Text1>
+              <Stack space={8}>
                 {t.disclaimers.map((d) => (
-                  <li key={d.id} className="text-xs text-foreground/80 leading-snug">
-                    <span className="font-semibold text-tf-navy">{d.name}.</span> {d.text}
-                  </li>
+                  <Text2 key={d.id} regular color={skinVars.colors.textSecondary}>
+                    <Text2 as="span" medium color={skinVars.colors.textPrimary}>
+                      {d.name}.
+                    </Text2>{" "}
+                    {d.text}
+                  </Text2>
                 ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </>
+              </Stack>
+            </Stack>
+          </Box>
+        </Boxed>
+      )}
+    </Stack>
   );
 }
 
 function TemplatesArea({ roleId }: { roleId?: string }) {
   const { data, isLoading } = useGetBrandTemplates(roleId ? { roleId } : undefined);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
   if (isLoading) return <Loading />;
   if (!data) return null;
   return (
-    <div className="space-y-5">
+    <Stack space={24}>
       <IntroLine>
         Governed document blueprints — each with its owner, format, version and validity. Select a
         template to see the section structure and required disclaimers every published document must
@@ -288,21 +286,25 @@ function TemplatesArea({ roleId }: { roleId?: string }) {
       {data.templates.length === 0 ? (
         <PermissionBlocked count={data.blockedCount} noun="template" />
       ) : (
-        <>
+        <Stack space={24}>
           {data.blockedCount > 0 && <BlockedNote count={data.blockedCount} noun="template" />}
-          <div className="grid gap-5 md:grid-cols-2">
+          <Grid columns={2} gap={24}>
             {data.templates.map((t) => (
               <TemplateCard key={t.id} t={t} onOpen={() => setSelectedId(t.id)} />
             ))}
-          </div>
-        </>
+          </Grid>
+        </Stack>
       )}
-      <Sheet open={!!selectedId} onOpenChange={(o) => !o && setSelectedId(null)}>
-        <SheetContent className="w-full sm:max-w-lg flex flex-col">
-          {selectedId && <TemplateDetail templateId={selectedId} roleId={roleId} />}
-        </SheetContent>
-      </Sheet>
-    </div>
+      {selectedId && (
+        <Sheet onClose={() => setSelectedId(null)}>
+          {() => (
+            <Box paddingBottom={24}>
+              <TemplateDetail templateId={selectedId} roleId={roleId} />
+            </Box>
+          )}
+        </Sheet>
+      )}
+    </Stack>
   );
 }
 
@@ -310,100 +312,137 @@ function TemplatesArea({ roleId }: { roleId?: string }) {
 
 function PrincipleCard({ p }: { p: TonePrinciple }) {
   return (
-    <div className="rounded-2xl border border-border p-5 space-y-3 bg-white">
-      <h3 className="font-bold text-tf-navy">{p.title}</h3>
-      <p className="text-sm text-muted-foreground">{p.guidance}</p>
-      <div className="space-y-1.5 pt-1">
-        {p.dos.map((d, i) => (
-          <div key={`do-${i}`} className="flex items-start gap-2 text-sm">
-            <Check className="w-4 h-4 text-tf-success mt-0.5 shrink-0" />
-            <span className="text-foreground/80">{d}</span>
-          </div>
-        ))}
-        {p.donts.map((d, i) => (
-          <div key={`dont-${i}`} className="flex items-start gap-2 text-sm">
-            <X className="w-4 h-4 text-tf-error mt-0.5 shrink-0" />
-            <span className="text-foreground/80">{d}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <Boxed>
+      <Box padding={20}>
+        <Stack space={12}>
+          <Title3>{p.title}</Title3>
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            {p.guidance}
+          </Text2>
+          <Stack space={8}>
+            {p.dos.map((d, i) => (
+              <Inline key={`do-${i}`} space={8} alignItems="center">
+                <IconCheckRegular size={16} color={skinVars.colors.success} />
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  {d}
+                </Text2>
+              </Inline>
+            ))}
+            {p.donts.map((d, i) => (
+              <Inline key={`dont-${i}`} space={8} alignItems="center">
+                <IconCloseRegular size={16} color={skinVars.colors.error} />
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  {d}
+                </Text2>
+              </Inline>
+            ))}
+          </Stack>
+        </Stack>
+      </Box>
+    </Boxed>
   );
 }
 
 function RulesPanel({ rules }: { rules: BrandRule[] }) {
   return (
-    <div className="rounded-2xl border border-border p-6 bg-white">
-      <h3 className="font-bold text-tf-navy mb-1">Hard rules</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        Enforced automatically by the Brand Guardian.
-      </p>
-      <ul className="space-y-3">
-        {rules.map((r) => (
-          <li key={r.id} className="flex items-start gap-3">
-            <Badge
-              variant="outline"
-              className={cn(
-                "uppercase tracking-eyebrow text-[9px] mt-0.5 shrink-0",
-                r.severity === "error"
-                  ? "text-tf-error border-tf-error/40"
-                  : "text-tf-warning border-tf-warning/40",
-              )}
-            >
-              {r.severity === "error" ? "blocks" : "advises"}
-            </Badge>
-            <div>
-              <p className="text-sm font-semibold text-foreground">{r.rule}</p>
-              <p className="text-sm text-muted-foreground">{r.detail}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Boxed>
+      <Box padding={24}>
+        <Stack space={16}>
+          <Stack space={4}>
+            <Title3>Hard rules</Title3>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              Enforced automatically by the Brand Guardian.
+            </Text2>
+          </Stack>
+          <Stack space={12}>
+            {rules.map((r) => (
+              <Inline key={r.id} space={12} alignItems="center">
+                <Tag type={r.severity === "error" ? "error" : "warning"}>
+                  {r.severity === "error" ? "blocks" : "advises"}
+                </Tag>
+                <Stack space={2}>
+                  <Text2 medium color={skinVars.colors.textPrimary}>
+                    {r.rule}
+                  </Text2>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {r.detail}
+                  </Text2>
+                </Stack>
+              </Inline>
+            ))}
+          </Stack>
+        </Stack>
+      </Box>
+    </Boxed>
   );
 }
 
 function ProhibitedPanel({ prohibited }: { prohibited: ProhibitedPhrase[] }) {
   return (
-    <div className="rounded-2xl border border-border p-6 bg-white">
-      <h3 className="font-bold text-tf-navy mb-1">Prohibited claims</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        Unapproved superlatives and the approved rewrite to use instead.
-      </p>
-      <ul className="space-y-3">
-        {prohibited.map((p) => (
-          <li key={p.id} className="text-sm">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="line-through text-tf-error font-medium">{p.phrase}</span>
-              <ArrowRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-              <span className="text-tf-success font-medium">{p.rewrite}</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">{p.reason}</p>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Boxed>
+      <Box padding={24}>
+        <Stack space={16}>
+          <Stack space={4}>
+            <Title3>Prohibited claims</Title3>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              Unapproved superlatives and the approved rewrite to use instead.
+            </Text2>
+          </Stack>
+          <Stack space={12}>
+            {prohibited.map((p) => (
+              <Stack key={p.id} space={2}>
+                <Inline space={8} alignItems="center" wrap>
+                  <Text2 medium color={skinVars.colors.error} decoration="line-through">
+                    {p.phrase}
+                  </Text2>
+                  <IconArrowLineRightRegular size={16} color={skinVars.colors.textSecondary} />
+                  <Text2 medium color={skinVars.colors.success}>
+                    {p.rewrite}
+                  </Text2>
+                </Inline>
+                <Text1 regular color={skinVars.colors.textSecondary}>
+                  {p.reason}
+                </Text1>
+              </Stack>
+            ))}
+          </Stack>
+        </Stack>
+      </Box>
+    </Boxed>
   );
 }
 
 function SpellingPanel({ spelling }: { spelling: SpellingPref[] }) {
   return (
-    <div className="rounded-2xl border border-border p-6 bg-white">
-      <h3 className="font-bold text-tf-navy mb-1">European English</h3>
-      <p className="text-sm text-muted-foreground mb-4">Preferred spellings across every surface.</p>
-      <div className="flex flex-wrap gap-2">
-        {spelling.map((s) => (
-          <div
-            key={s.american}
-            className="inline-flex items-center gap-2 rounded-pill border border-border px-3 py-1.5 text-sm"
-          >
-            <span className="line-through text-muted-foreground">{s.american}</span>
-            <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-            <span className="font-semibold text-tf-navy">{s.european}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <Boxed>
+      <Box padding={24}>
+        <Stack space={16}>
+          <Stack space={4}>
+            <Title3>European English</Title3>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              Preferred spellings across every surface.
+            </Text2>
+          </Stack>
+          <Inline space={8} wrap>
+            {spelling.map((s) => (
+              <Boxed key={s.american}>
+                <Box paddingX={12} paddingY={8}>
+                  <Inline space={8} alignItems="center">
+                    <Text2 regular color={skinVars.colors.textSecondary} decoration="line-through">
+                      {s.american}
+                    </Text2>
+                    <IconArrowLineRightRegular size={12} color={skinVars.colors.textSecondary} />
+                    <Text2 medium color={skinVars.colors.textPrimary}>
+                      {s.european}
+                    </Text2>
+                  </Inline>
+                </Box>
+              </Boxed>
+            ))}
+          </Inline>
+        </Stack>
+      </Box>
+    </Boxed>
   );
 }
 
@@ -412,43 +451,73 @@ function ToneArea() {
   if (isLoading) return <Loading />;
   if (!data) return null;
   return (
-    <div className="space-y-8">
+    <Stack space={32}>
       <IntroLine>
         How Telefónica sounds — six principles the Brand Guardian and every drafter work to.
       </IntroLine>
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <Grid columns={3} gap={24}>
         {data.principles.map((p) => (
           <PrincipleCard key={p.id} p={p} />
         ))}
-      </div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      </Grid>
+      <Grid columns={2} gap={24}>
         <RulesPanel rules={data.rules} />
-        <div className="space-y-6">
+        <Stack space={24}>
           <ProhibitedPanel prohibited={data.prohibited} />
           <SpellingPanel spelling={data.spelling} />
-        </div>
-      </div>
-    </div>
+        </Stack>
+      </Grid>
+    </Stack>
   );
 }
 
 // ---- Resources --------------------------------------------------------------
 
 const CATEGORY_META: Record<string, { label: string; icon: IconType }> = {
-  identity: { label: "Identity", icon: Palette },
-  messaging: { label: "Messaging", icon: MessageSquareQuote },
-  legal: { label: "Legal", icon: Scale },
-  reference: { label: "Reference", icon: BookOpen },
+  identity: { label: "Identity", icon: IconImageRegular },
+  messaging: { label: "Messaging", icon: IconChatRegular },
+  legal: { label: "Legal", icon: IconBalanceRegular },
+  reference: { label: "Reference", icon: IconBookRegular },
 };
 const CATEGORY_ORDER = ["identity", "messaging", "legal", "reference"];
 
+function ResourceCard({ r, onOpen }: { r: BrandResource; onOpen: () => void }) {
+  return (
+    <Boxed>
+      <Touchable onPress={onOpen} aria-label={`Open resource ${r.name}`}>
+        <Box padding={20}>
+          <Stack space={8}>
+            <Inline space={8} alignItems="center">
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Text3 medium color={skinVars.colors.textPrimary}>
+                  {r.name}
+                </Text3>
+              </div>
+              <ClearanceBadge clearance={r.clearance} />
+            </Inline>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {r.description}
+            </Text2>
+            <Inline space="between" alignItems="center">
+              <Text1 regular color={skinVars.colors.textSecondary}>
+                {r.format}
+              </Text1>
+              <ValidityBadge validity={r.validity} />
+            </Inline>
+          </Stack>
+        </Box>
+      </Touchable>
+    </Boxed>
+  );
+}
+
 function ResourcesArea({ roleId }: { roleId?: string }) {
   const { data, isLoading } = useGetBrandResources(roleId ? { roleId } : undefined);
-  const [selected, setSelected] = useState<BrandResource | null>(null);
+  const [selected, setSelected] = React.useState<BrandResource | null>(null);
   if (isLoading) return <Loading />;
   if (!data) return null;
   return (
-    <div className="space-y-6">
+    <Stack space={24}>
       <IntroLine>
         Governed brand assets — filtered to what your persona's clearance permits.
       </IntroLine>
@@ -462,57 +531,49 @@ function ResourcesArea({ roleId }: { roleId?: string }) {
           const meta = CATEGORY_META[cat];
           const Icon = meta.icon;
           return (
-            <div key={cat} className="space-y-3">
-              <div className="flex items-center gap-2 text-tf-navy">
-                <Icon className="w-4 h-4 text-tf-blue" />
-                <h3 className="font-bold">{meta.label}</h3>
-              </div>
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <Stack key={cat} space={12}>
+              <Inline space={8} alignItems="center">
+                <Icon size={18} color={skinVars.colors.brand} />
+                <Title3>{meta.label}</Title3>
+              </Inline>
+              <Grid columns={3} gap={16}>
                 {items.map((r) => (
-                  <button
-                    key={r.id}
-                    onClick={() => setSelected(r)}
-                    className="text-left rounded-2xl border border-border p-5 bg-white hover:border-tf-blue/40 hover:shadow-sm transition-all space-y-2"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-semibold text-tf-navy">{r.name}</h4>
-                      <ClearanceBadge clearance={r.clearance} />
-                    </div>
-                    <p className="text-sm text-muted-foreground">{r.description}</p>
-                    <div className="flex items-center justify-between gap-2 pt-1">
-                      <span className="text-xs text-muted-foreground">{r.format}</span>
-                      <ValidityBadge validity={r.validity} />
-                    </div>
-                  </button>
+                  <ResourceCard key={r.id} r={r} onOpen={() => setSelected(r)} />
                 ))}
-              </div>
-            </div>
+              </Grid>
+            </Stack>
           );
         })
       )}
-      <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent className="w-full sm:max-w-lg flex flex-col">
-          {selected && (
-            <>
-              <SheetHeader>
-                <SheetTitle className="text-tf-navy">{selected.name}</SheetTitle>
-                <SheetDescription>{selected.description}</SheetDescription>
-              </SheetHeader>
-              <div className="flex items-center gap-2 mt-3">
-                <ClearanceBadge clearance={selected.clearance} />
-                <ValidityBadge validity={selected.validity} />
-                <span className="text-xs text-muted-foreground">{selected.format}</span>
-              </div>
-              <ScrollArea className="flex-1 -mx-6 px-6 mt-4">
-                <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed pb-6">
-                  {selected.detail}
-                </p>
-              </ScrollArea>
-            </>
+      {selected && (
+        <Sheet onClose={() => setSelected(null)}>
+          {() => (
+            <Box paddingBottom={24}>
+              <Stack space={16}>
+                <Stack space={4}>
+                  <Title2>{selected.name}</Title2>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {selected.description}
+                  </Text2>
+                </Stack>
+                <Inline space={8} alignItems="center" wrap>
+                  <ClearanceBadge clearance={selected.clearance} />
+                  <ValidityBadge validity={selected.validity} />
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    {selected.format}
+                  </Text1>
+                </Inline>
+                <div style={{ whiteSpace: "pre-wrap" }}>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {selected.detail}
+                  </Text2>
+                </div>
+              </Stack>
+            </Box>
           )}
-        </SheetContent>
-      </Sheet>
-    </div>
+        </Sheet>
+      )}
+    </Stack>
   );
 }
 
@@ -525,61 +586,62 @@ function GuardianVerdict({ result }: { result: GuardianResult }) {
   const pass = result.status === "pass";
   return (
     <div
-      className={cn(
-        "rounded-2xl border p-5",
-        pass ? "bg-tf-success-bg border-tf-success/20" : "bg-tf-error-bg border-tf-error/20",
-      )}
+      style={{
+        borderRadius: skinVars.borderRadii.container,
+        border: `1px solid ${pass ? skinVars.colors.successLow : skinVars.colors.errorLow}`,
+        backgroundColor: pass ? skinVars.colors.successLow : skinVars.colors.errorLow,
+        padding: 20,
+      }}
     >
-      <div className="flex items-start gap-3">
+      <Inline space={12} alignItems="center">
         {pass ? (
-          <ShieldCheck className="w-5 h-5 text-tf-success mt-0.5 shrink-0" />
+          <IconShieldCheckedOkRegular size={20} color={skinVars.colors.success} />
         ) : (
-          <ShieldAlert className="w-5 h-5 text-tf-error mt-0.5 shrink-0" />
+          <IconAlertRegular size={20} color={skinVars.colors.error} />
         )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-foreground">Brand Guardian</span>
-            <Badge
-              className={cn(
-                "uppercase tracking-eyebrow text-[10px]",
-                pass ? "bg-tf-success text-white" : "bg-tf-error text-white",
-              )}
-            >
-              {pass ? "On brand" : "Needs work"}
-            </Badge>
-          </div>
-          <p className="text-sm text-foreground/80 mt-1">{result.summary}</p>
+        <Stack space={8}>
+          <Inline space={8} alignItems="center">
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              Brand Guardian
+            </Text2>
+            <Tag type={pass ? "success" : "error"}>{pass ? "On brand" : "Needs work"}</Tag>
+          </Inline>
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            {result.summary}
+          </Text2>
           {result.findings.length > 0 && (
-            <ul className="mt-3 space-y-2">
+            <Stack space={8}>
               {result.findings.map((f, i) => (
-                <li
+                <div
                   key={i}
-                  className="text-sm bg-white/60 rounded-lg p-3 border border-black/5"
+                  style={{
+                    borderRadius: skinVars.borderRadii.container,
+                    backgroundColor: skinVars.colors.backgroundContainer,
+                    padding: 12,
+                  }}
                 >
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "uppercase tracking-eyebrow text-[9px]",
-                        f.severity === "error"
-                          ? "text-tf-error border-tf-error/40"
-                          : "text-tf-warning border-tf-warning/40",
-                      )}
-                    >
-                      {f.severity}
-                    </Badge>
-                    <span className="font-semibold text-foreground">{f.rule}</span>
-                  </div>
-                  <p className="text-foreground/80 mt-1">{f.message}</p>
-                  {f.suggestion && (
-                    <p className="text-tf-blue mt-1 font-medium">Fix: {f.suggestion}</p>
-                  )}
-                </li>
+                  <Stack space={4}>
+                    <Inline space={8} alignItems="center">
+                      <Tag type={f.severity === "error" ? "error" : "warning"}>{f.severity}</Tag>
+                      <Text2 medium color={skinVars.colors.textPrimary}>
+                        {f.rule}
+                      </Text2>
+                    </Inline>
+                    <Text2 regular color={skinVars.colors.textSecondary}>
+                      {f.message}
+                    </Text2>
+                    {f.suggestion && (
+                      <Text2 medium color={skinVars.colors.textLink}>
+                        Fix: {f.suggestion}
+                      </Text2>
+                    )}
+                  </Stack>
+                </div>
               ))}
-            </ul>
+            </Stack>
           )}
-        </div>
-      </div>
+        </Stack>
+      </Inline>
     </div>
   );
 }
@@ -609,15 +671,19 @@ function HighlightedText({ text, findings }: { text: string; findings: GuardianF
     if (cur === 0) {
       nodes.push(<span key={key++}>{chunk}</span>);
     } else {
+      const isError = cur === 2;
       nodes.push(
         <mark
           key={key++}
-          className={cn(
-            "rounded px-0.5 underline decoration-2 underline-offset-2",
-            cur === 2
-              ? "bg-tf-error-bg text-tf-error decoration-tf-error/50"
-              : "bg-tf-warning-bg text-tf-warning decoration-tf-warning/50",
-          )}
+          style={{
+            borderRadius: skinVars.borderRadii.chip,
+            padding: "0 2px",
+            backgroundColor: isError ? skinVars.colors.errorLow : skinVars.colors.warningLow,
+            color: isError ? skinVars.colors.error : skinVars.colors.warning,
+            textDecoration: "underline",
+            textDecorationColor: isError ? skinVars.colors.error : skinVars.colors.warning,
+            textUnderlineOffset: 2,
+          }}
         >
           {chunk}
         </mark>,
@@ -625,12 +691,20 @@ function HighlightedText({ text, findings }: { text: string; findings: GuardianF
     }
     i = j;
   }
-  return <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{nodes}</p>;
+  return (
+    <div style={{ whiteSpace: "pre-wrap" }}>
+      <Text2 regular color={skinVars.colors.textPrimary}>
+        {nodes}
+      </Text2>
+    </div>
+  );
 }
 
 function GuardianArea() {
-  const [text, setText] = useState("");
-  const [checked, setChecked] = useState<{ text: string; result: GuardianResult } | null>(null);
+  const [text, setText] = React.useState("");
+  const [checked, setChecked] = React.useState<{ text: string; result: GuardianResult } | null>(
+    null,
+  );
   const check = useCheckBrandText();
   const run = () => {
     const snapshot = text;
@@ -641,73 +715,103 @@ function GuardianArea() {
   };
   const hasHighlights = !!checked && checked.result.findings.some((f) => f.location);
   return (
-    <div className="space-y-5 max-w-3xl">
-      <IntroLine>
-        Paste any copy — a caption, an intro, a tweet — and the Brand Guardian checks it against the
-        same rules that gate document export. Every violation is flagged inline. Deterministic, and
-        no text leaves the governed core.
-      </IntroLine>
-      <div className="rounded-2xl border border-border p-6 bg-white space-y-4">
-        <Textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Paste copy to check…"
-          className="min-h-40 resize-y rounded-xl"
-        />
-        <div className="flex items-center gap-4 flex-wrap">
-          <Button
-            onClick={run}
-            disabled={check.isPending || text.trim().length === 0}
-            className="rounded-pill bg-tf-blue hover:bg-tf-blue/90 text-white font-semibold"
-          >
-            <ShieldCheck className="w-4 h-4 mr-2" />
-            {check.isPending ? "Checking…" : "Run Brand Guardian"}
-          </Button>
-          <button
-            type="button"
-            onClick={() => {
-              setText(GUARDIAN_SAMPLE);
-              setChecked(null);
-            }}
-            className="text-sm text-tf-blue font-medium hover:underline"
-          >
-            Load a sample
-          </button>
-          {(text || checked) && (
-            <button
-              type="button"
-              onClick={() => {
-                setText("");
-                setChecked(null);
-              }}
-              className="text-sm text-muted-foreground hover:underline"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
-      {hasHighlights && (
-        <div className="rounded-2xl border border-border p-5 bg-white space-y-3">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <p className="text-xs font-bold uppercase tracking-eyebrow text-muted-foreground">
-              Checked text
-            </p>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-tf-error-bg border border-tf-error/40" />
-                Blocks
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-tf-warning-bg border border-tf-warning/40" />
-                Advises
-              </span>
-            </div>
-          </div>
-          <HighlightedText text={checked.text} findings={checked.result.findings} />
-        </div>
-      )}
-      {checked && <GuardianVerdict result={checked.result} />}
+    <div style={{ maxWidth: 768 }}>
+      <Stack space={24}>
+        <IntroLine>
+          Paste any copy — a caption, an intro, a tweet — and the Brand Guardian checks it against the
+          same rules that gate document export. Every violation is flagged inline. Deterministic, and
+          no text leaves the governed core.
+        </IntroLine>
+        <Boxed>
+          <Box padding={24}>
+            <Stack space={16}>
+              <TextField
+                multiline
+                name="guardian-text"
+                label="Paste copy to check"
+                value={text}
+                onChangeValue={(v) => setText(v)}
+                fullWidth
+              />
+              <Inline space={16} alignItems="center" wrap>
+                <ButtonPrimary
+                  onPress={run}
+                  disabled={check.isPending || text.trim().length === 0}
+                  StartIcon={IconShieldCheckedOkRegular}
+                  showSpinner={check.isPending}
+                >
+                  {check.isPending ? "Checking…" : "Run Brand Guardian"}
+                </ButtonPrimary>
+                <ButtonLink
+                  onPress={() => {
+                    setText(GUARDIAN_SAMPLE);
+                    setChecked(null);
+                  }}
+                >
+                  Load a sample
+                </ButtonLink>
+                {(text || checked) && (
+                  <ButtonLink
+                    onPress={() => {
+                      setText("");
+                      setChecked(null);
+                    }}
+                  >
+                    Clear
+                  </ButtonLink>
+                )}
+              </Inline>
+            </Stack>
+          </Box>
+        </Boxed>
+        {hasHighlights && checked && (
+          <Boxed>
+            <Box padding={20}>
+              <Stack space={12}>
+                <Inline space={12} alignItems="center" wrap>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                      Checked text
+                    </Text1>
+                  </div>
+                  <Inline space={12} alignItems="center">
+                    <Inline space={8} alignItems="center">
+                      <div
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: skinVars.borderRadii.chip,
+                          backgroundColor: skinVars.colors.errorLow,
+                          border: `1px solid ${skinVars.colors.error}`,
+                        }}
+                      />
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        Blocks
+                      </Text1>
+                    </Inline>
+                    <Inline space={8} alignItems="center">
+                      <div
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: skinVars.borderRadii.chip,
+                          backgroundColor: skinVars.colors.warningLow,
+                          border: `1px solid ${skinVars.colors.warning}`,
+                        }}
+                      />
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        Advises
+                      </Text1>
+                    </Inline>
+                  </Inline>
+                </Inline>
+                <HighlightedText text={checked.text} findings={checked.result.findings} />
+              </Stack>
+            </Box>
+          </Boxed>
+        )}
+        {checked && <GuardianVerdict result={checked.result} />}
+      </Stack>
     </div>
   );
 }
@@ -716,48 +820,40 @@ function GuardianArea() {
 
 export default function BrandPage() {
   const { roleId } = useApp();
-  const [tab, setTab] = useState<TabId>("templates");
+  const [tab, setTab] = React.useState<TabId>("templates");
   const scopedRole = roleId || undefined;
+  const selectedIndex = TABS.findIndex((t) => t.id === tab);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
-      <div className="space-y-2">
-        <p className="text-xs uppercase tracking-eyebrow text-tf-blue font-bold">Backend · Marca</p>
-        <h1 className="text-title-lg text-tf-navy">Brand Room</h1>
-        <p className="text-muted-foreground text-lg max-w-2xl">
-          The brand team's control room — governed templates, the tone of voice every drafter
-          follows, corporate resources, and a live Brand Guardian that checks copy before it ships.
-        </p>
-      </div>
+    <Box padding={24}>
+      <Stack space={24}>
+        <Stack space={8}>
+          <Text1 medium color={skinVars.colors.brand} transform="uppercase">
+            Backend · Marca
+          </Text1>
+          <Title2>Brand Room</Title2>
+          <div style={{ maxWidth: 640 }}>
+            <Text3 regular color={skinVars.colors.textSecondary}>
+              The brand team's control room — governed templates, the tone of voice every drafter
+              follows, corporate resources, and a live Brand Guardian that checks copy before it
+              ships.
+            </Text3>
+          </div>
+        </Stack>
 
-      <div className="flex items-center gap-2 flex-wrap border-b border-border pb-1">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors",
-                active
-                  ? "bg-tf-navy text-white"
-                  : "text-muted-foreground hover:text-tf-navy hover:bg-muted",
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+        <Tabs
+          selectedIndex={selectedIndex < 0 ? 0 : selectedIndex}
+          onChange={(index) => setTab(TABS[index].id)}
+          tabs={TABS.map((t) => ({ text: t.label, Icon: t.icon }))}
+        />
 
-      <div>
-        {tab === "templates" && <TemplatesArea roleId={scopedRole} />}
-        {tab === "tone" && <ToneArea />}
-        {tab === "resources" && <ResourcesArea roleId={scopedRole} />}
-        {tab === "guardian" && <GuardianArea />}
-      </div>
-    </div>
+        <div>
+          {tab === "templates" && <TemplatesArea roleId={scopedRole} />}
+          {tab === "tone" && <ToneArea />}
+          {tab === "resources" && <ResourcesArea roleId={scopedRole} />}
+          {tab === "guardian" && <GuardianArea />}
+        </div>
+      </Stack>
+    </Box>
   );
 }

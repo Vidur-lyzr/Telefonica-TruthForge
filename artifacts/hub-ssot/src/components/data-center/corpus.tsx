@@ -1,265 +1,232 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   useListDocuments,
   useGetCorpusStats,
   useGetDocument,
 } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
+  Box,
+  Stack,
+  Inline,
+  Grid,
+  GridItem,
+  Boxed,
+  BoxedRowList,
+  BoxedRow,
   Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-} from "@/components/ui/drawer";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Database,
-  Shield,
-  Globe,
-  FileText,
-  CheckCircle2,
-  ChevronRight,
-  XCircle,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  Circle,
+  Tag,
+  Divider,
+  Text1,
+  Text2,
+  Text3,
+  Text7,
+  Title2,
+  Title3,
+  Spinner,
+  skinVars,
+  IconDatabaseRegular,
+  IconWorldDeviceRegular,
+  IconShieldRegular,
+  IconDocumentOtherRegular,
+  IconCheckedRegular,
+  IconCloseRegular,
+} from "@telefonica/mistica";
+
+function StatCard({
+  icon: Icon,
+  iconColor,
+  iconBackground,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ size?: number; color?: string }>;
+  iconColor: string;
+  iconBackground: string;
+  label: string;
+  value: number;
+}) {
+  return (
+    <Boxed>
+      <Box padding={24}>
+        <Inline space={16} alignItems="center">
+          <Circle size={48} backgroundColor={iconBackground}>
+            <Icon size={24} color={iconColor} />
+          </Circle>
+          <Stack space={4}>
+            <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+              {label}
+            </Text1>
+            <Text7>{value}</Text7>
+          </Stack>
+        </Inline>
+      </Box>
+    </Boxed>
+  );
+}
 
 export default function CorpusArea() {
   const { data: stats } = useGetCorpusStats();
   const { data: documents } = useListDocuments();
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+  const [selectedDocId, setSelectedDocId] = React.useState<string | null>(null);
 
   const { data: docDetail, isLoading: isLoadingDetail } = useGetDocument(selectedDocId || "", {
     query: { enabled: !!selectedDocId, queryKey: ["document", selectedDocId] },
   });
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-tf-blue-tint rounded-full text-tf-blue">
-              <Database className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">
-                Total documents
-              </p>
-              <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.totalDocuments || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
+    <Stack space={24}>
+      <Grid columns={4} gap={16}>
+        <GridItem>
+          <StatCard
+            icon={IconDatabaseRegular}
+            iconColor={skinVars.colors.brand}
+            iconBackground={skinVars.colors.brandLow}
+            label="Total documents"
+            value={stats?.totalDocuments || 0}
+          />
+        </GridItem>
+        <GridItem>
+          <StatCard
+            icon={IconCheckedRegular}
+            iconColor={skinVars.colors.success}
+            iconBackground={skinVars.colors.successLow}
+            label="Total chunks"
+            value={stats?.totalChunks || 0}
+          />
+        </GridItem>
+        <GridItem>
+          <StatCard
+            icon={IconWorldDeviceRegular}
+            iconColor={skinVars.colors.warning}
+            iconBackground={skinVars.colors.warningLow}
+            label="Countries"
+            value={stats?.byCountry?.length || 0}
+          />
+        </GridItem>
+        <GridItem>
+          <StatCard
+            icon={IconShieldRegular}
+            iconColor={skinVars.colors.error}
+            iconBackground={skinVars.colors.errorLow}
+            label="Needs review"
+            value={stats?.quarantined || 0}
+          />
+        </GridItem>
+      </Grid>
 
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-tf-success-bg rounded-full text-tf-success">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">
-                Total chunks
-              </p>
-              <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.totalChunks || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
+      <Stack space={16}>
+        <Inline space={8} alignItems="center">
+          <IconDocumentOtherRegular size={20} color={skinVars.colors.brand} />
+          <Title2>Governed corpus</Title2>
+        </Inline>
 
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-tf-warning-bg rounded-full text-tf-warning">
-              <Globe className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">
-                Countries
-              </p>
-              <h3 className="text-3xl font-bold text-tf-navy mt-1">
-                {stats?.byCountry?.length || 0}
-              </h3>
-            </div>
-          </CardContent>
-        </Card>
+        <BoxedRowList>
+          {(documents ?? []).map((doc) => (
+            <BoxedRow
+              key={doc.id}
+              title={doc.title}
+              description={`${doc.brand} · ${doc.chunkCount} chunks`}
+              onPress={() => setSelectedDocId(doc.id)}
+              right={
+                <Inline space={8} alignItems="center">
+                  <Tag type={doc.confidentiality === "public" ? "inactive" : "error"}>
+                    {doc.confidentiality}
+                  </Tag>
+                  <Tag type={doc.validity === "approved" ? "success" : "inactive"}>
+                    {doc.validity}
+                  </Tag>
+                </Inline>
+              }
+            />
+          ))}
+        </BoxedRowList>
+      </Stack>
 
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-tf-error-bg rounded-full text-tf-error">
-              <Shield className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">
-                Needs review
-              </p>
-              <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.quarantined || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {selectedDocId && (
+        <Drawer
+          onClose={() => setSelectedDocId(null)}
+          title={docDetail?.document.title ?? "Document"}
+        >
+        {isLoadingDetail ? (
+          <Box paddingY={40}>
+            <Inline space={0} alignItems="center">
+              <Spinner />
+            </Inline>
+          </Box>
+        ) : docDetail ? (
+          <Stack space={24}>
+            <Stack space={12}>
+              <Inline space="between" alignItems="center">
+                <Tag type="info">{docDetail.document.type}</Tag>
+                <Inline space={8} alignItems="center">
+                  <Tag type={docDetail.document.validity === "approved" ? "success" : "inactive"}>
+                    {docDetail.document.validity}
+                  </Tag>
+                  <Tag type={docDetail.document.confidentiality === "public" ? "inactive" : "error"}>
+                    {docDetail.document.confidentiality}
+                  </Tag>
+                </Inline>
+              </Inline>
+              <Inline space={16} alignItems="center" wrap>
+                <Text2 regular color={skinVars.colors.textPrimary}>
+                  {docDetail.document.country} • {docDetail.document.brand}
+                </Text2>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  Owner: {docDetail.document.owner}
+                </Text2>
+              </Inline>
+            </Stack>
 
-      <Card className="shadow-sm border-border overflow-hidden">
-        <CardHeader className="bg-muted/30 border-b border-border">
-          <CardTitle className="flex items-center space-x-2 text-tf-navy text-lg">
-            <FileText className="w-5 h-5 text-tf-blue" />
-            <span>Governed corpus</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Title</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Brand</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">
-                  Confidentiality
-                </TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">
-                  Validity
-                </TableHead>
-                <TableHead className="text-right font-bold text-xs uppercase tracking-eyebrow">
-                  Chunks
-                </TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {documents?.map((doc) => (
-                <TableRow
-                  key={doc.id}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => setSelectedDocId(doc.id)}
-                >
-                  <TableCell className="font-semibold text-tf-navy max-w-[300px] truncate">
-                    {doc.title}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground font-medium">{doc.brand}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={doc.confidentiality === "public" ? "secondary" : "destructive"}
-                      className="uppercase text-[10px] tracking-eyebrow rounded-full font-bold"
-                    >
-                      {doc.confidentiality}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={doc.validity === "approved" ? "default" : "secondary"}
-                      className={cn(
-                        "uppercase text-[10px] tracking-eyebrow rounded-full font-bold",
-                        doc.validity === "approved"
-                          ? "bg-tf-success hover:bg-tf-success text-white"
-                          : "",
-                      )}
-                    >
-                      {doc.validity}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{doc.chunkCount}</TableCell>
-                  <TableCell>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            <Divider />
 
-      <Drawer open={!!selectedDocId} onOpenChange={(open) => !open && setSelectedDocId(null)}>
-        <DrawerContent className="max-h-[90vh]">
-          <div className="mx-auto w-full max-w-4xl px-6 pb-8 pt-4 flex flex-col h-full overflow-hidden">
-            {isLoadingDetail ? (
-              <div className="py-20 flex justify-center items-center">
-                <div className="w-8 h-8 rounded-full border-2 border-tf-blue border-t-transparent animate-spin" />
-              </div>
-            ) : docDetail ? (
-              <>
-                <DrawerHeader className="px-0 pb-4 shrink-0 border-b border-border mb-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <Badge className="bg-tf-blue-tint text-tf-blue hover:bg-tf-blue-tint text-xs uppercase tracking-eyebrow font-bold">
-                      {docDetail.document.type}
-                    </Badge>
-                    <div className="flex items-center space-x-2">
-                      <Badge
-                        variant={docDetail.document.validity === "approved" ? "default" : "secondary"}
-                        className={cn(
-                          "uppercase tracking-eyebrow text-[10px] font-bold",
-                          docDetail.document.validity === "approved"
-                            ? "bg-tf-success text-white"
-                            : "",
-                        )}
-                      >
-                        {docDetail.document.validity}
-                      </Badge>
-                      <Badge
-                        variant={
-                          docDetail.document.confidentiality === "public"
-                            ? "secondary"
-                            : "destructive"
-                        }
-                        className="uppercase tracking-eyebrow text-[10px] font-bold"
-                      >
-                        {docDetail.document.confidentiality}
-                      </Badge>
-                    </div>
-                  </div>
-                  <DrawerTitle className="text-3xl font-bold text-tf-navy">
-                    {docDetail.document.title}
-                  </DrawerTitle>
-                  <DrawerDescription className="text-base mt-2 flex items-center space-x-4">
-                    <span>
-                      {docDetail.document.country} • {docDetail.document.brand}
-                    </span>
-                    <span className="text-muted-foreground">Owner: {docDetail.document.owner}</span>
-                  </DrawerDescription>
-                </DrawerHeader>
+            <Boxed>
+              <Box padding={20}>
+                <Text2 regular color={skinVars.colors.textPrimary}>
+                  {docDetail.document.summary}
+                </Text2>
+              </Box>
+            </Boxed>
 
-                <ScrollArea className="flex-1 -mx-6 px-6">
-                  <div className="space-y-6">
-                    <div className="bg-muted p-5 rounded-xl text-sm leading-relaxed text-foreground font-medium">
-                      {docDetail.document.summary}
-                    </div>
-
-                    <div className="space-y-4">
-                      <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-                        Document chunks ({docDetail.chunks.length})
-                      </h4>
-                      <div className="space-y-3">
-                        {docDetail.chunks.map((chunk) => (
-                          <div
-                            key={chunk.id}
-                            className="border border-border rounded-xl p-4 hover:shadow-sm transition-shadow bg-card"
-                          >
-                            <div className="text-[10px] uppercase tracking-eyebrow text-muted-foreground font-bold mb-1">
-                              {chunk.breadcrumb}
-                            </div>
-                            <h5 className="font-bold text-tf-navy mb-2">{chunk.heading}</h5>
-                            <p className="text-sm text-foreground/80 leading-relaxed font-serif">
-                              "{chunk.text}"
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </ScrollArea>
-              </>
-            ) : (
-              <div className="py-20 flex flex-col justify-center items-center text-tf-error">
-                <XCircle className="w-12 h-12 mb-4" />
-                <h3 className="font-bold text-xl">Failed to load document</h3>
-              </div>
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
-    </div>
+            <Stack space={16}>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                Document chunks ({docDetail.chunks.length})
+              </Text1>
+              <Stack space={12}>
+                {docDetail.chunks.map((chunk) => (
+                  <Boxed key={chunk.id}>
+                    <Box padding={16}>
+                      <Stack space={8}>
+                        <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                          {chunk.breadcrumb}
+                        </Text1>
+                        <Text3 medium color={skinVars.colors.textPrimary}>
+                          {chunk.heading}
+                        </Text3>
+                        <Text2 regular color={skinVars.colors.textSecondary}>
+                          "{chunk.text}"
+                        </Text2>
+                      </Stack>
+                    </Box>
+                  </Boxed>
+                ))}
+              </Stack>
+            </Stack>
+          </Stack>
+        ) : (
+          <Box paddingY={40}>
+            <Stack space={16}>
+              <Inline space={0} alignItems="center">
+                <Circle size={56} backgroundColor={skinVars.colors.errorLow}>
+                  <IconCloseRegular size={28} color={skinVars.colors.error} />
+                </Circle>
+              </Inline>
+              <Title3>Failed to load document</Title3>
+            </Stack>
+          </Box>
+        )}
+        </Drawer>
+      )}
+    </Stack>
   );
 }

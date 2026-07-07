@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   useQueryKpis,
   useGetKpiDetail,
@@ -10,31 +10,6 @@ import {
   AskResult,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-} from "@/components/ui/drawer";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { useLocation } from "wouter";
 import {
   Area,
@@ -50,23 +25,43 @@ import {
   YAxis,
 } from "recharts";
 import {
-  Target,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  ShieldAlert,
-  Clock,
-  AlertTriangle,
-  Send,
-  MessageSquare,
-  FileText,
-  ArrowRight,
-  Sparkles,
-  Layers,
-  CheckCircle2,
-  ShieldCheck,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  Box,
+  Stack,
+  Inline,
+  Grid,
+  Boxed,
+  Divider,
+  Text1,
+  Text2,
+  Text3,
+  Text5,
+  Text8,
+  Title1,
+  Tag,
+  Touchable,
+  IconButton,
+  ButtonSecondary,
+  Select,
+  Drawer,
+  Sheet,
+  Spinner,
+  skinVars,
+  applyAlpha,
+  IconTargetRegular,
+  IconTrendUpRegular,
+  IconTrendDownRegular,
+  IconShieldCrossRegular,
+  IconTimeRegular,
+  IconAlertRegular,
+  IconSendRegular,
+  IconMessageRegular,
+  IconFileTextRegular,
+  IconArrowRightRegular,
+  IconAiRegular,
+  IconLayersRegular,
+  IconCheckedRegular,
+  IconShieldCheckedOkRegular,
+} from "@telefonica/mistica";
 
 type PeriodType = "week" | "month" | "quarter";
 
@@ -76,22 +71,41 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   quarter: "Quarterly",
 };
 
-const STATUS_STYLES: Record<
-  KpiCardType["status"],
-  { dot: string; label: string; text: string; bg: string }
-> = {
-  "on-track": { dot: "bg-tf-success", label: "On track", text: "text-tf-success", bg: "bg-tf-success-bg" },
-  amber: { dot: "bg-tf-warning", label: "At risk", text: "text-tf-warning", bg: "bg-tf-warning-bg" },
-  "off-track": { dot: "bg-tf-error", label: "Off track", text: "text-tf-error", bg: "bg-tf-error-bg" },
+const STATUS_LABEL: Record<KpiCardType["status"], string> = {
+  "on-track": "On track",
+  amber: "At risk",
+  "off-track": "Off track",
 };
 
-function Sparkline({ data, color }: { data: number[]; color: string }) {
+const STATUS_TAG: Record<KpiCardType["status"], "success" | "warning" | "error"> = {
+  "on-track": "success",
+  amber: "warning",
+  "off-track": "error",
+};
+
+function statusColor(status: KpiCardType["status"]): string {
+  return status === "on-track"
+    ? skinVars.colors.success
+    : status === "amber"
+      ? skinVars.colors.warning
+      : skinVars.colors.error;
+}
+
+function Sparkline({
+  data,
+  color,
+  gradId,
+}: {
+  data: number[];
+  color: string;
+  gradId: string;
+}) {
   const chartData = data.map((value, i) => ({ i, value }));
   return (
     <ResponsiveContainer width="100%" height={44}>
       <AreaChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
         <defs>
-          <linearGradient id={`spark-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={`spark-${gradId}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity={0.35} />
             <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
@@ -101,7 +115,7 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
           dataKey="value"
           stroke={color}
           strokeWidth={2}
-          fill={`url(#spark-${color.replace("#", "")})`}
+          fill={`url(#spark-${gradId})`}
           isAnimationActive={false}
           dot={false}
         />
@@ -114,153 +128,220 @@ function VariationBadge({ kpi }: { kpi: KpiCardType }) {
   const improving =
     kpi.direction === "higher-better" ? kpi.variation >= 0 : kpi.variation <= 0;
   const flat = kpi.variation === 0;
-  const Icon = flat ? Minus : improving ? TrendingUp : TrendingDown;
   const tone = flat
-    ? "text-muted-foreground"
+    ? skinVars.colors.textSecondary
     : improving
-    ? "text-tf-success"
-    : "text-tf-error";
+      ? skinVars.colors.success
+      : skinVars.colors.error;
   return (
-    <span className={cn("inline-flex items-center gap-1 text-xs font-bold", tone)}>
-      <Icon className="w-3.5 h-3.5" />
-      {kpi.variation > 0 ? "+" : ""}
-      {kpi.variation}
-      {kpi.unit}
-      <span className="opacity-60">({kpi.variationPct > 0 ? "+" : ""}{kpi.variationPct}%)</span>
-    </span>
+    <Inline space={4} alignItems="center">
+      {flat ? (
+        <Text1 medium color={tone}>
+          –
+        </Text1>
+      ) : improving ? (
+        <IconTrendUpRegular size={14} color={tone} />
+      ) : (
+        <IconTrendDownRegular size={14} color={tone} />
+      )}
+      <Text1 medium color={tone}>
+        {kpi.variation > 0 ? "+" : ""}
+        {kpi.variation}
+        {kpi.unit} ({kpi.variationPct > 0 ? "+" : ""}
+        {kpi.variationPct}%)
+      </Text1>
+    </Inline>
   );
 }
 
 function AxisPill({ name, color }: { name: string; color: string }) {
   return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold text-white shadow-sm"
-      style={{ backgroundColor: color }}
+    <div
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        backgroundColor: color,
+        borderRadius: skinVars.borderRadii.button,
+        padding: "4px 10px",
+      }}
     >
-      {name}
-    </span>
+      <Text1 medium color={skinVars.colors.textPrimaryInverse} transform="uppercase">
+        {name}
+      </Text1>
+    </div>
   );
 }
 
-const VALIDITY_STYLES: Record<string, { label: string; cls: string }> = {
-  approved: { label: "Approved", cls: "text-tf-success bg-tf-success-bg" },
-  historic: { label: "Historic", cls: "text-tf-warning bg-tf-warning-bg" },
-  superseded: { label: "Superseded", cls: "text-tf-warning bg-tf-warning-bg" },
-  draft: { label: "Draft", cls: "text-muted-foreground bg-muted" },
+const VALIDITY_LABEL: Record<string, string> = {
+  approved: "Approved",
+  historic: "Historic",
+  superseded: "Superseded",
+  draft: "Draft",
 };
 
-// Card-level evidence chip: the number is only as good as what backs it, so every
-// card surfaces its primary source, its validity state, the composite blend and a
-// confidence read — the "every figure is cited" promise, visible before drill-down.
+function validityTagType(validity: string): "success" | "warning" | "inactive" {
+  if (validity === "approved") return "success";
+  if (validity === "historic" || validity === "superseded") return "warning";
+  return "inactive";
+}
+
 function CardEvidenceChip({ kpi }: { kpi: KpiCardType }) {
   const primary = kpi.sources[0];
   const extra = kpi.sources.length - 1;
-  const validity = VALIDITY_STYLES[kpi.validity] ?? VALIDITY_STYLES.approved;
+  const validity = kpi.validity ?? "approved";
   return (
-    <div className="rounded-xl border border-border bg-muted/40 px-3 py-2 flex flex-col gap-1.5">
-      <div className="flex items-center gap-2 min-w-0">
-        <FileText className="w-3.5 h-3.5 text-tf-blue shrink-0" />
-        <span className="text-xs font-semibold text-tf-navy truncate">
-          {primary ? primary.label : "No source"}
-          {extra > 0 && (
-            <span className="text-muted-foreground font-medium"> +{extra}</span>
-          )}
-        </span>
-        <span
-          className={cn(
-            "ml-auto shrink-0 text-[9px] uppercase tracking-eyebrow font-bold px-1.5 py-0.5 rounded",
-            validity.cls,
-          )}
-        >
-          {validity.label}
-        </span>
-      </div>
-      <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
-        <span className="inline-flex items-center gap-1">
-          <ShieldCheck className="w-3 h-3" />
-          {Math.round(kpi.confidence * 100)}% confidence
-        </span>
-        <span className="opacity-40">•</span>
-        <span className="truncate" title={kpi.blend}>
-          {kpi.composite ? kpi.blend : "Single source"}
-        </span>
-      </div>
+    <div
+      style={{
+        backgroundColor: skinVars.colors.backgroundAlternative,
+        border: `1px solid ${skinVars.colors.divider}`,
+        borderRadius: skinVars.borderRadii.container,
+        padding: "8px 12px",
+      }}
+    >
+      <Stack space={4}>
+        <Inline space={8} alignItems="center">
+          <IconFileTextRegular size={14} color={skinVars.colors.brand} />
+          <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              {primary ? primary.label : "No source"}
+              {extra > 0 ? ` +${extra}` : ""}
+            </Text2>
+          </div>
+          <div style={{ marginLeft: "auto", flexShrink: 0 }}>
+            <Tag type={validityTagType(validity)}>{VALIDITY_LABEL[validity] ?? "Approved"}</Tag>
+          </div>
+        </Inline>
+        <Inline space={8} alignItems="center">
+          <Inline space={4} alignItems="center">
+            <IconShieldCheckedOkRegular size={12} color={skinVars.colors.textSecondary} />
+            <Text1 regular color={skinVars.colors.textSecondary}>
+              {Math.round(kpi.confidence * 100)}% confidence
+            </Text1>
+          </Inline>
+          <Text1 regular color={skinVars.colors.textSecondary}>
+            ·
+          </Text1>
+          <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <Text1 regular color={skinVars.colors.textSecondary}>
+              {kpi.composite ? kpi.blend : "Single source"}
+            </Text1>
+          </div>
+        </Inline>
+      </Stack>
     </div>
   );
 }
 
 function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) {
-  const status = STATUS_STYLES[kpi.status];
   const progressClamped = Math.max(0, Math.min(100, kpi.progress));
   return (
-    <button
-      onClick={onOpen}
-      className="text-left bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-tf-blue/30 transition-all flex flex-col gap-4 group"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground truncate">
-            {kpi.market} • {kpi.brand}
-          </div>
-          <h3 className="font-bold text-tf-navy leading-snug mt-1 line-clamp-2">{kpi.name}</h3>
-        </div>
-        <span className={cn("shrink-0 w-2.5 h-2.5 rounded-full mt-1.5", status.dot)} title={status.label} />
-      </div>
+    <Touchable onPress={onOpen} aria-label={`Open ${kpi.name}`}>
+      <Boxed>
+        <Box padding={16}>
+          <Stack space={16}>
+            <Inline space={12} alignItems="center">
+              <div style={{ minWidth: 0 }}>
+                <Stack space={4}>
+                  <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                      {kpi.market} · {kpi.brand}
+                    </Text1>
+                  </div>
+                  <Text3 medium color={skinVars.colors.textPrimary}>
+                    {kpi.name}
+                  </Text3>
+                </Stack>
+              </div>
+              <div style={{ marginLeft: "auto", flexShrink: 0 }}>
+                <div
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: skinVars.borderRadii.avatar,
+                    backgroundColor: statusColor(kpi.status),
+                  }}
+                  title={STATUS_LABEL[kpi.status]}
+                />
+              </div>
+            </Inline>
 
-      <div className="flex items-end justify-between gap-2">
-        <div>
-          <div className="text-display-sm text-tf-navy leading-none">
-            {kpi.current}
-            <span className="text-lg text-muted-foreground font-medium ml-0.5">{kpi.unit}</span>
-          </div>
-          <div className="text-xs text-muted-foreground mt-1.5 font-medium">
-            Target {kpi.target}
-            {kpi.unit}
-          </div>
-        </div>
-        <div className="w-24 shrink-0">
-          <Sparkline data={kpi.spark} color={kpi.axisColor} />
-        </div>
-      </div>
+            <Inline space={8} alignItems="center">
+              <div>
+                <Inline space={2} alignItems="baseline">
+                  <Text8>{String(kpi.current)}</Text8>
+                  <Text3 regular color={skinVars.colors.textSecondary}>
+                    {kpi.unit}
+                  </Text3>
+                </Inline>
+                <Box paddingTop={4}>
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    Target {kpi.target}
+                    {kpi.unit}
+                  </Text1>
+                </Box>
+              </div>
+              <div style={{ marginLeft: "auto", width: 96, flexShrink: 0 }}>
+                <Sparkline data={kpi.spark} color={statusColor(kpi.status)} gradId={kpi.id} />
+              </div>
+            </Inline>
 
-      <div>
-        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-          <div
-            className={cn("h-full rounded-full", status.dot)}
-            style={{ width: `${progressClamped}%` }}
-          />
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <span className={cn("text-[10px] uppercase tracking-eyebrow font-bold", status.text)}>
-            {status.label} • {kpi.progress}%
-          </span>
-          <VariationBadge kpi={kpi} />
-        </div>
-      </div>
+            <Stack space={8}>
+              <div
+                style={{
+                  height: 6,
+                  width: "100%",
+                  borderRadius: skinVars.borderRadii.indicator,
+                  backgroundColor: skinVars.colors.backgroundAlternative,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${progressClamped}%`,
+                    borderRadius: skinVars.borderRadii.indicator,
+                    backgroundColor: statusColor(kpi.status),
+                  }}
+                />
+              </div>
+              <Inline space="between" alignItems="center">
+                <Text1 medium color={statusColor(kpi.status)} transform="uppercase">
+                  {STATUS_LABEL[kpi.status]} · {kpi.progress}%
+                </Text1>
+                <VariationBadge kpi={kpi} />
+              </Inline>
+            </Stack>
 
-      <CardEvidenceChip kpi={kpi} />
+            <CardEvidenceChip kpi={kpi} />
 
-      <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
-        <AxisPill name={kpi.axisName} color={kpi.axisColor} />
-        <div className="flex items-center gap-1.5">
-          {kpi.composite && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-tf-blue bg-tf-blue-tint px-2 py-1 rounded-full">
-              <Layers className="w-3 h-3" /> Blend
-            </span>
-          )}
-          {kpi.conflict && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-tf-warning bg-tf-warning-bg px-2 py-1 rounded-full">
-              <AlertTriangle className="w-3 h-3" /> Conflict
-            </span>
-          )}
-          {kpi.historic && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-tf-warning bg-tf-warning-bg px-2 py-1 rounded-full">
-              <Clock className="w-3 h-3" /> Historic
-            </span>
-          )}
-        </div>
-      </div>
-    </button>
+            <Divider />
+
+            <Inline space={8} alignItems="center" wrap>
+              <AxisPill name={kpi.axisName} color={kpi.axisColor} />
+              <div style={{ marginLeft: "auto" }}>
+                <Inline space={8} alignItems="center" wrap>
+                  {kpi.composite && (
+                    <Tag type="info" Icon={IconLayersRegular}>
+                      Blend
+                    </Tag>
+                  )}
+                  {kpi.conflict && (
+                    <Tag type="warning" Icon={IconAlertRegular}>
+                      Conflict
+                    </Tag>
+                  )}
+                  {kpi.historic && (
+                    <Tag type="warning" Icon={IconTimeRegular}>
+                      Historic
+                    </Tag>
+                  )}
+                </Inline>
+              </div>
+            </Inline>
+          </Stack>
+        </Box>
+      </Boxed>
+    </Touchable>
   );
 }
 
@@ -278,19 +359,18 @@ function FilterSelect({
   allLabel: string;
 }) {
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="h-9 w-auto min-w-[130px] rounded-full border-border bg-card text-sm font-medium">
-        <SelectValue placeholder={label} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="__all__">{allLabel}</SelectItem>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div style={{ minWidth: 150 }}>
+      <Select
+        name={`filter-${label}`}
+        label={label}
+        value={value}
+        onChangeValue={onChange}
+        options={[
+          { value: "__all__", text: allLabel },
+          ...options.map((o) => ({ value: o.value, text: o.label })),
+        ]}
+      />
+    </div>
   );
 }
 
@@ -304,161 +384,227 @@ function SourceRow({
   onOpen: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={cn(
-        "w-full text-left border rounded-xl p-4 bg-card transition-all hover:shadow-sm hover:border-tf-blue/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tf-blue/40",
-        source.accessible ? "border-border" : "border-tf-error/30 bg-tf-error-bg/40",
-      )}
-    >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="bg-tf-blue-tint text-tf-blue font-bold px-2 py-0.5 rounded text-xs shrink-0">
-            S{index + 1}
-          </span>
-          <span className="font-semibold text-sm text-tf-navy truncate">{source.docTitle}</span>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Badge variant="secondary" className="uppercase text-[10px] tracking-eyebrow">
-            {source.kind}
-          </Badge>
-          {source.conflict && (
-            <Badge className="bg-tf-warning text-white hover:bg-tf-warning uppercase text-[10px] tracking-eyebrow">
-              conflict
-            </Badge>
+    <Touchable onPress={onOpen} aria-label={`View citation S${index + 1}`}>
+      <div
+        style={{
+          border: `1px solid ${source.accessible ? skinVars.colors.divider : applyAlpha(skinVars.rawColors.error, 0.3)}`,
+          backgroundColor: source.accessible
+            ? skinVars.colors.backgroundContainer
+            : applyAlpha(skinVars.rawColors.error, 0.08),
+          borderRadius: skinVars.borderRadii.container,
+          padding: 16,
+        }}
+      >
+        <Stack space={8}>
+          <Inline space={8} alignItems="center">
+            <div
+              style={{
+                backgroundColor: skinVars.colors.brandLow,
+                borderRadius: skinVars.borderRadii.chip,
+                padding: "2px 8px",
+                flexShrink: 0,
+              }}
+            >
+              <Text1 medium color={skinVars.colors.brand}>
+                S{index + 1}
+              </Text1>
+            </div>
+            <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <Text2 medium color={skinVars.colors.textPrimary}>
+                {source.docTitle}
+              </Text2>
+            </div>
+            <div style={{ marginLeft: "auto", flexShrink: 0 }}>
+              <Inline space={8} alignItems="center">
+                <Tag type="inactive">{source.kind}</Tag>
+                {source.conflict && <Tag type="warning">conflict</Tag>}
+              </Inline>
+            </div>
+          </Inline>
+
+          {source.sourceLoc && (
+            <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+              {source.sourceLoc}
+            </Text1>
           )}
-        </div>
+
+          {source.accessible ? (
+            source.snippet && (
+              <Text2 regular color={skinVars.colors.textPrimary}>
+                "{source.snippet}"
+              </Text2>
+            )
+          ) : (
+            <Inline space={8} alignItems="center">
+              <IconShieldCrossRegular size={16} color={skinVars.colors.error} />
+              <Text2 medium color={skinVars.colors.error}>
+                Evidence withheld — above your clearance.
+              </Text2>
+            </Inline>
+          )}
+
+          <Inline space="between" alignItems="center">
+            <Inline space={16} alignItems="center" wrap>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                Weight {Math.round(source.weight * 100)}%
+              </Text1>
+              {source.owner && (
+                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  {source.owner}
+                </Text1>
+              )}
+              {source.confidentiality && (
+                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  {source.confidentiality}
+                </Text1>
+              )}
+            </Inline>
+            <Inline space={4} alignItems="center">
+              <Text1 medium color={skinVars.colors.brand}>
+                View citation
+              </Text1>
+              <IconArrowRightRegular size={12} color={skinVars.colors.brand} />
+            </Inline>
+          </Inline>
+        </Stack>
       </div>
-      {source.sourceLoc && (
-        <div className="text-[10px] uppercase tracking-eyebrow text-muted-foreground font-bold mb-2">
-          {source.sourceLoc}
-        </div>
-      )}
-      {source.accessible ? (
-        source.snippet && (
-          <p className="text-sm text-foreground/80 leading-relaxed font-serif line-clamp-2">"{source.snippet}"</p>
-        )
-      ) : (
-        <p className="text-sm text-tf-error font-medium flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4" /> Evidence withheld — above your clearance.
-        </p>
-      )}
-      <div className="flex items-center justify-between gap-4 mt-3">
-        <div className="flex items-center gap-4 text-[10px] uppercase tracking-eyebrow text-muted-foreground font-bold">
-          <span>Weight {Math.round(source.weight * 100)}%</span>
-          {source.owner && <span>{source.owner}</span>}
-          {source.confidentiality && <span>{source.confidentiality}</span>}
-        </div>
-        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-tf-blue shrink-0">
-          View citation <ArrowRight className="w-3 h-3" />
-        </span>
-      </div>
-    </button>
+    </Touchable>
   );
 }
 
-// Source citation detail — mirrors the Ask/Data citation drawer so the KPI panel
-// speaks the same "click a marker, see the governed snippet" language. Fails closed:
-// a source above clearance shows the block, never the snippet.
-function SourceDetailDialog({
+function SourceDetailSheet({
   source,
   index,
-  open,
-  onOpenChange,
+  onClose,
 }: {
-  source: KpiSource | null;
+  source: KpiSource;
   index: number;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
 }) {
-  const validity = source
-    ? VALIDITY_STYLES[source.validity ?? "approved"] ?? VALIDITY_STYLES.approved
-    : VALIDITY_STYLES.approved;
+  const validity = source.validity ?? "approved";
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        {source && (
-          <>
-            <DialogHeader>
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="bg-tf-blue-tint text-tf-blue font-bold px-3 py-1 rounded text-sm">
+    <Sheet onClose={onClose}>
+      {({ modalTitleId }) => (
+        <Box paddingX={24} paddingBottom={32} paddingTop={16}>
+          <Stack space={16}>
+            <Inline space="between" alignItems="center">
+              <div
+                style={{
+                  backgroundColor: skinVars.colors.brandLow,
+                  borderRadius: skinVars.borderRadii.button,
+                  padding: "4px 12px",
+                }}
+              >
+                <Text2 medium color={skinVars.colors.brand}>
                   Citation S{index + 1}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className={cn("uppercase tracking-eyebrow text-[10px] font-bold px-2 py-0.5 rounded", validity.cls)}>
-                    {validity.label}
-                  </span>
-                  {source.confidentiality && (
-                    <Badge
-                      variant={source.confidentiality === "public" ? "secondary" : "destructive"}
-                      className="uppercase tracking-eyebrow text-[10px]"
-                    >
-                      {source.confidentiality}
-                    </Badge>
-                  )}
-                </div>
+                </Text2>
               </div>
-              <DialogTitle className="text-2xl font-bold text-tf-navy text-left">
-                {source.docTitle ?? source.label}
-              </DialogTitle>
-              {source.sourceLoc && (
-                <DialogDescription className="text-left">{source.sourceLoc}</DialogDescription>
-              )}
-            </DialogHeader>
+              <Inline space={8} alignItems="center">
+                <Tag type={validityTagType(validity)}>{VALIDITY_LABEL[validity] ?? "Approved"}</Tag>
+                {source.confidentiality && (
+                  <Tag type={source.confidentiality === "public" ? "success" : "error"}>
+                    {source.confidentiality}
+                  </Tag>
+                )}
+              </Inline>
+            </Inline>
 
-            <div className="space-y-5 mt-2">
-              {source.accessible ? (
-                source.snippet ? (
-                  <div className="bg-muted p-5 rounded-xl border border-border">
-                    <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground mb-3">
+            <Text5 id={modalTitleId}>{source.docTitle ?? source.label}</Text5>
+            {source.sourceLoc && (
+              <Text2 regular color={skinVars.colors.textSecondary}>
+                {source.sourceLoc}
+              </Text2>
+            )}
+
+            {source.accessible ? (
+              source.snippet ? (
+                <div
+                  style={{
+                    backgroundColor: skinVars.colors.backgroundAlternative,
+                    border: `1px solid ${skinVars.colors.divider}`,
+                    borderRadius: skinVars.borderRadii.container,
+                    padding: 20,
+                  }}
+                >
+                  <Stack space={8}>
+                    <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
                       Extracted snippet
-                    </h4>
-                    <p className="text-foreground leading-relaxed font-serif text-lg">"{source.snippet}"</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">This external signal has no extracted snippet.</p>
-                )
+                    </Text1>
+                    <Text3 regular color={skinVars.colors.textPrimary}>
+                      "{source.snippet}"
+                    </Text3>
+                  </Stack>
+                </div>
               ) : (
-                <div className="bg-tf-error-bg p-5 rounded-xl border border-tf-error/30 flex items-start gap-3">
-                  <ShieldAlert className="w-5 h-5 text-tf-error mt-0.5 shrink-0" />
-                  <p className="text-sm text-foreground leading-relaxed">
-                    This evidence is above your current clearance, so the Hub will not reveal its snippet. Its
-                    contribution to the blend is still governed and fails closed.
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="space-y-1">
-                  <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Weight</div>
-                  <div className="font-medium text-sm">{Math.round(source.weight * 100)}%</div>
-                </div>
-                {source.version && (
-                  <div className="space-y-1">
-                    <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Version</div>
-                    <div className="font-medium text-sm">{source.version}</div>
-                  </div>
-                )}
-                {source.owner && (
-                  <div className="space-y-1">
-                    <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Owner</div>
-                    <div className="font-medium text-sm">{source.owner}</div>
-                  </div>
-                )}
-                <div className="space-y-1">
-                  <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Confidence</div>
-                  <div className="font-medium text-sm flex items-center gap-2">
-                    <span>{Math.round(source.confidence * 100)}%</span>
-                    {source.confidence > 0.8 && <CheckCircle2 className="w-4 h-4 text-tf-success" />}
-                  </div>
-                </div>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  This external signal has no extracted snippet.
+                </Text2>
+              )
+            ) : (
+              <div
+                style={{
+                  backgroundColor: applyAlpha(skinVars.rawColors.error, 0.12),
+                  borderRadius: skinVars.borderRadii.container,
+                  padding: 20,
+                }}
+              >
+                <Inline space={12} alignItems="center">
+                  <IconShieldCrossRegular size={20} color={skinVars.colors.error} />
+                  <Text2 regular color={skinVars.colors.textPrimary}>
+                    This evidence is above your current clearance, so the Hub will not reveal its
+                    snippet. Its contribution to the blend is still governed and fails closed.
+                  </Text2>
+                </Inline>
               </div>
-            </div>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
+            )}
+
+            <Grid columns={{ minSize: 120 }} gap={16}>
+              <Stack space={4}>
+                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  Weight
+                </Text1>
+                <Text2 regular color={skinVars.colors.textPrimary}>
+                  {Math.round(source.weight * 100)}%
+                </Text2>
+              </Stack>
+              {source.version && (
+                <Stack space={4}>
+                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                    Version
+                  </Text1>
+                  <Text2 regular color={skinVars.colors.textPrimary}>
+                    {source.version}
+                  </Text2>
+                </Stack>
+              )}
+              {source.owner && (
+                <Stack space={4}>
+                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                    Owner
+                  </Text1>
+                  <Text2 regular color={skinVars.colors.textPrimary}>
+                    {source.owner}
+                  </Text2>
+                </Stack>
+              )}
+              <Stack space={4}>
+                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  Confidence
+                </Text1>
+                <Inline space={8} alignItems="center">
+                  <Text2 regular color={skinVars.colors.textPrimary}>
+                    {Math.round(source.confidence * 100)}%
+                  </Text2>
+                  {source.confidence > 0.8 && (
+                    <IconCheckedRegular size={16} color={skinVars.colors.success} />
+                  )}
+                </Inline>
+              </Stack>
+            </Grid>
+          </Stack>
+        </Box>
+      )}
+    </Sheet>
   );
 }
 
@@ -474,8 +620,8 @@ function KpiChat({
   placeholder?: string;
 }) {
   const { area, roleId } = useApp();
-  const [question, setQuestion] = useState("");
-  const [asked, setAsked] = useState("");
+  const [question, setQuestion] = React.useState("");
+  const [asked, setAsked] = React.useState("");
   const { mutate, data, isPending, reset } = useAskKpis();
 
   const submit = () => {
@@ -488,85 +634,181 @@ function KpiChat({
   const result = data as AskResult | undefined;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 mb-3 shrink-0">
-        <MessageSquare className="w-4 h-4 text-tf-blue" />
-        <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-          {heading}
-        </h4>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <Box paddingBottom={12}>
+        <Inline space={8} alignItems="center">
+          <IconMessageRegular size={16} color={skinVars.colors.brand} />
+          <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+            {heading}
+          </Text1>
+        </Inline>
+      </Box>
 
-      <ScrollArea className="flex-1 -mx-1 px-1 mb-3">
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 12 }}>
         {!result && !isPending && (
-          <p className="text-sm text-muted-foreground leading-relaxed">{intro}</p>
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            {intro}
+          </Text2>
         )}
         {isPending && (
-          <div className="flex items-center gap-3 text-tf-navy py-4">
-            <div className="w-5 h-5 rounded-full border-2 border-tf-blue border-t-transparent animate-spin" />
-            <span className="text-sm font-medium">Reading the evidence...</span>
-          </div>
+          <Inline space={12} alignItems="center">
+            <Spinner size={20} />
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              Reading the evidence...
+            </Text2>
+          </Inline>
         )}
         {result && !isPending && (
-          <div className="space-y-4">
-            <div className="bg-muted px-4 py-2 rounded-xl rounded-tr-sm text-sm font-medium text-foreground inline-block max-w-full">
-              {asked}
+          <Stack space={16}>
+            <div
+              style={{
+                backgroundColor: skinVars.colors.backgroundAlternative,
+                borderRadius: skinVars.borderRadii.container,
+                padding: "8px 16px",
+                alignSelf: "flex-start",
+                display: "inline-block",
+                maxWidth: "100%",
+              }}
+            >
+              <Text2 medium color={skinVars.colors.textPrimary}>
+                {asked}
+              </Text2>
             </div>
 
             {result.status === "no_evidence" && (
-              <div className="flex items-start gap-3 text-tf-warning bg-tf-warning-bg p-4 rounded-xl">
-                <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
-                <p className="text-sm text-foreground leading-relaxed">{result.answer}</p>
+              <div
+                style={{
+                  backgroundColor: applyAlpha(skinVars.rawColors.warning, 0.12),
+                  borderRadius: skinVars.borderRadii.container,
+                  padding: 16,
+                }}
+              >
+                <Inline space={12} alignItems="center">
+                  <IconAlertRegular size={20} color={skinVars.colors.warning} />
+                  <Text2 regular color={skinVars.colors.textPrimary}>
+                    {result.answer}
+                  </Text2>
+                </Inline>
               </div>
             )}
             {result.status === "permission_blocked" && (
-              <div className="flex items-start gap-3 text-tf-error bg-tf-error-bg p-4 rounded-xl">
-                <ShieldAlert className="w-5 h-5 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm text-foreground leading-relaxed">{result.answer}</p>
-                  {result.permissionNote && (
-                    <p className="text-xs mt-2 font-semibold bg-white/60 px-3 py-2 rounded-lg">
-                      {result.permissionNote}
-                    </p>
-                  )}
-                </div>
+              <div
+                style={{
+                  backgroundColor: applyAlpha(skinVars.rawColors.error, 0.12),
+                  borderRadius: skinVars.borderRadii.container,
+                  padding: 16,
+                }}
+              >
+                <Inline space={12} alignItems="center">
+                  <IconShieldCrossRegular size={20} color={skinVars.colors.error} />
+                  <Stack space={8}>
+                    <Text2 regular color={skinVars.colors.textPrimary}>
+                      {result.answer}
+                    </Text2>
+                    {result.permissionNote && (
+                      <div
+                        style={{
+                          backgroundColor: skinVars.colors.backgroundContainer,
+                          borderRadius: skinVars.borderRadii.container,
+                          padding: "8px 12px",
+                        }}
+                      >
+                        <Text1 medium color={skinVars.colors.textPrimary}>
+                          {result.permissionNote}
+                        </Text1>
+                      </div>
+                    )}
+                  </Stack>
+                </Inline>
               </div>
             )}
             {result.status === "answered" && (
-              <div className="space-y-3">
+              <Stack space={12}>
                 {result.historic && (
-                  <div className="flex items-center gap-2 text-tf-warning bg-tf-warning-bg px-3 py-2 rounded-lg text-xs font-medium">
-                    <Clock className="w-4 h-4 shrink-0" />
-                    <span>{result.historicNote || "Draws on historic material."}</span>
+                  <div
+                    style={{
+                      backgroundColor: applyAlpha(skinVars.rawColors.warning, 0.12),
+                      borderRadius: skinVars.borderRadii.container,
+                      padding: "8px 12px",
+                    }}
+                  >
+                    <Inline space={8} alignItems="center">
+                      <IconTimeRegular size={16} color={skinVars.colors.warning} />
+                      <Text1 medium color={skinVars.colors.textPrimary}>
+                        {result.historicNote || "Draws on historic material."}
+                      </Text1>
+                    </Inline>
                   </div>
                 )}
-                <div className="text-sm text-foreground leading-relaxed space-y-2">
+                <Stack space={8}>
                   {result.answer.split("\n").map((p, i) => (
-                    <p key={i}>{p}</p>
+                    <Text2 key={i} regular color={skinVars.colors.textPrimary}>
+                      {p}
+                    </Text2>
                   ))}
-                </div>
+                </Stack>
                 {result.citations && result.citations.length > 0 && (
-                  <div className="space-y-2 pt-2 border-t border-border">
-                    {result.citations.map((c: Citation) => (
-                      <div key={c.id} className="flex items-start gap-2 text-xs bg-muted/60 rounded-lg p-2.5">
-                        <span className="bg-tf-blue-tint text-tf-blue font-bold px-1.5 py-0.5 rounded shrink-0">
-                          {c.id}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="font-semibold text-tf-navy truncate">{c.docTitle}</div>
-                          <div className="text-muted-foreground truncate">{c.sourceLoc}</div>
+                  <>
+                    <Divider />
+                    <Stack space={8}>
+                      {result.citations.map((c: Citation) => (
+                        <div
+                          key={c.id}
+                          style={{
+                            backgroundColor: skinVars.colors.backgroundAlternative,
+                            borderRadius: skinVars.borderRadii.container,
+                            padding: 10,
+                          }}
+                        >
+                          <Inline space={8} alignItems="center">
+                            <div
+                              style={{
+                                backgroundColor: skinVars.colors.brandLow,
+                                borderRadius: skinVars.borderRadii.chip,
+                                padding: "2px 6px",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Text1 medium color={skinVars.colors.brand}>
+                                {c.id}
+                              </Text1>
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <Text1 medium color={skinVars.colors.textPrimary}>
+                                  {c.docTitle}
+                                </Text1>
+                              </div>
+                              <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                <Text1 regular color={skinVars.colors.textSecondary}>
+                                  {c.sourceLoc}
+                                </Text1>
+                              </div>
+                            </div>
+                          </Inline>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </Stack>
+                  </>
                 )}
-              </div>
+              </Stack>
             )}
-          </div>
+          </Stack>
         )}
-      </ScrollArea>
+      </div>
 
-      <div className="relative shrink-0">
-        <Textarea
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: 8,
+          border: `1px solid ${skinVars.colors.divider}`,
+          borderRadius: skinVars.borderRadii.container,
+          backgroundColor: skinVars.colors.background,
+          padding: "8px 8px 8px 12px",
+        }}
+      >
+        <textarea
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={(e) => {
@@ -576,16 +818,29 @@ function KpiChat({
             }
           }}
           placeholder={placeholder}
-          className="min-h-[52px] max-h-[140px] rounded-xl resize-none pr-12 text-sm border-border focus-visible:ring-tf-blue"
+          rows={1}
+          style={{
+            flex: 1,
+            border: "none",
+            outline: "none",
+            resize: "none",
+            minHeight: 40,
+            maxHeight: 140,
+            backgroundColor: "transparent",
+            color: skinVars.colors.textPrimary,
+            fontFamily: "inherit",
+            fontSize: 16,
+            lineHeight: "24px",
+            padding: "8px 0",
+          }}
         />
-        <Button
-          size="icon"
-          className="absolute bottom-2.5 right-2 h-8 w-8 rounded-full bg-tf-blue hover:bg-tf-blue-hover text-white"
-          onClick={submit}
+        <IconButton
+          aria-label="Send question"
+          type="brand"
+          onPress={submit}
           disabled={!question.trim() || isPending || !roleId}
-        >
-          <Send className="w-4 h-4" />
-        </Button>
+          Icon={IconSendRegular}
+        />
       </div>
     </div>
   );
@@ -593,171 +848,213 @@ function KpiChat({
 
 function DetailDrawerBody({ detail }: { detail: KpiDetail }) {
   const kpi = detail.kpi;
-  const status = STATUS_STYLES[kpi.status];
   const seriesData = detail.series.map((p) => ({ ...p, target: kpi.target }));
-  const [selectedSource, setSelectedSource] = useState<{ source: KpiSource; index: number } | null>(
-    null,
-  );
+  const [selectedSource, setSelectedSource] = React.useState<{
+    source: KpiSource;
+    index: number;
+  } | null>(null);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 h-full overflow-hidden">
-      <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        <DrawerHeader className="px-0 pb-4 shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <AxisPill name={kpi.axisName} color={kpi.axisColor} />
-            <div className="flex items-center gap-2">
-              <span className={cn("inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full", status.bg, status.text)}>
-                <span className={cn("w-2 h-2 rounded-full", status.dot)} />
-                {status.label}
-              </span>
-              {kpi.historic && (
-                <Badge className="bg-tf-warning text-white hover:bg-tf-warning uppercase text-[10px] tracking-eyebrow">historic</Badge>
-              )}
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 24 }}>
+      <div style={{ flex: "1 1 420px", minWidth: 0 }}>
+        <Stack space={24}>
+          <Stack space={8}>
+            <Inline space="between" alignItems="center" wrap>
+              <AxisPill name={kpi.axisName} color={kpi.axisColor} />
+              <Inline space={8} alignItems="center">
+                <Tag type={STATUS_TAG[kpi.status]}>{STATUS_LABEL[kpi.status]}</Tag>
+                {kpi.historic && <Tag type="warning">historic</Tag>}
+              </Inline>
+            </Inline>
+            <Text5>{kpi.name}</Text5>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {kpi.objectiveName} · {kpi.market} · {kpi.brand}
+            </Text2>
+          </Stack>
+
+          <Text2 regular color={skinVars.colors.textPrimary}>
+            {kpi.description}
+          </Text2>
+
+          <Grid columns={3} gap={12}>
+            {[
+              { label: "Current", value: `${kpi.current}${kpi.unit}`, color: skinVars.colors.textPrimary },
+              { label: "Target", value: `${kpi.target}${kpi.unit}`, color: skinVars.colors.textPrimary },
+              { label: "Progress", value: `${kpi.progress}%`, color: statusColor(kpi.status) },
+            ].map((m) => (
+              <div
+                key={m.label}
+                style={{
+                  backgroundColor: skinVars.colors.backgroundAlternative,
+                  borderRadius: skinVars.borderRadii.container,
+                  padding: 16,
+                }}
+              >
+                <Stack space={4}>
+                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                    {m.label}
+                  </Text1>
+                  <Text5>
+                    <span style={{ color: m.color }}>{m.value}</span>
+                  </Text5>
+                </Stack>
+              </div>
+            ))}
+          </Grid>
+
+          {kpi.conflict && (
+            <div
+              style={{
+                backgroundColor: applyAlpha(skinVars.rawColors.warning, 0.12),
+                borderRadius: skinVars.borderRadii.container,
+                padding: 16,
+              }}
+            >
+              <Inline space={12} alignItems="center">
+                <IconAlertRegular size={20} color={skinVars.colors.warning} />
+                <Text2 regular color={skinVars.colors.textPrimary}>
+                  Composing sources disagree on this metric. The headline uses the weighted blend;
+                  open the sources below to see the divergence.
+                </Text2>
+              </Inline>
             </div>
-          </div>
-          <DrawerTitle className="text-2xl font-bold text-tf-navy">{kpi.name}</DrawerTitle>
-          <DrawerDescription className="text-sm mt-1">
-            {kpi.objectiveName} • {kpi.market} • {kpi.brand}
-          </DrawerDescription>
-        </DrawerHeader>
+          )}
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
-          <div className="space-y-6 pb-6">
-            <p className="text-sm text-foreground/80 leading-relaxed">{kpi.description}</p>
-
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-muted rounded-xl p-4">
-                <div className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">Current</div>
-                <div className="text-2xl font-bold text-tf-navy mt-1">{kpi.current}{kpi.unit}</div>
-              </div>
-              <div className="bg-muted rounded-xl p-4">
-                <div className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">Target</div>
-                <div className="text-2xl font-bold text-tf-navy mt-1">{kpi.target}{kpi.unit}</div>
-              </div>
-              <div className="bg-muted rounded-xl p-4">
-                <div className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">Progress</div>
-                <div className={cn("text-2xl font-bold mt-1", status.text)}>{kpi.progress}%</div>
-              </div>
+          <Stack space={12}>
+            <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+              Trend vs target
+            </Text1>
+            <div style={{ height: 224, width: "100%" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={seriesData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={skinVars.colors.divider}
+                    vertical={false}
+                  />
+                  <XAxis dataKey="period" tick={{ fontSize: 11 }} stroke={skinVars.colors.textSecondary} />
+                  <YAxis tick={{ fontSize: 11 }} stroke={skinVars.colors.textSecondary} />
+                  <RTooltip
+                    contentStyle={{
+                      borderRadius: 12,
+                      border: `1px solid ${skinVars.colors.divider}`,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="target"
+                    stroke={skinVars.colors.textSecondary}
+                    strokeDasharray="5 5"
+                    strokeWidth={1.5}
+                    dot={false}
+                    name="Target"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke={statusColor(kpi.status)}
+                    strokeWidth={2.5}
+                    dot={{ r: 3 }}
+                    name={kpi.name}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
+          </Stack>
 
-            {kpi.conflict && (
-              <div className="flex items-start gap-3 text-tf-warning bg-tf-warning-bg p-4 rounded-xl text-sm">
-                <AlertTriangle className="w-5 h-5 mt-0.5 shrink-0" />
-                <span className="text-foreground">
-                  Composing sources disagree on this metric. The headline uses the weighted blend; open the
-                  sources below to see the divergence.
-                </span>
-              </div>
-            )}
-
-            <div>
-              <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground mb-3">
-                Trend vs target
-              </h4>
-              <div className="h-56 w-full">
+          {detail.breakdowns.map((bd) => (
+            <Stack key={bd.dimension} space={12}>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                Breakdown by {bd.dimension}
+              </Text1>
+              <div style={{ height: 176, width: "100%" }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={seriesData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="period" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                    <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+                  <BarChart data={bd.points} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke={skinVars.colors.divider}
+                      vertical={false}
+                    />
+                    <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke={skinVars.colors.textSecondary} />
+                    <YAxis tick={{ fontSize: 11 }} stroke={skinVars.colors.textSecondary} />
                     <RTooltip
                       contentStyle={{
                         borderRadius: 12,
-                        border: "1px solid var(--border)",
+                        border: `1px solid ${skinVars.colors.divider}`,
                         fontSize: 12,
                       }}
+                      cursor={{ fill: applyAlpha(skinVars.rawColors.brand, 0.08) }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="target"
-                      stroke="var(--muted-foreground)"
-                      strokeDasharray="5 5"
-                      strokeWidth={1.5}
-                      dot={false}
-                      name="Target"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke={kpi.axisColor}
-                      strokeWidth={2.5}
-                      dot={{ r: 3 }}
-                      name={kpi.name}
-                    />
-                  </LineChart>
+                    <Bar dataKey="value" fill={skinVars.colors.brand} radius={[6, 6, 0, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </Stack>
+          ))}
 
-            {detail.breakdowns.map((bd) => (
-              <div key={bd.dimension}>
-                <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground mb-3">
-                  Breakdown by {bd.dimension}
-                </h4>
-                <div className="h-44 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={bd.points} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                      <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                      <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-                      <RTooltip
-                        contentStyle={{ borderRadius: 12, border: "1px solid var(--border)", fontSize: 12 }}
-                        cursor={{ fill: "var(--muted)" }}
-                      />
-                      <Bar dataKey="value" fill={kpi.axisColor} radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            ))}
-
-            <div
-              className={cn(
-                "rounded-xl p-4 flex items-start gap-3",
-                kpi.forecast.deviationRisk ? "bg-tf-warning-bg" : "bg-tf-success-bg",
-              )}
-            >
-              <Sparkles className={cn("w-5 h-5 mt-0.5 shrink-0", kpi.forecast.deviationRisk ? "text-tf-warning" : "text-tf-success")} />
-              <div>
-                <div className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
-                  Forecast • {Math.round(kpi.forecast.confidence * 100)}% confidence
-                </div>
-                <p className="text-sm text-foreground mt-1 leading-relaxed">{kpi.forecast.note}</p>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground mb-3 flex items-center gap-2">
-                <FileText className="w-4 h-4" /> Composing sources ({kpi.sources.length})
-                <span className="ml-auto font-medium normal-case tracking-normal text-muted-foreground">
-                  Blend: {kpi.blend}
-                </span>
-              </h4>
-              <div className="space-y-3">
-                {kpi.sources.map((s, i) => (
-                  <SourceRow
-                    key={s.id}
-                    source={s}
-                    index={i}
-                    onOpen={() => setSelectedSource({ source: s, index: i })}
-                  />
-                ))}
-              </div>
-            </div>
+          <div
+            style={{
+              backgroundColor: kpi.forecast.deviationRisk
+                ? applyAlpha(skinVars.rawColors.warning, 0.12)
+                : applyAlpha(skinVars.rawColors.success, 0.12),
+              borderRadius: skinVars.borderRadii.container,
+              padding: 16,
+            }}
+          >
+            <Inline space={12} alignItems="center">
+              <IconAiRegular
+                size={20}
+                color={kpi.forecast.deviationRisk ? skinVars.colors.warning : skinVars.colors.success}
+              />
+              <Stack space={4}>
+                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  Forecast · {Math.round(kpi.forecast.confidence * 100)}% confidence
+                </Text1>
+                <Text2 regular color={skinVars.colors.textPrimary}>
+                  {kpi.forecast.note}
+                </Text2>
+              </Stack>
+            </Inline>
           </div>
-        </ScrollArea>
+
+          <Stack space={12}>
+            <Inline space={8} alignItems="center" wrap>
+              <IconFileTextRegular size={16} color={skinVars.colors.textSecondary} />
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                Composing sources ({kpi.sources.length})
+              </Text1>
+              <div style={{ marginLeft: "auto" }}>
+                <Text1 regular color={skinVars.colors.textSecondary}>
+                  Blend: {kpi.blend}
+                </Text1>
+              </div>
+            </Inline>
+            <Stack space={12}>
+              {kpi.sources.map((s, i) => (
+                <SourceRow
+                  key={s.id}
+                  source={s}
+                  index={i}
+                  onOpen={() => setSelectedSource({ source: s, index: i })}
+                />
+              ))}
+            </Stack>
+          </Stack>
+        </Stack>
       </div>
 
-      <div className="lg:w-[360px] shrink-0 border-t lg:border-t-0 lg:border-l border-border lg:pl-6 pt-4 lg:pt-0 flex flex-col min-h-[360px]">
+      <div style={{ flex: "1 1 320px", minWidth: 0, minHeight: 360 }}>
         <KpiChat kpiIds={[kpi.id]} />
       </div>
 
-      <SourceDetailDialog
-        source={selectedSource?.source ?? null}
-        index={selectedSource?.index ?? 0}
-        open={!!selectedSource}
-        onOpenChange={(open) => !open && setSelectedSource(null)}
-      />
+      {selectedSource && (
+        <SourceDetailSheet
+          source={selectedSource.source}
+          index={selectedSource.index}
+          onClose={() => setSelectedSource(null)}
+        />
+      )}
     </div>
   );
 }
@@ -765,13 +1062,13 @@ function DetailDrawerBody({ detail }: { detail: KpiDetail }) {
 export default function KpisPage() {
   const { area, roleId } = useApp();
   const [, navigate] = useLocation();
-  const [period, setPeriod] = useState<PeriodType>("quarter");
-  const [axisId, setAxisId] = useState("__all__");
-  const [market, setMarket] = useState("__all__");
-  const [brand, setBrand] = useState("__all__");
-  const [source, setSource] = useState("__all__");
-  const [initiativeType, setInitiativeType] = useState("__all__");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [period, setPeriod] = React.useState<PeriodType>("quarter");
+  const [axisId, setAxisId] = React.useState("__all__");
+  const [market, setMarket] = React.useState("__all__");
+  const [brand, setBrand] = React.useState("__all__");
+  const [source, setSource] = React.useState("__all__");
+  const [initiativeType, setInitiativeType] = React.useState("__all__");
+  const [openId, setOpenId] = React.useState<string | null>(null);
 
   const { mutate: runQuery, data: queryData, isPending } = useQueryKpis();
 
@@ -810,9 +1107,9 @@ export default function KpisPage() {
 
   const kpis = queryData?.kpis ?? [];
   const facets = queryData?.facets;
-  const visibleKpiIds = useMemo(() => kpis.map((k) => k.id), [kpis]);
+  const visibleKpiIds = React.useMemo(() => kpis.map((k) => k.id), [kpis]);
 
-  const summary = useMemo(() => {
+  const summary = React.useMemo(() => {
     const total = kpis.length;
     const onTrack = kpis.filter((k) => k.status === "on-track").length;
     const atRisk = kpis.filter((k) => k.status === "amber").length;
@@ -821,185 +1118,281 @@ export default function KpisPage() {
   }, [kpis]);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="space-y-2">
-          <h1 className="text-title-lg text-tf-navy flex items-center gap-3">
-            <Target className="w-7 h-7 text-tf-blue" /> KPIs & Objectives
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Governed objective tracking for {area}. Every figure is a cited blend of governed sources,
-            scoped to your clearance.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            className="h-10 rounded-full border-border bg-card font-semibold gap-2"
-            onClick={() => navigate("/generate")}
-            disabled={kpis.length === 0}
-            title={
-              kpis.length === 0
-                ? "No KPIs in scope to report on"
-                : "Draft a cited KPI report in Generate"
-            }
+    <Box padding={32}>
+      <Stack space={32}>
+        <Inline space={16} alignItems="center" wrap>
+          <Stack space={8}>
+            <Inline space={12} alignItems="center">
+              <IconTargetRegular size={28} color={skinVars.colors.brand} />
+              <Title1>KPIs & Objectives</Title1>
+            </Inline>
+            <Text3 regular color={skinVars.colors.textSecondary}>
+              Governed objective tracking for {area}. Every figure is a cited blend of governed
+              sources, scoped to your clearance.
+            </Text3>
+          </Stack>
+          <div style={{ marginLeft: "auto" }}>
+            <Inline space={12} alignItems="center" wrap>
+              <ButtonSecondary
+                small
+                StartIcon={IconFileTextRegular}
+                onPress={() => navigate("/generate")}
+                disabled={kpis.length === 0}
+              >
+                Generate KPI report
+              </ButtonSecondary>
+              <div style={{ minWidth: 150 }}>
+                <Select
+                  name="period"
+                  label="Period"
+                  value={period}
+                  onChangeValue={(v) => setPeriod(v as PeriodType)}
+                  options={(Object.keys(PERIOD_LABELS) as PeriodType[]).map((p) => ({
+                    value: p,
+                    text: PERIOD_LABELS[p],
+                  }))}
+                />
+              </div>
+            </Inline>
+          </div>
+        </Inline>
+
+        {kpis.length > 0 && (
+          <Grid columns={{ minSize: 160 }} gap={12}>
+            {[
+              { label: "Tracked", value: summary.total, color: skinVars.colors.textPrimary, bg: skinVars.colors.backgroundContainer },
+              { label: "On track", value: summary.onTrack, color: skinVars.colors.success, bg: applyAlpha(skinVars.rawColors.success, 0.12) },
+              { label: "At risk", value: summary.atRisk, color: skinVars.colors.warning, bg: applyAlpha(skinVars.rawColors.warning, 0.12) },
+              { label: "Off track", value: summary.offTrack, color: skinVars.colors.error, bg: applyAlpha(skinVars.rawColors.error, 0.12) },
+            ].map((s) => (
+              <div
+                key={s.label}
+                style={{
+                  backgroundColor: s.bg,
+                  border: `1px solid ${skinVars.colors.divider}`,
+                  borderRadius: skinVars.borderRadii.container,
+                  padding: 20,
+                }}
+              >
+                <Stack space={4}>
+                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                    {s.label}
+                  </Text1>
+                  <Text8>
+                    <span style={{ color: s.color }}>{String(s.value)}</span>
+                  </Text8>
+                </Stack>
+              </div>
+            ))}
+          </Grid>
+        )}
+
+        {facets && (
+          <div
+            style={{
+              backgroundColor: skinVars.colors.backgroundAlternative,
+              border: `1px solid ${skinVars.colors.divider}`,
+              borderRadius: skinVars.borderRadii.container,
+              padding: 12,
+            }}
           >
-            <FileText className="w-4 h-4" /> Generate KPI report
-          </Button>
-          <Select value={period} onValueChange={(v) => setPeriod(v as PeriodType)}>
-            <SelectTrigger className="h-10 w-[150px] rounded-full border-border bg-card font-semibold">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(PERIOD_LABELS) as PeriodType[]).map((p) => (
-                <SelectItem key={p} value={p}>
-                  {PERIOD_LABELS[p]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+            <Inline space={12} alignItems="center" wrap>
+              <FilterSelect
+                label="Axis"
+                allLabel="All axes"
+                value={axisId}
+                onChange={setAxisId}
+                options={facets.axes.map((a) => ({ value: a.id, label: a.name }))}
+              />
+              <FilterSelect
+                label="Market"
+                allLabel="All markets"
+                value={market}
+                onChange={setMarket}
+                options={facets.markets.map((m) => ({ value: m, label: m }))}
+              />
+              <FilterSelect
+                label="Brand"
+                allLabel="All brands"
+                value={brand}
+                onChange={setBrand}
+                options={facets.brands.map((b) => ({ value: b, label: b }))}
+              />
+              <FilterSelect
+                label="Source"
+                allLabel="All sources"
+                value={source}
+                onChange={setSource}
+                options={facets.sources.map((s) => ({ value: s, label: s }))}
+              />
+              <FilterSelect
+                label="Initiative"
+                allLabel="All initiatives"
+                value={initiativeType}
+                onChange={setInitiativeType}
+                options={facets.initiativeTypes.map((t) => ({ value: t, label: t }))}
+              />
+            </Inline>
+          </div>
+        )}
 
-      {kpis.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: "Tracked", value: summary.total, tone: "text-tf-navy", bg: "bg-card" },
-            { label: "On track", value: summary.onTrack, tone: "text-tf-success", bg: "bg-tf-success-bg" },
-            { label: "At risk", value: summary.atRisk, tone: "text-tf-warning", bg: "bg-tf-warning-bg" },
-            { label: "Off track", value: summary.offTrack, tone: "text-tf-error", bg: "bg-tf-error-bg" },
-          ].map((s) => (
-            <div key={s.label} className={cn("rounded-2xl border border-border p-5", s.bg)}>
-              <div className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
-                {s.label}
+        {isPending && kpis.length === 0 && (
+          <Grid columns={{ minSize: 300 }} gap={16}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  height: 224,
+                  borderRadius: skinVars.borderRadii.container,
+                  backgroundColor: skinVars.colors.backgroundAlternative,
+                }}
+              />
+            ))}
+          </Grid>
+        )}
+
+        {!isPending && kpis.length === 0 && (
+          <div
+            style={{
+              border: `1px dashed ${skinVars.colors.divider}`,
+              borderRadius: skinVars.borderRadii.container,
+              padding: 64,
+            }}
+          >
+            <Stack space={16}>
+              <Inline space={0} alignItems="center">
+                <div style={{ margin: "0 auto" }}>
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: skinVars.borderRadii.avatar,
+                      backgroundColor: skinVars.colors.backgroundAlternative,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <IconTargetRegular size={28} color={skinVars.colors.textSecondary} />
+                  </div>
+                </div>
+              </Inline>
+              <Text5>
+                <span style={{ display: "block", textAlign: "center" }}>No objectives in scope</span>
+              </Text5>
+              <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
+                There are no governed KPIs for this persona and filter combination. Clear a filter,
+                switch reporting period, or change persona to see tracked objectives.
+              </Text2>
+            </Stack>
+          </div>
+        )}
+
+        {kpis.length > 0 && (
+          <Grid columns={{ minSize: 300 }} gap={16}>
+            {kpis.map((kpi) => (
+              <KpiCardTile key={kpi.id} kpi={kpi} onOpen={() => setOpenId(kpi.id)} />
+            ))}
+          </Grid>
+        )}
+
+        {kpis.length > 0 && (
+          <Boxed>
+            <div
+              style={{
+                borderBottom: `1px solid ${skinVars.colors.divider}`,
+                backgroundColor: skinVars.colors.backgroundAlternative,
+              }}
+            >
+              <Box paddingX={20} paddingY={16}>
+                <Inline space={12} alignItems="center">
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: skinVars.borderRadii.avatar,
+                      backgroundColor: skinVars.colors.brandLow,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <IconMessageRegular size={16} color={skinVars.colors.brand} />
+                  </div>
+                  <Stack space={2}>
+                    <Text3 medium color={skinVars.colors.textPrimary}>
+                      Ask about these KPIs
+                    </Text3>
+                    <Text1 regular color={skinVars.colors.textSecondary}>
+                      Answered only from the governed evidence behind the {kpis.length}{" "}
+                      {kpis.length === 1 ? "objective" : "objectives"} in view, scoped to your
+                      clearance.
+                    </Text1>
+                  </Stack>
+                </Inline>
+              </Box>
+            </div>
+            <Box padding={20}>
+              <div style={{ height: 320 }}>
+                <KpiChat
+                  key={visibleKpiIds.join(",")}
+                  kpiIds={visibleKpiIds}
+                  heading="Ask about the objectives in view"
+                  intro="Ask across every KPI currently on screen — what is on track, what is slipping, and why — answered only from the governed evidence behind them, with citations."
+                  placeholder="Which objectives are off track, and why?"
+                />
               </div>
-              <div className={cn("text-3xl font-bold mt-1", s.tone)}>{s.value}</div>
-            </div>
-          ))}
-        </div>
-      )}
+            </Box>
+          </Boxed>
+        )}
 
-      {facets && (
-        <div className="flex items-center gap-2 flex-wrap bg-muted/40 border border-border rounded-2xl p-3">
-          <FilterSelect
-            label="Axis"
-            allLabel="All axes"
-            value={axisId}
-            onChange={setAxisId}
-            options={facets.axes.map((a) => ({ value: a.id, label: a.name }))}
-          />
-          <FilterSelect
-            label="Market"
-            allLabel="All markets"
-            value={market}
-            onChange={setMarket}
-            options={facets.markets.map((m) => ({ value: m, label: m }))}
-          />
-          <FilterSelect
-            label="Brand"
-            allLabel="All brands"
-            value={brand}
-            onChange={setBrand}
-            options={facets.brands.map((b) => ({ value: b, label: b }))}
-          />
-          <FilterSelect
-            label="Source"
-            allLabel="All sources"
-            value={source}
-            onChange={setSource}
-            options={facets.sources.map((s) => ({ value: s, label: s }))}
-          />
-          <FilterSelect
-            label="Initiative"
-            allLabel="All initiatives"
-            value={initiativeType}
-            onChange={setInitiativeType}
-            options={facets.initiativeTypes.map((t) => ({ value: t, label: t }))}
-          />
-        </div>
-      )}
+        <Inline space={8} alignItems="center">
+          <IconArrowRightRegular size={14} color={skinVars.colors.textSecondary} />
+          <Text1 regular color={skinVars.colors.textSecondary}>
+            Open any KPI to see its trend, breakdowns, composing sources and a scoped, cited chat.
+          </Text1>
+        </Inline>
+      </Stack>
 
-      {isPending && kpis.length === 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-56 rounded-2xl bg-muted animate-pulse" />
-          ))}
-        </div>
-      )}
-
-      {!isPending && kpis.length === 0 && (
-        <div className="border border-dashed border-border rounded-2xl p-16 text-center">
-          <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-            <Target className="w-7 h-7 text-muted-foreground" />
-          </div>
-          <h3 className="text-xl font-bold text-tf-navy">No objectives in scope</h3>
-          <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-            There are no governed KPIs for this persona and filter combination. Clear a filter, switch
-            reporting period, or change persona to see tracked objectives.
-          </p>
-        </div>
-      )}
-
-      {kpis.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {kpis.map((kpi) => (
-            <KpiCardTile key={kpi.id} kpi={kpi} onOpen={() => setOpenId(kpi.id)} />
-          ))}
-        </div>
-      )}
-
-      {kpis.length > 0 && (
-        <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-border bg-muted/30 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-tf-blue-tint flex items-center justify-center shrink-0">
-              <MessageSquare className="w-4 h-4 text-tf-blue" />
-            </div>
-            <div>
-              <h3 className="font-bold text-tf-navy leading-snug">Ask about these KPIs</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Answered only from the governed evidence behind the {kpis.length}{" "}
-                {kpis.length === 1 ? "objective" : "objectives"} in view, scoped to your clearance.
-              </p>
-            </div>
-          </div>
-          <div className="p-5 h-[320px]">
-            <KpiChat
-              key={visibleKpiIds.join(",")}
-              kpiIds={visibleKpiIds}
-              heading="Ask about the objectives in view"
-              intro="Ask across every KPI currently on screen — what is on track, what is slipping, and why — answered only from the governed evidence behind them, with citations."
-              placeholder="Which objectives are off track, and why?"
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
-        <ArrowRight className="w-3.5 h-3.5" />
-        Open any KPI to see its trend, breakdowns, composing sources and a scoped, cited chat.
-      </div>
-
-      <Drawer open={!!openId} onOpenChange={(open) => !open && setOpenId(null)}>
-        <DrawerContent className="max-h-[92vh]">
-          <div className="mx-auto w-full max-w-5xl px-6 pb-8 pt-4 flex flex-col h-[85vh] overflow-hidden">
-            {detailLoading && (
-              <div className="py-20 flex justify-center items-center flex-1">
-                <div className="w-8 h-8 rounded-full border-2 border-tf-blue border-t-transparent animate-spin" />
-              </div>
-            )}
-            {!detailLoading && detail && <DetailDrawerBody detail={detail} />}
-            {!detailLoading && !detail && openId && (
-              <div className="py-20 flex flex-col items-center justify-center flex-1 text-tf-error">
-                <ShieldAlert className="w-12 h-12 mb-4" />
-                <h3 className="font-bold text-xl text-tf-navy">This KPI is restricted</h3>
-                <p className="text-muted-foreground mt-2 text-center max-w-sm">
+      {openId && (
+        <Drawer
+          onClose={() => setOpenId(null)}
+          onDismiss={() => setOpenId(null)}
+          width={1024}
+          title="KPI detail"
+        >
+          {detailLoading && (
+            <Box paddingY={64}>
+              <Inline space={0} alignItems="center">
+                <div style={{ margin: "0 auto" }}>
+                  <Spinner size={32} />
+                </div>
+              </Inline>
+            </Box>
+          )}
+          {!detailLoading && detail && <DetailDrawerBody detail={detail} />}
+          {!detailLoading && !detail && (
+            <Box paddingY={64}>
+              <Stack space={16}>
+                <Inline space={0} alignItems="center">
+                  <div style={{ margin: "0 auto" }}>
+                    <IconShieldCrossRegular size={48} color={skinVars.colors.error} />
+                  </div>
+                </Inline>
+                <Text5>
+                  <span style={{ display: "block", textAlign: "center" }}>
+                    This KPI is restricted
+                  </span>
+                </Text5>
+                <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
                   Your current persona is not cleared to open this objective or its evidence.
-                </p>
-              </div>
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
-    </div>
+                </Text2>
+              </Stack>
+            </Box>
+          )}
+        </Drawer>
+      )}
+    </Box>
   );
 }

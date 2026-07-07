@@ -17,7 +17,7 @@ A governed, agentic Single Source of Truth for Telefónica's Communication & Bra
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5 (async handlers; `req.log`, never `console.log`)
-- Frontend: React + Vite, Tailwind v4, Hanken Grotesk, Telefónica design system
+- Frontend: React + Vite, official Mística React library (@telefonica/mistica, Telefónica skin) — no Tailwind/shadcn/lucide; all styling via skinVars tokens
 - Answer composition: Claude (`claude-sonnet-4-6`) via the Replit Anthropic integration
 - Retrieval: local TF-IDF + BM25 hybrid over an in-memory synthetic corpus (no DB)
 - Validation: Zod (`zod/v4`); API codegen via Orval from the OpenAPI spec

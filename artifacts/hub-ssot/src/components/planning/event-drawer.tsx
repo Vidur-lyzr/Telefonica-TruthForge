@@ -2,14 +2,25 @@ import React from "react";
 import { useGetPlanningEvent, type StrategicAxis } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-} from "@/components/ui/drawer";
-import { Badge } from "@/components/ui/badge";
-import { Lock, TriangleAlert, MapPin, User, Radio } from "lucide-react";
+  Sheet,
+  Box,
+  Stack,
+  Inline,
+  Grid,
+  Text1,
+  Text2,
+  Text3,
+  Text5,
+  Tag,
+  Spinner,
+  skinVars,
+  applyAlpha,
+  IconLockClosedRegular,
+  IconWarningRegular,
+  IconLocationRegular,
+  IconUserAccountRegular,
+  IconAntennaRegular,
+} from "@telefonica/mistica";
 import { axisColor, axisName, formatDay, STATUS_STYLE, TYPE_LABEL } from "./utils";
 
 export function EventDrawer({
@@ -34,152 +45,184 @@ export function EventDrawer({
 
   const ev = data?.event;
 
+  if (!eventId) return null;
+
   return (
-    <Drawer open={!!eventId} onOpenChange={(open) => !open && onClose()}>
-      <DrawerContent className="max-h-[85vh]">
-        <div className="mx-auto w-full max-w-2xl px-6 pb-8 pt-4">
+    <Sheet onClose={onClose}>
+      {({ modalTitleId }) => (
+        <Box paddingX={24} paddingBottom={32} paddingTop={16}>
           {isLoading && (
-            <div className="py-16 text-center text-muted-foreground">Loading event…</div>
+            <Box paddingY={64}>
+              <Inline space={12} alignItems="center">
+                <Spinner size={24} />
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  Loading event…
+                </Text2>
+              </Inline>
+            </Box>
           )}
 
           {ev && ev.restricted && (
-            <>
-              <DrawerHeader className="px-0">
-                <div className="flex items-center space-x-2 text-tf-error mb-2">
-                  <Lock className="w-5 h-5" />
-                  <span className="text-xs uppercase tracking-eyebrow font-bold">Restricted</span>
-                </div>
-                <DrawerTitle className="text-2xl font-bold text-tf-navy">
-                  Blocked activity
-                </DrawerTitle>
-                <DrawerDescription className="text-base mt-1">
+            <Stack space={16}>
+              <Stack space={8}>
+                <Inline space={8} alignItems="center">
+                  <IconLockClosedRegular size={20} color={skinVars.colors.error} />
+                  <Text1 medium color={skinVars.colors.error} transform="uppercase">
+                    Restricted
+                  </Text1>
+                </Inline>
+                <Text5 id={modalTitleId}>Blocked activity</Text5>
+                <Text2 regular color={skinVars.colors.textSecondary}>
                   {formatDay(ev.startDate)}
                   {ev.endDate !== ev.startDate ? ` – ${formatDay(ev.endDate)}` : ""} · {ev.market}
-                </DrawerDescription>
-              </DrawerHeader>
-              <div className="bg-tf-error-bg text-foreground p-6 rounded-xl leading-relaxed">
-                There is activity in this slot, but it is classified{" "}
-                <span className="font-bold">{ev.confidentiality}</span> — above your current
-                clearance. The Hub shows the slot as busy without revealing its contents. Switch to a
-                higher-clearance persona or request access.
+                </Text2>
+              </Stack>
+              <div
+                style={{
+                  backgroundColor: applyAlpha(skinVars.rawColors.error, 0.12),
+                  borderRadius: skinVars.borderRadii.container,
+                  padding: 24,
+                }}
+              >
+                <Text2 regular color={skinVars.colors.textPrimary}>
+                  There is activity in this slot, but it is classified{" "}
+                  <Text2 as="span" medium color={skinVars.colors.textPrimary}>
+                    {ev.confidentiality}
+                  </Text2>{" "}
+                  — above your current clearance. The Hub shows the slot as busy without revealing
+                  its contents. Switch to a higher-clearance persona or request access.
+                </Text2>
               </div>
-            </>
+            </Stack>
           )}
 
           {ev && !ev.restricted && (
-            <>
-              <DrawerHeader className="px-0">
-                <div className="flex items-center justify-between mb-2">
+            <Stack space={24}>
+              <Stack space={8}>
+                <Inline space="between" alignItems="center">
                   <div
-                    className="text-white font-bold px-3 py-1 rounded-pill text-xs uppercase tracking-eyebrow"
-                    style={{ backgroundColor: axisColor(axes, ev.axisId) }}
+                    style={{
+                      backgroundColor: axisColor(axes, ev.axisId),
+                      borderRadius: skinVars.borderRadii.button,
+                      padding: "4px 12px",
+                    }}
                   >
-                    {TYPE_LABEL[ev.type] ?? ev.type}
+                    <Text1 medium color={skinVars.colors.textPrimaryInverse} transform="uppercase">
+                      {TYPE_LABEL[ev.type] ?? ev.type}
+                    </Text1>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge
-                      className={`uppercase tracking-eyebrow text-[10px] ${
-                        STATUS_STYLE[ev.status]?.className ?? ""
-                      }`}
-                    >
+                  <Inline space={8} alignItems="center">
+                    <Tag type={STATUS_STYLE[ev.status]?.type ?? "inactive"}>
                       {STATUS_STYLE[ev.status]?.label ?? ev.status}
-                    </Badge>
-                    <Badge
-                      variant={ev.confidentiality === "public" ? "secondary" : "destructive"}
-                      className="uppercase tracking-eyebrow text-[10px]"
-                    >
+                    </Tag>
+                    <Tag type={ev.confidentiality === "public" ? "success" : "error"}>
                       {ev.confidentiality}
-                    </Badge>
-                  </div>
-                </div>
-                <DrawerTitle className="text-2xl font-bold text-tf-navy mt-2">
-                  {ev.title}
-                </DrawerTitle>
-                <DrawerDescription className="text-base mt-1">
+                    </Tag>
+                  </Inline>
+                </Inline>
+                <Text5 id={modalTitleId}>{ev.title}</Text5>
+                <Text2 regular color={skinVars.colors.textSecondary}>
                   {formatDay(ev.startDate)}
                   {ev.endDate !== ev.startDate ? ` – ${formatDay(ev.endDate)}` : ""}
-                </DrawerDescription>
-              </DrawerHeader>
+                </Text2>
+              </Stack>
 
-              <div className="space-y-6 mt-4">
-                <p className="text-foreground text-lg leading-relaxed">{ev.description}</p>
+              <Text3 regular color={skinVars.colors.textPrimary}>
+                {ev.description}
+              </Text3>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Meta icon={MapPin} label="Market">
-                    {ev.market}
-                  </Meta>
-                  <Meta icon={Radio} label="Brand">
-                    {ev.brand}
-                  </Meta>
-                  <Meta icon={User} label="Owner">
-                    {ev.owner}
-                  </Meta>
-                  <Meta label="Source">{ev.source}</Meta>
-                  <Meta label="Area">{ev.area}</Meta>
-                  <div className="space-y-1">
-                    <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-                      Axis
-                    </div>
-                    <div className="flex items-center space-x-2 font-medium text-sm">
-                      <span
-                        className="w-3 h-3 rounded-full inline-block"
-                        style={{ backgroundColor: axisColor(axes, ev.axisId) }}
-                      />
-                      <span>{axisName(axes, ev.axisId)}</span>
-                    </div>
-                  </div>
-                </div>
+              <Grid columns={{ minSize: 160 }} gap={16}>
+                <Meta Icon={IconLocationRegular} label="Market">
+                  {ev.market}
+                </Meta>
+                <Meta Icon={IconAntennaRegular} label="Brand">
+                  {ev.brand}
+                </Meta>
+                <Meta Icon={IconUserAccountRegular} label="Owner">
+                  {ev.owner}
+                </Meta>
+                <Meta label="Source">{ev.source}</Meta>
+                <Meta label="Area">{ev.area}</Meta>
+                <Stack space={4}>
+                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                    Axis
+                  </Text1>
+                  <Inline space={8} alignItems="center">
+                    <div
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: skinVars.borderRadii.avatar,
+                        backgroundColor: axisColor(axes, ev.axisId),
+                      }}
+                    />
+                    <Text2 medium color={skinVars.colors.textPrimary}>
+                      {axisName(axes, ev.axisId)}
+                    </Text2>
+                  </Inline>
+                </Stack>
+              </Grid>
 
-                {data && data.conflictsWith.length > 0 && (
-                  <div className="bg-tf-warning-bg border border-tf-warning/20 p-5 rounded-xl">
-                    <div className="flex items-center space-x-2 text-tf-warning mb-3">
-                      <TriangleAlert className="w-5 h-5" />
-                      <span className="text-xs uppercase tracking-eyebrow font-bold">
+              {data && data.conflictsWith.length > 0 && (
+                <div
+                  style={{
+                    backgroundColor: applyAlpha(skinVars.rawColors.warning, 0.12),
+                    border: `1px solid ${applyAlpha(skinVars.rawColors.warning, 0.2)}`,
+                    borderRadius: skinVars.borderRadii.container,
+                    padding: 20,
+                  }}
+                >
+                  <Stack space={12}>
+                    <Inline space={8} alignItems="center">
+                      <IconWarningRegular size={20} color={skinVars.colors.warning} />
+                      <Text1 medium color={skinVars.colors.warning} transform="uppercase">
                         Timing conflict
-                      </span>
-                    </div>
-                    <p className="text-sm text-foreground mb-3">
+                      </Text1>
+                    </Inline>
+                    <Text2 regular color={skinVars.colors.textPrimary}>
                       This clashes in the same market and window with:
-                    </p>
-                    <ul className="space-y-2">
+                    </Text2>
+                    <Stack space={8}>
                       {data.conflictsWith.map((c) => (
-                        <li key={c.id} className="text-sm font-medium text-foreground">
+                        <Text2 key={c.id} medium color={skinVars.colors.textPrimary}>
                           {c.title}{" "}
-                          <span className="text-muted-foreground font-normal">
+                          <Text2 as="span" regular color={skinVars.colors.textSecondary}>
                             ({c.brand} · {TYPE_LABEL[c.type] ?? c.type})
-                          </span>
-                        </li>
+                          </Text2>
+                        </Text2>
                       ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </>
+                    </Stack>
+                  </Stack>
+                </div>
+              )}
+            </Stack>
           )}
-        </div>
-      </DrawerContent>
-    </Drawer>
+        </Box>
+      )}
+    </Sheet>
   );
 }
 
 function Meta({
-  icon: Icon,
+  Icon,
   label,
   children,
 }: {
-  icon?: React.ComponentType<{ className?: string }>;
+  Icon?: React.ComponentType<{ size?: number; color?: string }>;
   label: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="space-y-1">
-      <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
+    <Stack space={4}>
+      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
         {label}
-      </div>
-      <div className="flex items-center space-x-1.5 font-medium text-sm">
-        {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground" />}
-        <span>{children}</span>
-      </div>
-    </div>
+      </Text1>
+      <Inline space={8} alignItems="center">
+        {Icon && <Icon size={14} color={skinVars.colors.textSecondary} />}
+        <Text2 medium color={skinVars.colors.textPrimary}>
+          {children}
+        </Text2>
+      </Inline>
+    </Stack>
   );
 }

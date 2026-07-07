@@ -1,21 +1,42 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle } from "lucide-react";
+import React from "react";
+import {
+  Box,
+  Boxed,
+  Inline,
+  Stack,
+  Text3,
+  Title2,
+  skinVars,
+  IconAlertRegular,
+} from "@telefonica/mistica";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
-      <Card className="w-full max-w-md mx-4">
-        <CardContent className="pt-6">
-          <div className="flex mb-4 gap-2">
-            <AlertCircle className="h-8 w-8 text-red-500" />
-            <h1 className="text-2xl font-bold text-gray-900">404 Page Not Found</h1>
-          </div>
-
-          <p className="mt-4 text-sm text-gray-600">
-            Did you forget to add the page to the router?
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <Box padding={24}>
+      <div
+        style={{
+          minHeight: "60vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div style={{ width: "100%", maxWidth: 448 }}>
+          <Boxed>
+            <Box padding={24}>
+              <Stack space={16}>
+                <Inline space={8} alignItems="center">
+                  <IconAlertRegular color={skinVars.colors.error} />
+                  <Title2>404 page not found</Title2>
+                </Inline>
+                <Text3 regular color={skinVars.colors.textSecondary}>
+                  Did you forget to add the page to the router?
+                </Text3>
+              </Stack>
+            </Box>
+          </Boxed>
+        </div>
+      </div>
+    </Box>
   );
 }

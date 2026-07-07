@@ -1,4 +1,5 @@
 import type { StrategicAxis } from "@workspace/api-client-react";
+import { skinVars } from "@telefonica/mistica";
 
 // Dates are governed as plain YYYY-MM-DD strings. Parse in local time (no TZ
 // shift) so calendar cells line up with the anchor date exactly.
@@ -70,11 +71,9 @@ export function formatMonthTitle(date: Date): string {
   return date.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 }
 
-const AXIS_FALLBACK = "#0066FF";
-
 export function axisColor(axes: StrategicAxis[] | undefined, axisId: string): string {
   const axis = axes?.find((a) => a.id === axisId);
-  return axis?.color || AXIS_FALLBACK;
+  return axis?.color || skinVars.colors.brand;
 }
 
 export function axisName(axes: StrategicAxis[] | undefined, axisId: string): string {
@@ -88,10 +87,12 @@ export const TYPE_LABEL: Record<string, string> = {
   publication: "Publication",
 };
 
-export const STATUS_STYLE: Record<string, { label: string; className: string }> = {
-  planned: { label: "Planned", className: "bg-tf-grey-100 text-tf-grey-600" },
-  in_progress: { label: "In progress", className: "bg-tf-blue-tint text-tf-blue" },
-  live: { label: "Live", className: "bg-tf-success-bg text-tf-success" },
-  done: { label: "Done", className: "bg-tf-grey-100 text-tf-grey-500" },
-  at_risk: { label: "At risk", className: "bg-tf-warning-bg text-tf-warning" },
+export type TagTone = "promo" | "info" | "active" | "inactive" | "success" | "warning" | "error";
+
+export const STATUS_STYLE: Record<string, { label: string; type: TagTone }> = {
+  planned: { label: "Planned", type: "inactive" },
+  in_progress: { label: "In progress", type: "info" },
+  live: { label: "Live", type: "success" },
+  done: { label: "Done", type: "inactive" },
+  at_risk: { label: "At risk", type: "warning" },
 };

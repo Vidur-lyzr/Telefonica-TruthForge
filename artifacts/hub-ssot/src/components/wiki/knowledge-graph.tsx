@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import type { WikiGraph, WikiNode } from "@workspace/api-client-react";
-import { Lock } from "lucide-react";
+import { skinVars, IconLockClosedRegular } from "@telefonica/mistica";
 
 interface Pos {
   x: number;
@@ -12,8 +12,16 @@ interface Pos {
 const WIDTH = 940;
 const HEIGHT = 660;
 
-const NEUTRAL = "#64748b";
-const NAVY = "#001B41";
+const NEUTRAL = skinVars.colors.neutralMedium;
+const NAVY = skinVars.colors.textPrimary;
+const FIGURE = skinVars.colors.brandHigh;
+const EXECUTIVE = skinVars.colors.textLinkBrand;
+const PRODUCT = skinVars.colors.brand;
+const CITATION = skinVars.colors.brand;
+const RELATIONSHIP = skinVars.colors.neutralMedium;
+const HISTORIC = skinVars.colors.warning;
+const HIGHLIGHT = skinVars.colors.brand;
+const SURFACE = skinVars.colors.backgroundContainer;
 
 function radiusFor(kind: string): number {
   switch (kind) {
@@ -39,11 +47,11 @@ function colorFor(node: WikiNode, axisColors: Map<string, string>): string {
   }
   switch (node.kind) {
     case "figure":
-      return "#00C1B5";
+      return FIGURE;
     case "executive":
-      return "#7D5CFF";
+      return EXECUTIVE;
     case "product":
-      return "#0066FF";
+      return PRODUCT;
     case "market":
       return NAVY;
     default:
@@ -82,18 +90,18 @@ export function KnowledgeGraph({
 }) {
   const nodes = graph.nodes;
   const edges = graph.edges;
-  const posRef = useRef<Map<string, Pos>>(new Map());
-  const draggingRef = useRef<string | null>(null);
-  const movedRef = useRef(false);
-  const alphaRef = useRef(1);
-  const rafRef = useRef<number | null>(null);
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const [, tick] = useState(0);
-  const [hoverId, setHoverId] = useState<string | null>(null);
+  const posRef = React.useRef<Map<string, Pos>>(new Map());
+  const draggingRef = React.useRef<string | null>(null);
+  const movedRef = React.useRef(false);
+  const alphaRef = React.useRef(1);
+  const rafRef = React.useRef<number | null>(null);
+  const svgRef = React.useRef<SVGSVGElement | null>(null);
+  const [, tick] = React.useState(0);
+  const [hoverId, setHoverId] = React.useState<string | null>(null);
 
   const nodeKey = nodes.map((n) => n.id).join("|");
 
-  useEffect(() => {
+  React.useEffect(() => {
     const next = new Map<string, Pos>();
     nodes.forEach((n, i) => {
       const angle = (i / Math.max(nodes.length, 1)) * Math.PI * 2;
@@ -110,7 +118,7 @@ export function KnowledgeGraph({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeKey]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const step = () => {
       const pos = posRef.current;
       const alpha = alphaRef.current;
@@ -181,7 +189,10 @@ export function KnowledgeGraph({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodeKey]);
 
-  const toSvg = (clientX: number, clientY: number): { x: number; y: number } | null => {
+  const toSvg = (
+    clientX: number,
+    clientY: number,
+  ): { x: number; y: number } | null => {
     const svg = svgRef.current;
     if (!svg) return null;
     const pt = svg.createSVGPoint();
@@ -236,7 +247,7 @@ export function KnowledgeGraph({
     <svg
       ref={svgRef}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-      className="w-full h-full touch-none select-none"
+      style={{ width: "100%", height: "100%", touchAction: "none", userSelect: "none" }}
       onPointerMove={handlePointerMove}
       onPointerUp={() => {
         draggingRef.current = null;
@@ -247,8 +258,7 @@ export function KnowledgeGraph({
           const a = pos.get(e.from);
           const b = pos.get(e.to);
           if (!a || !b) return null;
-          const active =
-            !!focusId && (e.from === focusId || e.to === focusId);
+          const active = !!focusId && (e.from === focusId || e.to === focusId);
           const showConfidence =
             active && e.type === "citation" && typeof e.confidence === "number";
           return (
@@ -258,23 +268,31 @@ export function KnowledgeGraph({
                 y1={a.y}
                 x2={b.x}
                 y2={b.y}
-                stroke={e.type === "citation" ? "#0066FF" : "#94a3b8"}
+                stroke={e.type === "citation" ? CITATION : RELATIONSHIP}
                 strokeWidth={active ? 2 : 1}
                 strokeOpacity={
-                  focusId ? (active ? 0.75 : 0.07) : e.type === "citation" ? 0.35 : 0.22
+                  focusId
+                    ? active
+                      ? 0.75
+                      : 0.07
+                    : e.type === "citation"
+                      ? 0.35
+                      : 0.22
                 }
                 strokeDasharray={e.type === "relationship" ? "4 4" : undefined}
               />
               {showConfidence && (
-                <g transform={`translate(${(a.x + b.x) / 2}, ${(a.y + b.y) / 2})`}>
+                <g
+                  transform={`translate(${(a.x + b.x) / 2}, ${(a.y + b.y) / 2})`}
+                >
                   <rect
                     x={-15}
                     y={-8}
                     width={30}
                     height={16}
                     rx={8}
-                    fill="#ffffff"
-                    stroke="#0066FF"
+                    fill={SURFACE}
+                    stroke={CITATION}
                     strokeWidth={1}
                     opacity={0.95}
                   />
@@ -282,8 +300,12 @@ export function KnowledgeGraph({
                     x={0}
                     y={3}
                     textAnchor="middle"
-                    className="pointer-events-none"
-                    style={{ fontSize: 10, fontWeight: 700, fill: "#0066FF" }}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      fill: CITATION,
+                      pointerEvents: "none",
+                    }}
                   >
                     {(e.confidence as number).toFixed(2)}
                   </text>
@@ -320,44 +342,46 @@ export function KnowledgeGraph({
               onMouseLeave={() => setHoverId((h) => (h === n.id ? null : h))}
             >
               {n.refined && !n.locked && (
-                <circle
-                  r={r + 6}
-                  fill="none"
-                  stroke={color}
-                  strokeWidth={1.5}
-                  opacity={0.5}
-                  className="tf-graph-pulse"
-                />
+                <circle r={r + 6} fill="none" stroke={color} strokeWidth={1.5} opacity={0.5}>
+                  <animate
+                    attributeName="opacity"
+                    values="0.5;0.15;0.5"
+                    dur="2s"
+                    repeatCount="indefinite"
+                  />
+                </circle>
               )}
               {isHighlighted && !isSel && (
-                <circle
-                  r={r + 8}
-                  fill="none"
-                  stroke="#0066FF"
-                  strokeWidth={2.5}
-                  opacity={0.7}
-                  className="tf-graph-pulse"
-                />
+                <circle r={r + 8} fill="none" stroke={HIGHLIGHT} strokeWidth={2.5} opacity={0.7}>
+                  <animate
+                    attributeName="opacity"
+                    values="0.7;0.2;0.7"
+                    dur="2s"
+                    repeatCount="indefinite"
+                  />
+                </circle>
               )}
               {isHistoric(n) && (
                 <circle
                   r={r + 4}
                   fill="none"
-                  stroke="#FFB800"
+                  stroke={HISTORIC}
                   strokeWidth={2}
                   strokeDasharray="3 3"
                 />
               )}
               <circle
                 r={r}
-                fill={entity ? "#ffffff" : color}
-                fillOpacity={entity ? 1 : n.kind === "document" ? 0.85 : n.locked ? 0.5 : 1}
-                stroke={isSel ? NAVY : entity ? color : "#ffffff"}
+                fill={entity ? SURFACE : color}
+                fillOpacity={
+                  entity ? 1 : n.kind === "document" ? 0.85 : n.locked ? 0.5 : 1
+                }
+                stroke={isSel ? NAVY : entity ? color : SURFACE}
                 strokeWidth={isSel ? 3 : entity ? 2.5 : 1.5}
               />
               {n.locked && (
                 <foreignObject x={-7} y={-7} width={14} height={14}>
-                  <Lock className="w-3.5 h-3.5 text-white" />
+                  <IconLockClosedRegular size={14} color={skinVars.colors.inverse} />
                 </foreignObject>
               )}
               {showLabel && (
@@ -365,11 +389,11 @@ export function KnowledgeGraph({
                   x={0}
                   y={r + 13}
                   textAnchor="middle"
-                  className="pointer-events-none"
                   style={{
                     fontSize: n.kind === "axis" ? 13 : 11,
                     fontWeight: n.kind === "axis" ? 700 : 500,
                     fill: NAVY,
+                    pointerEvents: "none",
                   }}
                 >
                   {n.name.length > 26 ? `${n.name.slice(0, 24)}…` : n.name}

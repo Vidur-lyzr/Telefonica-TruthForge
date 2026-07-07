@@ -1,43 +1,43 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import { useListDataSources } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
+  Box,
+  Stack,
+  Inline,
+  Grid,
+  GridItem,
+  Boxed,
+  Divider,
+  Circle,
+  Tag,
+  Callout,
+  ButtonPrimary,
+  TextField,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Server,
-  Filter,
-  Upload,
-  Settings2,
-  Radio,
-  CheckCircle2,
-  Plus,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  Drawer,
+  Text1,
+  Text2,
+  Text3,
+  Title2,
+  Title3,
+  skinVars,
+  IconDatabaseConnectedRegular,
+  IconTagRegular,
+  IconCloudUploadRegular,
+  IconSettingsRegular,
+  IconAntennaRegular,
+  IconCheckedRegular,
+} from "@telefonica/mistica";
 import { useDataCenter, type UploadedDoc } from "./state";
-import { sourceStatusClass, sourceStatusLabel } from "./helpers";
+import { sourceStatusTagType, sourceStatusLabel } from "./helpers";
 
-const SOURCE_ICON: Record<string, React.ComponentType<{ className?: string }>> = {
-  live: Radio,
-  filtered: Filter,
-  manual: Upload,
-  to_configure: Settings2,
+type IconType = React.ComponentType<{ size?: number; color?: string }>;
+
+const SOURCE_ICON: Record<string, IconType> = {
+  live: IconAntennaRegular,
+  filtered: IconTagRegular,
+  manual: IconCloudUploadRegular,
+  to_configure: IconSettingsRegular,
 };
 
 const AREAS = ["Comunicación", "Marca", "Gabinete"];
@@ -52,20 +52,31 @@ const emptyUpload = {
   area: "Comunicación",
 };
 
+function SourceMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <Stack space={2}>
+      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+        {label}
+      </Text1>
+      <Text2 medium color={skinVars.colors.textPrimary}>
+        {value}
+      </Text2>
+    </Stack>
+  );
+}
+
 export default function SourcesArea() {
   const { data: sources } = useListDataSources();
   const { uploads, addUpload } = useDataCenter();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [draft, setDraft] = useState({ ...emptyUpload });
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [draft, setDraft] = React.useState({ ...emptyUpload });
 
   const sessionUploadCount = uploads.length;
 
-  const sourcesWithSession = useMemo(() => {
+  const sourcesWithSession = React.useMemo(() => {
     return (sources ?? []).map((s) =>
-      s.id === "src-manual"
-        ? { ...s, docCount: s.docCount + sessionUploadCount }
-        : s,
+      s.id === "src-manual" ? { ...s, docCount: s.docCount + sessionUploadCount } : s,
     );
   }, [sources, sessionUploadCount]);
 
@@ -87,235 +98,199 @@ export default function SourcesArea() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="shadow-sm border-border overflow-hidden">
-        <CardHeader className="bg-tf-navy text-white">
-          <CardTitle className="flex items-center space-x-2 text-white text-lg">
-            <Server className="w-5 h-5 text-tf-blue-light" />
-            <span>Sources feed the core before the model ever runs</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-3xl">
-            Quality starts here, not at the model. External sources are filtered before ingestion —
-            by keywords, tracked competitors, named executives and priority topics — so only relevant
-            mentions ever enter the knowledge core. Internal documents arrive with the sensitivity
-            label that becomes their governed confidentiality tier.
-          </p>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {sourcesWithSession.map((s) => {
-          const Icon = SOURCE_ICON[s.status] ?? Server;
-          return (
-            <Card key={s.id} className="shadow-sm border-border">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2.5 bg-tf-blue-tint rounded-lg text-tf-blue">
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-tf-navy text-lg">{s.name}</h3>
-                      <p className="text-xs text-muted-foreground">{s.type}</p>
-                    </div>
-                  </div>
-                  <Badge
-                    className={cn(
-                      "uppercase text-[10px] tracking-eyebrow rounded-full font-bold shrink-0",
-                      sourceStatusClass(s.status),
-                    )}
-                  >
-                    {sourceStatusLabel(s.status)}
-                  </Badge>
-                </div>
-
-                <p className="text-sm text-muted-foreground leading-relaxed">{s.description}</p>
-
-                {s.externalFilter && s.filterNote && (
-                  <div className="flex items-start space-x-2 rounded-lg bg-tf-blue-tint/50 border border-border p-3">
-                    <Filter className="w-4 h-4 text-tf-blue mt-0.5 shrink-0" />
-                    <p className="text-xs text-tf-navy font-medium">{s.filterNote}</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-3 gap-3 pt-1 border-t border-border">
-                  <div className="pt-3">
-                    <p className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
-                      Documents
-                    </p>
-                    <p className="font-bold text-tf-navy mt-0.5">
-                      {s.docCount.toLocaleString("en-GB")}
-                    </p>
-                  </div>
-                  <div className="pt-3">
-                    <p className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
-                      Cadence
-                    </p>
-                    <p className="font-medium text-tf-navy mt-0.5 text-sm">{s.cadence}</p>
-                  </div>
-                  <div className="pt-3">
-                    <p className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
-                      Last sync
-                    </p>
-                    <p className="font-medium text-tf-navy mt-0.5 text-sm">{s.lastSync ?? "—"}</p>
-                  </div>
-                </div>
-
-                {s.status === "manual" && (
-                  <Button
-                    onClick={() => setDialogOpen(true)}
-                    size="sm"
-                    className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold w-full"
-                  >
-                    <Plus className="w-4 h-4 mr-2" /> Manual upload
-                  </Button>
-                )}
-                {s.status === "to_configure" && (
-                  <div className="flex items-center space-x-2 text-tf-warning text-sm font-medium">
-                    <Settings2 className="w-4 h-4" />
-                    <span>Connector planned — no documents ingested yet.</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+    <Stack space={24}>
+      <div
+        style={{
+          backgroundColor: skinVars.colors.navigationBarBackground,
+          borderRadius: skinVars.borderRadii.container,
+        }}
+      >
+        <Box padding={24}>
+          <Stack space={16}>
+            <Inline space={8} alignItems="center">
+              <IconDatabaseConnectedRegular size={20} color={skinVars.colors.inverse} />
+              <Text3 medium color={skinVars.colors.textPrimaryInverse}>
+                Sources feed the core before the model ever runs
+              </Text3>
+            </Inline>
+            <Text2 regular color={skinVars.colors.textSecondaryInverse}>
+              Quality starts here, not at the model. External sources are filtered before ingestion —
+              by keywords, tracked competitors, named executives and priority topics — so only
+              relevant mentions ever enter the knowledge core. Internal documents arrive with the
+              sensitivity label that becomes their governed confidentiality tier.
+            </Text2>
+          </Stack>
+        </Box>
       </div>
 
+      <Grid columns={2} gap={16}>
+        {sourcesWithSession.map((s) => {
+          const Icon = SOURCE_ICON[s.status] ?? IconDatabaseConnectedRegular;
+          return (
+            <GridItem key={s.id}>
+              <Boxed>
+                <Box padding={24}>
+                  <Stack space={16}>
+                    <Inline space="between" alignItems="center">
+                      <Inline space={12} alignItems="center">
+                        <Circle size={44} backgroundColor={skinVars.colors.brandLow}>
+                          <Icon size={20} color={skinVars.colors.brand} />
+                        </Circle>
+                        <Stack space={2}>
+                          <Title3>{s.name}</Title3>
+                          <Text1 regular color={skinVars.colors.textSecondary}>
+                            {s.type}
+                          </Text1>
+                        </Stack>
+                      </Inline>
+                      <Tag type={sourceStatusTagType(s.status)}>{sourceStatusLabel(s.status)}</Tag>
+                    </Inline>
+
+                    <Text2 regular color={skinVars.colors.textSecondary}>
+                      {s.description}
+                    </Text2>
+
+                    {s.externalFilter && s.filterNote && (
+                      <Boxed>
+                        <Box padding={12}>
+                          <Inline space={8} alignItems="center">
+                            <IconTagRegular size={16} color={skinVars.colors.brand} />
+                            <Text2 medium color={skinVars.colors.textPrimary}>
+                              {s.filterNote}
+                            </Text2>
+                          </Inline>
+                        </Box>
+                      </Boxed>
+                    )}
+
+                    <Divider />
+
+                    <Inline space="between">
+                      <SourceMeta label="Documents" value={s.docCount.toLocaleString("en-GB")} />
+                      <SourceMeta label="Cadence" value={s.cadence} />
+                      <SourceMeta label="Last sync" value={s.lastSync ?? "—"} />
+                    </Inline>
+
+                    {s.status === "manual" && (
+                      <ButtonPrimary small onPress={() => setDialogOpen(true)}>
+                        Manual upload
+                      </ButtonPrimary>
+                    )}
+                    {s.status === "to_configure" && (
+                      <Inline space={8} alignItems="center">
+                        <IconSettingsRegular size={16} color={skinVars.colors.warning} />
+                        <Text2 medium color={skinVars.colors.warning}>
+                          Connector planned — no documents ingested yet.
+                        </Text2>
+                      </Inline>
+                    )}
+                  </Stack>
+                </Box>
+              </Boxed>
+            </GridItem>
+          );
+        })}
+      </Grid>
+
       {uploads.length > 0 && (
-        <Card className="shadow-sm border-border">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <CardTitle className="flex items-center space-x-2 text-tf-navy text-lg">
-              <CheckCircle2 className="w-5 h-5 text-tf-success" />
-              <span>Added this session</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-2">
-            {uploads.map((u) => (
-              <div
-                key={u.id}
-                className="flex items-center justify-between rounded-lg border border-border p-3"
-              >
-                <div>
-                  <p className="font-semibold text-tf-navy">{u.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {u.owner} · {u.country} · {u.brand}
-                  </p>
-                </div>
-                <Badge className="uppercase text-[10px] tracking-eyebrow rounded-full font-bold bg-tf-blue-tint text-tf-blue">
-                  Queued to intake
-                </Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        <Stack space={16}>
+          <Inline space={8} alignItems="center">
+            <IconCheckedRegular size={20} color={skinVars.colors.success} />
+            <Title2>Added this session</Title2>
+          </Inline>
+          <Boxed>
+            <Box padding={16}>
+              <Stack space={8}>
+                {uploads.map((u, i) => (
+                  <React.Fragment key={u.id}>
+                    {i > 0 && <Divider />}
+                    <Box paddingY={8}>
+                      <Inline space="between" alignItems="center">
+                        <Stack space={2}>
+                          <Text2 medium color={skinVars.colors.textPrimary}>
+                            {u.title}
+                          </Text2>
+                          <Text1 regular color={skinVars.colors.textSecondary}>
+                            {u.owner} · {u.country} · {u.brand}
+                          </Text1>
+                        </Stack>
+                        <Tag type="promo">Queued to intake</Tag>
+                      </Inline>
+                    </Box>
+                  </React.Fragment>
+                ))}
+              </Stack>
+            </Box>
+          </Boxed>
+        </Stack>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-tf-navy">Manual upload</DialogTitle>
-            <DialogDescription>
-              Mandatory metadata is captured up front so the document never enters the pipeline
-              underspecified. This is session-only for the demo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="up-title">Title</Label>
-              <Input
-                id="up-title"
-                value={draft.title}
-                onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-                placeholder="Document title"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="up-owner">Owner</Label>
-              <Input
-                id="up-owner"
-                value={draft.owner}
-                onChange={(e) => setDraft((d) => ({ ...d, owner: e.target.value }))}
-                placeholder="Owning team"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="up-country">Country</Label>
-                <Input
-                  id="up-country"
+      {dialogOpen && (
+        <Drawer
+          title="Manual upload"
+          description="Mandatory metadata is captured up front so the document never enters the pipeline underspecified. This is session-only for the demo."
+          onClose={() => setDialogOpen(false)}
+          button={{
+            text: "Add to intake",
+            onPress: commitUpload,
+            disabled: !draftValid,
+          }}
+          secondaryButton={{ text: "Cancel", onPress: () => setDialogOpen(false) }}
+        >
+          <Stack space={16}>
+            <TextField
+              name="up-title"
+              label="Title"
+              value={draft.title}
+              onChangeValue={(v) => setDraft((d) => ({ ...d, title: v }))}
+            />
+            <TextField
+              name="up-owner"
+              label="Owner"
+              value={draft.owner}
+              onChangeValue={(v) => setDraft((d) => ({ ...d, owner: v }))}
+            />
+            <Inline space={16}>
+              <div style={{ flex: 1 }}>
+                <TextField
+                  name="up-country"
+                  label="Country"
                   value={draft.country}
-                  onChange={(e) => setDraft((d) => ({ ...d, country: e.target.value }))}
+                  onChangeValue={(v) => setDraft((d) => ({ ...d, country: v }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="up-brand">Brand</Label>
-                <Input
-                  id="up-brand"
+              <div style={{ flex: 1 }}>
+                <TextField
+                  name="up-brand"
+                  label="Brand"
                   value={draft.brand}
-                  onChange={(e) => setDraft((d) => ({ ...d, brand: e.target.value }))}
+                  onChangeValue={(v) => setDraft((d) => ({ ...d, brand: v }))}
                 />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Confidentiality</Label>
+            </Inline>
+            <Inline space={16}>
+              <div style={{ flex: 1 }}>
                 <Select
+                  name="up-confidentiality"
+                  label="Confidentiality"
                   value={draft.confidentiality}
-                  onValueChange={(v) => setDraft((d) => ({ ...d, confidentiality: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CLEARANCES.map((c) => (
-                      <SelectItem key={c} value={c} className="capitalize">
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChangeValue={(v) => setDraft((d) => ({ ...d, confidentiality: v }))}
+                  options={CLEARANCES.map((c) => ({ value: c, text: c }))}
+                />
               </div>
-              <div className="space-y-1.5">
-                <Label>Area</Label>
+              <div style={{ flex: 1 }}>
                 <Select
+                  name="up-area"
+                  label="Area"
                   value={draft.area}
-                  onValueChange={(v) => setDraft((d) => ({ ...d, area: v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AREAS.map((a) => (
-                      <SelectItem key={a} value={a}>
-                        {a}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  onChangeValue={(v) => setDraft((d) => ({ ...d, area: v }))}
+                  options={AREAS.map((a) => ({ value: a, text: a }))}
+                />
               </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              className="rounded-pill font-semibold"
-              onClick={() => setDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold"
-              disabled={!draftValid}
-              onClick={commitUpload}
-            >
-              Add to intake
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            </Inline>
+          </Stack>
+        </Drawer>
+      )}
+    </Stack>
   );
 }

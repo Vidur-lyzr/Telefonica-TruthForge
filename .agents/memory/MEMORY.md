@@ -11,3 +11,4 @@
 - [Orval hooks require queryKey](orval-querykey-required.md) — passing `enabled` (or any query option) to a generated useXxx hook needs an explicit `queryKey` array or it fails TS2741.
 - [Wiki graph encoding](graph-encoding-fill-vs-outline.md) — Map nodes must encode color=axis and fill=layer (compiled solid, raw entities outline); never color-by-kind.
 - [Orval path+query collision](orval-path-query-collision.md) — mixing a path param and a query param on one op makes orval emit `<Op>Params` twice (TS2308); keep persona-scoped detail endpoints query-only.
+- [Mística gotchas](mistica-gotchas.md) — @telefonica/mistica API constraints (spacing steps, Touchable, Drawer, Tag, borderRadii.avatar) that break typecheck if ignored.

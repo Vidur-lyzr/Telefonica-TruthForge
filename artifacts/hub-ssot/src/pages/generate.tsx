@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React from "react";
 import {
   useStartGenerateJob,
   useStartRefineJob,
@@ -26,45 +26,53 @@ import {
   type SavedVersion,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
+  Box,
+  Stack,
+  Inline,
+  Boxed,
+  Divider,
+  Text1,
+  Text2,
+  Text3,
+  Title2,
+  Title3,
+  ButtonPrimary,
+  ButtonSecondary,
+  ButtonLink,
+  IconButton,
+  Tag,
+  Chip,
+  Callout,
+  Tabs,
+  TextField,
+  Select,
+  Spinner,
+  Touchable,
   Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-} from "@/components/ui/drawer";
-import {
-  Sparkles,
-  FileText,
-  ShieldCheck,
-  ShieldAlert,
-  AlertCircle,
-  Clock,
-  Send,
-  Printer,
-  Save,
-  Wand2,
-  CalendarClock,
-  Inbox,
-  History,
-  Check,
-  Lock,
-  MessageSquareQuote,
-  BarChart3,
-  BookMarked,
-  Pencil,
-  RefreshCw,
-  CheckCircle2,
-  Search,
-  ListChecks,
-  PenLine,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  skinVars,
+  applyAlpha,
+  IconRobotRegular,
+  IconDocumentOtherRegular,
+  IconShieldCheckedOkRegular,
+  IconAlertRegular,
+  IconTimeRegular,
+  IconSendRegular,
+  IconPrinterRegular,
+  IconDownloadRegular,
+  IconCalendarRegular,
+  IconListDocumentRegular,
+  IconCheckRegular,
+  IconCheckedRegular,
+  IconLockClosedRegular,
+  IconMessageRegular,
+  IconBarChartRegular,
+  IconBookmarkRegular,
+  IconEditPencilRegular,
+  IconRefreshRegular,
+  IconSearchRegular,
+  IconPenRegular,
+} from "@telefonica/mistica";
 import {
   BarChart,
   Bar,
@@ -80,6 +88,8 @@ import {
 type Shape = "messaging" | "press" | "multiformat";
 type Audience = "internal" | "external";
 type Tab = "compose" | "scheduled" | "inbox" | "versions";
+
+const c = skinVars.colors;
 
 const SHAPE_META: Record<Shape, { name: string; blurb: string }> = {
   messaging: {
@@ -125,10 +135,12 @@ const FORMAT_OPTIONS: Record<Shape, { value: string; label: string }[]> = {
   ],
 };
 
-function statusTone(status: string): string {
-  if (status === "drafted") return "text-tf-success";
-  if (status === "permission_blocked") return "text-tf-error";
-  return "text-tf-warning";
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text2 medium color={c.textSecondary}>
+      {children}
+    </Text2>
+  );
 }
 
 // ---- Brand Guardian bar ------------------------------------------------------
@@ -136,59 +148,63 @@ function GuardianBar({ guardian }: { guardian: GuardianResult }) {
   const pass = guardian.status === "pass";
   return (
     <div
-      className={cn(
-        "rounded-xl border p-4 print-hide",
-        pass ? "bg-tf-success-bg border-tf-success/20" : "bg-tf-error-bg border-tf-error/20",
-      )}
+      style={{
+        borderRadius: skinVars.borderRadii.container,
+        border: `1px solid ${applyAlpha(pass ? skinVars.rawColors.success : skinVars.rawColors.error, 0.2)}`,
+        backgroundColor: pass ? c.successLow : c.errorLow,
+        padding: 16,
+      }}
     >
-      <div className="flex items-start space-x-3">
+      <Inline space={12} alignItems="center">
         {pass ? (
-          <ShieldCheck className="w-5 h-5 text-tf-success mt-0.5 flex-shrink-0" />
+          <IconShieldCheckedOkRegular size={20} color={c.success} />
         ) : (
-          <ShieldAlert className="w-5 h-5 text-tf-error mt-0.5 flex-shrink-0" />
+          <IconAlertRegular size={20} color={c.error} />
         )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-2">
-            <span className="font-bold text-foreground">Brand Guardian</span>
-            <Badge
-              className={cn(
-                "uppercase tracking-eyebrow text-[10px]",
-                pass ? "bg-tf-success text-white" : "bg-tf-error text-white",
-              )}
-            >
-              {pass ? "Cleared for export" : "Export blocked"}
-            </Badge>
-          </div>
-          <p className="text-sm text-foreground/80 mt-1">{guardian.summary}</p>
-          {guardian.findings.length > 0 && (
-            <ul className="mt-3 space-y-2">
-              {guardian.findings.map((f, i) => (
-                <li
-                  key={i}
-                  className="text-sm bg-white/60 rounded-lg p-3 border border-black/5"
-                >
-                  <div className="flex items-center space-x-2">
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "uppercase tracking-eyebrow text-[9px]",
-                        f.severity === "error" ? "text-tf-error border-tf-error/40" : "text-tf-warning border-tf-warning/40",
-                      )}
-                    >
-                      {f.severity}
-                    </Badge>
-                    <span className="font-semibold text-foreground">{f.rule}</span>
-                  </div>
-                  <p className="text-foreground/80 mt-1">{f.message}</p>
-                  {f.suggestion && (
-                    <p className="text-tf-blue mt-1 font-medium">Fix: {f.suggestion}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Stack space={4}>
+            <Inline space={8} alignItems="center">
+              <Text2 medium color={c.textPrimary}>
+                Brand Guardian
+              </Text2>
+              <Tag type={pass ? "success" : "error"}>
+                {pass ? "Cleared for export" : "Export blocked"}
+              </Tag>
+            </Inline>
+            <Text2 regular color={c.textPrimary}>
+              {guardian.summary}
+            </Text2>
+          </Stack>
         </div>
-      </div>
+      </Inline>
+      {guardian.findings.length > 0 && (
+        <Box paddingTop={12}>
+          <Stack space={8}>
+            {guardian.findings.map((f, i) => (
+              <Boxed key={i}>
+                <Box padding={12}>
+                  <Stack space={4}>
+                    <Inline space={8} alignItems="center">
+                      <Tag type={f.severity === "error" ? "error" : "warning"}>{f.severity}</Tag>
+                      <Text2 medium color={c.textPrimary}>
+                        {f.rule}
+                      </Text2>
+                    </Inline>
+                    <Text2 regular color={c.textSecondary}>
+                      {f.message}
+                    </Text2>
+                    {f.suggestion && (
+                      <Text2 medium color={c.brand}>
+                        Fix: {f.suggestion}
+                      </Text2>
+                    )}
+                  </Stack>
+                </Box>
+              </Boxed>
+            ))}
+          </Stack>
+        </Box>
+      )}
     </div>
   );
 }
@@ -196,40 +212,44 @@ function GuardianBar({ guardian }: { guardian: GuardianResult }) {
 // ---- Chart -------------------------------------------------------------------
 function DraftChart({ chart }: { chart: ChartSpec }) {
   return (
-    <div className="bg-white border border-border rounded-xl p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-sm font-bold text-tf-navy">{chart.title}</div>
-          <div className="text-[10px] uppercase tracking-eyebrow text-muted-foreground mt-0.5">
-            {chart.unit} • {chart.source}
-          </div>
-        </div>
-        {chart.citationId && (
-          <span className="bg-tf-blue-tint text-tf-blue font-bold px-2 py-1 rounded text-xs">
-            {chart.citationId}
-          </span>
-        )}
-      </div>
-      <ResponsiveContainer width="100%" height={200}>
-        {chart.type === "line" ? (
-          <LineChart data={chart.points} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E4E4EA" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="#7C7C88" />
-            <YAxis tick={{ fontSize: 11 }} stroke="#7C7C88" />
-            <RechartsTooltip />
-            <Line type="monotone" dataKey="value" stroke="#0066FF" strokeWidth={2} dot={{ r: 3 }} />
-          </LineChart>
-        ) : (
-          <BarChart data={chart.points} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E4E4EA" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="#7C7C88" />
-            <YAxis tick={{ fontSize: 11 }} stroke="#7C7C88" />
-            <RechartsTooltip />
-            <Bar dataKey="value" fill="#0066FF" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        )}
-      </ResponsiveContainer>
-    </div>
+    <Boxed>
+      <Box padding={16}>
+        <Stack space={12}>
+          <Inline space={8} alignItems="center">
+            <div style={{ flex: 1 }}>
+              <Stack space={2}>
+                <Text2 medium color={c.textPrimary}>
+                  {chart.title}
+                </Text2>
+                <Text1 regular color={c.textSecondary}>
+                  {chart.unit} • {chart.source}
+                </Text1>
+              </Stack>
+            </div>
+            {chart.citationId && <Tag type="promo">{chart.citationId}</Tag>}
+          </Inline>
+          <ResponsiveContainer width="100%" height={200}>
+            {chart.type === "line" ? (
+              <LineChart data={chart.points} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={c.divider} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke={c.textSecondary} />
+                <YAxis tick={{ fontSize: 11 }} stroke={c.textSecondary} />
+                <RechartsTooltip />
+                <Line type="monotone" dataKey="value" stroke={c.brand} strokeWidth={2} dot={{ r: 3 }} />
+              </LineChart>
+            ) : (
+              <BarChart data={chart.points} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={c.divider} />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke={c.textSecondary} />
+                <YAxis tick={{ fontSize: 11 }} stroke={c.textSecondary} />
+                <RechartsTooltip />
+                <Bar dataKey="value" fill={c.brand} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            )}
+          </ResponsiveContainer>
+        </Stack>
+      </Box>
+    </Boxed>
   );
 }
 
@@ -244,29 +264,34 @@ function SectionBlock({
   onChange: (body: string) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center space-x-2">
-        <h3 className="text-title-sm text-tf-navy font-bold">{section.heading}</h3>
+    <Stack space={8}>
+      <Inline space={8} alignItems="center">
+        <Title3>{section.heading}</Title3>
         {section.internalOnly && (
-          <Badge variant="outline" className="uppercase tracking-eyebrow text-[9px] text-tf-warning border-tf-warning/40 print-hide">
-            <Lock className="w-3 h-3 mr-1" /> Internal only
-          </Badge>
+          <Tag type="warning" Icon={IconLockClosedRegular}>
+            Internal only
+          </Tag>
         )}
-      </div>
+      </Inline>
       {editing ? (
-        <Textarea
+        <TextField
+          name={`section-${section.id}`}
+          label="Section body"
           value={section.body}
-          onChange={(e) => onChange(e.target.value)}
-          className="min-h-[120px] text-base leading-relaxed rounded-xl"
+          onChangeValue={onChange}
+          multiline
+          fullWidth
         />
       ) : (
-        <div className="prose prose-blue max-w-none text-foreground leading-relaxed">
+        <Stack space={8}>
           {section.body.split("\n").map((p, i) => (
-            <p key={i}>{p}</p>
+            <Text3 regular key={i} color={c.textPrimary}>
+              {p}
+            </Text3>
           ))}
-        </div>
+        </Stack>
       )}
-    </div>
+    </Stack>
   );
 }
 
@@ -290,128 +315,147 @@ function DocumentCanvas({
     : draft.sections;
 
   return (
-    <div className="print-document bg-card border border-border rounded-2xl shadow-sm p-10 space-y-8 max-w-3xl">
-      <div className="space-y-3 border-b border-border pb-6">
-        <div className="flex items-center space-x-2 print-hide">
-          <Badge className="uppercase tracking-eyebrow text-[10px] bg-tf-blue-tint text-tf-blue">
-            {SHAPE_META[draft.shape as Shape]?.name ?? draft.shape}
-          </Badge>
-          <Badge
-            variant="outline"
-            className={cn(
-              "uppercase tracking-eyebrow text-[10px]",
-              draft.audience === "external"
-                ? "text-tf-success border-tf-success/40"
-                : "text-tf-navy border-border",
-            )}
-          >
-            {draft.audience}
-          </Badge>
-          <Badge variant="outline" className="uppercase tracking-eyebrow text-[10px] border-border">
-            {draft.confidentiality}
-          </Badge>
-          <Badge variant="outline" className="uppercase tracking-eyebrow text-[10px] border-border">
-            {draft.language}
-          </Badge>
-        </div>
-        <h1 className="text-display-sm text-tf-navy">{draft.title}</h1>
-      </div>
+    <div style={{ maxWidth: 768 }}>
+      <Boxed>
+        <Box padding={32}>
+          <Stack space={32}>
+            <Stack space={12}>
+              <Inline space={8} alignItems="center" wrap>
+                <Tag type="promo">{SHAPE_META[draft.shape as Shape]?.name ?? draft.shape}</Tag>
+                <Tag type={draft.audience === "external" ? "success" : "info"}>{draft.audience}</Tag>
+                <Tag type="inactive">{draft.confidentiality}</Tag>
+                <Tag type="inactive">{draft.language}</Tag>
+              </Inline>
+              <Title2>{draft.title}</Title2>
+              <Divider />
+            </Stack>
 
-      {draft.historic && (
-        <div className="flex items-center space-x-2 text-tf-warning bg-tf-warning-bg px-4 py-3 rounded-xl text-sm font-medium border border-tf-warning/20">
-          <Clock className="w-5 h-5 flex-shrink-0" />
-          <span>{draft.historicNote || "This draft draws on historic material."}</span>
-        </div>
-      )}
-
-      {draft.umbrella && (
-        <div className="bg-tf-navy text-white p-6 rounded-xl">
-          <div className="text-[10px] uppercase tracking-eyebrow text-tf-blue-lighter mb-2 font-bold">
-            Umbrella message
-          </div>
-          {editing ? (
-            <Textarea
-              value={draft.umbrella}
-              onChange={(e) => onUmbrellaChange(e.target.value)}
-              className="min-h-[80px] text-lg bg-white/10 border-white/20 text-white rounded-xl"
-            />
-          ) : (
-            <p className="text-title-sm font-bold leading-snug">{draft.umbrella}</p>
-          )}
-        </div>
-      )}
-
-      <div className="space-y-8">
-        {visibleSections.map((s) => (
-          <SectionBlock
-            key={s.id}
-            section={s}
-            editing={editing}
-            onChange={(body) => onSectionChange(s.id, body)}
-          />
-        ))}
-      </div>
-
-      {draft.charts.length > 0 && (
-        <div className="space-y-4 pt-2">
-          {draft.charts.map((c) => (
-            <DraftChart key={c.id} chart={c} />
-          ))}
-        </div>
-      )}
-
-      {draft.citations.length > 0 && (
-        <div className="pt-6 border-t border-border space-y-4">
-          <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground flex items-center">
-            <FileText className="w-4 h-4 mr-2" /> Evidence & citations
-          </h4>
-          <div className="grid grid-cols-1 gap-3">
-            {draft.citations.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => onOpenCitation(c)}
-                className="flex items-start space-x-3 p-3 bg-white border border-border rounded-xl hover:shadow-sm transition-all text-left print-hide"
+            {draft.historic && (
+              <div
+                style={{
+                  borderRadius: skinVars.borderRadii.container,
+                  border: `1px solid ${applyAlpha(skinVars.rawColors.warning, 0.2)}`,
+                  backgroundColor: c.warningLow,
+                  padding: 16,
+                }}
               >
-                <div className="bg-tf-blue-tint text-tf-blue font-bold px-2 py-1 rounded text-xs flex-shrink-0">
-                  {c.id}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm text-foreground">{c.docTitle}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {c.sourceLoc} • v{c.version}
-                  </div>
-                </div>
-                {c.value && <span className="text-xs font-bold text-tf-success">{c.value}</span>}
-              </button>
-            ))}
-          </div>
-          {/* Print-only plain citation list */}
-          <ol className="hidden print:block list-decimal ml-4 text-sm space-y-1">
-            {draft.citations.map((c) => (
-              <li key={c.id}>
-                [{c.id}] {c.docTitle} — {c.sourceLoc} (v{c.version}, {c.owner})
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
+                <Inline space={8} alignItems="center">
+                  <IconTimeRegular size={20} color={c.warning} />
+                  <Text2 medium color={c.warning}>
+                    {draft.historicNote || "This draft draws on historic material."}
+                  </Text2>
+                </Inline>
+              </div>
+            )}
 
-      {draft.disclaimers.length > 0 && (
-        <div className="pt-4 border-t border-border space-y-2">
-          {draft.disclaimers.map((d) => (
-            <p key={d.id} className="text-xs text-muted-foreground italic leading-relaxed">
-              {d.text}
-            </p>
-          ))}
-        </div>
-      )}
+            {draft.umbrella && (
+              <div
+                style={{
+                  backgroundColor: c.brand,
+                  borderRadius: skinVars.borderRadii.container,
+                  padding: 24,
+                }}
+              >
+                <Stack space={8}>
+                  <Text1 medium color={c.textPrimaryInverse}>
+                    Umbrella message
+                  </Text1>
+                  {editing ? (
+                    <TextField
+                      name="umbrella"
+                      label="Umbrella message"
+                      value={draft.umbrella}
+                      onChangeValue={onUmbrellaChange}
+                      multiline
+                      fullWidth
+                    />
+                  ) : (
+                    <Text3 medium color={c.textPrimaryInverse}>
+                      {draft.umbrella}
+                    </Text3>
+                  )}
+                </Stack>
+              </div>
+            )}
+
+            <Stack space={32}>
+              {visibleSections.map((s) => (
+                <SectionBlock
+                  key={s.id}
+                  section={s}
+                  editing={editing}
+                  onChange={(body) => onSectionChange(s.id, body)}
+                />
+              ))}
+            </Stack>
+
+            {draft.charts.length > 0 && (
+              <Stack space={16}>
+                {draft.charts.map((ch) => (
+                  <DraftChart key={ch.id} chart={ch} />
+                ))}
+              </Stack>
+            )}
+
+            {draft.citations.length > 0 && (
+              <Stack space={16}>
+                <Divider />
+                <Inline space={8} alignItems="center">
+                  <IconDocumentOtherRegular size={16} color={c.textSecondary} />
+                  <Text2 medium color={c.textSecondary}>
+                    Evidence and citations
+                  </Text2>
+                </Inline>
+                <Stack space={12}>
+                  {draft.citations.map((cit) => (
+                    <Touchable key={cit.id} onPress={() => onOpenCitation(cit)}>
+                      <Boxed>
+                        <Box padding={12}>
+                          <Inline space={12} alignItems="center">
+                            <Tag type="promo">{cit.id}</Tag>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <Stack space={2}>
+                                <Text2 medium color={c.textPrimary}>
+                                  {cit.docTitle}
+                                </Text2>
+                                <Text1 regular color={c.textSecondary}>
+                                  {cit.sourceLoc} • v{cit.version}
+                                </Text1>
+                              </Stack>
+                            </div>
+                            {cit.value && (
+                              <Text2 medium color={c.success}>
+                                {cit.value}
+                              </Text2>
+                            )}
+                          </Inline>
+                        </Box>
+                      </Boxed>
+                    </Touchable>
+                  ))}
+                </Stack>
+              </Stack>
+            )}
+
+            {draft.disclaimers.length > 0 && (
+              <Stack space={8}>
+                <Divider />
+                {draft.disclaimers.map((d) => (
+                  <Text1 regular key={d.id} color={c.textSecondary}>
+                    {d.text}
+                  </Text1>
+                ))}
+              </Stack>
+            )}
+          </Stack>
+        </Box>
+      </Boxed>
     </div>
   );
 }
 
 // ---- Brief form --------------------------------------------------------------
 function BriefForm({
-  shapes,
   onGenerate,
   isPending,
 }: {
@@ -428,31 +472,26 @@ function BriefForm({
   isPending: boolean;
 }) {
   const { data: axes } = useListAxes();
-  const [shape, setShape] = useState<Shape>("messaging");
-  const [topic, setTopic] = useState("");
-  const [audience, setAudience] = useState<Audience>("internal");
-  const [language, setLanguage] = useState("en");
-  const [axisIds, setAxisIds] = useState<string[]>([]);
-  // Destination sensitivity and deliverable format are part of the brief so the
-  // engine frames the document correctly. Confidentiality defaults from the
-  // audience (external work must land as public), format is shape-aware.
-  const [confidentiality, setConfidentiality] = useState("internal");
+  const [shape, setShape] = React.useState<Shape>("messaging");
+  const [topic, setTopic] = React.useState("");
+  const [audience, setAudience] = React.useState<Audience>("internal");
+  const [language, setLanguage] = React.useState("en");
+  const [axisIds, setAxisIds] = React.useState<string[]>([]);
+  const [confidentiality, setConfidentiality] = React.useState("internal");
   const formatOptions = FORMAT_OPTIONS[shape];
-  const [format, setFormat] = useState(formatOptions[0].value);
+  const [format, setFormat] = React.useState(formatOptions[0].value);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setConfidentiality(audience === "external" ? "public" : "internal");
   }, [audience]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setFormat(FORMAT_OPTIONS[shape][0].value);
   }, [shape]);
-  // Smart follow-up: when the brief is missing the one thing the engine needs to
-  // frame the document (its angle / key message), ask a single shape-aware
-  // question before generating instead of guessing. Only ever asked once.
-  const [followUp, setFollowUp] = useState<string | null>(null);
-  const [followUpAnswer, setFollowUpAnswer] = useState("");
-  const [askedFollowUp, setAskedFollowUp] = useState(false);
+
+  const [followUp, setFollowUp] = React.useState<string | null>(null);
+  const [followUpAnswer, setFollowUpAnswer] = React.useState("");
+  const [askedFollowUp, setAskedFollowUp] = React.useState(false);
 
   const FOLLOW_UP: Record<Shape, string> = {
     messaging: "What is the single key message you want this to land?",
@@ -482,212 +521,216 @@ function BriefForm({
   };
 
   return (
-    <div className="max-w-3xl mx-auto w-full space-y-8 animate-in fade-in duration-500">
-      <div className="text-center space-y-3">
-        <div className="w-14 h-14 rounded-2xl bg-tf-blue-tint text-tf-blue flex items-center justify-center mx-auto">
-          <Sparkles className="w-7 h-7" />
-        </div>
-        <h1 className="text-display-sm text-tf-navy">Generate a governed document</h1>
-        <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-          One engine, three shapes. Every claim is cited from the governed corpus, and the Brand
-          Guardian must clear it before export.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {(Object.keys(SHAPE_META) as Shape[]).map((s) => (
-          <button
-            key={s}
-            onClick={() => setShape(s)}
-            className={cn(
-              "text-left p-4 rounded-xl border transition-all",
-              shape === s
-                ? "border-tf-blue bg-tf-blue-tint shadow-sm"
-                : "border-border bg-card hover:bg-muted/50",
-            )}
-          >
-            <div className="font-bold text-tf-navy text-sm">{SHAPE_META[s].name}</div>
-            <div className="text-xs text-muted-foreground mt-1 leading-relaxed">
-              {SHAPE_META[s].blurb}
+    <div style={{ maxWidth: 768, margin: "0 auto", width: "100%" }}>
+      <Stack space={32}>
+        <Stack space={12}>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: skinVars.borderRadii.container,
+                backgroundColor: c.brandLow,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <IconRobotRegular size={28} color={c.brand} />
             </div>
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-          Brief
-        </label>
-        <Textarea
-          placeholder="e.g. Q1 2026 results readout for the internal leadership call, covering Transform & Grow"
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          className="min-h-[90px] rounded-xl text-base"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-            Audience
-          </label>
-          <div className="flex rounded-pill bg-muted p-1">
-            {(["internal", "external"] as Audience[]).map((a) => (
-              <button
-                key={a}
-                onClick={() => setAudience(a)}
-                className={cn(
-                  "flex-1 py-2 rounded-pill text-sm font-semibold capitalize transition-all",
-                  audience === a ? "bg-white text-tf-navy shadow-sm" : "text-muted-foreground",
-                )}
-              >
-                {a}
-              </button>
-            ))}
           </div>
-          {audience === "external" && (
-            <p className="text-xs text-tf-blue flex items-center mt-1">
-              <Lock className="w-3 h-3 mr-1" /> External caps sources to public material before retrieval.
-            </p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-            Language
-          </label>
-          <div className="flex rounded-pill bg-muted p-1">
-            {[
-              { code: "en", label: "English" },
-              { code: "es", label: "Español" },
-            ].map((l) => (
-              <button
-                key={l.code}
-                onClick={() => setLanguage(l.code)}
-                className={cn(
-                  "flex-1 py-2 rounded-pill text-sm font-semibold transition-all",
-                  language === l.code ? "bg-white text-tf-navy shadow-sm" : "text-muted-foreground",
-                )}
-              >
-                {l.label}
-              </button>
-            ))}
+          <div style={{ textAlign: "center" }}>
+            <Title2>Generate a governed document</Title2>
           </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-            Destination confidentiality
-          </label>
-          <select
-            value={confidentiality}
-            onChange={(e) => setConfidentiality(e.target.value)}
-            disabled={audience === "external"}
-            className="w-full h-11 rounded-xl border border-border bg-card px-3 text-sm font-semibold text-tf-navy disabled:opacity-60"
-          >
-            {CONFIDENTIALITY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          {audience === "external" && (
-            <p className="text-xs text-muted-foreground">
-              External work is held to public and cannot be raised here.
-            </p>
-          )}
-        </div>
-        <div className="space-y-2">
-          <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-            Format
-          </label>
-          <select
-            value={format}
-            onChange={(e) => setFormat(e.target.value)}
-            className="w-full h-11 rounded-xl border border-border bg-card px-3 text-sm font-semibold text-tf-navy"
-          >
-            {formatOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-          Strategic axes (optional)
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {axes?.map((a) => (
-            <button
-              key={a.id}
-              onClick={() => toggleAxis(a.id)}
-              className={cn(
-                "px-3 py-1.5 rounded-pill text-xs font-semibold border transition-all",
-                axisIds.includes(a.id)
-                  ? "text-white border-transparent shadow-sm"
-                  : "text-muted-foreground border-border bg-card hover:bg-muted/50",
-              )}
-              style={axisIds.includes(a.id) ? { backgroundColor: a.color || "var(--tf-blue)" } : undefined}
-            >
-              {a.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {followUp ? (
-        <div className="rounded-xl border border-tf-blue bg-tf-blue-tint p-5 space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="flex items-center space-x-2 text-tf-blue">
-            <MessageSquareQuote className="w-4 h-4" />
-            <span className="text-xs uppercase tracking-eyebrow font-bold">One quick thing</span>
+          <div style={{ textAlign: "center" }}>
+            <Text3 regular color={c.textSecondary} textAlign="center">
+              One engine, three shapes. Every claim is cited from the governed corpus, and the Brand
+              Guardian must clear it before export.
+            </Text3>
           </div>
-          <p className="text-tf-navy font-semibold">{followUp}</p>
-          <Textarea
-            autoFocus
-            placeholder="Add the missing detail so the draft is framed correctly (optional)"
-            value={followUpAnswer}
-            onChange={(e) => setFollowUpAnswer(e.target.value)}
-            className="min-h-[70px] rounded-xl bg-white"
-          />
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => submitFollowUp(false)}
-              disabled={isPending}
-              className="flex-1 h-11 rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold"
-            >
-              <Sparkles className="w-4 h-4 mr-2" /> Generate with this
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => submitFollowUp(true)}
-              disabled={isPending}
-              className="h-11 rounded-pill font-semibold"
-            >
-              Skip
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <Button
-          onClick={submitBrief}
-          disabled={!topic.trim() || isPending}
-          className="w-full h-12 rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold text-base"
+        </Stack>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 12,
+          }}
         >
-          <Sparkles className="w-4 h-4 mr-2" /> Generate draft
-        </Button>
-      )}
+          {(Object.keys(SHAPE_META) as Shape[]).map((s) => {
+            const selected = shape === s;
+            return (
+              <Touchable key={s} onPress={() => setShape(s)}>
+                <div
+                  style={{
+                    textAlign: "left",
+                    padding: 16,
+                    borderRadius: skinVars.borderRadii.container,
+                    border: `1px solid ${selected ? c.brand : c.divider}`,
+                    backgroundColor: selected ? c.brandLow : c.backgroundContainer,
+                  }}
+                >
+                  <Stack space={4}>
+                    <Text2 medium color={c.textPrimary}>
+                      {SHAPE_META[s].name}
+                    </Text2>
+                    <Text1 regular color={c.textSecondary}>
+                      {SHAPE_META[s].blurb}
+                    </Text1>
+                  </Stack>
+                </div>
+              </Touchable>
+            );
+          })}
+        </div>
+
+        <Stack space={8}>
+          <FieldLabel>Brief</FieldLabel>
+          <TextField
+            name="brief"
+            label="Brief"
+            placeholder="e.g. Q1 2026 results readout for the internal leadership call, covering Transform & Grow"
+            value={topic}
+            onChangeValue={setTopic}
+            multiline
+            fullWidth
+          />
+        </Stack>
+
+        <div
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}
+        >
+          <Stack space={8}>
+            <FieldLabel>Audience</FieldLabel>
+            <Select
+              name="audience"
+              label="Audience"
+              value={audience}
+              onChangeValue={(v) => setAudience(v as Audience)}
+              options={[
+                { value: "internal", text: "Internal" },
+                { value: "external", text: "External" },
+              ]}
+              fullWidth
+            />
+            {audience === "external" && (
+              <Inline space={4} alignItems="center">
+                <IconLockClosedRegular size={12} color={c.brand} />
+                <Text1 regular color={c.brand}>
+                  External caps sources to public material before retrieval.
+                </Text1>
+              </Inline>
+            )}
+          </Stack>
+          <Stack space={8}>
+            <FieldLabel>Language</FieldLabel>
+            <Select
+              name="language"
+              label="Language"
+              value={language}
+              onChangeValue={setLanguage}
+              options={[
+                { value: "en", text: "English" },
+                { value: "es", text: "Español" },
+              ]}
+              fullWidth
+            />
+          </Stack>
+        </div>
+
+        <div
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}
+        >
+          <Stack space={8}>
+            <FieldLabel>Destination confidentiality</FieldLabel>
+            <Select
+              name="confidentiality"
+              label="Destination confidentiality"
+              value={confidentiality}
+              onChangeValue={setConfidentiality}
+              disabled={audience === "external"}
+              options={CONFIDENTIALITY_OPTIONS.map((o) => ({ value: o.value, text: o.label }))}
+              fullWidth
+            />
+            {audience === "external" && (
+              <Text1 regular color={c.textSecondary}>
+                External work is held to public and cannot be raised here.
+              </Text1>
+            )}
+          </Stack>
+          <Stack space={8}>
+            <FieldLabel>Format</FieldLabel>
+            <Select
+              name="format"
+              label="Format"
+              value={format}
+              onChangeValue={setFormat}
+              options={formatOptions.map((o) => ({ value: o.value, text: o.label }))}
+              fullWidth
+            />
+          </Stack>
+        </div>
+
+        <Stack space={8}>
+          <FieldLabel>Strategic axes (optional)</FieldLabel>
+          <Inline space={8} wrap>
+            {axes?.map((a) => (
+              <Chip key={a.id} active={axisIds.includes(a.id)} onPress={() => toggleAxis(a.id)}>
+                {a.name}
+              </Chip>
+            ))}
+          </Inline>
+        </Stack>
+
+        {followUp ? (
+          <div
+            style={{
+              borderRadius: skinVars.borderRadii.container,
+              border: `1px solid ${c.brand}`,
+              backgroundColor: c.brandLow,
+              padding: 20,
+            }}
+          >
+            <Stack space={12}>
+              <Inline space={8} alignItems="center">
+                <IconMessageRegular size={16} color={c.brand} />
+                <Text2 medium color={c.brand}>
+                  One quick thing
+                </Text2>
+              </Inline>
+              <Text2 medium color={c.textPrimary}>
+                {followUp}
+              </Text2>
+              <TextField
+                name="followUpAnswer"
+                label="Missing detail"
+                placeholder="Add the missing detail so the draft is framed correctly (optional)"
+                value={followUpAnswer}
+                onChangeValue={setFollowUpAnswer}
+                multiline
+                fullWidth
+              />
+              <Inline space={8}>
+                <ButtonPrimary onPress={() => submitFollowUp(false)} disabled={isPending} StartIcon={IconRobotRegular}>
+                  Generate with this
+                </ButtonPrimary>
+                <ButtonSecondary onPress={() => submitFollowUp(true)} disabled={isPending}>
+                  Skip
+                </ButtonSecondary>
+              </Inline>
+            </Stack>
+          </div>
+        ) : (
+          <ButtonPrimary onPress={submitBrief} disabled={!topic.trim() || isPending} StartIcon={IconRobotRegular}>
+            Generate draft
+          </ButtonPrimary>
+        )}
+      </Stack>
     </div>
   );
 }
 
 // ---- Watchable drafting pipeline --------------------------------------------
-// The pipeline mirrors the real phases the backend job runs through. The client
-// polls the job and drives these steps from the server-reported stage, so what
-// the user sees is the actual work happening, not a timed animation.
 type PipelineStage = "retrieving" | "composing" | "guardian" | "done";
 
 function DraftingPipeline({
@@ -700,76 +743,79 @@ function DraftingPipeline({
   const steps =
     variant === "refine"
       ? [
-          { key: "retrieving", icon: Search, label: "Re-checking governed evidence" },
-          { key: "composing", icon: PenLine, label: "Applying your refinement with citations" },
-          { key: "guardian", icon: ShieldCheck, label: "Brand Guardian re-checking claims and tone" },
+          { key: "retrieving", icon: IconSearchRegular, label: "Re-checking governed evidence" },
+          { key: "composing", icon: IconPenRegular, label: "Applying your refinement with citations" },
+          { key: "guardian", icon: IconShieldCheckedOkRegular, label: "Brand Guardian re-checking claims and tone" },
         ]
       : [
-          { key: "retrieving", icon: Search, label: "Retrieving governed evidence" },
-          { key: "composing", icon: PenLine, label: "Composing the document with citations" },
-          { key: "guardian", icon: ShieldCheck, label: "Brand Guardian checking claims and tone" },
+          { key: "retrieving", icon: IconSearchRegular, label: "Retrieving governed evidence" },
+          { key: "composing", icon: IconPenRegular, label: "Composing the document with citations" },
+          { key: "guardian", icon: IconShieldCheckedOkRegular, label: "Brand Guardian checking claims and tone" },
         ];
-  // Map the reported stage onto the visible step index. "done" means every step
-  // is complete.
   const order = ["retrieving", "composing", "guardian", "done"];
   const active = stage === "done" ? steps.length : order.indexOf(stage);
 
   return (
-    <div className="h-full flex flex-col items-center justify-center">
-      <div className="w-full max-w-md space-y-6 animate-in fade-in duration-500">
-        <div className="text-center space-y-1">
-          <div className="text-tf-navy font-semibold text-lg tracking-tight">
-            {variant === "refine" ? "Refining under governance" : "Composing from governed evidence"}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Permission-filtered sources only. Every claim is cited before it reaches you.
-          </p>
-        </div>
-        <ol className="space-y-2">
-          {steps.map((s, i) => {
-            const done = i < active;
-            const current = i === active;
-            const Icon = s.icon;
-            return (
-              <li
-                key={s.label}
-                className={cn(
-                  "flex items-center space-x-3 rounded-xl border px-4 py-3 transition-all duration-300",
-                  current
-                    ? "border-tf-blue bg-tf-blue-tint"
-                    : done
-                      ? "border-border bg-card"
-                      : "border-border bg-card opacity-45",
-                )}
-              >
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: "100%", maxWidth: 448 }}>
+        <Stack space={24}>
+          <Stack space={4}>
+            <div style={{ textAlign: "center" }}>
+              <Title3>
+                {variant === "refine" ? "Refining under governance" : "Composing from governed evidence"}
+              </Title3>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <Text2 regular color={c.textSecondary} textAlign="center">
+                Permission-filtered sources only. Every claim is cited before it reaches you.
+              </Text2>
+            </div>
+          </Stack>
+          <Stack space={8}>
+            {steps.map((s, i) => {
+              const done = i < active;
+              const current = i === active;
+              const Icon = s.icon;
+              return (
                 <div
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors",
-                    done
-                      ? "bg-tf-success-bg text-tf-success"
-                      : current
-                        ? "bg-tf-blue text-white"
-                        : "bg-muted text-muted-foreground",
-                  )}
+                  key={s.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    borderRadius: skinVars.borderRadii.container,
+                    border: `1px solid ${current ? c.brand : c.divider}`,
+                    backgroundColor: current ? c.brandLow : c.backgroundContainer,
+                    padding: "12px 16px",
+                    opacity: !done && !current ? 0.45 : 1,
+                  }}
                 >
-                  {done ? (
-                    <Check className="w-4 h-4" />
-                  ) : (
-                    <Icon className={cn("w-4 h-4", current && "animate-pulse")} />
-                  )}
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: skinVars.borderRadii.container,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      backgroundColor: done ? c.successLow : current ? c.brand : c.backgroundAlternative,
+                    }}
+                  >
+                    {done ? (
+                      <IconCheckRegular size={16} color={c.success} />
+                    ) : (
+                      <Icon size={16} color={current ? c.textPrimaryInverse : c.textSecondary} />
+                    )}
+                  </div>
+                  <Text2 medium color={current ? c.textPrimary : done ? c.textPrimary : c.textSecondary}>
+                    {s.label}
+                  </Text2>
                 </div>
-                <span
-                  className={cn(
-                    "text-sm font-semibold",
-                    current ? "text-tf-navy" : done ? "text-foreground" : "text-muted-foreground",
-                  )}
-                >
-                  {s.label}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+              );
+            })}
+          </Stack>
+        </Stack>
       </div>
     </div>
   );
@@ -777,12 +823,12 @@ function DraftingPipeline({
 
 export default function Generate() {
   const { roleId } = useApp();
-  const [tab, setTab] = useState<Tab>("compose");
-  const [draft, setDraft] = useState<GeneratedDraft | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [instruction, setInstruction] = useState("");
-  const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
-  const [showAssets, setShowAssets] = useState(false);
+  const [tab, setTab] = React.useState<Tab>("compose");
+  const [draft, setDraft] = React.useState<GeneratedDraft | null>(null);
+  const [editing, setEditing] = React.useState(false);
+  const [instruction, setInstruction] = React.useState("");
+  const [selectedCitation, setSelectedCitation] = React.useState<Citation | null>(null);
+  const [showAssets, setShowAssets] = React.useState(false);
 
   const { data: shapes } = useListShapes();
   const { data: assets } = useListAssets();
@@ -800,20 +846,17 @@ export default function Generate() {
   const approve = useApproveReviewItem();
   const versionsQ = useListVersions();
 
-  // Observable job: we start a generate/refine job on the server and poll it so
-  // the pipeline reflects the real backend phase, not a timer.
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [jobVariant, setJobVariant] = useState<"generate" | "refine">("generate");
+  const [jobId, setJobId] = React.useState<string | null>(null);
+  const [jobVariant, setJobVariant] = React.useState<"generate" | "refine">("generate");
   const jobQ = useGetGenerationJob(jobId ?? "", {
     query: {
       enabled: !!jobId,
       queryKey: ["generation-job", jobId],
-      refetchInterval: (query) =>
-        query.state.data?.status === "running" ? 500 : false,
+      refetchInterval: (query) => (query.state.data?.status === "running" ? 500 : false),
     },
   });
 
-  useEffect(() => {
+  React.useEffect(() => {
     const job = jobQ.data;
     if (!job || !jobId) return;
     if (job.status === "done" && job.draft) {
@@ -904,9 +947,6 @@ export default function Generate() {
     );
   };
 
-  // Export is not just a print: it persists a governed, versioned copy (with the
-  // 3-layer governance tags captured server-side) and only then opens the
-  // print-ready view, so every exported document is traceable in Versions.
   const handleExport = () => {
     if (!draft) return;
     const savedBy = roles?.find((r) => r.id === roleId)?.label ?? "Hub user";
@@ -921,9 +961,6 @@ export default function Generate() {
     );
   };
 
-  // Approve the draft currently open in Canvas (after any Canvas edits/refine),
-  // not the stale copy in the inbox list. The server binds approval to this
-  // exact content hash, so this is what unlocks export/versioning.
   const handleApproveFromCanvas = () => {
     if (!draft || !draft.reviewItemId) return;
     approve.mutate(
@@ -938,75 +975,54 @@ export default function Generate() {
   };
 
   const guardianPass = draft?.guardian.status === "pass" && draft.status === "drafted";
-  // Scheduled drafts require a human approval in the review inbox before they can
-  // be exported or versioned, even when the Guardian passes.
   const scheduledLocked = draft?.origin === "scheduled" && draft?.approved !== true;
   const canExport = guardianPass && !scheduledLocked;
 
+  const tabDefs: { id: Tab; label: string; icon: React.FC<{ size?: number; color?: string }>; count?: number }[] = [
+    { id: "compose", label: "Compose", icon: IconRobotRegular },
+    { id: "scheduled", label: "Scheduled", icon: IconCalendarRegular },
+    { id: "inbox", label: "Review inbox", icon: IconListDocumentRegular, count: inboxQ.data?.filter((i) => i.status === "pending").length },
+    { id: "versions", label: "Versions", icon: IconTimeRegular, count: versionsQ.data?.length },
+  ];
+  const tabIndex = tabDefs.findIndex((t) => t.id === tab);
+
   return (
-    <div className="h-full flex flex-col">
-      {/* Tab bar */}
-      <div className="border-b border-border bg-white px-6 flex items-center space-x-1 flex-shrink-0 print-hide">
-        {[
-          { id: "compose" as Tab, label: "Compose", icon: Sparkles },
-          { id: "scheduled" as Tab, label: "Scheduled", icon: CalendarClock },
-          { id: "inbox" as Tab, label: "Review inbox", icon: Inbox, count: inboxQ.data?.filter((i) => i.status === "pending").length },
-          { id: "versions" as Tab, label: "Versions", icon: History, count: versionsQ.data?.length },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={cn(
-              "flex items-center space-x-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors -mb-px",
-              tab === t.id
-                ? "border-tf-blue text-tf-blue"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <t.icon className="w-4 h-4" />
-            <span>{t.label}</span>
-            {typeof t.count === "number" && t.count > 0 && (
-              <span className="bg-tf-blue text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                {t.count}
-              </span>
-            )}
-          </button>
-        ))}
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ borderBottom: `1px solid ${c.divider}`, backgroundColor: c.backgroundContainer, flexShrink: 0 }}>
+        <Tabs
+          selectedIndex={tabIndex}
+          onChange={(idx) => setTab(tabDefs[idx].id)}
+          tabs={tabDefs.map((t) => ({
+            text: typeof t.count === "number" && t.count > 0 ? `${t.label} (${t.count})` : t.label,
+            Icon: t.icon,
+          }))}
+        />
       </div>
 
       {tab === "compose" && (
-        <div className="flex-1 overflow-hidden flex">
-          {/* Left: canvas / brief */}
-          <div className="flex-1 overflow-y-auto p-6">
+        <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
             {busy ? (
               <DraftingPipeline variant={jobVariant} stage={stage} />
             ) : !draft ? (
               <BriefForm shapes={shapes} onGenerate={handleGenerate} isPending={busy} />
             ) : draft.status === "no_evidence" ? (
-              <div className="max-w-2xl mx-auto mt-10">
-                <div className="flex items-start space-x-4 text-tf-warning bg-tf-warning-bg p-6 rounded-xl border border-tf-warning/20">
-                  <AlertCircle className="w-6 h-6 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-bold text-lg text-foreground">No governed evidence</h3>
-                    <p className="text-foreground mt-2 leading-relaxed">{draft.note}</p>
-                    <Button variant="outline" className="mt-4 rounded-pill" onClick={() => setDraft(null)}>
-                      Adjust the brief
-                    </Button>
-                  </div>
-                </div>
+              <div style={{ maxWidth: 672, margin: "40px auto 0" }}>
+                <Callout
+                  asset={<IconAlertRegular color={c.warning} />}
+                  title="No governed evidence"
+                  description={draft.note ?? ""}
+                  button={<ButtonSecondary onPress={() => setDraft(null)}>Adjust the brief</ButtonSecondary>}
+                />
               </div>
             ) : draft.status === "permission_blocked" ? (
-              <div className="max-w-2xl mx-auto mt-10">
-                <div className="flex items-start space-x-4 text-tf-error bg-tf-error-bg p-6 rounded-xl border border-tf-error/20">
-                  <ShieldAlert className="w-6 h-6 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-bold text-lg text-foreground">Permission restricted</h3>
-                    <p className="text-foreground mt-2 leading-relaxed">{draft.permissionNote}</p>
-                    <Button variant="outline" className="mt-4 rounded-pill" onClick={() => setDraft(null)}>
-                      Adjust the brief
-                    </Button>
-                  </div>
-                </div>
+              <div style={{ maxWidth: 672, margin: "40px auto 0" }}>
+                <Callout
+                  asset={<IconAlertRegular color={c.error} />}
+                  title="Permission restricted"
+                  description={draft.permissionNote ?? ""}
+                  button={<ButtonSecondary onPress={() => setDraft(null)}>Adjust the brief</ButtonSecondary>}
+                />
               </div>
             ) : (
               <DocumentCanvas
@@ -1019,163 +1035,150 @@ export default function Generate() {
             )}
           </div>
 
-          {/* Right: control panel */}
           {draft && draft.status === "drafted" && (
-            <div className="w-[380px] border-l border-border bg-tf-grey-50 flex flex-col flex-shrink-0 print-hide">
-              <ScrollArea className="flex-1">
-                <div className="p-5 space-y-5">
+            <div
+              style={{
+                width: 380,
+                borderLeft: `1px solid ${c.divider}`,
+                backgroundColor: c.backgroundAlternative,
+                display: "flex",
+                flexDirection: "column",
+                flexShrink: 0,
+              }}
+            >
+              <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+                <Stack space={24}>
                   <GuardianBar guardian={draft.guardian} />
 
-                  {/* Actions */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      className="rounded-pill"
-                      onClick={() => (editing ? finishEditing() : setEditing(true))}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <ButtonSecondary
+                      small
+                      onPress={() => (editing ? finishEditing() : setEditing(true))}
+                      StartIcon={editing ? IconCheckRegular : IconEditPencilRegular}
                     >
-                      {editing ? (
-                        <>
-                          <Check className="w-4 h-4 mr-1" /> Done
-                        </>
-                      ) : (
-                        <>
-                          <Pencil className="w-4 h-4 mr-1" /> Edit
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="rounded-pill"
-                      onClick={handleExport}
+                      {editing ? "Done" : "Edit"}
+                    </ButtonSecondary>
+                    <ButtonSecondary
+                      small
+                      onPress={handleExport}
                       disabled={!canExport || saveVersion.isPending}
-                      title={
-                        canExport
-                          ? "Save a governed version and open the print-ready view"
-                          : scheduledLocked
-                            ? "Approve in the review inbox before export"
-                            : "Guardian must pass before export"
-                      }
+                      StartIcon={IconPrinterRegular}
                     >
-                      <Printer className="w-4 h-4 mr-1" /> Export
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="rounded-pill"
-                      onClick={handleSaveVersion}
+                      Export
+                    </ButtonSecondary>
+                    <ButtonSecondary
+                      small
+                      onPress={handleSaveVersion}
                       disabled={!canExport || saveVersion.isPending}
-                      title="Save a governed version without exporting"
+                      StartIcon={IconDownloadRegular}
                     >
-                      <Save className="w-4 h-4 mr-1" /> Save version
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="rounded-pill"
-                      onClick={() => setShowAssets(true)}
-                    >
-                      <BookMarked className="w-4 h-4 mr-1" /> Assets
-                    </Button>
-                    {scheduledLocked && (
-                      <Button
-                        className="rounded-pill col-span-2 bg-tf-blue text-white hover:bg-tf-blue/90"
-                        onClick={handleApproveFromCanvas}
-                        disabled={!guardianPass || approve.isPending}
-                        title={
-                          guardianPass
-                            ? "Approve this draft (including your Canvas edits) so it can be exported and versioned"
-                            : "The Brand Guardian must pass before approval"
-                        }
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        {approve.isPending ? "Approving..." : "Approve draft"}
-                      </Button>
-                    )}
+                      Save version
+                    </ButtonSecondary>
+                    <ButtonSecondary small onPress={() => setShowAssets(true)} StartIcon={IconBookmarkRegular}>
+                      Assets
+                    </ButtonSecondary>
                   </div>
+                  {scheduledLocked && (
+                    <ButtonPrimary
+                      onPress={handleApproveFromCanvas}
+                      disabled={!guardianPass || approve.isPending}
+                      StartIcon={IconCheckRegular}
+                    >
+                      {approve.isPending ? "Approving..." : "Approve draft"}
+                    </ButtonPrimary>
+                  )}
                   {!canExport && (
-                    <p className="text-xs text-tf-error flex items-center">
-                      <Lock className="w-3 h-3 mr-1" />
-                      {scheduledLocked
-                        ? "Scheduled draft: adjust it here, then Approve draft (or approve it in the Review inbox) before export or versioning."
-                        : "Export and versioning are locked until the Guardian passes."}
-                    </p>
+                    <Inline space={4} alignItems="center">
+                      <IconLockClosedRegular size={12} color={c.error} />
+                      <Text1 regular color={c.error}>
+                        {scheduledLocked
+                          ? "Scheduled draft: adjust it here, then Approve draft (or approve it in the Review inbox) before export or versioning."
+                          : "Export and versioning are locked until the Guardian passes."}
+                      </Text1>
+                    </Inline>
                   )}
 
-                  {/* Spokesperson notes (internal only) */}
                   {draft.spokesperson.length > 0 && (
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <MessageSquareQuote className="w-4 h-4 text-tf-navy" />
-                        <span className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
+                    <Stack space={12}>
+                      <Inline space={8} alignItems="center">
+                        <IconMessageRegular size={16} color={c.textPrimary} />
+                        <Text2 medium color={c.textSecondary}>
                           Spokesperson notes
-                        </span>
-                        <Badge variant="outline" className="uppercase tracking-eyebrow text-[9px] text-tf-warning border-tf-warning/40">
-                          Internal
-                        </Badge>
-                      </div>
+                        </Text2>
+                        <Tag type="warning">Internal</Tag>
+                      </Inline>
                       {draft.spokesperson.map((n, i) => (
-                        <div key={i} className="bg-white border border-border rounded-xl p-3">
-                          <div className="font-semibold text-sm text-tf-navy">{n.question}</div>
-                          <p className="text-sm text-foreground/80 mt-1">{n.guidance}</p>
-                          {n.doNotSay && (
-                            <p className="text-xs text-tf-error mt-2 font-medium flex items-start">
-                              <ShieldAlert className="w-3 h-3 mr-1 mt-0.5 flex-shrink-0" /> Do not say: {n.doNotSay}
-                            </p>
-                          )}
-                        </div>
+                        <Boxed key={i}>
+                          <Box padding={12}>
+                            <Stack space={4}>
+                              <Text2 medium color={c.textPrimary}>
+                                {n.question}
+                              </Text2>
+                              <Text2 regular color={c.textSecondary}>
+                                {n.guidance}
+                              </Text2>
+                              {n.doNotSay && (
+                                <Inline space={4} alignItems="center">
+                                  <IconAlertRegular size={12} color={c.error} />
+                                  <Text1 medium color={c.error}>
+                                    Do not say: {n.doNotSay}
+                                  </Text1>
+                                </Inline>
+                              )}
+                            </Stack>
+                          </Box>
+                        </Boxed>
                       ))}
-                    </div>
+                    </Stack>
                   )}
 
                   {draft.charts.length > 0 && (
-                    <div className="text-xs text-muted-foreground flex items-center">
-                      <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
-                      {draft.charts.length} chart{draft.charts.length > 1 ? "s" : ""} built from governed series.
-                    </div>
+                    <Inline space={8} alignItems="center">
+                      <IconBarChartRegular size={14} color={c.textSecondary} />
+                      <Text1 regular color={c.textSecondary}>
+                        {draft.charts.length} chart{draft.charts.length > 1 ? "s" : ""} built from governed series.
+                      </Text1>
+                    </Inline>
                   )}
-                </div>
-              </ScrollArea>
+                </Stack>
+              </div>
 
-              {/* Refine chat */}
-              <div className="border-t border-border p-4 bg-white space-y-2">
-                <div className="flex items-center space-x-2">
-                  <Wand2 className="w-4 h-4 text-tf-blue" />
-                  <span className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-                    Refine
-                  </span>
-                </div>
-                <div className="relative">
-                  <Textarea
+              <div style={{ borderTop: `1px solid ${c.divider}`, backgroundColor: c.backgroundContainer, padding: 16 }}>
+                <Stack space={8}>
+                  <Inline space={8} alignItems="center">
+                    <IconRobotRegular size={16} color={c.brand} />
+                    <Text2 medium color={c.textSecondary}>
+                      Refine
+                    </Text2>
+                  </Inline>
+                  <TextField
+                    name="instruction"
+                    label="Refine instruction"
                     placeholder="e.g. Tighten the B2B section and add the dividend figure"
                     value={instruction}
-                    onChange={(e) => setInstruction(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleRefine();
-                      }
-                    }}
-                    className="min-h-[56px] max-h-[140px] resize-none rounded-xl pr-12 text-sm"
+                    onChangeValue={setInstruction}
+                    multiline
+                    fullWidth
                   />
-                  <Button
-                    size="icon"
-                    aria-label="Send refine instruction"
-                    className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-tf-blue hover:bg-tf-blue-hover text-white"
-                    onClick={handleRefine}
-                    disabled={!instruction.trim() || busy}
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-xs text-muted-foreground w-full"
-                  onClick={() => {
-                    setDraft(null);
-                    setEditing(false);
-                  }}
-                >
-                  <RefreshCw className="w-3 h-3 mr-1" /> Start a new brief
-                </Button>
+                  <Inline space={8} alignItems="center">
+                    <IconButton
+                      aria-label="Send refine instruction"
+                      onPress={handleRefine}
+                      disabled={!instruction.trim() || busy}
+                      Icon={IconSendRegular}
+                      small
+                    />
+                    <ButtonLink
+                      onPress={() => {
+                        setDraft(null);
+                        setEditing(false);
+                      }}
+                      StartIcon={IconRefreshRegular}
+                    >
+                      Start a new brief
+                    </ButtonLink>
+                  </Inline>
+                </Stack>
               </div>
             </div>
           )}
@@ -1224,140 +1227,174 @@ export default function Generate() {
 
       {tab === "versions" && <VersionsTab versions={versionsQ.data} onOpen={(d) => { setDraft(d); setTab("compose"); }} />}
 
-      {/* Citation drawer */}
-      <Drawer open={!!selectedCitation} onOpenChange={(open) => !open && setSelectedCitation(null)}>
-        <DrawerContent className="max-h-[85vh]">
-          <div className="mx-auto w-full max-w-2xl px-6 pb-8 pt-4">
-            {selectedCitation && (
-              <>
-                <DrawerHeader className="px-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="bg-tf-blue-tint text-tf-blue font-bold px-3 py-1 rounded text-sm">
-                      Citation [{selectedCitation.id}]
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge className={cn("uppercase tracking-eyebrow text-[10px]", selectedCitation.validity === "approved" ? "bg-tf-success text-white" : "")}>
-                        {selectedCitation.validity}
-                      </Badge>
-                      <Badge variant={selectedCitation.confidentiality === "public" ? "secondary" : "destructive"} className="uppercase tracking-eyebrow text-[10px]">
-                        {selectedCitation.confidentiality}
-                      </Badge>
-                    </div>
-                  </div>
-                  <DrawerTitle className="text-2xl font-bold text-tf-navy mt-2">
-                    {selectedCitation.docTitle}
-                  </DrawerTitle>
-                  <DrawerDescription className="text-base mt-1">
-                    {selectedCitation.sourceLoc}
-                  </DrawerDescription>
-                </DrawerHeader>
-                <div className="bg-muted p-6 rounded-xl border border-border">
-                  <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground mb-3">
-                    Extracted snippet
-                  </h4>
-                  <p className="text-foreground leading-relaxed font-serif text-lg">
-                    "{selectedCitation.snippet}"
-                  </p>
-                </div>
-                <div className="grid grid-cols-3 gap-4 mt-4">
-                  <div>
-                    <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Version</div>
-                    <div className="font-medium text-sm">{selectedCitation.version}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Owner</div>
-                    <div className="font-medium text-sm">{selectedCitation.owner}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Confidence</div>
-                    <div className="font-medium text-sm flex items-center space-x-1">
-                      <span>{Math.round(selectedCitation.confidence * 100)}%</span>
-                      {selectedCitation.confidence > 0.8 && <CheckCircle2 className="w-4 h-4 text-tf-success" />}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {selectedCitation && (
+        <Drawer
+          width={640}
+          onClose={() => setSelectedCitation(null)}
+          onDismiss={() => setSelectedCitation(null)}
+          title={selectedCitation.docTitle}
+          subtitle={`Citation [${selectedCitation.id}]`}
+          description={selectedCitation.sourceLoc}
+        >
+          <Stack space={16}>
+            <Inline space={8} alignItems="center">
+              <Tag type={selectedCitation.validity === "approved" ? "success" : "inactive"}>
+                {selectedCitation.validity}
+              </Tag>
+              <Tag type={selectedCitation.confidentiality === "public" ? "info" : "error"}>
+                {selectedCitation.confidentiality}
+              </Tag>
+            </Inline>
+            <div
+              style={{
+                backgroundColor: c.backgroundAlternative,
+                borderRadius: skinVars.borderRadii.container,
+                border: `1px solid ${c.divider}`,
+                padding: 24,
+              }}
+            >
+              <Stack space={12}>
+                <Text2 medium color={c.textSecondary}>
+                  Extracted snippet
+                </Text2>
+                <Text3 regular color={c.textPrimary}>
+                  "{selectedCitation.snippet}"
+                </Text3>
+              </Stack>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+              <Stack space={2}>
+                <Text2 medium color={c.textSecondary}>
+                  Version
+                </Text2>
+                <Text2 regular color={c.textPrimary}>
+                  {selectedCitation.version}
+                </Text2>
+              </Stack>
+              <Stack space={2}>
+                <Text2 medium color={c.textSecondary}>
+                  Owner
+                </Text2>
+                <Text2 regular color={c.textPrimary}>
+                  {selectedCitation.owner}
+                </Text2>
+              </Stack>
+              <Stack space={2}>
+                <Text2 medium color={c.textSecondary}>
+                  Confidence
+                </Text2>
+                <Inline space={4} alignItems="center">
+                  <Text2 regular color={c.textPrimary}>
+                    {Math.round(selectedCitation.confidence * 100)}%
+                  </Text2>
+                  {selectedCitation.confidence > 0.8 && <IconCheckedRegular size={16} color={c.success} />}
+                </Inline>
+              </Stack>
+            </div>
+          </Stack>
+        </Drawer>
+      )}
 
-      {/* Assets drawer */}
-      <Drawer open={showAssets} onOpenChange={setShowAssets}>
-        <DrawerContent className="max-h-[85vh]">
-          <div className="mx-auto w-full max-w-3xl px-6 pb-8 pt-4">
-            <DrawerHeader className="px-0">
-              <DrawerTitle className="text-2xl font-bold text-tf-navy">Governed assets</DrawerTitle>
-              <DrawerDescription>
-                Approved claims, quotes, boilerplate and disclaimers available to the engine.
-              </DrawerDescription>
-            </DrawerHeader>
-            <ScrollArea className="max-h-[60vh] pr-4">
-              <div className="space-y-6">
-                {assets?.claims && assets.claims.length > 0 && (
-                  <AssetGroup title="Approved claims">
-                    {assets.claims.map((c) => (
-                      <div key={c.id} className="bg-muted rounded-xl p-3 text-sm">
-                        <p className="text-foreground">{c.text}</p>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <Badge variant="outline" className="uppercase tracking-eyebrow text-[9px]">{c.confidentiality}</Badge>
-                          <Badge variant="outline" className="uppercase tracking-eyebrow text-[9px]">{c.validity}</Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </AssetGroup>
-                )}
-                {assets?.quotes && assets.quotes.length > 0 && (
-                  <AssetGroup title="Approved quotes">
-                    {assets.quotes.map((q) => (
-                      <div key={q.id} className="bg-muted rounded-xl p-3 text-sm">
-                        <p className="text-foreground font-serif italic">"{q.text}"</p>
-                        <p className="text-xs text-muted-foreground mt-1">— {q.attribution}</p>
-                      </div>
-                    ))}
-                  </AssetGroup>
-                )}
-                {assets?.disclaimers && assets.disclaimers.length > 0 && (
-                  <AssetGroup title="Disclaimers">
-                    {assets.disclaimers.map((d) => (
-                      <div key={d.id} className="bg-muted rounded-xl p-3 text-sm">
-                        <div className="font-semibold text-tf-navy">{d.name}</div>
-                        <p className="text-foreground/80 mt-1">{d.text}</p>
-                      </div>
-                    ))}
-                  </AssetGroup>
-                )}
-                {assets?.glossary && assets.glossary.length > 0 && (
-                  <AssetGroup title="Glossary">
-                    {assets.glossary.map((g) => (
-                      <div key={g.id} className="bg-muted rounded-xl p-3 text-sm">
-                        <span className="font-semibold text-tf-navy">{g.term}:</span>{" "}
-                        <span className="text-foreground/80">{g.definition}</span>
-                      </div>
-                    ))}
-                  </AssetGroup>
-                )}
-              </div>
-            </ScrollArea>
-          </div>
-        </DrawerContent>
-      </Drawer>
+      {showAssets && (
+        <Drawer
+          width={720}
+          onClose={() => setShowAssets(false)}
+          onDismiss={() => setShowAssets(false)}
+          title="Governed assets"
+          description="Approved claims, quotes, boilerplate and disclaimers available to the engine."
+        >
+          <Stack space={24}>
+            {assets?.claims && assets.claims.length > 0 && (
+              <AssetGroup title="Approved claims">
+                {assets.claims.map((cl) => (
+                  <Boxed key={cl.id}>
+                    <Box padding={12}>
+                      <Stack space={8}>
+                        <Text2 regular color={c.textPrimary}>
+                          {cl.text}
+                        </Text2>
+                        <Inline space={8} alignItems="center">
+                          <Tag type="inactive">{cl.confidentiality}</Tag>
+                          <Tag type="inactive">{cl.validity}</Tag>
+                        </Inline>
+                      </Stack>
+                    </Box>
+                  </Boxed>
+                ))}
+              </AssetGroup>
+            )}
+            {assets?.quotes && assets.quotes.length > 0 && (
+              <AssetGroup title="Approved quotes">
+                {assets.quotes.map((q) => (
+                  <Boxed key={q.id}>
+                    <Box padding={12}>
+                      <Stack space={4}>
+                        <Text2 regular color={c.textPrimary}>
+                          "{q.text}"
+                        </Text2>
+                        <Text1 regular color={c.textSecondary}>
+                          — {q.attribution}
+                        </Text1>
+                      </Stack>
+                    </Box>
+                  </Boxed>
+                ))}
+              </AssetGroup>
+            )}
+            {assets?.disclaimers && assets.disclaimers.length > 0 && (
+              <AssetGroup title="Disclaimers">
+                {assets.disclaimers.map((d) => (
+                  <Boxed key={d.id}>
+                    <Box padding={12}>
+                      <Stack space={4}>
+                        <Text2 medium color={c.textPrimary}>
+                          {d.name}
+                        </Text2>
+                        <Text2 regular color={c.textSecondary}>
+                          {d.text}
+                        </Text2>
+                      </Stack>
+                    </Box>
+                  </Boxed>
+                ))}
+              </AssetGroup>
+            )}
+            {assets?.glossary && assets.glossary.length > 0 && (
+              <AssetGroup title="Glossary">
+                {assets.glossary.map((g) => (
+                  <Boxed key={g.id}>
+                    <Box padding={12}>
+                      <Text2 regular color={c.textPrimary}>
+                        <Text2 as="span" medium color={c.textPrimary}>
+                          {g.term}:
+                        </Text2>{" "}
+                        {g.definition}
+                      </Text2>
+                    </Box>
+                  </Boxed>
+                ))}
+              </AssetGroup>
+            )}
+          </Stack>
+        </Drawer>
+      )}
     </div>
   );
 }
 
 function AssetGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-2">
-      <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">{title}</h4>
-      <div className="space-y-2">{children}</div>
-    </div>
+    <Stack space={8}>
+      <Text2 medium color={c.textSecondary}>
+        {title}
+      </Text2>
+      <Stack space={8}>{children}</Stack>
+    </Stack>
   );
 }
 
 // ---- Scheduled tab -----------------------------------------------------------
 function ScheduledTab({
-  shapes,
   roles,
   schedules,
   onCreate,
@@ -1390,20 +1427,17 @@ function ScheduledTab({
 }) {
   const { roleId } = useApp();
   const { data: axes } = useListAxes();
-  const [name, setName] = useState("");
-  const [topic, setTopic] = useState("");
-  const [shape, setShape] = useState<Shape>("messaging");
-  const [frequency, setFrequency] = useState("weekly");
-  const [audience, setAudience] = useState<Audience>("internal");
-  // The schedule runs under an owner's clearance and lands in a named review
-  // folder in the inbox. Owner defaults to the current persona but can be any
-  // role; axes steer retrieval the same way they do in the brief.
-  const [ownerRoleId, setOwnerRoleId] = useState("");
-  const [reviewFolder, setReviewFolder] = useState("");
-  const [queriesText, setQueriesText] = useState("");
-  const [axisIds, setAxisIds] = useState<string[]>([]);
+  const [name, setName] = React.useState("");
+  const [topic, setTopic] = React.useState("");
+  const [shape, setShape] = React.useState<Shape>("messaging");
+  const [frequency, setFrequency] = React.useState("weekly");
+  const [audience, setAudience] = React.useState<Audience>("internal");
+  const [ownerRoleId, setOwnerRoleId] = React.useState("");
+  const [reviewFolder, setReviewFolder] = React.useState("");
+  const [queriesText, setQueriesText] = React.useState("");
+  const [axisIds, setAxisIds] = React.useState<string[]>([]);
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (roleId && !ownerRoleId) setOwnerRoleId(roleId);
   }, [roleId, ownerRoleId]);
 
@@ -1441,119 +1475,147 @@ function ScheduledTab({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h2 className="text-title-lg text-tf-navy">Scheduled documents</h2>
-          <p className="text-muted-foreground mt-1">
-            Recurring briefs run under the owner's clearance and land in the review inbox for a human
-            approval gate before anyone can export them.
-          </p>
-        </div>
+    <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+      <div style={{ maxWidth: 896, margin: "0 auto" }}>
+        <Stack space={32}>
+          <Stack space={4}>
+            <Title2>Scheduled documents</Title2>
+            <Text2 regular color={c.textSecondary}>
+              Recurring briefs run under the owner's clearance and land in the review inbox for a human
+              approval gate before anyone can export them.
+            </Text2>
+          </Stack>
 
-        <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
-          <h3 className="font-bold text-tf-navy">New schedule</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input placeholder="Schedule name, e.g. Weekly brand pulse" value={name} onChange={(e) => setName(e.target.value)} className="rounded-xl" />
-            <select value={shape} onChange={(e) => setShape(e.target.value as Shape)} className="rounded-xl border border-input bg-background px-3 h-10 text-sm">
-              {(Object.keys(SHAPE_META) as Shape[]).map((s) => (
-                <option key={s} value={s}>{SHAPE_META[s].name}</option>
-              ))}
-            </select>
-          </div>
-          <Textarea placeholder="Standing brief, e.g. Weekly readout of Transform & Grow progress" value={topic} onChange={(e) => setTopic(e.target.value)} className="rounded-xl min-h-[70px]" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <select value={frequency} onChange={(e) => setFrequency(e.target.value)} className="rounded-xl border border-input bg-background px-3 h-10 text-sm">
-              {["daily", "weekly", "monthly"].map((f) => (
-                <option key={f} value={f} className="capitalize">{f}</option>
-              ))}
-            </select>
-            <select value={audience} onChange={(e) => setAudience(e.target.value as Audience)} className="rounded-xl border border-input bg-background px-3 h-10 text-sm">
-              <option value="internal">Internal</option>
-              <option value="external">External</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Owner (runs under this clearance)</label>
-              <select value={ownerRoleId} onChange={(e) => setOwnerRoleId(e.target.value)} className="w-full rounded-xl border border-input bg-background px-3 h-10 text-sm">
-                {roles?.map((r) => (
-                  <option key={r.id} value={r.id}>{r.label} • {r.clearance}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Review folder</label>
-              <Input placeholder="e.g. Brand pulse" value={reviewFolder} onChange={(e) => setReviewFolder(e.target.value)} className="rounded-xl" />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Governed source queries (optional, one per line)</label>
-            <Textarea
-              placeholder={"e.g. Transform & Grow KPI targets\nCustomer NPS trend"}
-              value={queriesText}
-              onChange={(e) => setQueriesText(e.target.value)}
-              className="rounded-xl min-h-[60px]"
-            />
-            <p className="text-xs text-muted-foreground">
-              Each recurring run retrieves against these governed queries in addition to the standing brief.
-            </p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Strategic axes (optional)</label>
-            <div className="flex flex-wrap gap-2">
-              {axes?.map((a) => (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => toggleAxis(a.id)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-pill text-xs font-semibold border transition-all",
-                    axisIds.includes(a.id)
-                      ? "text-white border-transparent shadow-sm"
-                      : "text-muted-foreground border-border bg-card hover:bg-muted/50",
-                  )}
-                  style={axisIds.includes(a.id) ? { backgroundColor: a.color || "var(--tf-blue)" } : undefined}
-                >
-                  {a.name}
-                </button>
-              ))}
-            </div>
-          </div>
-          <Button onClick={submit} disabled={!name.trim() || !topic.trim() || creating} className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white">
-            <CalendarClock className="w-4 h-4 mr-2" /> Create schedule
-          </Button>
-        </div>
-
-        <div className="space-y-3">
-          {(!schedules || schedules.length === 0) && (
-            <div className="text-center text-muted-foreground py-10">No schedules yet.</div>
-          )}
-          {schedules?.map((s) => (
-            <div key={s.id} className="bg-card border border-border rounded-xl p-5 flex items-center justify-between shadow-sm">
-              <div className="min-w-0">
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-tf-navy">{s.name}</span>
-                  <Badge variant="outline" className="uppercase tracking-eyebrow text-[9px] capitalize">{s.frequency}</Badge>
-                  <Badge variant="outline" className="uppercase tracking-eyebrow text-[9px]">{s.audience}</Badge>
+          <Boxed>
+            <Box padding={24}>
+              <Stack space={16}>
+                <Title3>New schedule</Title3>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+                  <TextField name="scheduleName" label="Schedule name" placeholder="e.g. Weekly brand pulse" value={name} onChangeValue={setName} fullWidth />
+                  <Select
+                    name="scheduleShape"
+                    label="Shape"
+                    value={shape}
+                    onChangeValue={(v) => setShape(v as Shape)}
+                    options={(Object.keys(SHAPE_META) as Shape[]).map((s) => ({ value: s, text: SHAPE_META[s].name }))}
+                    fullWidth
+                  />
                 </div>
-                <p className="text-sm text-muted-foreground mt-1 truncate">{s.topic}</p>
-                {s.queries.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1 truncate">
-                    Sources: {s.queries.join(" · ")}
-                  </p>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  Owner: {s.ownerLabel}
-                  {s.lastRunAt ? ` • Last run ${new Date(s.lastRunAt).toLocaleString()}` : " • Never run"}
-                </p>
+                <TextField name="scheduleTopic" label="Standing brief" placeholder="e.g. Weekly readout of Transform & Grow progress" value={topic} onChangeValue={setTopic} multiline fullWidth />
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+                  <Select
+                    name="frequency"
+                    label="Frequency"
+                    value={frequency}
+                    onChangeValue={setFrequency}
+                    options={["daily", "weekly", "monthly"].map((f) => ({ value: f, text: f.charAt(0).toUpperCase() + f.slice(1) }))}
+                    fullWidth
+                  />
+                  <Select
+                    name="scheduleAudience"
+                    label="Audience"
+                    value={audience}
+                    onChangeValue={(v) => setAudience(v as Audience)}
+                    options={[
+                      { value: "internal", text: "Internal" },
+                      { value: "external", text: "External" },
+                    ]}
+                    fullWidth
+                  />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+                  <Stack space={4}>
+                    <FieldLabel>Owner (runs under this clearance)</FieldLabel>
+                    <Select
+                      name="ownerRole"
+                      label="Owner"
+                      value={ownerRoleId}
+                      onChangeValue={setOwnerRoleId}
+                      options={(roles ?? []).map((r) => ({ value: r.id, text: `${r.label} • ${r.clearance}` }))}
+                      fullWidth
+                    />
+                  </Stack>
+                  <Stack space={4}>
+                    <FieldLabel>Review folder</FieldLabel>
+                    <TextField name="reviewFolder" label="Review folder" placeholder="e.g. Brand pulse" value={reviewFolder} onChangeValue={setReviewFolder} fullWidth />
+                  </Stack>
+                </div>
+                <Stack space={4}>
+                  <FieldLabel>Governed source queries (optional, one per line)</FieldLabel>
+                  <TextField
+                    name="queries"
+                    label="Governed source queries"
+                    placeholder={"e.g. Transform & Grow KPI targets\nCustomer NPS trend"}
+                    value={queriesText}
+                    onChangeValue={setQueriesText}
+                    multiline
+                    fullWidth
+                  />
+                  <Text1 regular color={c.textSecondary}>
+                    Each recurring run retrieves against these governed queries in addition to the standing brief.
+                  </Text1>
+                </Stack>
+                <Stack space={4}>
+                  <FieldLabel>Strategic axes (optional)</FieldLabel>
+                  <Inline space={8} wrap>
+                    {axes?.map((a) => (
+                      <Chip key={a.id} active={axisIds.includes(a.id)} onPress={() => toggleAxis(a.id)}>
+                        {a.name}
+                      </Chip>
+                    ))}
+                  </Inline>
+                </Stack>
+                <ButtonPrimary onPress={submit} disabled={!name.trim() || !topic.trim() || creating} StartIcon={IconCalendarRegular}>
+                  Create schedule
+                </ButtonPrimary>
+              </Stack>
+            </Box>
+          </Boxed>
+
+          <Stack space={12}>
+            {(!schedules || schedules.length === 0) && (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <Text2 regular color={c.textSecondary}>
+                  No schedules yet.
+                </Text2>
               </div>
-              <Button variant="outline" className="rounded-pill flex-shrink-0" onClick={() => onRun(s.id)} disabled={running}>
-                <RefreshCw className="w-4 h-4 mr-2" /> Run now
-              </Button>
-            </div>
-          ))}
-        </div>
+            )}
+            {schedules?.map((s) => (
+              <Boxed key={s.id}>
+                <Box padding={20}>
+                  <Inline space={16} alignItems="center">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Stack space={4}>
+                        <Inline space={8} alignItems="center" wrap>
+                          <Text2 medium color={c.textPrimary}>
+                            {s.name}
+                          </Text2>
+                          <Tag type="inactive">{s.frequency}</Tag>
+                          <Tag type="inactive">{s.audience}</Tag>
+                        </Inline>
+                        <Text2 regular color={c.textSecondary}>
+                          {s.topic}
+                        </Text2>
+                        {s.queries.length > 0 && (
+                          <Text1 regular color={c.textSecondary}>
+                            Sources: {s.queries.join(" · ")}
+                          </Text1>
+                        )}
+                        <Text1 regular color={c.textSecondary}>
+                          Owner: {s.ownerLabel}
+                          {s.lastRunAt ? ` • Last run ${new Date(s.lastRunAt).toLocaleString()}` : " • Never run"}
+                        </Text1>
+                      </Stack>
+                    </div>
+                    <ButtonSecondary small onPress={() => onRun(s.id)} disabled={running} StartIcon={IconRefreshRegular}>
+                      Run now
+                    </ButtonSecondary>
+                  </Inline>
+                </Box>
+              </Boxed>
+            ))}
+          </Stack>
+        </Stack>
       </div>
     </div>
   );
@@ -1572,69 +1634,81 @@ function InboxTab({
   approving: boolean;
 }) {
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h2 className="text-title-lg text-tf-navy">Review inbox</h2>
-          <p className="text-muted-foreground mt-1">
-            Scheduled drafts wait here for a human approval gate. Approval requires a passing Brand
-            Guardian verdict.
-          </p>
-        </div>
+    <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+      <div style={{ maxWidth: 896, margin: "0 auto" }}>
+        <Stack space={24}>
+          <Stack space={4}>
+            <Title2>Review inbox</Title2>
+            <Text2 regular color={c.textSecondary}>
+              Scheduled drafts wait here for a human approval gate. Approval requires a passing Brand
+              Guardian verdict.
+            </Text2>
+          </Stack>
 
-        {(!items || items.length === 0) && (
-          <div className="text-center text-muted-foreground py-10">
-            The inbox is empty. Run a schedule to populate it.
-          </div>
-        )}
+          {(!items || items.length === 0) && (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <Text2 regular color={c.textSecondary}>
+                The inbox is empty. Run a schedule to populate it.
+              </Text2>
+            </div>
+          )}
 
-        <div className="space-y-3">
-          {items?.map((item) => {
-            const pass = item.draft.guardian.status === "pass" && item.draft.status === "drafted";
-            return (
-              <div key={item.id} className="bg-card border border-border rounded-xl p-5 shadow-sm">
-                <div className="flex items-start justify-between">
-                  <div className="min-w-0">
-                    <div className="flex items-center space-x-2">
-                      <span className="font-bold text-tf-navy">{item.draft.title}</span>
-                      {item.status === "approved" ? (
-                        <Badge className="uppercase tracking-eyebrow text-[9px] bg-tf-success text-white">Approved</Badge>
-                      ) : (
-                        <Badge variant="outline" className="uppercase tracking-eyebrow text-[9px] text-tf-warning border-tf-warning/40">Pending</Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {item.scheduleName} • {item.reviewFolder} • {item.ownerLabel}
-                    </p>
-                    <div className="flex items-center space-x-2 mt-2">
-                      {pass ? (
-                        <span className="text-xs text-tf-success flex items-center"><ShieldCheck className="w-3.5 h-3.5 mr-1" /> Guardian cleared</span>
-                      ) : (
-                        <span className="text-xs text-tf-error flex items-center"><ShieldAlert className="w-3.5 h-3.5 mr-1" /> Guardian blocked</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 flex-shrink-0">
-                    <Button variant="outline" size="sm" className="rounded-pill" onClick={() => onOpen(item.draft)}>
-                      Open
-                    </Button>
-                    {item.status !== "approved" && (
-                      <Button
-                        size="sm"
-                        className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white"
-                        onClick={() => onApprove(item)}
-                        disabled={!pass || approving}
-                        title={pass ? "Approve" : "Guardian must pass first"}
-                      >
-                        <Check className="w-4 h-4 mr-1" /> Approve
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+          <Stack space={12}>
+            {items?.map((item) => {
+              const pass = item.draft.guardian.status === "pass" && item.draft.status === "drafted";
+              return (
+                <Boxed key={item.id}>
+                  <Box padding={20}>
+                    <Inline space={16} alignItems="center">
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Stack space={8}>
+                          <Inline space={8} alignItems="center" wrap>
+                            <Text2 medium color={c.textPrimary}>
+                              {item.draft.title}
+                            </Text2>
+                            {item.status === "approved" ? (
+                              <Tag type="success">Approved</Tag>
+                            ) : (
+                              <Tag type="warning">Pending</Tag>
+                            )}
+                          </Inline>
+                          <Text2 regular color={c.textSecondary}>
+                            {item.scheduleName} • {item.reviewFolder} • {item.ownerLabel}
+                          </Text2>
+                          <Inline space={4} alignItems="center">
+                            {pass ? (
+                              <IconShieldCheckedOkRegular size={14} color={c.success} />
+                            ) : (
+                              <IconAlertRegular size={14} color={c.error} />
+                            )}
+                            <Text1 regular color={pass ? c.success : c.error}>
+                              {pass ? "Guardian cleared" : "Guardian blocked"}
+                            </Text1>
+                          </Inline>
+                        </Stack>
+                      </div>
+                      <Inline space={8} alignItems="center">
+                        <ButtonSecondary small onPress={() => onOpen(item.draft)}>
+                          Open
+                        </ButtonSecondary>
+                        {item.status !== "approved" && (
+                          <ButtonPrimary
+                            small
+                            onPress={() => onApprove(item)}
+                            disabled={!pass || approving}
+                            StartIcon={IconCheckRegular}
+                          >
+                            Approve
+                          </ButtonPrimary>
+                        )}
+                      </Inline>
+                    </Inline>
+                  </Box>
+                </Boxed>
+              );
+            })}
+          </Stack>
+        </Stack>
       </div>
     </div>
   );
@@ -1643,38 +1717,52 @@ function InboxTab({
 // ---- Versions tab ------------------------------------------------------------
 function VersionsTab({ versions, onOpen }: { versions: SavedVersion[] | undefined; onOpen: (d: GeneratedDraft) => void }) {
   return (
-    <div className="flex-1 overflow-y-auto p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h2 className="text-title-lg text-tf-navy">Saved versions</h2>
-          <p className="text-muted-foreground mt-1">
-            In-memory version history of Guardian-cleared documents. Resets when the server restarts.
-          </p>
-        </div>
+    <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
+      <div style={{ maxWidth: 896, margin: "0 auto" }}>
+        <Stack space={24}>
+          <Stack space={4}>
+            <Title2>Saved versions</Title2>
+            <Text2 regular color={c.textSecondary}>
+              In-memory version history of Guardian-cleared documents. Resets when the server restarts.
+            </Text2>
+          </Stack>
 
-        {(!versions || versions.length === 0) && (
-          <div className="text-center text-muted-foreground py-10">No versions saved yet.</div>
-        )}
-
-        <div className="space-y-3">
-          {versions?.map((v) => (
-            <div key={v.id} className="bg-card border border-border rounded-xl p-5 flex items-center justify-between shadow-sm">
-              <div className="min-w-0">
-                <div className="flex items-center space-x-2">
-                  <span className="font-bold text-tf-navy">{v.title}</span>
-                  <Badge variant="outline" className="uppercase tracking-eyebrow text-[9px]">v{v.version}</Badge>
-                  <Badge variant="outline" className="uppercase tracking-eyebrow text-[9px]">{v.confidentiality}</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Saved by {v.savedBy} • {new Date(v.savedAt).toLocaleString()} • Owner {v.governance.owner}
-                </p>
-              </div>
-              <Button variant="outline" size="sm" className="rounded-pill flex-shrink-0" onClick={() => onOpen(v.draft)}>
-                Open
-              </Button>
+          {(!versions || versions.length === 0) && (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+              <Text2 regular color={c.textSecondary}>
+                No versions saved yet.
+              </Text2>
             </div>
-          ))}
-        </div>
+          )}
+
+          <Stack space={12}>
+            {versions?.map((v) => (
+              <Boxed key={v.id}>
+                <Box padding={20}>
+                  <Inline space={16} alignItems="center">
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <Stack space={4}>
+                        <Inline space={8} alignItems="center" wrap>
+                          <Text2 medium color={c.textPrimary}>
+                            {v.title}
+                          </Text2>
+                          <Tag type="inactive">{`v${v.version}`}</Tag>
+                          <Tag type="inactive">{v.confidentiality}</Tag>
+                        </Inline>
+                        <Text1 regular color={c.textSecondary}>
+                          Saved by {v.savedBy} • {new Date(v.savedAt).toLocaleString()} • Owner {v.governance.owner}
+                        </Text1>
+                      </Stack>
+                    </div>
+                    <ButtonSecondary small onPress={() => onOpen(v.draft)}>
+                      Open
+                    </ButtonSecondary>
+                  </Inline>
+                </Box>
+              </Boxed>
+            ))}
+          </Stack>
+        </Stack>
       </div>
     </div>
   );

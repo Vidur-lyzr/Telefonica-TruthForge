@@ -1,31 +1,37 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   useGetIngestionSnapshot,
   useListValidationItems,
   useListDocumentFreshness,
 } from "@workspace/api-client-react";
-import { cn } from "@/lib/utils";
 import {
-  ShieldCheck,
-  Server,
-  Boxes,
-  Compass,
-  Library,
-  CheckCircle2,
-  AlertTriangle,
-  Activity,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+  Box,
+  Stack,
+  Inline,
+  Boxed,
+  Divider,
+  ResponsiveLayout,
+  Circle,
+  Tabs,
+  Callout,
+  ButtonSecondary,
+  Drawer,
+  Text1,
+  Text2,
+  Text3,
+  Text8,
+  Title3,
+  skinVars,
+  IconShieldRegular,
+  IconDatabaseConnectedRegular,
+  IconBoxRegular,
+  IconWorldDeviceRegular,
+  IconBookRegular,
+  IconCheckedRegular,
+  IconAlertRegular,
+  IconStatusChartRegular,
+} from "@telefonica/mistica";
+import type { IconProps } from "@telefonica/mistica";
 import { DataCenterProvider, useDataCenter } from "@/components/data-center/state";
 import { formatTimestamp } from "@/components/data-center/helpers";
 import ValidationArea from "@/components/data-center/validation";
@@ -36,214 +42,185 @@ import CorpusArea from "@/components/data-center/corpus";
 
 type AreaId = "validation" | "sources" | "ingestion" | "governance" | "corpus";
 
+type IconType = (props: IconProps) => React.JSX.Element;
+
 const AREAS: {
   id: AreaId;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  Icon: IconType;
 }[] = [
-  { id: "validation", label: "Validation queue", icon: ShieldCheck },
-  { id: "sources", label: "Sources", icon: Server },
-  { id: "ingestion", label: "Ingestion", icon: Boxes },
-  { id: "governance", label: "Governance", icon: Compass },
-  { id: "corpus", label: "Corpus", icon: Library },
+  { id: "validation", label: "Validation queue", Icon: IconShieldRegular },
+  { id: "sources", label: "Sources", Icon: IconDatabaseConnectedRegular },
+  { id: "ingestion", label: "Ingestion", Icon: IconBoxRegular },
+  { id: "governance", label: "Governance", Icon: IconWorldDeviceRegular },
+  { id: "corpus", label: "Corpus", Icon: IconBookRegular },
 ];
 
 function ActivityDrawer() {
   const { activity } = useDataCenter();
+  const [open, setOpen] = React.useState(false);
+
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button
-          variant="outline"
-          className="rounded-pill font-semibold border-border relative"
+    <>
+      <ButtonSecondary
+        small
+        onPress={() => setOpen(true)}
+        StartIcon={IconStatusChartRegular}
+      >
+        {activity.length > 0 ? `Session activity (${activity.length})` : "Session activity"}
+      </ButtonSecondary>
+
+      {open && (
+        <Drawer
+          title="Session activity"
+          description="Every documentalist decision made here feeds the platform audit trail. This session is in-memory only for the demo."
+          onClose={() => setOpen(false)}
         >
-          <Activity className="w-4 h-4 mr-2" /> Session activity
-          {activity.length > 0 && (
-            <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-tf-blue text-white text-[11px] font-bold">
-              {activity.length}
-            </span>
-          )}
-        </Button>
-      </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md flex flex-col">
-        <SheetHeader>
-          <SheetTitle className="text-tf-navy">Session activity</SheetTitle>
-          <SheetDescription>
-            Every documentalist decision made here feeds the platform audit trail. This session is
-            in-memory only for the demo.
-          </SheetDescription>
-        </SheetHeader>
-        <ScrollArea className="flex-1 -mx-6 px-6 mt-4">
           {activity.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-              <Activity className="w-8 h-8 mb-3 opacity-50" />
-              <p className="text-sm">No actions yet this session.</p>
-            </div>
+            <Box paddingY={40}>
+              <Stack space={12}>
+                <Inline space={0} alignItems="center">
+                  <Circle size={48} backgroundColor={skinVars.colors.neutralLow}>
+                    <IconStatusChartRegular size={24} color={skinVars.colors.textSecondary} />
+                  </Circle>
+                </Inline>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  No actions yet this session.
+                </Text2>
+              </Stack>
+            </Box>
           ) : (
-            <div className="space-y-3 pb-6">
+            <Stack space={12}>
               {activity.map((a) => (
-                <div key={a.id} className="rounded-xl border border-border p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-bold text-tf-navy">{a.action}</p>
-                    <span className="text-[11px] text-muted-foreground shrink-0">
-                      {formatTimestamp(a.timestamp)}
-                    </span>
-                  </div>
-                  <p className="text-xs font-medium text-tf-blue mt-0.5">{a.target}</p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-snug">{a.detail}</p>
-                </div>
+                <Boxed key={a.id}>
+                  <Box padding={16}>
+                    <Stack space={4}>
+                      <Inline space={8} alignItems="center">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text2 medium color={skinVars.colors.textPrimary}>
+                            {a.action}
+                          </Text2>
+                        </div>
+                        <Text1 regular color={skinVars.colors.textSecondary}>
+                          {formatTimestamp(a.timestamp)}
+                        </Text1>
+                      </Inline>
+                      <Text1 medium color={skinVars.colors.brand}>
+                        {a.target}
+                      </Text1>
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        {a.detail}
+                      </Text1>
+                    </Stack>
+                  </Box>
+                </Boxed>
               ))}
-            </div>
+            </Stack>
           )}
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+        </Drawer>
+      )}
+    </>
   );
 }
 
 function DataCenterShell() {
-  const [area, setArea] = useState<AreaId>("validation");
+  const [areaIndex, setAreaIndex] = React.useState(0);
+  const area = AREAS[areaIndex].id;
 
   const { data: snapshot } = useGetIngestionSnapshot();
   const { data: validationItems } = useListValidationItems();
   const { data: freshness } = useListDocumentFreshness();
   const { resolvedValidations, releasedQuarantine } = useDataCenter();
 
-  const openQuarantine = useMemo(
+  const openQuarantine = React.useMemo(
     () => (snapshot?.quarantine ?? []).filter((q) => !releasedQuarantine[q.id]).length,
     [snapshot, releasedQuarantine],
   );
-  const openValidations = useMemo(
+  const openValidations = React.useMemo(
     () => (validationItems ?? []).filter((it) => !resolvedValidations[it.id]).length,
     [validationItems, resolvedValidations],
   );
-  const overdue = useMemo(
-    () => (freshness ?? []).filter((f) => f.overdue).length,
-    [freshness],
-  );
+  const overdue = React.useMemo(() => (freshness ?? []).filter((f) => f.overdue).length, [freshness]);
 
   const totalBacklog = openQuarantine + openValidations;
   const allClear = totalBacklog === 0 && overdue === 0;
 
-  const badgeFor = (id: AreaId) => {
+  const badgeFor = (id: AreaId): number | null => {
     if (id === "validation" && openValidations > 0) return openValidations;
     if (id === "ingestion" && openQuarantine > 0) return openQuarantine;
     if (id === "governance" && overdue > 0) return overdue;
     return null;
   };
 
+  const statusDescriptionParts: string[] = [];
+  if (openValidations > 0) statusDescriptionParts.push(`${openValidations} in the validation queue`);
+  if (openQuarantine > 0) statusDescriptionParts.push(`${openQuarantine} held in quarantine`);
+  if (overdue > 0) statusDescriptionParts.push(`${overdue} past review SLA`);
+
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="space-y-2">
-          <h1 className="text-title-lg text-tf-navy">Data Center</h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">
-            The documentalist's desk — where sources, ingestion, validation and taxonomy are
-            governed so every answer rests on trusted ground.
-          </p>
-        </div>
-        <ActivityDrawer />
-      </div>
+    <ResponsiveLayout>
+      <Box paddingY={32}>
+        <Stack space={24}>
+          <Inline space={16} alignItems="center" wrap>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <Stack space={8}>
+                <Text8>Data Center</Text8>
+                <Text3 regular color={skinVars.colors.textSecondary}>
+                  The documentalist's desk — where sources, ingestion, validation and taxonomy are
+                  governed so every answer rests on trusted ground.
+                </Text3>
+              </Stack>
+            </div>
+            <ActivityDrawer />
+          </Inline>
 
-      <div
-        className={cn(
-          "rounded-2xl border p-5 flex items-start gap-4",
-          allClear ? "bg-tf-success-bg border-tf-success/30" : "bg-tf-blue-tint border-tf-blue/20",
-        )}
-      >
-        <div
-          className={cn(
-            "p-2.5 rounded-full shrink-0",
-            allClear ? "bg-tf-success text-white" : "bg-tf-blue text-white",
-          )}
-        >
-          {allClear ? (
-            <CheckCircle2 className="w-5 h-5" />
-          ) : (
-            <AlertTriangle className="w-5 h-5" />
-          )}
-        </div>
-        <div className="min-w-0">
-          {allClear ? (
-            <>
-              <p className="font-bold text-tf-navy">Everything is caught up</p>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Nothing in quarantine, no classifications awaiting a human, and every document within
-                its review SLA.
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="font-bold text-tf-navy">
-                {totalBacklog > 0
+          <Callout
+            asset={
+              allClear ? (
+                <IconCheckedRegular color={skinVars.colors.success} />
+              ) : (
+                <IconAlertRegular color={skinVars.colors.warning} />
+              )
+            }
+            title={
+              allClear
+                ? "Everything is caught up"
+                : totalBacklog > 0
                   ? `${totalBacklog} ${totalBacklog === 1 ? "item needs" : "items need"} a documentalist`
-                  : "Corpus needs attention"}
-              </p>
-              <p className="text-sm text-muted-foreground mt-0.5 flex flex-wrap gap-x-4 gap-y-1">
-                {openValidations > 0 && (
-                  <span>
-                    <span className="font-semibold text-tf-navy">{openValidations}</span> in the
-                    validation queue
-                  </span>
-                )}
-                {openQuarantine > 0 && (
-                  <span>
-                    <span className="font-semibold text-tf-navy">{openQuarantine}</span> held in
-                    quarantine
-                  </span>
-                )}
-                {overdue > 0 && (
-                  <span>
-                    <span className="font-semibold text-tf-navy">{overdue}</span> past review SLA
-                  </span>
-                )}
-              </p>
-            </>
-          )}
-        </div>
-      </div>
+                  : "Corpus needs attention"
+            }
+            description={
+              allClear
+                ? "Nothing in quarantine, no classifications awaiting a human, and every document within its review SLA."
+                : statusDescriptionParts.join(" · ")
+            }
+          />
 
-      <div className="flex items-center gap-2 flex-wrap border-b border-border pb-1">
-        {AREAS.map((a) => {
-          const Icon = a.icon;
-          const badge = badgeFor(a.id);
-          const active = area === a.id;
-          return (
-            <button
-              key={a.id}
-              onClick={() => setArea(a.id)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors",
-                active
-                  ? "bg-tf-navy text-white"
-                  : "text-muted-foreground hover:text-tf-navy hover:bg-muted",
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              {a.label}
-              {badge !== null && (
-                <span
-                  className={cn(
-                    "inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold",
-                    active ? "bg-white/20 text-white" : "bg-tf-blue text-white",
-                  )}
-                >
-                  {badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+          <Stack space={8}>
+            <Tabs
+              selectedIndex={areaIndex}
+              onChange={setAreaIndex}
+              tabs={AREAS.map((a) => {
+                const badge = badgeFor(a.id);
+                return {
+                  text: badge !== null ? `${a.label} (${badge})` : a.label,
+                  Icon: a.Icon,
+                };
+              })}
+            />
+            <Divider />
+          </Stack>
 
-      <div>
-        {area === "validation" && <ValidationArea />}
-        {area === "sources" && <SourcesArea />}
-        {area === "ingestion" && <IngestionArea />}
-        {area === "governance" && <GovernanceArea />}
-        {area === "corpus" && <CorpusArea />}
-      </div>
-    </div>
+          <Box>
+            {area === "validation" && <ValidationArea />}
+            {area === "sources" && <SourcesArea />}
+            {area === "ingestion" && <IngestionArea />}
+            {area === "governance" && <GovernanceArea />}
+            {area === "corpus" && <CorpusArea />}
+          </Box>
+        </Stack>
+      </Box>
+    </ResponsiveLayout>
   );
 }
 

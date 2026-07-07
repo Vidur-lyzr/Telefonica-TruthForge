@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import {
   useGetPlanningOverview,
   useListPlanningEvents,
@@ -6,22 +6,32 @@ import {
   useListAxes,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Check,
-  Calendar as CalendarIcon,
-  Layers,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  ResponsiveLayout,
+  Box,
+  Stack,
+  Inline,
+  Grid,
+  Text1,
+  Text2,
+  Text4,
+  Title1,
+  IconButton,
+  ButtonLink,
+  Touchable,
+  Menu,
+  MenuSection,
+  MenuItem,
+  EmptyStateCard,
+  skinVars,
+  applyAlpha,
+  IconChevronLeftRegular,
+  IconChevronRightRegular,
+  IconChevronDownRegular,
+  IconCheckRegular,
+  IconCalendarRegular,
+  IconLayersRegular,
+} from "@telefonica/mistica";
 import { PlanningCalendar, type CalendarView } from "@/components/planning/calendar";
 import { EventDrawer } from "@/components/planning/event-drawer";
 import { PredictiveStrip } from "@/components/planning/predictive-strip";
@@ -56,42 +66,55 @@ function FilterDropdown({
   render?: (v: string) => React.ReactNode;
 }) {
   return (
-    <div className="flex items-center space-x-2">
-      <span className="text-xs uppercase tracking-eyebrow text-muted-foreground font-bold">
+    <Inline space={8} alignItems="center">
+      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
         {label}
-      </span>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-pill h-8 px-3 font-semibold border-border bg-white hover:bg-muted"
-          >
-            {value === ALL ? "All" : (render ? render(value) : value)}
-            <ChevronDown className="w-3.5 h-3.5 ml-1.5 opacity-50" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="rounded-xl max-h-72 overflow-y-auto">
-          <DropdownMenuItem
-            onClick={() => onChange(ALL)}
-            className="rounded-lg font-medium cursor-pointer"
-          >
-            <span className="flex-1">All</span>
-            {value === ALL && <Check className="w-4 h-4 text-tf-blue" />}
-          </DropdownMenuItem>
-          {options.map((o) => (
-            <DropdownMenuItem
-              key={o}
-              onClick={() => onChange(o)}
-              className="rounded-lg font-medium cursor-pointer"
+      </Text1>
+      <Menu
+        renderTarget={({ ref, onPress }) => (
+          <Touchable ref={ref} onPress={onPress} aria-label={`${label} filter`}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                height: 32,
+                padding: "0 12px",
+                borderRadius: skinVars.borderRadii.button,
+                border: `1px solid ${skinVars.colors.divider}`,
+                backgroundColor: skinVars.colors.backgroundContainer,
+              }}
             >
-              <span className="flex-1">{render ? render(o) : o}</span>
-              {value === o && <Check className="w-4 h-4 text-tf-blue" />}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+              <Text2 medium color={skinVars.colors.textPrimary}>
+                {value === ALL ? "All" : render ? render(value) : value}
+              </Text2>
+              <IconChevronDownRegular size={14} color={skinVars.colors.textSecondary} />
+            </div>
+          </Touchable>
+        )}
+        renderMenu={({ ref, className }) => (
+          <div ref={ref} className={className}>
+            <MenuSection>
+              <MenuItem
+                label="All"
+                controlType="checkbox"
+                checked={value === ALL}
+                onPress={() => onChange(ALL)}
+              />
+              {options.map((o) => (
+                <MenuItem
+                  key={o}
+                  label={render ? String(render(o)) : o}
+                  controlType="checkbox"
+                  checked={value === o}
+                  onPress={() => onChange(o)}
+                />
+              ))}
+            </MenuSection>
+          </div>
+        )}
+      />
+    </Inline>
   );
 }
 
@@ -104,22 +127,25 @@ export default function Planning() {
   const { data: axes } = useListAxes();
 
   const todayISO = overview?.today ?? "2026-07-07";
-  const [anchor, setAnchor] = useState<Date | null>(null);
+  const [anchor, setAnchor] = React.useState<Date | null>(null);
   const currentAnchor = anchor ?? parseDate(todayISO);
 
-  const [view, setView] = useState<CalendarView>("month");
-  const [filters, setFilters] = useState<Record<FilterKey, string>>({
+  const [view, setView] = React.useState<CalendarView>("month");
+  const [filters, setFilters] = React.useState<Record<FilterKey, string>>({
     area: ALL,
     market: ALL,
     brand: ALL,
     axis: ALL,
   });
-  const [openEvent, setOpenEvent] = useState<string | null>(null);
+  const [openEvent, setOpenEvent] = React.useState<string | null>(null);
   const disconnected = !!overview && overview.sources.length === 0;
 
-  const range = useMemo(() => {
+  const range = React.useMemo(() => {
     if (view === "month") {
-      return { from: toISO(startOfWeek(startOfMonth(currentAnchor))), to: toISO(endOfWeek(endOfMonth(currentAnchor))) };
+      return {
+        from: toISO(startOfWeek(startOfMonth(currentAnchor))),
+        to: toISO(endOfWeek(endOfMonth(currentAnchor))),
+      };
     }
     if (view === "week") {
       return { from: toISO(startOfWeek(currentAnchor)), to: toISO(endOfWeek(currentAnchor)) };
@@ -127,7 +153,7 @@ export default function Planning() {
     return { from: toISO(currentAnchor), to: toISO(currentAnchor) };
   }, [view, currentAnchor]);
 
-  const queryFilters = useMemo(
+  const queryFilters = React.useMemo(
     () => ({
       roleId,
       from: range.from,
@@ -149,10 +175,7 @@ export default function Planning() {
 
   const eventList = events ?? [];
 
-  // Derive filter options from the full permitted event set (unfiltered would
-  // require a second query; deriving from current results is honest enough for
-  // a demo-tier facet).
-  const options = useMemo(() => {
+  const options = React.useMemo(() => {
     const markets = new Set<string>();
     const brands = new Set<string>();
     const areas = new Set<string>();
@@ -169,7 +192,7 @@ export default function Planning() {
     };
   }, [eventList, axes]);
 
-  const rangeLabel = useMemo(() => {
+  const rangeLabel = React.useMemo(() => {
     if (view === "month") return formatMonthTitle(currentAnchor);
     if (view === "week") {
       const start = startOfWeek(currentAnchor);
@@ -188,183 +211,248 @@ export default function Planning() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
-      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div>
-          <h1 className="text-title-lg text-tf-navy">Unified planning</h1>
-          <p className="text-muted-foreground mt-1">
-            Governed calendar across Communication and Brand — every block scoped to your persona.
-          </p>
-        </div>
-        {overview && overview.sources.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs uppercase tracking-eyebrow text-muted-foreground font-bold flex items-center">
-              <Layers className="w-3.5 h-3.5 mr-1.5" /> Sources
-            </span>
-            {overview.sources.map((s) => (
-              <span
-                key={s.id}
-                className="text-xs font-medium bg-white border border-border rounded-pill px-3 py-1 text-tf-navy"
-                title={s.description}
-              >
-                {s.name}
-                <span className="ml-1.5 text-[10px] uppercase tracking-eyebrow text-tf-grey-400">
-                  {s.status === "read_only" ? "read-only" : s.status}
-                </span>
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
+    <ResponsiveLayout>
+      <Box paddingY={24}>
+        <Stack space={24}>
+          <Inline space={16} alignItems="center" wrap>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <Stack space={4}>
+                <Title1 as="h1">Unified planning</Title1>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  Governed calendar across Communication and Brand — every block scoped to your
+                  persona.
+                </Text2>
+              </Stack>
+            </div>
+            {overview && overview.sources.length > 0 && (
+              <Inline space={8} alignItems="center" wrap>
+                <Inline space={8} alignItems="center">
+                  <IconLayersRegular size={14} color={skinVars.colors.textSecondary} />
+                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                    Sources
+                  </Text1>
+                </Inline>
+                {overview.sources.map((s) => (
+                  <div
+                    key={s.id}
+                    title={s.description}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                      backgroundColor: skinVars.colors.backgroundContainer,
+                      border: `1px solid ${skinVars.colors.divider}`,
+                      borderRadius: skinVars.borderRadii.button,
+                      padding: "4px 12px",
+                    }}
+                  >
+                    <Text1 medium color={skinVars.colors.textPrimary}>
+                      {s.name}
+                    </Text1>
+                    <Text1 regular color={skinVars.colors.textSecondary} transform="uppercase">
+                      {s.status === "read_only" ? "read-only" : s.status}
+                    </Text1>
+                  </div>
+                ))}
+              </Inline>
+            )}
+          </Inline>
 
-      {/* Controls */}
-      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 bg-card border border-border rounded-2xl p-4">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-full border-border"
-              onClick={() => step(-1)}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-full border-border"
-              onClick={() => step(1)}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-          <div className="font-bold text-tf-navy text-lg min-w-[180px]">{rangeLabel}</div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="rounded-pill h-8 px-3 text-tf-blue hover:bg-tf-blue-tint font-semibold"
-            onClick={() => setAnchor(parseDate(todayISO))}
+          {/* Controls */}
+          <div
+            style={{
+              backgroundColor: skinVars.colors.backgroundContainer,
+              border: `1px solid ${skinVars.colors.divider}`,
+              borderRadius: skinVars.borderRadii.container,
+            }}
           >
-            <CalendarIcon className="w-3.5 h-3.5 mr-1.5" /> Today
-          </Button>
-        </div>
+            <Box padding={16}>
+              <Inline space={16} alignItems="center" wrap>
+                <div style={{ flex: 1, minWidth: 260 }}>
+                  <Inline space={12} alignItems="center">
+                    <Inline space={4} alignItems="center">
+                      <IconButton
+                        aria-label="Previous"
+                        Icon={IconChevronLeftRegular}
+                        onPress={() => step(-1)}
+                        small
+                      />
+                      <IconButton
+                        aria-label="Next"
+                        Icon={IconChevronRightRegular}
+                        onPress={() => step(1)}
+                        small
+                      />
+                    </Inline>
+                    <div style={{ minWidth: 180 }}>
+                      <Text4 medium color={skinVars.colors.textPrimary}>
+                        {rangeLabel}
+                      </Text4>
+                    </div>
+                    <ButtonLink
+                      small
+                      onPress={() => setAnchor(parseDate(todayISO))}
+                      StartIcon={IconCalendarRegular}
+                    >
+                      Today
+                    </ButtonLink>
+                  </Inline>
+                </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <FilterDropdown
-            label="Area"
-            value={filters.area}
-            options={options.area}
-            onChange={(v) => setFilters((f) => ({ ...f, area: v }))}
-          />
-          <FilterDropdown
-            label="Market"
-            value={filters.market}
-            options={options.market}
-            onChange={(v) => setFilters((f) => ({ ...f, market: v }))}
-          />
-          <FilterDropdown
-            label="Brand"
-            value={filters.brand}
-            options={options.brand}
-            onChange={(v) => setFilters((f) => ({ ...f, brand: v }))}
-          />
-          <FilterDropdown
-            label="Axis"
-            value={filters.axis}
-            options={options.axis}
-            onChange={(v) => setFilters((f) => ({ ...f, axis: v }))}
-            render={(v) => axes?.find((a) => a.id === v)?.name ?? "Axis"}
-          />
-
-          <div className="flex items-center rounded-pill border border-border bg-muted/50 p-0.5">
-            {(["month", "week", "day"] as CalendarView[]).map((v) => (
-              <button
-                key={v}
-                onClick={() => setView(v)}
-                className={cn(
-                  "px-3 py-1 rounded-pill text-xs font-bold uppercase tracking-eyebrow transition-colors",
-                  view === v
-                    ? "bg-tf-blue text-white shadow-sm"
-                    : "text-muted-foreground hover:text-tf-navy",
-                )}
-              >
-                {v}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Calendar + side rail */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2 space-y-6">
-          {disconnected ? (
-            <div className="border border-dashed border-border rounded-2xl bg-card p-16 text-center">
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                <Layers className="w-5 h-5 text-muted-foreground" />
-              </div>
-              <h3 className="font-bold text-tf-navy text-lg">No calendars connected</h3>
-              <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-                This workspace has no governed planning sources yet. Once a read-only calendar
-                (Asana, Jira, Google Calendar, Confluence or Excel) is connected, its activity will
-                appear here, scoped to your persona.
-              </p>
-            </div>
-          ) : eventsLoading ? (
-            <div className="border border-border rounded-2xl bg-card p-16 text-center text-muted-foreground">
-              Loading governed calendar…
-            </div>
-          ) : eventList.length === 0 ? (
-            <div className="border border-border rounded-2xl bg-card p-16 text-center">
-              <h3 className="font-bold text-tf-navy text-lg">Nothing to show here</h3>
-              <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-                No activity matches these filters at your clearance. Adjust the filters, or switch to
-                a higher-clearance persona to see restricted slots.
-              </p>
-            </div>
-          ) : (
-            <PlanningCalendar
-              view={view}
-              anchor={currentAnchor}
-              events={eventList}
-              gaps={insights?.gaps ?? []}
-              axes={axes}
-              todayISO={todayISO}
-              onOpen={setOpenEvent}
-            />
-          )}
-
-          {!disconnected && axes && axes.length > 0 && (
-            <div className="flex flex-wrap items-center gap-3 px-1">
-              <span className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
-                Axis legend
-              </span>
-              {axes.map((a) => (
-                <span key={a.id} className="flex items-center space-x-1.5 text-xs text-foreground">
-                  <span
-                    className="w-3 h-3 rounded-full inline-block"
-                    style={{ backgroundColor: a.color || "var(--tf-blue)" }}
+                <Inline space={16} alignItems="center" wrap>
+                  <FilterDropdown
+                    label="Area"
+                    value={filters.area}
+                    options={options.area}
+                    onChange={(v) => setFilters((f) => ({ ...f, area: v }))}
                   />
-                  <span>{a.name}</span>
-                </span>
-              ))}
-            </div>
-          )}
+                  <FilterDropdown
+                    label="Market"
+                    value={filters.market}
+                    options={options.market}
+                    onChange={(v) => setFilters((f) => ({ ...f, market: v }))}
+                  />
+                  <FilterDropdown
+                    label="Brand"
+                    value={filters.brand}
+                    options={options.brand}
+                    onChange={(v) => setFilters((f) => ({ ...f, brand: v }))}
+                  />
+                  <FilterDropdown
+                    label="Axis"
+                    value={filters.axis}
+                    options={options.axis}
+                    onChange={(v) => setFilters((f) => ({ ...f, axis: v }))}
+                    render={(v) => axes?.find((a) => a.id === v)?.name ?? "Axis"}
+                  />
 
-          {!disconnected && insights && (
-            <PredictiveStrip insights={insights} onOpenEvent={setOpenEvent} />
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <ForecastPanel />
-          <div className="min-h-[420px] flex">
-            <PlanningChat />
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      borderRadius: skinVars.borderRadii.button,
+                      border: `1px solid ${skinVars.colors.divider}`,
+                      backgroundColor: skinVars.colors.backgroundAlternative,
+                      padding: 2,
+                    }}
+                  >
+                    {(["month", "week", "day"] as CalendarView[]).map((v) => (
+                      <Touchable key={v} onPress={() => setView(v)} aria-label={v}>
+                        <div
+                          style={{
+                            padding: "4px 12px",
+                            borderRadius: skinVars.borderRadii.button,
+                            backgroundColor: view === v ? skinVars.colors.brand : "transparent",
+                          }}
+                        >
+                          <Text1
+                            medium
+                            transform="uppercase"
+                            color={
+                              view === v
+                                ? skinVars.colors.textPrimaryInverse
+                                : skinVars.colors.textSecondary
+                            }
+                          >
+                            {v}
+                          </Text1>
+                        </div>
+                      </Touchable>
+                    ))}
+                  </div>
+                </Inline>
+              </Inline>
+            </Box>
           </div>
-        </div>
-      </div>
+
+          {/* Calendar + side rail */}
+          <Grid columns={3} gap={24}>
+            <GridSpan span={2}>
+              <Stack space={24}>
+                {disconnected ? (
+                  <EmptyStateCard
+                    asset={<IconLayersRegular size={48} color={skinVars.colors.brand} />}
+                    title="No calendars connected"
+                    description="This workspace has no governed planning sources yet. Once a read-only calendar (Asana, Jira, Google Calendar, Confluence or Excel) is connected, its activity will appear here, scoped to your persona."
+                  />
+                ) : eventsLoading ? (
+                  <div
+                    style={{
+                      backgroundColor: skinVars.colors.backgroundContainer,
+                      border: `1px solid ${skinVars.colors.divider}`,
+                      borderRadius: skinVars.borderRadii.container,
+                    }}
+                  >
+                    <Box padding={64}>
+                      <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
+                        Loading governed calendar…
+                      </Text2>
+                    </Box>
+                  </div>
+                ) : eventList.length === 0 ? (
+                  <EmptyStateCard
+                    asset={<IconCalendarRegular size={48} color={skinVars.colors.brand} />}
+                    title="Nothing to show here"
+                    description="No activity matches these filters at your clearance. Adjust the filters, or switch to a higher-clearance persona to see restricted slots."
+                  />
+                ) : (
+                  <PlanningCalendar
+                    view={view}
+                    anchor={currentAnchor}
+                    events={eventList}
+                    gaps={insights?.gaps ?? []}
+                    axes={axes}
+                    todayISO={todayISO}
+                    onOpen={setOpenEvent}
+                  />
+                )}
+
+                {!disconnected && axes && axes.length > 0 && (
+                  <Box paddingX={4}>
+                    <Inline space={12} alignItems="center" wrap>
+                      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                        Axis legend
+                      </Text1>
+                      {axes.map((a) => (
+                        <Inline key={a.id} space={8} alignItems="center">
+                          <div
+                            style={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: skinVars.borderRadii.avatar,
+                              backgroundColor: a.color || skinVars.colors.brand,
+                            }}
+                          />
+                          <Text2 regular color={skinVars.colors.textPrimary}>
+                            {a.name}
+                          </Text2>
+                        </Inline>
+                      ))}
+                    </Inline>
+                  </Box>
+                )}
+
+                {!disconnected && insights && (
+                  <PredictiveStrip insights={insights} onOpenEvent={setOpenEvent} />
+                )}
+              </Stack>
+            </GridSpan>
+
+            <Stack space={24}>
+              <ForecastPanel />
+              <div style={{ minHeight: 420, display: "flex" }}>
+                <PlanningChat />
+              </div>
+            </Stack>
+          </Grid>
+        </Stack>
+      </Box>
 
       <EventDrawer eventId={openEvent} axes={axes} onClose={() => setOpenEvent(null)} />
-    </div>
+    </ResponsiveLayout>
   );
+}
+
+function GridSpan({ span, children }: { span: 2; children: React.ReactNode }) {
+  return <div style={{ gridColumn: `span ${span}` }}>{children}</div>;
 }

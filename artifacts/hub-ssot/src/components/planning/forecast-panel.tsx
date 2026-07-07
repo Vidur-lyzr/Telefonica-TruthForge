@@ -1,20 +1,31 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   usePlanningForecast,
   type Citation,
   type PlanningForecast,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
-import { Button } from "@/components/ui/button";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerDescription,
-} from "@/components/ui/drawer";
-import { Badge } from "@/components/ui/badge";
-import { Sparkles, Radio, TriangleAlert, ShieldAlert, FileText } from "lucide-react";
+  Sheet,
+  ThemeVariant,
+  Box,
+  Stack,
+  Inline,
+  Grid,
+  Text1,
+  Text2,
+  Text3,
+  Text6,
+  Touchable,
+  ButtonPrimary,
+  Tag,
+  skinVars,
+  applyAlpha,
+  IconAiRegular,
+  IconAntennaRegular,
+  IconShieldRegular,
+  IconFileTextRegular,
+} from "@telefonica/mistica";
 import { formatDay } from "./utils";
 
 function Stat({
@@ -28,152 +39,260 @@ function Stat({
 }) {
   const color =
     tone === "warning"
-      ? "text-tf-warning"
+      ? skinVars.colors.warning
       : tone === "success"
-        ? "text-tf-success"
-        : "text-tf-blue";
+        ? skinVars.colors.success
+        : skinVars.colors.textPrimaryInverse;
   return (
-    <div className="text-center px-3">
-      <div className={`text-3xl font-bold ${color}`}>{value}</div>
-      <div className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground mt-1">
-        {label}
-      </div>
+    <div style={{ textAlign: "center", padding: "0 12px" }}>
+      <Text6 color={color}>{value}</Text6>
+      <Box paddingTop={4}>
+        <Text1 medium color={applyAlpha(skinVars.rawColors.inverse, 0.72)} transform="uppercase">
+          {label}
+        </Text1>
+      </Box>
     </div>
   );
 }
 
 export function ForecastPanel() {
   const { area, roleId } = useApp();
-  const [selected, setSelected] = useState<Citation | null>(null);
+  const [selected, setSelected] = React.useState<Citation | null>(null);
   const { mutate, isPending, data } = usePlanningForecast();
   const forecast = data as PlanningForecast | undefined;
 
   return (
-    <div className="bg-gradient-to-br from-tf-navy to-tf-navy-tint text-white rounded-2xl p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Sparkles className="w-5 h-5 text-tf-blue-lighter" />
-          <h3 className="text-sm uppercase tracking-eyebrow font-bold text-tf-blue-lighter">
-            10-day forecast
-          </h3>
-        </div>
-        <Button
-          size="sm"
-          className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white h-8 px-4 font-semibold"
-          onClick={() => mutate({ data: { area, roleId } })}
-          disabled={isPending || !roleId}
-        >
-          {isPending ? "Generating…" : forecast ? "Refresh" : "Generate"}
-        </Button>
+    <ThemeVariant variant="brand">
+      <div
+        style={{
+          backgroundColor: skinVars.colors.backgroundBrand,
+          borderRadius: skinVars.borderRadii.container,
+        }}
+      >
+        <Box padding={24}>
+          <Stack space={16}>
+            <Inline space="between" alignItems="center">
+              <Inline space={8} alignItems="center">
+                <IconAiRegular size={20} color={skinVars.colors.textPrimaryInverse} />
+                <Text2 medium color={skinVars.colors.textPrimaryInverse} transform="uppercase">
+                  10-day forecast
+                </Text2>
+              </Inline>
+              <ButtonPrimary
+                small
+                onPress={() => mutate({ data: { area, roleId } })}
+                disabled={isPending || !roleId}
+              >
+                {isPending ? "Generating…" : forecast ? "Refresh" : "Generate"}
+              </ButtonPrimary>
+            </Inline>
+
+            {!forecast && !isPending && (
+              <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.8)}>
+                Generate a cited outlook of what is live, upcoming, and at risk in the next 10 days —
+                scoped to your persona.
+              </Text2>
+            )}
+
+            {isPending && (
+              <Inline space={12} alignItems="center">
+                <IconAiRegular size={20} color={skinVars.colors.textPrimaryInverse} />
+                <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.85)}>
+                  Composing forecast from governed activity…
+                </Text2>
+              </Inline>
+            )}
+
+            {forecast && !isPending && (
+              <Stack space={16}>
+                <Text1 regular color={applyAlpha(skinVars.rawColors.inverse, 0.72)}>
+                  {formatDay(forecast.rangeStart)} – {formatDay(forecast.rangeEnd)}
+                </Text1>
+
+                {forecast.status === "no_activity" ? (
+                  <div
+                    style={{
+                      backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.1),
+                      borderRadius: skinVars.borderRadii.container,
+                      padding: 16,
+                    }}
+                  >
+                    <Inline space={12} alignItems="center">
+                      <IconShieldRegular size={20} color={skinVars.colors.warning} />
+                      <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.85)}>
+                        {forecast.summary}
+                      </Text2>
+                    </Inline>
+                  </div>
+                ) : (
+                  <Stack space={16}>
+                    <div
+                      style={{
+                        backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.1),
+                        borderRadius: skinVars.borderRadii.container,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-around",
+                        padding: "12px 0",
+                      }}
+                    >
+                      <Stat value={forecast.highlights.liveCount} label="Live" tone="success" />
+                      <div
+                        style={{
+                          width: 1,
+                          height: 32,
+                          backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.2),
+                        }}
+                      />
+                      <Stat
+                        value={forecast.highlights.conflictCount}
+                        label="Conflicts"
+                        tone="warning"
+                      />
+                      <div
+                        style={{
+                          width: 1,
+                          height: 32,
+                          backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.2),
+                        }}
+                      />
+                      <Stat value={forecast.highlights.riskCount} label="Risks" tone="warning" />
+                    </div>
+
+                    <Stack space={8}>
+                      {forecast.summary.split("\n").map((p, i) => (
+                        <Text2 key={i} regular color={applyAlpha(skinVars.rawColors.inverse, 0.9)}>
+                          {p}
+                        </Text2>
+                      ))}
+                    </Stack>
+
+                    {forecast.citations.length > 0 && (
+                      <Stack space={8}>
+                        <Inline space={8} alignItems="center">
+                          <IconFileTextRegular
+                            size={14}
+                            color={skinVars.colors.textPrimaryInverse}
+                          />
+                          <Text1
+                            medium
+                            color={skinVars.colors.textPrimaryInverse}
+                            transform="uppercase"
+                          >
+                            Cited activity
+                          </Text1>
+                        </Inline>
+                        <div style={{ display: "flex", overflowX: "auto", gap: 8, paddingBottom: 8 }}>
+                          {forecast.citations.map((c, i) => (
+                            <div key={i} style={{ flexShrink: 0, width: 220 }}>
+                              <Touchable
+                                onPress={() => setSelected(c)}
+                                aria-label={`Citation ${c.id}: ${c.docTitle}`}
+                              >
+                                <div
+                                  style={{
+                                    backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.1),
+                                    borderRadius: skinVars.borderRadii.container,
+                                    padding: 10,
+                                  }}
+                                >
+                                  <Inline space={8} alignItems="center">
+                                    <div
+                                      style={{
+                                        backgroundColor: skinVars.colors.backgroundContainer,
+                                        borderRadius: skinVars.borderRadii.chip,
+                                        padding: "2px 6px",
+                                      }}
+                                    >
+                                      <Text1 medium color={skinVars.colors.brand}>
+                                        {c.id}
+                                      </Text1>
+                                    </div>
+                                    <div
+                                      style={{
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      <Text1 medium color={skinVars.colors.textPrimaryInverse}>
+                                        {c.docTitle}
+                                      </Text1>
+                                    </div>
+                                  </Inline>
+                                  <Box paddingTop={4}>
+                                    <div
+                                      style={{
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      <Text1 regular color={applyAlpha(skinVars.rawColors.inverse, 0.6)}>
+                                        {c.sourceLoc}
+                                      </Text1>
+                                    </div>
+                                  </Box>
+                                </div>
+                              </Touchable>
+                            </div>
+                          ))}
+                        </div>
+                      </Stack>
+                    )}
+                  </Stack>
+                )}
+              </Stack>
+            )}
+          </Stack>
+        </Box>
       </div>
 
-      {!forecast && !isPending && (
-        <p className="text-tf-grey-200 text-sm leading-relaxed">
-          Generate a cited outlook of what is live, upcoming, and at risk in the next 10 days —
-          scoped to your persona.
-        </p>
-      )}
-
-      {isPending && (
-        <div className="flex items-center space-x-3 text-tf-grey-100 py-4">
-          <Sparkles className="w-5 h-5 animate-pulse text-tf-blue-lighter" />
-          <span>Composing forecast from governed activity…</span>
-        </div>
-      )}
-
-      {forecast && !isPending && (
-        <div className="space-y-4 animate-in fade-in duration-300">
-          <div className="text-xs text-tf-grey-200">
-            {formatDay(forecast.rangeStart)} – {formatDay(forecast.rangeEnd)}
-          </div>
-
-          {forecast.status === "no_activity" ? (
-            <div className="flex items-start space-x-3 bg-white/10 p-4 rounded-xl">
-              <ShieldAlert className="w-5 h-5 mt-0.5 flex-shrink-0 text-tf-warning" />
-              <p className="text-sm leading-relaxed text-tf-grey-100">{forecast.summary}</p>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-around bg-white/10 rounded-xl py-3">
-                <Stat value={forecast.highlights.liveCount} label="Live" tone="success" />
-                <div className="w-px h-8 bg-white/20" />
-                <Stat value={forecast.highlights.conflictCount} label="Conflicts" tone="warning" />
-                <div className="w-px h-8 bg-white/20" />
-                <Stat value={forecast.highlights.riskCount} label="Risks" tone="warning" />
-              </div>
-
-              <div className="text-sm leading-relaxed text-tf-grey-50 space-y-2">
-                {forecast.summary.split("\n").map((p, i) => (
-                  <p key={i}>{p}</p>
-                ))}
-              </div>
-
-              {forecast.citations.length > 0 && (
-                <div className="pt-2">
-                  <div className="text-[10px] uppercase tracking-eyebrow font-bold text-tf-blue-lighter mb-2 flex items-center">
-                    <FileText className="w-3.5 h-3.5 mr-1.5" /> Cited activity
-                  </div>
-                  <div className="flex overflow-x-auto pb-2 space-x-2 snap-x">
-                    {forecast.citations.map((c, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setSelected(c)}
-                        className="shrink-0 snap-start bg-white/10 hover:bg-white/20 transition-colors rounded-lg p-2.5 text-left w-[220px]"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span className="bg-tf-blue text-white font-bold px-1.5 py-0.5 rounded text-[10px]">
-                            {c.id}
-                          </span>
-                          <span className="text-xs font-semibold truncate">{c.docTitle}</span>
-                        </div>
-                        <div className="text-[10px] text-tf-grey-300 mt-1 truncate">
-                          {c.sourceLoc}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      <Drawer open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
-        <DrawerContent className="max-h-[85vh]">
-          <div className="mx-auto w-full max-w-2xl px-6 pb-8 pt-4 text-foreground">
-            {selected && (
-              <>
-                <DrawerHeader className="px-0">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="bg-tf-blue-tint text-tf-blue font-bold px-3 py-1 rounded text-sm">
+      {selected && (
+        <Sheet onClose={() => setSelected(null)}>
+          {({ modalTitleId }) => (
+            <Box paddingX={24} paddingBottom={32} paddingTop={16}>
+              <Stack space={16}>
+                <Inline space="between" alignItems="center">
+                  <div
+                    style={{
+                      backgroundColor: applyAlpha(skinVars.rawColors.brand, 0.12),
+                      borderRadius: skinVars.borderRadii.button,
+                      padding: "4px 12px",
+                    }}
+                  >
+                    <Text2 medium color={skinVars.colors.brand}>
                       Citation [{selected.id}]
-                    </div>
-                    <Badge
-                      variant={selected.confidentiality === "public" ? "secondary" : "destructive"}
-                      className="uppercase tracking-eyebrow text-[10px]"
-                    >
-                      {selected.confidentiality}
-                    </Badge>
+                    </Text2>
                   </div>
-                  <DrawerTitle className="text-2xl font-bold text-tf-navy mt-2">
-                    {selected.docTitle}
-                  </DrawerTitle>
-                  <DrawerDescription className="text-base mt-1 flex items-center space-x-2">
-                    <Radio className="w-4 h-4" />
-                    <span>{selected.sourceLoc}</span>
-                  </DrawerDescription>
-                </DrawerHeader>
-                <div className="bg-muted p-6 rounded-xl border border-border">
-                  <p className="text-foreground leading-relaxed font-serif text-lg">
+                  <Tag type={selected.confidentiality === "public" ? "success" : "error"}>
+                    {selected.confidentiality}
+                  </Tag>
+                </Inline>
+                <Text6 id={modalTitleId}>{selected.docTitle}</Text6>
+                <Inline space={8} alignItems="center">
+                  <IconAntennaRegular size={16} color={skinVars.colors.textSecondary} />
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {selected.sourceLoc}
+                  </Text2>
+                </Inline>
+                <div
+                  style={{
+                    backgroundColor: skinVars.colors.backgroundAlternative,
+                    border: `1px solid ${skinVars.colors.divider}`,
+                    borderRadius: skinVars.borderRadii.container,
+                    padding: 24,
+                  }}
+                >
+                  <Text3 regular color={skinVars.colors.textPrimary}>
                     "{selected.snippet}"
-                  </p>
+                  </Text3>
                 </div>
-              </>
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
-    </div>
+              </Stack>
+            </Box>
+          )}
+        </Sheet>
+      )}
+    </ThemeVariant>
   );
 }

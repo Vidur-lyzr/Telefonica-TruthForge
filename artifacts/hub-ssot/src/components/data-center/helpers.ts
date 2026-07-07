@@ -1,30 +1,39 @@
-export function clearanceBadgeClass(c: string) {
+type TagType =
+  | "promo"
+  | "info"
+  | "active"
+  | "inactive"
+  | "success"
+  | "warning"
+  | "error";
+
+export function clearanceTagType(c: string): TagType {
   switch (c) {
     case "public":
-      return "bg-muted text-muted-foreground";
+      return "inactive";
     case "internal":
-      return "bg-tf-info-bg text-tf-info";
+      return "info";
     case "confidential":
-      return "bg-tf-warning-bg text-tf-warning";
+      return "warning";
     case "restricted":
-      return "bg-tf-error-bg text-tf-error";
+      return "error";
     default:
-      return "bg-muted text-muted-foreground";
+      return "inactive";
   }
 }
 
-export function sourceStatusClass(s: string) {
+export function sourceStatusTagType(s: string): TagType {
   switch (s) {
     case "live":
-      return "bg-tf-success text-white";
+      return "success";
     case "filtered":
-      return "bg-tf-blue-tint text-tf-blue";
+      return "info";
     case "manual":
-      return "bg-muted text-muted-foreground";
+      return "inactive";
     case "to_configure":
-      return "bg-tf-warning-bg text-tf-warning";
+      return "warning";
     default:
-      return "bg-muted text-muted-foreground";
+      return "inactive";
   }
 }
 
@@ -43,16 +52,16 @@ export function sourceStatusLabel(s: string) {
   }
 }
 
-export function confidenceClass(c: string) {
+export function confidenceTagType(c: string): TagType {
   switch (c) {
     case "high":
-      return "bg-tf-success-bg text-tf-success";
+      return "success";
     case "medium":
-      return "bg-tf-warning-bg text-tf-warning";
+      return "warning";
     case "low":
-      return "bg-tf-error-bg text-tf-error";
+      return "error";
     default:
-      return "bg-muted text-muted-foreground";
+      return "inactive";
   }
 }
 

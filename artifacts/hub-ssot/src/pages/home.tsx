@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
 import { useLocation } from "wouter";
 import {
   useGetHomeSummary,
@@ -12,67 +12,85 @@ import {
   SuggestedQuery,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import {
-  Send,
-  Sparkles,
-  LineChart,
-  Calendar,
-  MessageSquare,
-  Radar,
-  Radio,
-  BookMarked,
-  ClipboardCheck,
-  ArrowUpRight,
-  ShieldCheck,
-  AlertTriangle,
-  Languages,
-  FileCheck2,
-  Clock,
-} from "lucide-react";
+  Box,
+  Stack,
+  Inline,
+  Boxed,
+  Divider,
+  ResponsiveLayout,
+  GridLayout,
+  Grid,
+  GridItem,
+  Circle,
+  Touchable,
+  TextField,
+  ButtonPrimary,
+  IconButton,
+  Text1,
+  Text2,
+  Text3,
+  Text6,
+  Text8,
+  Title2,
+  SkeletonLine,
+  ProgressBar,
+  skinVars,
+  applyAlpha,
+  IconSendRegular,
+  IconAiRegular,
+  IconBarChartRegular,
+  IconCalendarRegular,
+  IconChatRegular,
+  IconAntennaRegular,
+  IconBookRegular,
+  IconListRegular,
+  IconArrowLineUpRegular,
+  IconShieldCheckedOkRegular,
+  IconAlertRegular,
+  IconWorldDeviceRegular,
+  IconDataCheckedRegular,
+  IconTimeRegular,
+} from "@telefonica/mistica";
 
 type AppKey = "generate" | "kpis" | "planning" | "ask";
 
+type IconType = React.ComponentType<{ size?: number; color?: string }>;
+
 const CARD_META: Record<
   AppKey,
-  { title: string; path: string; icon: React.ComponentType<{ className?: string }>; blurb: string }
+  { title: string; path: string; icon: IconType; blurb: string }
 > = {
   generate: {
     title: "Generate",
     path: "/generate",
-    icon: Sparkles,
+    icon: IconAiRegular,
     blurb: "Draft governed communications with cited evidence.",
   },
   kpis: {
     title: "KPIs",
     path: "/kpis",
-    icon: LineChart,
+    icon: IconBarChartRegular,
     blurb: "Track the metrics that back every corporate claim.",
   },
   planning: {
     title: "Planning",
     path: "/planning",
-    icon: Calendar,
+    icon: IconCalendarRegular,
     blurb: "See what is scheduled and where plans collide.",
   },
   ask: {
     title: "Ask",
     path: "/ask",
-    icon: MessageSquare,
+    icon: IconChatRegular,
     blurb: "Question the corpus and get cited, honest answers.",
   },
 };
 
-const RADAR_KIND_META: Record<
-  string,
-  { label: string; icon: React.ComponentType<{ className?: string }> }
-> = {
-  external_signal: { label: "External signal", icon: Radio },
-  knowledge_event: { label: "Knowledge event", icon: BookMarked },
-  your_queue: { label: "Your queue", icon: ClipboardCheck },
+const RADAR_KIND_META: Record<string, { label: string; icon: IconType }> = {
+  external_signal: { label: "External signal", icon: IconAntennaRegular },
+  knowledge_event: { label: "Knowledge event", icon: IconBookRegular },
+  your_queue: { label: "Your queue", icon: IconListRegular },
 };
 
 // Language-aware front-door copy. The corpus is multilingual (ES/EN/DE/PT), so
@@ -135,18 +153,18 @@ function HeroAskBar({
 }) {
   const { roleId } = useApp();
   const [, navigate] = useLocation();
-  const [text, setText] = useState("");
-  const [rotation, setRotation] = useState(0);
+  const [text, setText] = React.useState("");
+  const [rotation, setRotation] = React.useState(0);
 
   // Rotate real example prompts drawn from the governed suggestions endpoint.
   // Only cited/answerable prompts are used as invitations; rotation pauses once
   // the user starts typing so it never fights their input.
-  const prompts = useMemo(
+  const prompts = React.useMemo(
     () => suggestions.filter((s) => s.kind === "cited").map((s) => s.text),
     [suggestions],
   );
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (prompts.length < 2 || text) return;
     const id = window.setInterval(() => {
       setRotation((r) => (r + 1) % prompts.length);
@@ -163,7 +181,7 @@ function HeroAskBar({
     navigate(`/ask?q=${encodeURIComponent(q)}`);
   };
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       // Enter on an empty bar accepts the currently shown example prompt.
@@ -171,32 +189,37 @@ function HeroAskBar({
     }
   };
 
+  const disabled = (!text.trim() && !rotatingPrompt) || !roleId;
+
   return (
-    <div className="space-y-3">
-      <div className="relative">
-        <Textarea
+    <Stack space={12}>
+      <div style={{ position: "relative" }} onKeyDown={onKeyDown}>
+        <TextField
           key={placeholder}
-          placeholder={placeholder}
-          className="min-h-[68px] max-h-[220px] rounded-2xl resize-none pr-16 pt-5 pb-5 pl-6 shadow-sm border-border focus-visible:ring-tf-blue text-lg transition-[color] placeholder:transition-opacity"
+          name="ask"
+          multiline
+          fullWidth
+          label={placeholder}
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={onKeyDown}
+          onChangeValue={setText}
         />
-        <Button
-          size="icon"
-          className="absolute bottom-4 right-3 h-11 w-11 rounded-full bg-tf-blue hover:bg-tf-blue-hover text-white shadow-md transition-all"
-          onClick={() => submit(text.trim() ? text : rotatingPrompt)}
-          disabled={(!text.trim() && !rotatingPrompt) || !roleId}
-          aria-label="Ask"
-        >
-          <Send className="w-4 h-4" />
-        </Button>
+        <div style={{ position: "absolute", bottom: 12, right: 12 }}>
+          <IconButton
+            aria-label="Ask"
+            onPress={() => submit(text.trim() ? text : rotatingPrompt)}
+            disabled={disabled}
+            Icon={IconSendRegular}
+            type="brand"
+          />
+        </div>
       </div>
-      <p className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
-        <ShieldCheck className="w-3.5 h-3.5 text-tf-blue" />
-        <span>{COPY[lang].honesty}</span>
-      </p>
-    </div>
+      <Inline space={8} alignItems="center">
+        <IconShieldCheckedOkRegular size={16} color={skinVars.colors.brand} />
+        <Text2 regular color={skinVars.colors.textSecondary}>
+          {COPY[lang].honesty}
+        </Text2>
+      </Inline>
+    </Stack>
   );
 }
 
@@ -216,46 +239,43 @@ function AppCard({
   const warning = stat?.tone === "warning";
 
   return (
-    <button
-      onClick={() => navigate(meta.path)}
-      className={cn(
-        "group text-left bg-card border rounded-xl p-6 shadow-xs hover:shadow-md transition-all flex flex-col justify-between h-full",
-        warning ? "border-tf-warning/40" : "border-border hover:border-tf-blue/30",
-      )}
-    >
-      <div className="flex items-start justify-between">
-        <div
-          className={cn(
-            "w-11 h-11 rounded-lg flex items-center justify-center",
-            warning ? "bg-tf-warning-bg text-tf-warning" : "bg-tf-blue-tint text-tf-blue",
-          )}
-        >
-          <Icon className="w-5 h-5" />
-        </div>
-        <ArrowUpRight className="w-5 h-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-      </div>
+    <Touchable onPress={() => navigate(meta.path)} aria-label={meta.title}>
+      <Boxed>
+        <Box padding={24}>
+          <Stack space={24}>
+            <Inline space="between" alignItems="center">
+              <Circle
+                size={44}
+                backgroundColor={warning ? skinVars.colors.warningLow : skinVars.colors.brandLow}
+              >
+                <Icon size={20} color={warning ? skinVars.colors.warning : skinVars.colors.brand} />
+              </Circle>
+              <IconArrowLineUpRegular size={20} color={skinVars.colors.textSecondary} />
+            </Inline>
 
-      <div className="mt-6">
-        <div className="text-title-sm font-bold text-tf-navy tracking-tight">{meta.title}</div>
-        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{meta.blurb}</p>
-      </div>
+            <Stack space={4}>
+              <Title2>{meta.title}</Title2>
+              <Text2 regular color={skinVars.colors.textSecondary}>
+                {meta.blurb}
+              </Text2>
+            </Stack>
 
-      <div className="mt-5 flex items-baseline space-x-2">
-        {loading || !stat ? (
-          <Skeleton className="h-9 w-20" />
-        ) : (
-          <>
-            <span
-              className="text-display-sm font-bold tracking-tight"
-              style={{ color: warning ? "var(--tf-warning)" : axisColor || "var(--tf-navy)" }}
-            >
-              {stat.value}
-            </span>
-            <span className="text-sm text-muted-foreground font-medium">{stat.caption}</span>
-          </>
-        )}
-      </div>
-    </button>
+            {loading || !stat ? (
+              <SkeletonLine width="40%" />
+            ) : (
+              <Inline space={8} alignItems="baseline">
+                <Text6 color={warning ? skinVars.colors.warning : axisColor || skinVars.colors.textPrimary}>
+                  {stat.value}
+                </Text6>
+                <Text2 medium color={skinVars.colors.textSecondary}>
+                  {stat.caption}
+                </Text2>
+              </Inline>
+            )}
+          </Stack>
+        </Box>
+      </Boxed>
+    </Touchable>
   );
 }
 
@@ -266,50 +286,70 @@ function RadarRow({ item, axisColor }: { item: RadarItem; axisColor?: string }) 
   const warning = item.tone === "warning";
 
   return (
-    <button
-      onClick={() => navigate(item.href)}
-      className="w-full text-left flex items-start space-x-4 p-4 rounded-xl hover:bg-muted/60 transition-colors group"
-    >
-      <div
-        className={cn(
-          "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5",
-          warning ? "bg-tf-warning-bg text-tf-warning" : "bg-tf-blue-tint text-tf-blue",
-        )}
-      >
-        <Icon className="w-4 h-4" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center space-x-2 mb-1">
-          <span className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
-            {meta.label}
-          </span>
-          <span className="text-muted-foreground/40">·</span>
-          <span className="text-[10px] uppercase tracking-eyebrow text-muted-foreground flex items-center">
-            <Clock className="w-3 h-3 mr-1" />
-            {relativeTime(item.timestamp)}
-          </span>
-        </div>
-        <div className="font-semibold text-sm text-foreground leading-snug group-hover:text-tf-blue transition-colors">
-          {item.title}
-        </div>
-        {item.detail && (
-          <p className="text-sm text-muted-foreground mt-1 leading-relaxed line-clamp-2">{item.detail}</p>
-        )}
-        {item.evidenceDocTitle && (
-          <div className="mt-2 inline-flex items-center space-x-1.5 text-xs font-medium text-tf-blue bg-tf-blue-tint px-2.5 py-1 rounded-full">
-            <FileCheck2 className="w-3 h-3" />
-            <span className="truncate max-w-[240px]">{item.evidenceDocTitle}</span>
+    <Touchable onPress={() => navigate(item.href)} aria-label={item.title}>
+      <Box padding={16}>
+        <Inline space={16} alignItems="center">
+          <Circle
+            size={36}
+            backgroundColor={warning ? skinVars.colors.warningLow : skinVars.colors.brandLow}
+          >
+            <Icon size={16} color={warning ? skinVars.colors.warning : skinVars.colors.brand} />
+          </Circle>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Stack space={4}>
+              <Inline space={8} alignItems="center">
+                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  {meta.label}
+                </Text1>
+                <Text1 regular color={skinVars.colors.textSecondary}>
+                  ·
+                </Text1>
+                <Inline space={4} alignItems="center">
+                  <IconTimeRegular size={12} color={skinVars.colors.textSecondary} />
+                  <Text1 regular color={skinVars.colors.textSecondary} transform="uppercase">
+                    {relativeTime(item.timestamp)}
+                  </Text1>
+                </Inline>
+              </Inline>
+              <Text2 medium color={skinVars.colors.textPrimary}>
+                {item.title}
+              </Text2>
+              {item.detail && (
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  {item.detail}
+                </Text2>
+              )}
+              {item.evidenceDocTitle && (
+                <div style={{ display: "inline-flex" }}>
+                  <Boxed>
+                    <Box paddingX={12} paddingY={4}>
+                      <Inline space={8} alignItems="center">
+                        <IconDataCheckedRegular size={12} color={skinVars.colors.brand} />
+                        <Text1 medium color={skinVars.colors.brand}>
+                          {item.evidenceDocTitle}
+                        </Text1>
+                      </Inline>
+                    </Box>
+                  </Boxed>
+                </div>
+              )}
+            </Stack>
           </div>
-        )}
-      </div>
-      {axisColor && (
-        <span
-          className="w-2 h-2 rounded-full flex-shrink-0 mt-2"
-          style={{ backgroundColor: axisColor }}
-          aria-hidden
-        />
-      )}
-    </button>
+          {axisColor && (
+            <div
+              aria-hidden
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: skinVars.borderRadii.avatar,
+                backgroundColor: axisColor,
+                flexShrink: 0,
+              }}
+            />
+          )}
+        </Inline>
+      </Box>
+    </Touchable>
   );
 }
 
@@ -319,32 +359,50 @@ function HealthStat({
   value,
   loading,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: IconType;
   label: string;
   value: React.ReactNode;
   loading: boolean;
 }) {
   return (
-    <div className="flex items-center space-x-3">
-      <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-        <Icon className="w-5 h-5 text-white" />
+    <Inline space={12} alignItems="center">
+      <Circle size={40} backgroundColor={applyAlpha(skinVars.rawColors.inverse, 0.1)}>
+        <Icon size={20} color={skinVars.colors.inverse} />
+      </Circle>
+      <div style={{ minWidth: 0 }}>
+        <Stack space={2}>
+          <Text1 medium color={applyAlpha(skinVars.rawColors.inverse, 0.72)} transform="uppercase">
+            {label}
+          </Text1>
+          {loading ? (
+            <SkeletonLine width="60%" />
+          ) : (
+            <Text3 medium color={skinVars.colors.textPrimaryInverse}>
+              {value}
+            </Text3>
+          )}
+        </Stack>
       </div>
-      <div className="min-w-0">
-        <div className="text-[10px] uppercase tracking-eyebrow text-tf-grey-200 font-bold">{label}</div>
-        {loading ? (
-          <Skeleton className="h-5 w-24 mt-1 bg-white/20" />
-        ) : (
-          <div className="text-white font-bold text-base tracking-tight truncate">{value}</div>
-        )}
-      </div>
-    </div>
+    </Inline>
+  );
+}
+
+function InverseDivider() {
+  return (
+    <div
+      style={{
+        height: 1,
+        width: "100%",
+        backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.1),
+      }}
+    />
   );
 }
 
 export default function Home() {
   const { roleId, area } = useApp();
   const [, navigate] = useLocation();
-  const params = useMemo(
+  const params = React.useMemo(
     () => (roleId ? { roleId, area } : undefined),
     [roleId, area],
   );
@@ -358,14 +416,14 @@ export default function Home() {
   const { data: roles } = useListRoles();
   const { data: suggestions } = useListSuggestions();
 
-  const lang = useMemo(detectLang, []);
+  const lang = React.useMemo(detectLang, []);
 
   const activeRole = roles?.find((r) => r.id === roleId);
   const clearance = activeRole?.clearance ?? "public";
   const roleArea = activeRole?.area;
   const leadership = clearance === "confidential" || clearance === "restricted";
 
-  const axisColor = useMemo(() => {
+  const axisColor = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const a of axes ?? []) map.set(a.id, a.color);
     return (id?: string | null) => (id ? map.get(id) : undefined);
@@ -376,7 +434,7 @@ export default function Home() {
   //  - Comunicación validators/analysts lead with their queue (Planning, KPIs).
   //  - Gabinete / leadership lead with the radar-adjacent apps (KPIs, Planning).
   // Ask is always first: it is the front door's primary action for everyone.
-  const cardOrder = useMemo<AppKey[]>(() => {
+  const cardOrder = React.useMemo<AppKey[]>(() => {
     if (roleArea === "Marca") return ["ask", "generate", "kpis", "planning"];
     if (leadership) return ["ask", "kpis", "planning", "generate"];
     if (clearance === "internal") return ["ask", "planning", "kpis", "generate"];
@@ -387,7 +445,7 @@ export default function Home() {
   //  - Brand personas surface knowledge events (brand/campaign activity) first.
   //  - Internal validators surface their own queue first.
   //  - Leadership surfaces external signals first.
-  const radarItems = useMemo<RadarItem[]>(() => {
+  const radarItems = React.useMemo<RadarItem[]>(() => {
     const items = radar ?? [];
     const weight = (r: RadarItem) => {
       if (roleArea === "Marca")
@@ -414,190 +472,235 @@ export default function Home() {
     .map((l) => l.key.toUpperCase())
     .join(" · ");
 
-  return (
-    <div className="max-w-6xl mx-auto px-6 py-10 space-y-12">
-      {/* Front door */}
-      <section className="text-center space-y-6 pt-6">
-        <div className="space-y-3">
-          <div className="text-xs uppercase tracking-eyebrow font-bold text-tf-blue">
-            Single source of truth
-          </div>
-          <h1 className="text-display-md text-tf-navy tracking-tight">
-            {activeRole ? `Welcome, ${activeRole.label}` : "Welcome to Hub SSoT"}
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto leading-relaxed">
-            {COPY[lang].subtitle}
-          </p>
-        </div>
-        <div className="max-w-3xl mx-auto">
-          <HeroAskBar lang={lang} suggestions={suggestions ?? []} />
-        </div>
-      </section>
+  const radarPanel = (
+    <Stack space={16}>
+      <Inline space="between" alignItems="center">
+        <Inline space={8} alignItems="center">
+          <IconAntennaRegular size={20} color={skinVars.colors.brand} />
+          <Title2>Radar</Title2>
+        </Inline>
+        <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+          What changed for you
+        </Text1>
+      </Inline>
 
-      {corpusEmpty ? (
-        <section>
-          <div className="bg-card border border-dashed border-border rounded-2xl p-12 text-center max-w-2xl mx-auto">
-            <div className="w-14 h-14 rounded-full bg-tf-blue-tint text-tf-blue flex items-center justify-center mx-auto mb-5">
-              <BookMarked className="w-7 h-7" />
-            </div>
-            <h2 className="text-title-md font-bold text-tf-navy tracking-tight">
-              No governed sources yet
-            </h2>
-            <p className="text-muted-foreground mt-2 max-w-md mx-auto leading-relaxed">
-              Hub SSoT answers only from a governed knowledge core. Connect your first document to
-              start getting cited, permission-aware answers.
-            </p>
-            <Button
-              className="mt-6 bg-tf-blue hover:bg-tf-blue-hover text-white"
-              onClick={() => navigate("/data")}
-            >
-              Connect the first document
-              <ArrowUpRight className="w-4 h-4 ml-1.5" />
-            </Button>
-          </div>
-        </section>
-      ) : (
-      <>
-      {/* App cards */}
-      <section>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          {cardOrder.map((key) => {
-            const stat = summary?.[key];
-            return (
-              <AppCard
-                key={key}
-                stat={stat}
-                loading={summaryLoad}
-                axisColor={axisColor(stat?.axisId)}
-              />
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Radar + health */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Radar className="w-5 h-5 text-tf-blue" />
-              <h2 className="text-title-sm font-bold text-tf-navy tracking-tight">Radar</h2>
-            </div>
-            <span className="text-xs text-muted-foreground uppercase tracking-eyebrow font-bold">
-              What changed for you
-            </span>
-          </div>
-
-          <div className="bg-card border border-border rounded-xl shadow-xs divide-y divide-border/60 overflow-hidden">
-            {radarLoad ? (
-              Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex items-start space-x-4 p-4">
-                  <Skeleton className="w-9 h-9 rounded-lg flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-3 w-32" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                </div>
-              ))
-            ) : radarItems.length > 0 ? (
-              radarItems.map((item) => (
-                <RadarRow key={item.id} item={item} axisColor={axisColor(item.axisId)} />
-              ))
-            ) : (
-              <div className="p-10 text-center">
-                <div className="w-12 h-12 rounded-full bg-tf-blue-tint text-tf-blue flex items-center justify-center mx-auto mb-4">
-                  <Radar className="w-6 h-6" />
-                </div>
-                <p className="text-foreground font-semibold">Your radar is calm</p>
-                <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+      <Boxed>
+        {radarLoad ? (
+          <Stack space={0}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && <Divider />}
+                <Box padding={16}>
+                  <Inline space={16} alignItems="center">
+                    <SkeletonLine width={36} />
+                    <div style={{ flex: 1 }}>
+                      <Stack space={8}>
+                        <SkeletonLine width="40%" />
+                        <SkeletonLine width="75%" />
+                        <SkeletonLine width="50%" />
+                      </Stack>
+                    </div>
+                  </Inline>
+                </Box>
+              </React.Fragment>
+            ))}
+          </Stack>
+        ) : radarItems.length > 0 ? (
+          <Stack space={0}>
+            {radarItems.map((item, i) => (
+              <React.Fragment key={item.id}>
+                {i > 0 && <Divider />}
+                <RadarRow item={item} axisColor={axisColor(item.axisId)} />
+              </React.Fragment>
+            ))}
+          </Stack>
+        ) : (
+          <Box padding={40}>
+            <Stack space={16}>
+              <Inline space={0} alignItems="center">
+                <Circle size={48} backgroundColor={skinVars.colors.brandLow}>
+                  <IconAntennaRegular size={24} color={skinVars.colors.brand} />
+                </Circle>
+              </Inline>
+              <Stack space={4}>
+                <Text3 medium color={skinVars.colors.textPrimary}>
+                  Your radar is calm
+                </Text3>
+                <Text2 regular color={skinVars.colors.textSecondary}>
                   Nothing needs your attention right now. Ask a question to explore the governed
                   corpus.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+                </Text2>
+              </Stack>
+            </Stack>
+          </Box>
+        )}
+      </Boxed>
+    </Stack>
+  );
 
-        {/* Knowledge health */}
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <ShieldCheck className="w-5 h-5 text-tf-blue" />
-            <h2 className="text-title-sm font-bold text-tf-navy tracking-tight">Knowledge health</h2>
-          </div>
+  const healthPanel = (
+    <Stack space={16}>
+      <Inline space={8} alignItems="center">
+        <IconShieldCheckedOkRegular size={20} color={skinVars.colors.brand} />
+        <Title2>Knowledge health</Title2>
+      </Inline>
 
-          <div className="bg-tf-navy rounded-xl p-6 shadow-sm space-y-5">
+      <div
+        style={{
+          backgroundColor: skinVars.colors.navigationBarBackground,
+          borderRadius: skinVars.borderRadii.container,
+        }}
+      >
+        <Box padding={24}>
+          <Stack space={24}>
             <HealthStat
-              icon={FileCheck2}
+              icon={IconDataCheckedRegular}
               label="Sources you can cite"
               value={`${stats?.totalDocuments ?? 0} documents`}
               loading={statsLoad}
             />
-            <div className="h-px bg-white/10" />
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase tracking-eyebrow text-tf-grey-200 font-bold">
+            <InverseDivider />
+            <Stack space={8}>
+              <Inline space="between" alignItems="center">
+                <Text1 medium color={applyAlpha(skinVars.rawColors.inverse, 0.72)} transform="uppercase">
                   Validated
-                </span>
+                </Text1>
                 {!statsLoad && (
-                  <span className="text-white font-bold text-sm">{stats?.validatedPercent ?? 0}%</span>
+                  <Text2 medium color={skinVars.colors.textPrimaryInverse}>
+                    {stats?.validatedPercent ?? 0}%
+                  </Text2>
                 )}
-              </div>
+              </Inline>
               {statsLoad ? (
-                <Skeleton className="h-2 w-full bg-white/20" />
+                <SkeletonLine width="100%" />
               ) : (
-                <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-tf-success transition-all"
-                    style={{ width: `${stats?.validatedPercent ?? 0}%` }}
-                  />
-                </div>
+                <ProgressBar
+                  progressPercent={stats?.validatedPercent ?? 0}
+                  color={skinVars.colors.success}
+                />
               )}
-            </div>
-            <div className="h-px bg-white/10" />
+            </Stack>
+            <InverseDivider />
             <HealthStat
-              icon={Languages}
+              icon={IconWorldDeviceRegular}
               label="Languages"
               value={languages || "—"}
               loading={statsLoad}
             />
-            <div className="h-px bg-white/10" />
+            <InverseDivider />
             <HealthStat
-              icon={Clock}
+              icon={IconTimeRegular}
               label="Last updated"
               value={lastUpdated}
               loading={statsLoad}
             />
             {!statsLoad && (stats?.quarantined ?? 0) > 0 && (
               <>
-                <div className="h-px bg-white/10" />
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-lg bg-tf-warning/20 flex items-center justify-center flex-shrink-0">
-                    <AlertTriangle className="w-5 h-5 text-tf-warning" />
-                  </div>
+                <InverseDivider />
+                <Inline space={12} alignItems="center">
+                  <Circle size={40} backgroundColor={applyAlpha(skinVars.rawColors.warning, 0.2)}>
+                    <IconAlertRegular size={20} color={skinVars.colors.warning} />
+                  </Circle>
                   <div>
-                    <div className="text-[10px] uppercase tracking-eyebrow text-tf-grey-200 font-bold">
-                      Quarantined
-                    </div>
-                    <div className="text-white font-bold text-base tracking-tight">
-                      {stats?.quarantined} held from answers
-                    </div>
+                    <Stack space={2}>
+                      <Text1 medium color={applyAlpha(skinVars.rawColors.inverse, 0.72)} transform="uppercase">
+                        Quarantined
+                      </Text1>
+                      <Text3 medium color={skinVars.colors.textPrimaryInverse}>
+                        {stats?.quarantined} held from answers
+                      </Text3>
+                    </Stack>
                   </div>
-                </div>
+                </Inline>
               </>
             )}
-            <button
-              onClick={() => navigate("/data")}
-              className="w-full mt-2 text-sm font-semibold text-white/90 hover:text-white flex items-center justify-center space-x-1.5 pt-1 transition-colors"
-            >
-              <span>Browse the governed corpus</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </section>
-      </>
-      )}
-    </div>
+            <Touchable onPress={() => navigate("/data")} aria-label="Browse the governed corpus">
+              <Box paddingTop={4}>
+                <Inline space={8} alignItems="center">
+                  <Text2 medium color={skinVars.colors.textPrimaryInverse}>
+                    Browse the governed corpus
+                  </Text2>
+                  <IconArrowLineUpRegular size={16} color={skinVars.colors.inverse} />
+                </Inline>
+              </Box>
+            </Touchable>
+          </Stack>
+        </Box>
+      </div>
+    </Stack>
+  );
+
+  return (
+    <ResponsiveLayout>
+      <Box paddingY={40}>
+        <Stack space={48}>
+          {/* Front door */}
+          <Stack space={24}>
+            <Stack space={12}>
+              <Text1 medium color={skinVars.colors.brand} textAlign="center" transform="uppercase">
+                Single source of truth
+              </Text1>
+              <Text8 textAlign="center">
+                {activeRole ? `Welcome, ${activeRole.label}` : "Welcome to Hub SSoT"}
+              </Text8>
+              <Text3 regular color={skinVars.colors.textSecondary} textAlign="center">
+                {COPY[lang].subtitle}
+              </Text3>
+            </Stack>
+            <HeroAskBar lang={lang} suggestions={suggestions ?? []} />
+          </Stack>
+
+          {corpusEmpty ? (
+            <Boxed>
+              <Box padding={48}>
+                <Stack space={24}>
+                  <Inline space={0} alignItems="center">
+                    <Circle size={56} backgroundColor={skinVars.colors.brandLow}>
+                      <IconBookRegular size={28} color={skinVars.colors.brand} />
+                    </Circle>
+                  </Inline>
+                  <Stack space={8}>
+                    <Title2>No governed sources yet</Title2>
+                    <Text2 regular color={skinVars.colors.textSecondary}>
+                      Hub SSoT answers only from a governed knowledge core. Connect your first
+                      document to start getting cited, permission-aware answers.
+                    </Text2>
+                  </Stack>
+                  <Inline space={0}>
+                    <ButtonPrimary
+                      onPress={() => navigate("/data")}
+                      EndIcon={IconArrowLineUpRegular}
+                    >
+                      Connect the first document
+                    </ButtonPrimary>
+                  </Inline>
+                </Stack>
+              </Box>
+            </Boxed>
+          ) : (
+            <>
+              {/* App cards */}
+              <Grid columns={2} gap={24}>
+                {cardOrder.map((key) => {
+                  const stat = summary?.[key];
+                  return (
+                    <GridItem key={key}>
+                      <AppCard
+                        stat={stat}
+                        loading={summaryLoad}
+                        axisColor={axisColor(stat?.axisId)}
+                      />
+                    </GridItem>
+                  );
+                })}
+              </Grid>
+
+              {/* Radar + health */}
+              <GridLayout template="8+4" left={radarPanel} right={healthPanel} />
+            </>
+          )}
+        </Stack>
+      </Box>
+    </ResponsiveLayout>
   );
 }

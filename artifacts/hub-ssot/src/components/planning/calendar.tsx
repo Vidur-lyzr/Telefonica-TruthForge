@@ -1,7 +1,18 @@
 import React from "react";
 import type { PlanningEvent, PlanningGap, StrategicAxis } from "@workspace/api-client-react";
-import { Lock, TriangleAlert } from "lucide-react";
-import { cn } from "@/lib/utils";
+import {
+  Touchable,
+  Text1,
+  Text2,
+  Text3,
+  Box,
+  Stack,
+  Inline,
+  skinVars,
+  applyAlpha,
+  IconLockClosedRegular,
+  IconWarningRegular,
+} from "@telefonica/mistica";
 import {
   addDays,
   axisColor,
@@ -31,42 +42,82 @@ function EventBlock({
 }) {
   if (event.restricted) {
     return (
-      <button
-        onClick={() => onOpen(event.id)}
-        className="w-full flex items-center space-x-1.5 px-2 py-1 rounded-md text-left text-xs bg-tf-grey-100 text-tf-grey-500 border border-dashed border-tf-grey-300 hover:bg-tf-grey-200 transition-colors"
-        title="Restricted — outside your clearance or area"
+      <Touchable
+        onPress={() => onOpen(event.id)}
+        aria-label="Restricted — outside your clearance or area"
       >
-        <Lock className="w-3 h-3 flex-shrink-0" />
-        <span className="truncate font-medium">Restricted</span>
-      </button>
+        <div
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "4px 8px",
+            borderRadius: skinVars.borderRadii.button,
+            backgroundColor: skinVars.colors.backgroundAlternative,
+            border: `1px dashed ${skinVars.colors.divider}`,
+          }}
+        >
+          <IconLockClosedRegular size={12} color={skinVars.colors.textSecondary} />
+          <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <Text1 medium color={skinVars.colors.textSecondary}>
+              Restricted
+            </Text1>
+          </div>
+        </div>
+      </Touchable>
     );
   }
   const color = axisColor(axes, event.axisId);
   const context = [event.market, event.brand].filter(Boolean).join(" · ");
   return (
-    <button
-      onClick={() => onOpen(event.id)}
-      className="w-full flex flex-col px-2 py-1 rounded-md text-left text-xs text-white hover:brightness-110 transition-all shadow-sm"
-      style={{ backgroundColor: color }}
-      title={`${event.title} — ${TYPE_LABEL[event.type] ?? event.type} · ${context} · synced from ${event.source} (read-only)`}
+    <Touchable
+      onPress={() => onOpen(event.id)}
+      aria-label={`${event.title} — ${TYPE_LABEL[event.type] ?? event.type} · ${context} · synced from ${event.source} (read-only)`}
     >
-      <div className="flex items-center space-x-1.5">
-        {event.conflict && (
-          <TriangleAlert className="w-3 h-3 flex-shrink-0 text-tf-warning" />
-        )}
-        <span className="truncate font-semibold">{event.title}</span>
+      <div
+        style={{
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          padding: "4px 8px",
+          borderRadius: skinVars.borderRadii.button,
+          backgroundColor: color,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+          {event.conflict && (
+            <IconWarningRegular size={12} color={skinVars.colors.textPrimaryInverse} />
+          )}
+          <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <Text1 medium color={skinVars.colors.textPrimaryInverse}>
+              {event.title}
+            </Text1>
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0, marginTop: 2 }}>
+          {event.source && (
+            <div
+              style={{
+                flexShrink: 0,
+                padding: "0 4px",
+                borderRadius: skinVars.borderRadii.chip,
+                backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.25),
+              }}
+            >
+              <Text1 medium color={skinVars.colors.textPrimaryInverse}>
+                {event.source}
+              </Text1>
+            </div>
+          )}
+          {context && (
+            <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <Text1 regular color={applyAlpha(skinVars.rawColors.inverse, 0.9)}>{context}</Text1>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="flex items-center space-x-1 mt-0.5 min-w-0">
-        {event.source && (
-          <span className="flex-shrink-0 px-1 rounded-sm bg-white/25 text-[9px] font-bold uppercase tracking-wide leading-tight">
-            {event.source}
-          </span>
-        )}
-        {context && (
-          <span className="truncate text-[10px] text-white/90">{context}</span>
-        )}
-      </div>
-    </button>
+    </Touchable>
   );
 }
 
@@ -101,18 +152,31 @@ function MonthView({
   for (let d = gridStart; d <= gridEnd; d = addDays(d, 1)) days.push(new Date(d));
 
   return (
-    <div className="border border-border rounded-2xl overflow-hidden bg-card">
-      <div className="grid grid-cols-7 bg-muted/50 border-b border-border">
+    <div
+      style={{
+        border: `1px solid ${skinVars.colors.divider}`,
+        borderRadius: skinVars.borderRadii.container,
+        overflow: "hidden",
+        backgroundColor: skinVars.colors.backgroundContainer,
+      }}
+    >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, 1fr)",
+          backgroundColor: skinVars.colors.backgroundAlternative,
+          borderBottom: `1px solid ${skinVars.colors.divider}`,
+        }}
+      >
         {WEEKDAYS.map((w) => (
-          <div
-            key={w}
-            className="px-3 py-2 text-xs uppercase tracking-eyebrow font-bold text-muted-foreground text-center"
-          >
-            {w}
+          <div key={w} style={{ padding: "8px 12px", textAlign: "center" }}>
+            <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+              {w}
+            </Text1>
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}>
         {days.map((day, i) => {
           const inMonth = day.getMonth() === anchor.getMonth();
           const dayEvents = eventsOnDay(events, day);
@@ -121,32 +185,57 @@ function MonthView({
           return (
             <div
               key={i}
-              className={cn(
-                "min-h-[124px] border-b border-r border-border p-1.5 flex flex-col space-y-1",
-                (i + 1) % 7 === 0 && "border-r-0",
-                !inMonth && "bg-muted/30",
-                isGap && "bg-tf-warning-bg/40",
-              )}
+              style={{
+                minHeight: 124,
+                borderBottom: `1px solid ${skinVars.colors.divider}`,
+                borderRight:
+                  (i + 1) % 7 === 0 ? "none" : `1px solid ${skinVars.colors.divider}`,
+                padding: 6,
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+                backgroundColor: !inMonth
+                  ? skinVars.colors.backgroundAlternative
+                  : isGap
+                    ? applyAlpha(skinVars.rawColors.warning, 0.16)
+                    : "transparent",
+              }}
             >
-              <div className="flex items-center justify-between px-1">
-                <span
-                  className={cn(
-                    "text-xs font-semibold",
-                    inMonth ? "text-foreground" : "text-muted-foreground/50",
-                    isToday &&
-                      "bg-tf-blue text-white rounded-full w-5 h-5 flex items-center justify-center",
-                  )}
-                >
-                  {day.getDate()}
-                </span>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px" }}>
+                {isToday ? (
+                  <div
+                    style={{
+                      backgroundColor: skinVars.colors.brand,
+                      borderRadius: skinVars.borderRadii.avatar,
+                      width: 20,
+                      height: 20,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text1 medium color={skinVars.colors.textPrimaryInverse}>
+                      {day.getDate()}
+                    </Text1>
+                  </div>
+                ) : (
+                  <Text1
+                    medium
+                    color={inMonth ? skinVars.colors.textPrimary : skinVars.colors.textSecondary}
+                  >
+                    {day.getDate()}
+                  </Text1>
+                )}
               </div>
-              <div className="space-y-1 overflow-hidden">
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
                 {dayEvents.slice(0, 2).map((e) => (
                   <EventBlock key={e.id + toISO(day)} event={e} axes={axes} onOpen={onOpen} />
                 ))}
                 {dayEvents.length > 2 && (
-                  <div className="text-[10px] text-muted-foreground px-1 font-medium">
-                    +{dayEvents.length - 2} more
+                  <div style={{ padding: "0 4px" }}>
+                    <Text1 regular color={skinVars.colors.textSecondary}>
+                      +{dayEvents.length - 2} more
+                    </Text1>
                   </div>
                 )}
               </div>
@@ -174,29 +263,47 @@ function WeekView({
   const start = startOfWeek(anchor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   return (
-    <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+        gap: 12,
+      }}
+    >
       {days.map((day, i) => {
         const dayEvents = eventsOnDay(events, day);
         const isToday = sameDay(day, today);
         return (
           <div
             key={i}
-            className={cn(
-              "border border-border rounded-xl bg-card p-3 min-h-[160px] flex flex-col",
-              isToday && "ring-2 ring-tf-blue",
-            )}
+            style={{
+              border: isToday
+                ? `2px solid ${skinVars.colors.brand}`
+                : `1px solid ${skinVars.colors.divider}`,
+              borderRadius: skinVars.borderRadii.container,
+              backgroundColor: skinVars.colors.backgroundContainer,
+              padding: 12,
+              minHeight: 160,
+              display: "flex",
+              flexDirection: "column",
+            }}
           >
-            <div className="mb-2">
-              <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
+            <Box paddingBottom={8}>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
                 {WEEKDAYS[i]}
-              </div>
-              <div className={cn("text-lg font-bold", isToday ? "text-tf-blue" : "text-foreground")}>
+              </Text1>
+              <Text3
+                medium
+                color={isToday ? skinVars.colors.brand : skinVars.colors.textPrimary}
+              >
                 {day.getDate()}
-              </div>
-            </div>
-            <div className="space-y-1.5 flex-1">
+              </Text3>
+            </Box>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
               {dayEvents.length === 0 && (
-                <div className="text-[11px] text-muted-foreground/60 italic pt-2">No activity</div>
+                <Box paddingTop={8}>
+                  <Text1 regular color={skinVars.colors.textSecondary}>No activity</Text1>
+                </Box>
               )}
               {dayEvents.map((e) => (
                 <EventBlock key={e.id} event={e} axes={axes} onOpen={onOpen} />
@@ -222,47 +329,91 @@ function DayView({
 }) {
   const dayEvents = eventsOnDay(events, anchor);
   return (
-    <div className="border border-border rounded-2xl bg-card p-6 space-y-3 max-w-3xl">
-      {dayEvents.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          No activity scheduled for this day.
-        </div>
-      )}
-      {dayEvents.map((e) => {
-        if (e.restricted) {
-          return (
-            <button
-              key={e.id}
-              onClick={() => onOpen(e.id)}
-              className="w-full flex items-center space-x-3 p-4 rounded-xl border border-dashed border-tf-grey-300 bg-tf-grey-50 hover:bg-tf-grey-100 transition-colors text-left"
-            >
-              <Lock className="w-5 h-5 text-tf-grey-500" />
-              <span className="font-medium text-tf-grey-600">Restricted activity</span>
-            </button>
-          );
-        }
-        return (
-          <button
-            key={e.id}
-            onClick={() => onOpen(e.id)}
-            className="w-full flex items-start space-x-4 p-4 rounded-xl border border-border bg-white hover:shadow-sm transition-all text-left"
-          >
-            <span
-              className="w-1.5 self-stretch rounded-full flex-shrink-0"
-              style={{ backgroundColor: axisColor(axes, e.axisId) }}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2">
-                <span className="font-semibold text-foreground">{e.title}</span>
-                {e.conflict && <TriangleAlert className="w-4 h-4 text-tf-warning" />}
-              </div>
-              <div className="text-sm text-muted-foreground mt-0.5">
-                {TYPE_LABEL[e.type] ?? e.type} · {e.market} · {e.brand} · {e.owner}
-              </div>
-            </div>
-          </button>
-        );
-      })}
+    <div
+      style={{
+        border: `1px solid ${skinVars.colors.divider}`,
+        borderRadius: skinVars.borderRadii.container,
+        backgroundColor: skinVars.colors.backgroundContainer,
+        maxWidth: 768,
+      }}
+    >
+      <Box padding={24}>
+        <Stack space={12}>
+          {dayEvents.length === 0 && (
+            <Box paddingY={24}>
+              <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
+                No activity scheduled for this day.
+              </Text2>
+            </Box>
+          )}
+          {dayEvents.map((e) => {
+            if (e.restricted) {
+              return (
+                <Touchable key={e.id} onPress={() => onOpen(e.id)} aria-label="Restricted activity">
+                  <div
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      padding: 16,
+                      borderRadius: skinVars.borderRadii.container,
+                      border: `1px dashed ${skinVars.colors.divider}`,
+                      backgroundColor: skinVars.colors.backgroundAlternative,
+                    }}
+                  >
+                    <IconLockClosedRegular size={20} color={skinVars.colors.textSecondary} />
+                    <Text2 medium color={skinVars.colors.textSecondary}>
+                      Restricted activity
+                    </Text2>
+                  </div>
+                </Touchable>
+              );
+            }
+            return (
+              <Touchable key={e.id} onPress={() => onOpen(e.id)} aria-label={e.title}>
+                <div
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 16,
+                    padding: 16,
+                    borderRadius: skinVars.borderRadii.container,
+                    border: `1px solid ${skinVars.colors.divider}`,
+                    backgroundColor: skinVars.colors.backgroundContainer,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 6,
+                      alignSelf: "stretch",
+                      borderRadius: skinVars.borderRadii.button,
+                      flexShrink: 0,
+                      backgroundColor: axisColor(axes, e.axisId),
+                    }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Inline space={8} alignItems="center">
+                      <Text2 medium color={skinVars.colors.textPrimary}>
+                        {e.title}
+                      </Text2>
+                      {e.conflict && (
+                        <IconWarningRegular size={16} color={skinVars.colors.warning} />
+                      )}
+                    </Inline>
+                    <Box paddingTop={2}>
+                      <Text2 regular color={skinVars.colors.textSecondary}>
+                        {TYPE_LABEL[e.type] ?? e.type} · {e.market} · {e.brand} · {e.owner}
+                      </Text2>
+                    </Box>
+                  </div>
+                </div>
+              </Touchable>
+            );
+          })}
+        </Stack>
+      </Box>
     </div>
   );
 }

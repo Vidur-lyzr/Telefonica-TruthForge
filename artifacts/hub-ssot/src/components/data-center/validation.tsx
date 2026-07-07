@@ -1,56 +1,98 @@
-import React, { useMemo, useState } from "react";
+import React from "react";
 import { useListValidationItems, useListAxes } from "@workspace/api-client-react";
 import type { ValidationItem } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
+  Box,
+  Stack,
+  Inline,
+  Grid,
+  GridItem,
+  Boxed,
+  Divider,
+  Circle,
+  Tag,
+  ButtonPrimary,
+  ButtonSecondary,
+  ButtonLink,
+  TextField,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
-  ShieldCheck,
-  CheckCircle2,
-  Layers,
-  Sparkles,
-  Compass,
-  History,
-  PencilLine,
-  X,
-  Inbox,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  Drawer,
+  Text1,
+  Text2,
+  Text3,
+  Title2,
+  Title3,
+  skinVars,
+  IconShieldRegular,
+  IconCheckedRegular,
+  IconLayersRegular,
+  IconAiRegular,
+  IconWorldDeviceRegular,
+  IconTimeRegular,
+  IconEditPencilRegular,
+  IconCloseRegular,
+  IconArchiveRegular,
+} from "@telefonica/mistica";
 import { useDataCenter } from "./state";
-import { clearanceBadgeClass, confidenceClass } from "./helpers";
+import { clearanceTagType, confidenceTagType } from "./helpers";
 
-const CLEARANCES = ["public", "internal", "confidential", "restricted"];
+function Dot({ color }: { color: string }) {
+  return (
+    <div
+      aria-hidden
+      style={{ width: 8, height: 8, borderRadius: skinVars.borderRadii.avatar, backgroundColor: color, flexShrink: 0 }}
+    />
+  );
+}
 
 function ConfidenceLegend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-      <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-tf-success" /> High — auto-validated upstream
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-tf-warning" /> Medium — shown here for a quick check
-      </span>
-      <span className="flex items-center gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-tf-error" /> Low — flagged, needs a human
-      </span>
-    </div>
+    <Inline space={24} alignItems="center" wrap>
+      <Inline space={8} alignItems="center">
+        <Dot color={skinVars.colors.success} />
+        <Text1 regular color={skinVars.colors.textSecondary}>
+          High — auto-validated upstream
+        </Text1>
+      </Inline>
+      <Inline space={8} alignItems="center">
+        <Dot color={skinVars.colors.warning} />
+        <Text1 regular color={skinVars.colors.textSecondary}>
+          Medium — shown here for a quick check
+        </Text1>
+      </Inline>
+      <Inline space={8} alignItems="center">
+        <Dot color={skinVars.colors.error} />
+        <Text1 regular color={skinVars.colors.textSecondary}>
+          Low — flagged, needs a human
+        </Text1>
+      </Inline>
+    </Inline>
+  );
+}
+
+function LayerCard({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: React.ComponentType<{ size?: number; color?: string }>;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Inline space={12} alignItems="center">
+      <Circle size={36} backgroundColor={skinVars.colors.brandLow}>
+        <Icon size={16} color={skinVars.colors.brand} />
+      </Circle>
+      <Stack space={2}>
+        <Text2 medium color={skinVars.colors.textPrimary}>
+          {title}
+        </Text2>
+        <Text1 regular color={skinVars.colors.textSecondary}>
+          {description}
+        </Text1>
+      </Stack>
+    </Inline>
   );
 }
 
@@ -59,8 +101,8 @@ export default function ValidationArea() {
   const { data: axes } = useListAxes();
   const { resolvedValidations, resolveValidation, resolveConflict } = useDataCenter();
 
-  const [editing, setEditing] = useState<ValidationItem | null>(null);
-  const [editMeta, setEditMeta] = useState<{
+  const [editing, setEditing] = React.useState<ValidationItem | null>(null);
+  const [editMeta, setEditMeta] = React.useState<{
     confidentiality: string;
     owner: string;
     country: string;
@@ -69,11 +111,11 @@ export default function ValidationArea() {
 
   const axisName = (id: string) => axes?.find((a) => a.id === id)?.name ?? id;
 
-  const openItems = useMemo(
+  const openItems = React.useMemo(
     () => (items ?? []).filter((it) => !resolvedValidations[it.id]),
     [items, resolvedValidations],
   );
-  const resolvedItems = useMemo(
+  const resolvedItems = React.useMemo(
     () => (items ?? []).filter((it) => resolvedValidations[it.id]),
     [items, resolvedValidations],
   );
@@ -105,400 +147,424 @@ export default function ValidationArea() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="shadow-sm border-border">
-        <CardHeader className="bg-tf-navy text-white">
-          <CardTitle className="flex items-center space-x-2 text-white text-lg">
-            <ShieldCheck className="w-5 h-5 text-tf-blue-light" />
-            <span>Three-layer classification, always closed by a human</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-tf-blue-tint text-tf-blue shrink-0">
-                <Layers className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="font-bold text-tf-navy text-sm">Deterministic</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Rule-based type from source, format and structure.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-tf-blue-tint text-tf-blue shrink-0">
-                <Sparkles className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="font-bold text-tf-navy text-sm">Semantic</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Topics and entities inferred from the content.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-tf-blue-tint text-tf-blue shrink-0">
-                <Compass className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="font-bold text-tf-navy text-sm">Strategic</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Mapped onto a Telefónica strategic axis.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="pt-4 border-t border-border">
+    <Stack space={24}>
+      <div
+        style={{
+          backgroundColor: skinVars.colors.navigationBarBackground,
+          borderRadius: skinVars.borderRadii.container,
+        }}
+      >
+        <Box padding={24}>
+          <Inline space={8} alignItems="center">
+            <IconShieldRegular size={20} color={skinVars.colors.inverse} />
+            <Text3 medium color={skinVars.colors.textPrimaryInverse}>
+              Three-layer classification, always closed by a human
+            </Text3>
+          </Inline>
+        </Box>
+      </div>
+
+      <Boxed>
+        <Box padding={24}>
+          <Stack space={16}>
+            <Grid columns={3} gap={16}>
+              <GridItem>
+                <LayerCard
+                  icon={IconLayersRegular}
+                  title="Deterministic"
+                  description="Rule-based type from source, format and structure."
+                />
+              </GridItem>
+              <GridItem>
+                <LayerCard
+                  icon={IconAiRegular}
+                  title="Semantic"
+                  description="Topics and entities inferred from the content."
+                />
+              </GridItem>
+              <GridItem>
+                <LayerCard
+                  icon={IconWorldDeviceRegular}
+                  title="Strategic"
+                  description="Mapped onto a Telefónica strategic axis."
+                />
+              </GridItem>
+            </Grid>
+            <Divider />
             <ConfidenceLegend />
-          </div>
-        </CardContent>
-      </Card>
+          </Stack>
+        </Box>
+      </Boxed>
 
-      <Card className="shadow-sm border-border overflow-hidden">
-        <CardHeader
-          className={cn(
-            "border-b border-border",
-            openItems.length > 0 ? "bg-muted/30" : "bg-tf-success-bg",
-          )}
-        >
-          <CardTitle className="flex items-center space-x-2 text-tf-navy text-lg">
-            {openItems.length > 0 ? (
-              <ShieldCheck className="w-5 h-5 text-tf-blue" />
-            ) : (
-              <CheckCircle2 className="w-5 h-5 text-tf-success" />
-            )}
-            <span>
-              {openItems.length > 0
-                ? `Validation queue — ${openItems.length} awaiting a decision`
-                : "Validation queue clear"}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          {openItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <div className="p-3 rounded-full bg-tf-success-bg text-tf-success mb-3">
-                <Inbox className="w-7 h-7" />
-              </div>
-              <p className="font-bold text-tf-navy">All caught up</p>
-              <p className="text-sm text-muted-foreground mt-1 max-w-md">
-                {resolvedItems.length > 0
-                  ? `You cleared ${resolvedItems.length} ${resolvedItems.length === 1 ? "item" : "items"} this session. High-confidence classifications were validated automatically upstream.`
-                  : "No medium- or low-confidence classifications are waiting on a human."}
-              </p>
-            </div>
+      <Stack space={16}>
+        <Inline space={8} alignItems="center">
+          {openItems.length > 0 ? (
+            <IconShieldRegular size={20} color={skinVars.colors.brand} />
           ) : (
-            <div className="space-y-4">
-              {openItems.map((it) => (
-                <div key={it.id} className="rounded-xl border border-border p-5 space-y-4">
-                  <div className="flex items-start justify-between gap-3 flex-wrap">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-semibold text-tf-navy">{it.title}</p>
-                        {it.kind === "conflict" && (
-                          <Badge className="bg-tf-warning-bg text-tf-warning rounded-full text-[10px] uppercase tracking-eyebrow font-bold">
-                            Source conflict
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{it.source}</p>
-                    </div>
-                    <Badge
-                      className={cn(
-                        "uppercase text-[10px] tracking-eyebrow rounded-full font-bold shrink-0",
-                        confidenceClass(it.confidence),
-                      )}
-                    >
-                      {it.confidence} · {Math.round(it.confidenceScore * 100)}%
-                    </Badge>
-                  </div>
-
-                  {it.kind === "conflict" && it.conflict ? (
-                    <div className="rounded-lg border border-tf-warning/40 bg-tf-warning-bg/40 p-4">
-                      <p className="text-sm font-semibold text-tf-navy mb-3">
-                        A fresher source disagrees with the value already in the core.
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="rounded-lg border border-border bg-card p-3">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <History className="w-3.5 h-3.5 text-muted-foreground" />
-                            <span className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground">
-                              Currently live
-                            </span>
-                          </div>
-                          <p className="font-bold text-tf-navy">
-                            {it.conflict.metric}: {it.conflict.oldValue}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {it.conflict.oldSource} · {it.conflict.oldDate}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-tf-success/40 bg-tf-success-bg/50 p-3">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <Sparkles className="w-3.5 h-3.5 text-tf-success" />
-                            <span className="text-[10px] uppercase tracking-eyebrow font-bold text-tf-success">
-                              Fresher source
-                            </span>
-                          </div>
-                          <p className="font-bold text-tf-navy">
-                            {it.conflict.metric}: {it.conflict.freshValue}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {it.conflict.freshSource} · {it.conflict.freshDate}
-                          </p>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-3">
-                        Promoting the fresher value keeps the older figure as a dated, historic
-                        record — it is never silently overwritten.
-                      </p>
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        <Button
-                          size="sm"
-                          className="rounded-pill bg-tf-success hover:bg-tf-success/90 text-white font-semibold"
-                          onClick={() =>
-                            resolveConflict(
-                              it.id,
-                              it.title,
-                              `Promoted ${it.conflict!.freshValue} (${it.conflict!.freshSource}, ${it.conflict!.freshDate}); ${it.conflict!.oldValue} retained as historic.`,
-                            )
-                          }
-                        >
-                          Promote fresher value
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-pill font-semibold"
-                          onClick={() =>
-                            resolveValidation(
-                              it.id,
-                              "approved",
-                              it.title,
-                              `Kept ${it.conflict!.oldValue} (${it.conflict!.oldSource}); fresher figure logged but not promoted.`,
-                            )
-                          }
-                        >
-                          Keep current value
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="rounded-lg bg-muted/40 p-3">
-                          <p className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground mb-1">
-                            Deterministic
-                          </p>
-                          <p className="text-sm font-semibold text-tf-navy">
-                            {it.classification.deterministic}
-                          </p>
-                        </div>
-                        <div className="rounded-lg bg-muted/40 p-3">
-                          <p className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground mb-1">
-                            Semantic
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {it.classification.semantic.map((s) => (
-                              <Badge
-                                key={s}
-                                className="bg-tf-blue-tint text-tf-blue rounded-full text-[10px] font-bold"
-                              >
-                                {s}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="rounded-lg bg-muted/40 p-3">
-                          <p className="text-[10px] uppercase tracking-eyebrow font-bold text-muted-foreground mb-1">
-                            Strategic axis
-                          </p>
-                          <p className="text-sm font-semibold text-tf-navy">
-                            {axisName(it.classification.strategicAxisId)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-wrap text-xs">
-                        <span className="text-muted-foreground">Proposed metadata:</span>
-                        <Badge
-                          className={cn(
-                            "uppercase text-[10px] tracking-eyebrow rounded-full font-bold",
-                            clearanceBadgeClass(it.metadata.confidentiality),
-                          )}
-                        >
-                          {it.metadata.confidentiality}
-                        </Badge>
-                        <span className="text-tf-navy font-medium">{it.metadata.owner}</span>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="text-tf-navy font-medium">{it.metadata.country}</span>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="text-tf-navy font-medium">{it.metadata.brand}</span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold"
-                          onClick={() =>
-                            resolveValidation(
-                              it.id,
-                              "approved",
-                              it.title,
-                              `Confirmed the proposed classification. ${it.refinedNote}`,
-                            )
-                          }
-                        >
-                          <CheckCircle2 className="w-4 h-4 mr-1.5" /> Validate
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="rounded-pill font-semibold"
-                          onClick={() => startEdit(it)}
-                        >
-                          <PencilLine className="w-4 h-4 mr-1.5" /> Correct
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="rounded-pill font-semibold text-tf-error hover:text-tf-error hover:bg-tf-error-bg"
-                          onClick={() =>
-                            resolveValidation(
-                              it.id,
-                              "rejected",
-                              it.title,
-                              "Rejected — returned to the pipeline for re-processing.",
-                            )
-                          }
-                        >
-                          <X className="w-4 h-4 mr-1.5" /> Reject
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
+            <IconCheckedRegular size={20} color={skinVars.colors.success} />
           )}
-        </CardContent>
-      </Card>
+          <Title2>
+            {openItems.length > 0
+              ? `Validation queue — ${openItems.length} awaiting a decision`
+              : "Validation queue clear"}
+          </Title2>
+        </Inline>
+
+        {openItems.length === 0 ? (
+          <Boxed>
+            <Box padding={24}>
+              <Stack space={12}>
+                <Inline space={0} alignItems="center">
+                  <Circle size={56} backgroundColor={skinVars.colors.successLow}>
+                    <IconArchiveRegular size={28} color={skinVars.colors.success} />
+                  </Circle>
+                </Inline>
+                <Title3>All caught up</Title3>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  {resolvedItems.length > 0
+                    ? `You cleared ${resolvedItems.length} ${resolvedItems.length === 1 ? "item" : "items"} this session. High-confidence classifications were validated automatically upstream.`
+                    : "No medium- or low-confidence classifications are waiting on a human."}
+                </Text2>
+              </Stack>
+            </Box>
+          </Boxed>
+        ) : (
+          <Stack space={16}>
+            {openItems.map((it) => (
+              <Boxed key={it.id}>
+                <Box padding={20}>
+                  <Stack space={16}>
+                    <Inline space="between" alignItems="center">
+                      <div style={{ minWidth: 0 }}>
+                        <Inline space={8} alignItems="center" wrap>
+                          <Text3 medium color={skinVars.colors.textPrimary}>
+                            {it.title}
+                          </Text3>
+                          {it.kind === "conflict" && <Tag type="warning">Source conflict</Tag>}
+                        </Inline>
+                        <Text1 regular color={skinVars.colors.textSecondary}>
+                          {it.source}
+                        </Text1>
+                      </div>
+                      <Tag type={confidenceTagType(it.confidence)}>
+                        {`${it.confidence} · ${Math.round(it.confidenceScore * 100)}%`}
+                      </Tag>
+                    </Inline>
+
+                    {it.kind === "conflict" && it.conflict ? (
+                      <Boxed>
+                        <Box padding={16}>
+                          <Stack space={12}>
+                            <Text2 medium color={skinVars.colors.textPrimary}>
+                              A fresher source disagrees with the value already in the core.
+                            </Text2>
+                            <Grid columns={2} gap={12}>
+                              <GridItem>
+                                <Boxed>
+                                  <Box padding={12}>
+                                    <Stack space={4}>
+                                      <Inline space={8} alignItems="center">
+                                        <IconTimeRegular
+                                          size={14}
+                                          color={skinVars.colors.textSecondary}
+                                        />
+                                        <Text1
+                                          medium
+                                          color={skinVars.colors.textSecondary}
+                                          transform="uppercase"
+                                        >
+                                          Currently live
+                                        </Text1>
+                                      </Inline>
+                                      <Text2 medium color={skinVars.colors.textPrimary}>
+                                        {it.conflict.metric}: {it.conflict.oldValue}
+                                      </Text2>
+                                      <Text1 regular color={skinVars.colors.textSecondary}>
+                                        {it.conflict.oldSource} · {it.conflict.oldDate}
+                                      </Text1>
+                                    </Stack>
+                                  </Box>
+                                </Boxed>
+                              </GridItem>
+                              <GridItem>
+                                <Boxed>
+                                  <Box padding={12}>
+                                    <Stack space={4}>
+                                      <Inline space={8} alignItems="center">
+                                        <IconAiRegular
+                                          size={14}
+                                          color={skinVars.colors.success}
+                                        />
+                                        <Text1
+                                          medium
+                                          color={skinVars.colors.success}
+                                          transform="uppercase"
+                                        >
+                                          Fresher source
+                                        </Text1>
+                                      </Inline>
+                                      <Text2 medium color={skinVars.colors.textPrimary}>
+                                        {it.conflict.metric}: {it.conflict.freshValue}
+                                      </Text2>
+                                      <Text1 regular color={skinVars.colors.textSecondary}>
+                                        {it.conflict.freshSource} · {it.conflict.freshDate}
+                                      </Text1>
+                                    </Stack>
+                                  </Box>
+                                </Boxed>
+                              </GridItem>
+                            </Grid>
+                            <Text1 regular color={skinVars.colors.textSecondary}>
+                              Promoting the fresher value keeps the older figure as a dated, historic
+                              record — it is never silently overwritten.
+                            </Text1>
+                            <Inline space={8} wrap>
+                              <ButtonPrimary
+                                small
+                                onPress={() =>
+                                  resolveConflict(
+                                    it.id,
+                                    it.title,
+                                    `Promoted ${it.conflict!.freshValue} (${it.conflict!.freshSource}, ${it.conflict!.freshDate}); ${it.conflict!.oldValue} retained as historic.`,
+                                  )
+                                }
+                              >
+                                Promote fresher value
+                              </ButtonPrimary>
+                              <ButtonSecondary
+                                small
+                                onPress={() =>
+                                  resolveValidation(
+                                    it.id,
+                                    "approved",
+                                    it.title,
+                                    `Kept ${it.conflict!.oldValue} (${it.conflict!.oldSource}); fresher figure logged but not promoted.`,
+                                  )
+                                }
+                              >
+                                Keep current value
+                              </ButtonSecondary>
+                            </Inline>
+                          </Stack>
+                        </Box>
+                      </Boxed>
+                    ) : (
+                      <>
+                        <Grid columns={3} gap={12}>
+                          <GridItem>
+                            <Boxed>
+                              <Box padding={12}>
+                                <Stack space={4}>
+                                  <Text1
+                                    medium
+                                    color={skinVars.colors.textSecondary}
+                                    transform="uppercase"
+                                  >
+                                    Deterministic
+                                  </Text1>
+                                  <Text2 medium color={skinVars.colors.textPrimary}>
+                                    {it.classification.deterministic}
+                                  </Text2>
+                                </Stack>
+                              </Box>
+                            </Boxed>
+                          </GridItem>
+                          <GridItem>
+                            <Boxed>
+                              <Box padding={12}>
+                                <Stack space={4}>
+                                  <Text1
+                                    medium
+                                    color={skinVars.colors.textSecondary}
+                                    transform="uppercase"
+                                  >
+                                    Semantic
+                                  </Text1>
+                                  <Inline space={4} wrap>
+                                    {it.classification.semantic.map((s) => (
+                                      <Tag key={s} type="promo">
+                                        {s}
+                                      </Tag>
+                                    ))}
+                                  </Inline>
+                                </Stack>
+                              </Box>
+                            </Boxed>
+                          </GridItem>
+                          <GridItem>
+                            <Boxed>
+                              <Box padding={12}>
+                                <Stack space={4}>
+                                  <Text1
+                                    medium
+                                    color={skinVars.colors.textSecondary}
+                                    transform="uppercase"
+                                  >
+                                    Strategic axis
+                                  </Text1>
+                                  <Text2 medium color={skinVars.colors.textPrimary}>
+                                    {axisName(it.classification.strategicAxisId)}
+                                  </Text2>
+                                </Stack>
+                              </Box>
+                            </Boxed>
+                          </GridItem>
+                        </Grid>
+
+                        <Inline space={8} alignItems="center" wrap>
+                          <Text1 regular color={skinVars.colors.textSecondary}>
+                            Proposed metadata:
+                          </Text1>
+                          <Tag type={clearanceTagType(it.metadata.confidentiality)}>
+                            {it.metadata.confidentiality}
+                          </Tag>
+                          <Text2 medium color={skinVars.colors.textPrimary}>
+                            {it.metadata.owner}
+                          </Text2>
+                          <Text1 regular color={skinVars.colors.textSecondary}>
+                            ·
+                          </Text1>
+                          <Text2 medium color={skinVars.colors.textPrimary}>
+                            {it.metadata.country}
+                          </Text2>
+                          <Text1 regular color={skinVars.colors.textSecondary}>
+                            ·
+                          </Text1>
+                          <Text2 medium color={skinVars.colors.textPrimary}>
+                            {it.metadata.brand}
+                          </Text2>
+                        </Inline>
+
+                        <Inline space={8} wrap>
+                          <ButtonPrimary
+                            small
+                            onPress={() =>
+                              resolveValidation(
+                                it.id,
+                                "approved",
+                                it.title,
+                                `Confirmed the proposed classification. ${it.refinedNote}`,
+                              )
+                            }
+                          >
+                            Validate
+                          </ButtonPrimary>
+                          <ButtonSecondary small onPress={() => startEdit(it)}>
+                            Correct
+                          </ButtonSecondary>
+                          <ButtonLink
+                            onPress={() =>
+                              resolveValidation(
+                                it.id,
+                                "rejected",
+                                it.title,
+                                "Rejected — returned to the pipeline for re-processing.",
+                              )
+                            }
+                          >
+                            Reject
+                          </ButtonLink>
+                        </Inline>
+                      </>
+                    )}
+                  </Stack>
+                </Box>
+              </Boxed>
+            ))}
+          </Stack>
+        )}
+      </Stack>
 
       {resolvedItems.length > 0 && (
-        <Card className="shadow-sm border-border">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <CardTitle className="flex items-center space-x-2 text-tf-navy text-lg">
-              <CheckCircle2 className="w-5 h-5 text-tf-success" />
-              <span>Resolved this session</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 space-y-2">
-            {resolvedItems.map((it) => {
-              const action = resolvedValidations[it.id];
-              const label =
-                action === "approved"
-                  ? "Validated"
-                  : action === "edited"
-                    ? "Corrected"
-                    : "Rejected";
-              return (
-                <div
-                  key={it.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-border p-3"
-                >
-                  <div className="min-w-0">
-                    <p className="font-semibold text-tf-navy truncate">{it.title}</p>
-                    <p className="text-xs text-muted-foreground">{it.refinedNote}</p>
-                  </div>
-                  <Badge
-                    className={cn(
-                      "uppercase text-[10px] tracking-eyebrow rounded-full font-bold shrink-0",
-                      action === "rejected"
-                        ? "bg-tf-error-bg text-tf-error"
-                        : "bg-tf-success-bg text-tf-success",
-                    )}
-                  >
-                    {label}
-                  </Badge>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+        <Stack space={16}>
+          <Inline space={8} alignItems="center">
+            <IconCheckedRegular size={20} color={skinVars.colors.success} />
+            <Title2>Resolved this session</Title2>
+          </Inline>
+          <Boxed>
+            <Box padding={16}>
+              <Stack space={8}>
+                {resolvedItems.map((it, i) => {
+                  const action = resolvedValidations[it.id];
+                  const label =
+                    action === "approved"
+                      ? "Validated"
+                      : action === "edited"
+                        ? "Corrected"
+                        : "Rejected";
+                  return (
+                    <React.Fragment key={it.id}>
+                      {i > 0 && <Divider />}
+                      <Box paddingY={8}>
+                        <Inline space={12} alignItems="center">
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <Stack space={2}>
+                              <Text2 medium color={skinVars.colors.textPrimary}>
+                                {it.title}
+                              </Text2>
+                              <Text1 regular color={skinVars.colors.textSecondary}>
+                                {it.refinedNote}
+                              </Text1>
+                            </Stack>
+                          </div>
+                          <Tag type={action === "rejected" ? "error" : "success"}>{label}</Tag>
+                        </Inline>
+                      </Box>
+                    </React.Fragment>
+                  );
+                })}
+              </Stack>
+            </Box>
+          </Boxed>
+        </Stack>
       )}
 
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="text-tf-navy">Correct classification</DialogTitle>
-            <DialogDescription>
-              {editing?.title} — adjust the governed metadata before validating. Your correction is
-              recorded as the human decision. Session-only for the demo.
-            </DialogDescription>
-          </DialogHeader>
-          {editMeta && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>Confidentiality</Label>
-                <Select
-                  value={editMeta.confidentiality}
-                  onValueChange={(v) => setEditMeta((m) => (m ? { ...m, confidentiality: v } : m))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CLEARANCES.map((c) => (
-                      <SelectItem key={c} value={c} className="capitalize">
-                        {c}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Owner</Label>
-                <Input
-                  value={editMeta.owner}
-                  onChange={(e) => setEditMeta((m) => (m ? { ...m, owner: e.target.value } : m))}
+      {editing && editMeta && (
+        <Drawer
+          title="Correct classification"
+          description={`${editing.title} — adjust the governed metadata before validating. Your correction is recorded as the human decision. Session-only for the demo.`}
+          onClose={() => setEditing(null)}
+          button={{ text: "Save and validate", onPress: saveEdit }}
+          secondaryButton={{ text: "Cancel", onPress: () => setEditing(null) }}
+        >
+          <Stack space={16}>
+            <Select
+              name="confidentiality"
+              label="Confidentiality"
+              value={editMeta.confidentiality}
+              onChangeValue={(v) => setEditMeta((m) => (m ? { ...m, confidentiality: v } : m))}
+              options={["public", "internal", "confidential", "restricted"].map((c) => ({
+                value: c,
+                text: c,
+              }))}
+            />
+            <TextField
+              name="owner"
+              label="Owner"
+              value={editMeta.owner}
+              onChangeValue={(v) => setEditMeta((m) => (m ? { ...m, owner: v } : m))}
+            />
+            <Inline space={16}>
+              <div style={{ flex: 1 }}>
+                <TextField
+                  name="country"
+                  label="Country"
+                  value={editMeta.country}
+                  onChangeValue={(v) => setEditMeta((m) => (m ? { ...m, country: v } : m))}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Country</Label>
-                  <Input
-                    value={editMeta.country}
-                    onChange={(e) => setEditMeta((m) => (m ? { ...m, country: e.target.value } : m))}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Brand</Label>
-                  <Input
-                    value={editMeta.brand}
-                    onChange={(e) => setEditMeta((m) => (m ? { ...m, brand: e.target.value } : m))}
-                  />
-                </div>
+              <div style={{ flex: 1 }}>
+                <TextField
+                  name="brand"
+                  label="Brand"
+                  value={editMeta.brand}
+                  onChangeValue={(v) => setEditMeta((m) => (m ? { ...m, brand: v } : m))}
+                />
               </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              className="rounded-pill font-semibold"
-              onClick={() => setEditing(null)}
-            >
-              Cancel
-            </Button>
-            <Button
-              className="rounded-pill bg-tf-blue hover:bg-tf-blue-hover text-white font-semibold"
-              onClick={saveEdit}
-            >
-              Save and validate
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+            </Inline>
+          </Stack>
+        </Drawer>
+      )}
+    </Stack>
   );
 }
