@@ -20,14 +20,18 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminProfile,
   AskInput,
   AskResult,
+  AuditEntry,
   CorpusDocument,
   CorpusDocumentDetail,
   CorpusStats,
   ErrorResponse,
   HealthStatus,
+  PlatformUser,
   Role,
+  ScheduledDocument,
   StrategicAxis,
   SuggestedQuery
 } from './api.schemas';
@@ -659,6 +663,314 @@ export function useGetDocument<TData = Awaited<ReturnType<typeof getDocument>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetDocumentQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAdminProfilesUrl = () => {
+
+
+
+
+  return `/api/admin/profiles`
+}
+
+/**
+ * @summary The four platform access profiles and their scopes
+ */
+export const listAdminProfiles = async ( options?: RequestInit): Promise<AdminProfile[]> => {
+
+  return customFetch<AdminProfile[]>(getListAdminProfilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminProfilesQueryKey = () => {
+    return [
+    `/api/admin/profiles`
+    ] as const;
+    }
+
+
+export const getListAdminProfilesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminProfiles>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminProfilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminProfiles>>> = ({ signal }) => listAdminProfiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminProfiles>>>
+export type ListAdminProfilesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The four platform access profiles and their scopes
+ */
+
+export function useListAdminProfiles<TData = Awaited<ReturnType<typeof listAdminProfiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListPlatformUsersUrl = () => {
+
+
+
+
+  return `/api/admin/users`
+}
+
+/**
+ * @summary Registered platform users with area, profile and confidentiality tier
+ */
+export const listPlatformUsers = async ( options?: RequestInit): Promise<PlatformUser[]> => {
+
+  return customFetch<PlatformUser[]>(getListPlatformUsersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlatformUsersQueryKey = () => {
+    return [
+    `/api/admin/users`
+    ] as const;
+    }
+
+
+export const getListPlatformUsersQueryOptions = <TData = Awaited<ReturnType<typeof listPlatformUsers>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlatformUsersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlatformUsers>>> = ({ signal }) => listPlatformUsers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlatformUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlatformUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listPlatformUsers>>>
+export type ListPlatformUsersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Registered platform users with area, profile and confidentiality tier
+ */
+
+export function useListPlatformUsers<TData = Awaited<ReturnType<typeof listPlatformUsers>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlatformUsersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListScheduledDocumentsUrl = () => {
+
+
+
+
+  return `/api/admin/schedules`
+}
+
+/**
+ * @summary Recurring document schedules (source-resolved status)
+ */
+export const listScheduledDocuments = async ( options?: RequestInit): Promise<ScheduledDocument[]> => {
+
+  return customFetch<ScheduledDocument[]>(getListScheduledDocumentsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListScheduledDocumentsQueryKey = () => {
+    return [
+    `/api/admin/schedules`
+    ] as const;
+    }
+
+
+export const getListScheduledDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof listScheduledDocuments>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScheduledDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListScheduledDocumentsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listScheduledDocuments>>> = ({ signal }) => listScheduledDocuments({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listScheduledDocuments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListScheduledDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof listScheduledDocuments>>>
+export type ListScheduledDocumentsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Recurring document schedules (source-resolved status)
+ */
+
+export function useListScheduledDocuments<TData = Awaited<ReturnType<typeof listScheduledDocuments>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScheduledDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListScheduledDocumentsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAuditEntriesUrl = () => {
+
+
+
+
+  return `/api/admin/audit`
+}
+
+/**
+ * @summary Read-only audit trail of permission changes and scheduled runs
+ */
+export const listAuditEntries = async ( options?: RequestInit): Promise<AuditEntry[]> => {
+
+  return customFetch<AuditEntry[]>(getListAuditEntriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAuditEntriesQueryKey = () => {
+    return [
+    `/api/admin/audit`
+    ] as const;
+    }
+
+
+export const getListAuditEntriesQueryOptions = <TData = Awaited<ReturnType<typeof listAuditEntries>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAuditEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAuditEntriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAuditEntries>>> = ({ signal }) => listAuditEntries({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAuditEntries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAuditEntriesQueryResult = NonNullable<Awaited<ReturnType<typeof listAuditEntries>>>
+export type ListAuditEntriesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Read-only audit trail of permission changes and scheduled runs
+ */
+
+export function useListAuditEntries<TData = Awaited<ReturnType<typeof listAuditEntries>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAuditEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAuditEntriesQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

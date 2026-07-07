@@ -66,6 +66,49 @@ export interface NumericFact {
   keywords: string[];
 }
 
+export type ProfileId = "superadmin" | "admin" | "editor" | "audit";
+
+export interface AdminProfile {
+  id: ProfileId;
+  label: string;
+  scope: string;
+  detail: string;
+}
+
+export interface PlatformUser {
+  id: string;
+  name: string;
+  email: string;
+  area: Area;
+  profileId: ProfileId;
+  clearance: Clearance;
+}
+
+export type ScheduleStatus = "active" | "paused" | "orphaned";
+
+export interface ScheduledDoc {
+  id: string;
+  template: string;
+  frequency: string;
+  languages: string[];
+  owner: string;
+  reviewFolder: string;
+  sourceDocId: string | null;
+  status: ScheduleStatus;
+}
+
+export type AuditKind = "permission" | "user" | "schedule" | "run";
+
+export interface AuditEntry {
+  id: string;
+  actor: string;
+  action: string;
+  target: string;
+  kind: AuditKind;
+  timestamp: string;
+  detail: string;
+}
+
 export type GraphKind = "market" | "brand" | "executive" | "axis";
 
 export interface GraphNode {
@@ -661,7 +704,185 @@ export const SUGGESTIONS = [
   { id: "sug-oldrev", text: "What was group revenue in Q4 2025?", kind: "historic" },
 ];
 
+export const ADMIN_PROFILES: AdminProfile[] = [
+  {
+    id: "superadmin",
+    label: "Superadmin",
+    scope: "Full backend + workspace",
+    detail:
+      "Complete control of the platform: users, profiles, permissions, scheduled documents, corpus governance and the full workspace.",
+  },
+  {
+    id: "admin",
+    label: "Admin",
+    scope: "Metadata, Brand Room, access-control",
+    detail:
+      "Manages document metadata, the Brand Room and access control (users, areas and profiles). Cannot alter platform-level configuration.",
+  },
+  {
+    id: "editor",
+    label: "Editor",
+    scope: "Workspace: Documentation + agent, KPIs, Planning",
+    detail:
+      "Works in the governed workspace — Documentation and the agent, KPIs and Planning. No access to backend access-control.",
+  },
+  {
+    id: "audit",
+    label: "Audit",
+    scope: "Read-only trail",
+    detail:
+      "Read-only view of the audit trail: permission changes and scheduled runs. Cannot change any configuration or content.",
+  },
+];
+
+export const PLATFORM_USERS: PlatformUser[] = [
+  {
+    id: "user-elena-ramos",
+    name: "Elena Ramos",
+    email: "elena.ramos@telefonica.com",
+    area: "Gabinete",
+    profileId: "superadmin",
+    clearance: "restricted",
+  },
+  {
+    id: "user-marco-diaz",
+    name: "Marco Díaz",
+    email: "marco.diaz@telefonica.com",
+    area: "Comunicación",
+    profileId: "admin",
+    clearance: "confidential",
+  },
+  {
+    id: "user-sofia-lang",
+    name: "Sofía Lang",
+    email: "sofia.lang@telefonica.com",
+    area: "Marca",
+    profileId: "admin",
+    clearance: "internal",
+  },
+  {
+    id: "user-david-keller",
+    name: "David Keller",
+    email: "david.keller@telefonica.com",
+    area: "Comunicación",
+    profileId: "editor",
+    clearance: "internal",
+  },
+  {
+    id: "user-lucia-fernandez",
+    name: "Lucía Fernández",
+    email: "lucia.fernandez@telefonica.com",
+    area: "Marca",
+    profileId: "editor",
+    clearance: "public",
+  },
+  {
+    id: "user-tomas-neu",
+    name: "Tomás Neu",
+    email: "tomas.neu@telefonica.com",
+    area: "Gabinete",
+    profileId: "audit",
+    clearance: "confidential",
+  },
+];
+
+export const SCHEDULED_DOCS: ScheduledDoc[] = [
+  {
+    id: "sched-weekly-press-digest",
+    template: "Weekly press digest",
+    frequency: "Weekly · Monday 08:00 CET",
+    languages: ["es", "en"],
+    owner: "Media Relations",
+    reviewFolder: "Comunicación / Review / Press digest",
+    sourceDocId: "doc-media-relations",
+    status: "active",
+  },
+  {
+    id: "sched-quarterly-results-brief",
+    template: "Quarterly results briefing",
+    frequency: "Quarterly · results day +1",
+    languages: ["en"],
+    owner: "Investor Relations",
+    reviewFolder: "Gabinete / Review / Results brief",
+    sourceDocId: "doc-q1-2026-results",
+    status: "active",
+  },
+  {
+    id: "sched-brand-consistency-note",
+    template: "Brand consistency note",
+    frequency: "Monthly · first working day",
+    languages: ["es", "en"],
+    owner: "Global Brand Office",
+    reviewFolder: "Marca / Review / Brand notes",
+    sourceDocId: "doc-brand-guidelines-2026",
+    status: "paused",
+  },
+  {
+    id: "sched-sustainability-snapshot",
+    template: "Sustainability snapshot",
+    frequency: "Monthly · mid-month",
+    languages: ["en"],
+    owner: "Sustainability Office",
+    reviewFolder: "Comunicación / Review / Sustainability",
+    sourceDocId: "doc-esg-scorecard-2026",
+    status: "active",
+  },
+];
+
+export const AUDIT_LOG: AuditEntry[] = [
+  {
+    id: "audit-1",
+    actor: "Elena Ramos",
+    action: "Registered user",
+    target: "David Keller (Editor · Comunicación)",
+    kind: "user",
+    timestamp: "2026-06-30T09:12:00Z",
+    detail: "New Editor onboarded to Comunicación with internal clearance.",
+  },
+  {
+    id: "audit-2",
+    actor: "Marco Díaz",
+    action: "Permission change",
+    target: "Sofía Lang",
+    kind: "permission",
+    timestamp: "2026-07-01T14:40:00Z",
+    detail: "Clearance kept at internal; profile confirmed as Admin for Marca.",
+  },
+  {
+    id: "audit-3",
+    actor: "System",
+    action: "Scheduled run",
+    target: "Weekly press digest",
+    kind: "run",
+    timestamp: "2026-07-06T06:03:00Z",
+    detail: "Draft generated and delivered to the Media Relations review folder. Not published.",
+  },
+  {
+    id: "audit-4",
+    actor: "Elena Ramos",
+    action: "Schedule created",
+    target: "Quarterly results briefing",
+    kind: "schedule",
+    timestamp: "2026-07-02T11:20:00Z",
+    detail: "Recurring briefing bound to Q1 2026 Results. Output routed to review folder.",
+  },
+  {
+    id: "audit-5",
+    actor: "System",
+    action: "Scheduled run",
+    target: "Sustainability snapshot",
+    kind: "run",
+    timestamp: "2026-07-06T12:00:00Z",
+    detail: "Run flagged: source document missing. Draft withheld pending source review.",
+  },
+];
+
 const docById = new Map(DOCS.map((d) => [d.id, d]));
 export function getDoc(id: string): CorpusDoc | undefined {
   return docById.get(id);
+}
+
+export function resolveScheduleStatus(s: ScheduledDoc): ScheduleStatus {
+  if (s.sourceDocId && !docById.has(s.sourceDocId)) return "orphaned";
+  return s.status;
 }

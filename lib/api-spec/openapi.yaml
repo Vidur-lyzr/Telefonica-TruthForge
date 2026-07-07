@@ -14,6 +14,8 @@ tags:
     description: Cited agentic question answering
   - name: knowledge
     description: Governed knowledge corpus, axes, roles
+  - name: admin
+    description: Administration backend — profiles, users, schedules, audit
 paths:
   /healthz:
     get:
@@ -152,6 +154,66 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/profiles:
+    get:
+      operationId: listAdminProfiles
+      tags: [admin]
+      summary: The four platform access profiles and their scopes
+      responses:
+        "200":
+          description: Access profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminProfile"
+
+  /admin/users:
+    get:
+      operationId: listPlatformUsers
+      tags: [admin]
+      summary: Registered platform users with area, profile and confidentiality tier
+      responses:
+        "200":
+          description: Platform users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlatformUser"
+
+  /admin/schedules:
+    get:
+      operationId: listScheduledDocuments
+      tags: [admin]
+      summary: Recurring document schedules (source-resolved status)
+      responses:
+        "200":
+          description: Scheduled documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScheduledDocument"
+
+  /admin/audit:
+    get:
+      operationId: listAuditEntries
+      tags: [admin]
+      summary: Read-only audit trail of permission changes and scheduled runs
+      responses:
+        "200":
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEntry"
+
 components:
   schemas:
     HealthStatus:
@@ -271,6 +333,86 @@ components:
         period:
           type: string
         source:
+          type: string
+
+    AdminProfile:
+      type: object
+      required: [id, label, scope, detail]
+      properties:
+        id:
+          type: string
+          description: superadmin | admin | editor | audit
+        label:
+          type: string
+        scope:
+          type: string
+        detail:
+          type: string
+
+    PlatformUser:
+      type: object
+      required: [id, name, email, area, profileId, clearance]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        area:
+          type: string
+          description: Comunicación | Marca | Gabinete
+        profileId:
+          type: string
+          description: superadmin | admin | editor | audit
+        clearance:
+          type: string
+          description: public | internal | confidential | restricted
+
+    ScheduledDocument:
+      type: object
+      required: [id, template, frequency, languages, owner, reviewFolder, sourceDocId, status]
+      properties:
+        id:
+          type: string
+        template:
+          type: string
+        frequency:
+          type: string
+        languages:
+          type: array
+          items:
+            type: string
+        owner:
+          type: string
+        reviewFolder:
+          type: string
+        sourceDocId:
+          type: ["string", "null"]
+        sourceTitle:
+          type: ["string", "null"]
+        status:
+          type: string
+          description: active | paused | orphaned
+
+    AuditEntry:
+      type: object
+      required: [id, actor, action, target, kind, timestamp, detail]
+      properties:
+        id:
+          type: string
+        actor:
+          type: string
+        action:
+          type: string
+        target:
+          type: string
+        kind:
+          type: string
+          description: permission | user | schedule | run
+        timestamp:
+          type: string
+        detail:
           type: string
 
     GraphEntity:

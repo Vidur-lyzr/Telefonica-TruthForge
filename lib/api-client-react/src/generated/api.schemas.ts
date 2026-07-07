@@ -83,6 +83,52 @@ export interface AskResult {
   relatedEntities?: GraphEntity[];
 }
 
+export interface AdminProfile {
+  /** superadmin | admin | editor | audit */
+  id: string;
+  label: string;
+  scope: string;
+  detail: string;
+}
+
+export interface PlatformUser {
+  id: string;
+  name: string;
+  email: string;
+  /** Comunicación | Marca | Gabinete */
+  area: string;
+  /** superadmin | admin | editor | audit */
+  profileId: string;
+  /** public | internal | confidential | restricted */
+  clearance: string;
+}
+
+export interface ScheduledDocument {
+  id: string;
+  template: string;
+  frequency: string;
+  languages: string[];
+  owner: string;
+  reviewFolder: string;
+  /** @nullable */
+  sourceDocId: string | null;
+  /** @nullable */
+  sourceTitle?: string | null;
+  /** active | paused | orphaned */
+  status: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  actor: string;
+  action: string;
+  target: string;
+  /** permission | user | schedule | run */
+  kind: string;
+  timestamp: string;
+  detail: string;
+}
+
 export interface SuggestedQuery {
   id: string;
   text: string;

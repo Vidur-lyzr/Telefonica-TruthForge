@@ -196,3 +196,61 @@ export const GetDocumentResponse = zod.object({
 })
 
 
+/**
+ * @summary The four platform access profiles and their scopes
+ */
+export const ListAdminProfilesResponseItem = zod.object({
+  "id": zod.string().describe('superadmin | admin | editor | audit'),
+  "label": zod.string(),
+  "scope": zod.string(),
+  "detail": zod.string()
+})
+export const ListAdminProfilesResponse = zod.array(ListAdminProfilesResponseItem)
+
+
+/**
+ * @summary Registered platform users with area, profile and confidentiality tier
+ */
+export const ListPlatformUsersResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "area": zod.string().describe('Comunicación | Marca | Gabinete'),
+  "profileId": zod.string().describe('superadmin | admin | editor | audit'),
+  "clearance": zod.string().describe('public | internal | confidential | restricted')
+})
+export const ListPlatformUsersResponse = zod.array(ListPlatformUsersResponseItem)
+
+
+/**
+ * @summary Recurring document schedules (source-resolved status)
+ */
+export const ListScheduledDocumentsResponseItem = zod.object({
+  "id": zod.string(),
+  "template": zod.string(),
+  "frequency": zod.string(),
+  "languages": zod.array(zod.string()),
+  "owner": zod.string(),
+  "reviewFolder": zod.string(),
+  "sourceDocId": zod.string().nullable(),
+  "sourceTitle": zod.string().nullish(),
+  "status": zod.string().describe('active | paused | orphaned')
+})
+export const ListScheduledDocumentsResponse = zod.array(ListScheduledDocumentsResponseItem)
+
+
+/**
+ * @summary Read-only audit trail of permission changes and scheduled runs
+ */
+export const ListAuditEntriesResponseItem = zod.object({
+  "id": zod.string(),
+  "actor": zod.string(),
+  "action": zod.string(),
+  "target": zod.string(),
+  "kind": zod.string().describe('permission | user | schedule | run'),
+  "timestamp": zod.string(),
+  "detail": zod.string()
+})
+export const ListAuditEntriesResponse = zod.array(ListAuditEntriesResponseItem)
+
+
