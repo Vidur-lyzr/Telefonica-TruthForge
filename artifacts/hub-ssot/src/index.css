@@ -23,4 +23,11 @@ body,
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /*
+   * Global density adjustment: Mistica's default type/spacing scale targets
+   * consumer sites; this is a dense enterprise workspace, so everything is
+   * scaled down uniformly. Standardized `zoom` is supported in all modern
+   * browsers. Tokens themselves stay untouched.
+   */
+  zoom: 0.85;
 }
