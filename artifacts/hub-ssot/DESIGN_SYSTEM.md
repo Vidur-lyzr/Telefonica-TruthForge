@@ -46,6 +46,10 @@ Tailwind/shadcn/lucide (all removed).
   `Logo` at the top (`imagotype` expanded, `isotype` collapsed) and a
   chevron-double `IconButton` toggle. Nav items are `Touchable` rows with
   Mística icons.
+- The sidebar is WHITE (`backgroundContainer` + `divider` right border), matching
+  the default Mística web navigation — not the blue inverse variant. Active item:
+  `brandLow` background with `brand` text/icon. This was a deliberate user
+  decision; do not switch it back to solid blue.
 - Topbar: product name plus Area/Persona Mística `Select`s.
 
 ## Reference docs

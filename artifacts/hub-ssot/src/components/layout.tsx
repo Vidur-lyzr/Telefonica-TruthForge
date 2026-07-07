@@ -4,7 +4,6 @@ import { useApp } from "./app-provider";
 import { useListRoles } from "@workspace/api-client-react";
 import {
   Logo,
-  ThemeVariant,
   Touchable,
   IconButton,
   Text1,
@@ -12,7 +11,6 @@ import {
   Text4,
   Select,
   skinVars,
-  applyAlpha,
   IconHomeRegular,
   IconChatRegular,
   IconAiChatRegular,
@@ -75,15 +73,19 @@ function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) 
           justifyContent: collapsed ? "center" : "flex-start",
           padding: collapsed ? "10px 0" : "10px 12px",
           borderRadius: skinVars.borderRadii.button,
-          backgroundColor: isActive
-            ? applyAlpha(skinVars.rawColors.inverse, 0.16)
-            : "transparent",
+          backgroundColor: isActive ? skinVars.colors.brandLow : "transparent",
           transition: "background-color 150ms ease",
         }}
       >
-        <Icon size={20} color={skinVars.colors.inverse} />
+        <Icon
+          size={20}
+          color={isActive ? skinVars.colors.brand : skinVars.colors.neutralMedium}
+        />
         {!collapsed && (
-          <Text2 medium color={skinVars.colors.textPrimaryInverse}>
+          <Text2
+            medium
+            color={isActive ? skinVars.colors.brand : skinVars.colors.textPrimary}
+          >
             {item.name}
           </Text2>
         )}
@@ -102,20 +104,20 @@ function Sidebar({
   const [, navigate] = useLocation();
 
   return (
-    <ThemeVariant variant="brand">
-      <nav
-        aria-label="Main navigation"
-        style={{
-          width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED,
-          flexShrink: 0,
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          backgroundColor: skinVars.colors.navigationBarBackground,
-          transition: "width 200ms ease",
-          overflow: "hidden",
-        }}
-      >
+    <nav
+      aria-label="Main navigation"
+      style={{
+        width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED,
+        flexShrink: 0,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        backgroundColor: skinVars.colors.backgroundContainer,
+        borderRight: `1px solid ${skinVars.colors.divider}`,
+        transition: "width 200ms ease",
+        overflow: "hidden",
+      }}
+    >
         <div
           style={{
             display: "flex",
@@ -139,7 +141,7 @@ function Sidebar({
 
         {!collapsed && (
           <div style={{ padding: "0 16px 8px" }}>
-            <Text4 medium color={skinVars.colors.textPrimaryInverse}>
+            <Text4 medium color={skinVars.colors.textPrimary}>
               Hub SSoT
             </Text4>
           </div>
@@ -157,7 +159,7 @@ function Sidebar({
                     letterSpacing: "0.06em",
                   }}
                 >
-                  <Text1 medium color={applyAlpha(skinVars.rawColors.inverse, 0.72)}>
+                  <Text1 medium color={skinVars.colors.textSecondary}>
                     {group.label}
                   </Text1>
                 </div>
@@ -172,15 +174,14 @@ function Sidebar({
                   style={{
                     height: 1,
                     margin: "12px 8px 0",
-                    backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.24),
+                    backgroundColor: skinVars.colors.divider,
                   }}
                 />
               )}
             </div>
           ))}
         </div>
-      </nav>
-    </ThemeVariant>
+    </nav>
   );
 }
 
