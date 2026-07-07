@@ -28,3 +28,14 @@ absent topic has most of its idf mass in absent terms, so coverage stays low.
 - Governance is enforced by filtering chunks by persona clearance BEFORE the
   model sees them; `permission_blocked`/`no_evidence` return before any Claude
   call and must never carry snippet text (only the classification label).
+- **Tiny/scoped pools are different from the global Ask corpus.** The KPI-scoped
+  chat retrieves from just the evidence behind the KPIs in view (often a handful
+  of items). There, the query-idf-coverage *ratio* over-triggers `no_evidence`:
+  absent query terms ("brand", "declining") dominate a small denominator, so an
+  obviously on-topic question scores below `COVERAGE_MIN`. For scoped pools use a
+  simple **term-presence** on-topic gate (fraction of distinct query content
+  terms that appear anywhere in the pool vocabulary) to decide answered-vs-
+  no_evidence, and keep idf only for ranking the items you cite. Off-topic
+  questions (e.g. bitcoin price) still have ~0 terms in the pool, so
+  `no_evidence` is preserved. Do NOT reuse the Ask agent's idf-mass coverage gate
+  verbatim for a scoped pool.

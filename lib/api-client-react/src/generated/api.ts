@@ -29,6 +29,11 @@ import type {
   CorpusStats,
   ErrorResponse,
   HealthStatus,
+  KpiAskInput,
+  KpiDetail,
+  KpiDetailInput,
+  KpiQueryInput,
+  KpiQueryResult,
   PlatformUser,
   Role,
   ScheduledDocument,
@@ -982,4 +987,217 @@ export function useListAuditEntries<TData = Awaited<ReturnType<typeof listAuditE
 
 
 
+
+export const getQueryKpisUrl = () => {
+
+
+
+
+  return `/api/kpis/query`
+}
+
+/**
+ * Returns the KPI cards a persona is cleared to see, scoped by clearance and area, with the selected reporting period applied. A KPI whose internal evidence is above the persona's clearance is withheld (fail closed). Also returns the available filter facets across the persona's visible KPIs.
+ * @summary Governed KPI cards for the active persona and filters
+ */
+export const queryKpis = async (kpiQueryInput: KpiQueryInput, options?: RequestInit): Promise<KpiQueryResult> => {
+
+  return customFetch<KpiQueryResult>(getQueryKpisUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(kpiQueryInput)
+  }
+);}
+
+
+
+
+export const getQueryKpisMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof queryKpis>>, TError,{data: BodyType<KpiQueryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof queryKpis>>, TError,{data: BodyType<KpiQueryInput>}, TContext> => {
+
+const mutationKey = ['queryKpis'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof queryKpis>>, {data: BodyType<KpiQueryInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  queryKpis(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type QueryKpisMutationResult = NonNullable<Awaited<ReturnType<typeof queryKpis>>>
+    export type QueryKpisMutationBody = BodyType<KpiQueryInput>
+    export type QueryKpisMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Governed KPI cards for the active persona and filters
+ */
+export const useQueryKpis = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof queryKpis>>, TError,{data: BodyType<KpiQueryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof queryKpis>>,
+        TError,
+        {data: BodyType<KpiQueryInput>},
+        TContext
+      > => {
+      return useMutation(getQueryKpisMutationOptions(options));
+    }
+
+export const getAskKpisUrl = () => {
+
+
+
+
+  return `/api/kpis/ask`
+}
+
+/**
+ * Runs the KPI-scoped agent. Retrieval is seeded from the evidence behind the KPIs in view (internal source chunks and external mentions), permission filtered before the model, and returns a cited answer — or an honest no-evidence / permission-blocked result.
+ * @summary Ask a question over the KPIs currently in view
+ */
+export const askKpis = async (kpiAskInput: KpiAskInput, options?: RequestInit): Promise<AskResult> => {
+
+  return customFetch<AskResult>(getAskKpisUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(kpiAskInput)
+  }
+);}
+
+
+
+
+export const getAskKpisMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askKpis>>, TError,{data: BodyType<KpiAskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof askKpis>>, TError,{data: BodyType<KpiAskInput>}, TContext> => {
+
+const mutationKey = ['askKpis'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof askKpis>>, {data: BodyType<KpiAskInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  askKpis(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AskKpisMutationResult = NonNullable<Awaited<ReturnType<typeof askKpis>>>
+    export type AskKpisMutationBody = BodyType<KpiAskInput>
+    export type AskKpisMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Ask a question over the KPIs currently in view
+ */
+export const useAskKpis = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askKpis>>, TError,{data: BodyType<KpiAskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof askKpis>>,
+        TError,
+        {data: BodyType<KpiAskInput>},
+        TContext
+      > => {
+      return useMutation(getAskKpisMutationOptions(options));
+    }
+
+export const getGetKpiDetailUrl = () => {
+
+
+
+
+  return `/api/kpis/detail`
+}
+
+/**
+ * Returns the time series, breakdowns and composing sources for one KPI, scoped to the active persona. Withheld (403) if the persona is not cleared for the KPI or its evidence.
+ * @summary Drill-down detail for a single KPI
+ */
+export const getKpiDetail = async (kpiDetailInput: KpiDetailInput, options?: RequestInit): Promise<KpiDetail> => {
+
+  return customFetch<KpiDetail>(getGetKpiDetailUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(kpiDetailInput)
+  }
+);}
+
+
+
+
+export const getGetKpiDetailMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getKpiDetail>>, TError,{data: BodyType<KpiDetailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof getKpiDetail>>, TError,{data: BodyType<KpiDetailInput>}, TContext> => {
+
+const mutationKey = ['getKpiDetail'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof getKpiDetail>>, {data: BodyType<KpiDetailInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  getKpiDetail(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GetKpiDetailMutationResult = NonNullable<Awaited<ReturnType<typeof getKpiDetail>>>
+    export type GetKpiDetailMutationBody = BodyType<KpiDetailInput>
+    export type GetKpiDetailMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Drill-down detail for a single KPI
+ */
+export const useGetKpiDetail = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof getKpiDetail>>, TError,{data: BodyType<KpiDetailInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof getKpiDetail>>,
+        TError,
+        {data: BodyType<KpiDetailInput>},
+        TContext
+      > => {
+      return useMutation(getGetKpiDetailMutationOptions(options));
+    }
 

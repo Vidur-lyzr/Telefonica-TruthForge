@@ -300,3 +300,148 @@ export interface CorpusStats {
   byAxis: AxisCount[];
 }
 
+export interface KpiSource {
+  id: string;
+  label: string;
+  /** internal | external */
+  kind: string;
+  weight: number;
+  /** @nullable */
+  docId?: string | null;
+  /** @nullable */
+  docTitle?: string | null;
+  /** @nullable */
+  sourceLoc?: string | null;
+  /** @nullable */
+  snippet?: string | null;
+  /** @nullable */
+  version?: string | null;
+  /** @nullable */
+  owner?: string | null;
+  /** @nullable */
+  confidentiality?: string | null;
+  /** @nullable */
+  validity?: string | null;
+  confidence: number;
+  conflict: boolean;
+  accessible: boolean;
+}
+
+export interface KpiForecast {
+  projected: number;
+  target: number;
+  note: string;
+  deviationRisk: boolean;
+  confidence: number;
+}
+
+export interface KpiCard {
+  id: string;
+  objectiveId: string;
+  objectiveName: string;
+  name: string;
+  description: string;
+  unit: string;
+  axisId: string;
+  axisName: string;
+  axisColor: string;
+  market: string;
+  brand: string;
+  initiativeType: string;
+  confidentiality: string;
+  /** week | month | quarter */
+  periodType: string;
+  current: number;
+  target: number;
+  /** higher-better | lower-better */
+  direction: string;
+  progress: number;
+  /** on-track | amber | off-track */
+  status: string;
+  variation: number;
+  variationPct: number;
+  spark: number[];
+  composite: boolean;
+  blend: string;
+  confidence: number;
+  validity: string;
+  historic: boolean;
+  conflict: boolean;
+  sources: KpiSource[];
+  forecast: KpiForecast;
+}
+
+export interface KpiTimePoint {
+  period: string;
+  value: number;
+}
+
+export interface KpiBreakdownPoint {
+  label: string;
+  value: number;
+}
+
+export interface KpiBreakdownGroup {
+  dimension: string;
+  points: KpiBreakdownPoint[];
+}
+
+export type KpiFacetsAxesItem = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+export interface KpiFacets {
+  axes: KpiFacetsAxesItem[];
+  markets: string[];
+  brands: string[];
+  sources: string[];
+  initiativeTypes: string[];
+}
+
+export interface KpiQueryInput {
+  /** Comunicación | Marca | Gabinete */
+  area: string;
+  roleId: string;
+  /** week | month | quarter */
+  period: string;
+  /** @nullable */
+  axisId?: string | null;
+  /** @nullable */
+  market?: string | null;
+  /** @nullable */
+  brand?: string | null;
+  /** @nullable */
+  source?: string | null;
+  /** @nullable */
+  initiativeType?: string | null;
+}
+
+export interface KpiQueryResult {
+  kpis: KpiCard[];
+  facets: KpiFacets;
+}
+
+export interface KpiDetail {
+  kpi: KpiCard;
+  series: KpiTimePoint[];
+  breakdowns: KpiBreakdownGroup[];
+}
+
+export interface KpiAskInput {
+  /** @minLength 1 */
+  question: string;
+  area: string;
+  roleId: string;
+  kpiIds: string[];
+}
+
+export interface KpiDetailInput {
+  id: string;
+  area: string;
+  roleId: string;
+  /** week | month | quarter */
+  period: string;
+}
+

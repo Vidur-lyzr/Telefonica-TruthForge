@@ -302,3 +302,221 @@ export const ListAuditEntriesResponseItem = zod.object({
 export const ListAuditEntriesResponse = zod.array(ListAuditEntriesResponseItem)
 
 
+/**
+ * Returns the KPI cards a persona is cleared to see, scoped by clearance and area, with the selected reporting period applied. A KPI whose internal evidence is above the persona's clearance is withheld (fail closed). Also returns the available filter facets across the persona's visible KPIs.
+ * @summary Governed KPI cards for the active persona and filters
+ */
+export const QueryKpisBody = zod.object({
+  "area": zod.string().describe('Comunicación | Marca | Gabinete'),
+  "roleId": zod.string(),
+  "period": zod.string().describe('week | month | quarter'),
+  "axisId": zod.string().nullish(),
+  "market": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "initiativeType": zod.string().nullish()
+})
+
+export const QueryKpisResponse = zod.object({
+  "kpis": zod.array(zod.object({
+  "id": zod.string(),
+  "objectiveId": zod.string(),
+  "objectiveName": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "unit": zod.string(),
+  "axisId": zod.string(),
+  "axisName": zod.string(),
+  "axisColor": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "initiativeType": zod.string(),
+  "confidentiality": zod.string(),
+  "periodType": zod.string().describe('week | month | quarter'),
+  "current": zod.number(),
+  "target": zod.number(),
+  "direction": zod.string().describe('higher-better | lower-better'),
+  "progress": zod.number(),
+  "status": zod.string().describe('on-track | amber | off-track'),
+  "variation": zod.number(),
+  "variationPct": zod.number(),
+  "spark": zod.array(zod.number()),
+  "composite": zod.boolean(),
+  "blend": zod.string(),
+  "confidence": zod.number(),
+  "validity": zod.string(),
+  "historic": zod.boolean(),
+  "conflict": zod.boolean(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "kind": zod.string().describe('internal | external'),
+  "weight": zod.number(),
+  "docId": zod.string().nullish(),
+  "docTitle": zod.string().nullish(),
+  "sourceLoc": zod.string().nullish(),
+  "snippet": zod.string().nullish(),
+  "version": zod.string().nullish(),
+  "owner": zod.string().nullish(),
+  "confidentiality": zod.string().nullish(),
+  "validity": zod.string().nullish(),
+  "confidence": zod.number(),
+  "conflict": zod.boolean(),
+  "accessible": zod.boolean()
+})),
+  "forecast": zod.object({
+  "projected": zod.number(),
+  "target": zod.number(),
+  "note": zod.string(),
+  "deviationRisk": zod.boolean(),
+  "confidence": zod.number()
+})
+})),
+  "facets": zod.object({
+  "axes": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "color": zod.string()
+})),
+  "markets": zod.array(zod.string()),
+  "brands": zod.array(zod.string()),
+  "sources": zod.array(zod.string()),
+  "initiativeTypes": zod.array(zod.string())
+})
+})
+
+
+/**
+ * Runs the KPI-scoped agent. Retrieval is seeded from the evidence behind the KPIs in view (internal source chunks and external mentions), permission filtered before the model, and returns a cited answer — or an honest no-evidence / permission-blocked result.
+ * @summary Ask a question over the KPIs currently in view
+ */
+
+
+
+export const AskKpisBody = zod.object({
+  "question": zod.string().min(1),
+  "area": zod.string(),
+  "roleId": zod.string(),
+  "kpiIds": zod.array(zod.string())
+})
+
+export const AskKpisResponse = zod.object({
+  "status": zod.string().describe('answered | no_evidence | permission_blocked'),
+  "answer": zod.string(),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "confidentiality": zod.string().describe('public | internal | confidential | restricted'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "historic": zod.boolean(),
+  "historicNote": zod.string().nullish(),
+  "permissionNote": zod.string().nullish(),
+  "axisIds": zod.array(zod.string()),
+  "numeric": zod.union([zod.object({
+  "label": zod.string(),
+  "value": zod.string(),
+  "unit": zod.string(),
+  "period": zod.string(),
+  "source": zod.string()
+}),zod.null()]).optional(),
+  "relatedEntities": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string().describe('market | brand | executive | axis'),
+  "relation": zod.string().nullish()
+})).optional()
+})
+
+
+/**
+ * Returns the time series, breakdowns and composing sources for one KPI, scoped to the active persona. Withheld (403) if the persona is not cleared for the KPI or its evidence.
+ * @summary Drill-down detail for a single KPI
+ */
+export const GetKpiDetailBody = zod.object({
+  "id": zod.string(),
+  "area": zod.string(),
+  "roleId": zod.string(),
+  "period": zod.string().describe('week | month | quarter')
+})
+
+export const GetKpiDetailResponse = zod.object({
+  "kpi": zod.object({
+  "id": zod.string(),
+  "objectiveId": zod.string(),
+  "objectiveName": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "unit": zod.string(),
+  "axisId": zod.string(),
+  "axisName": zod.string(),
+  "axisColor": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "initiativeType": zod.string(),
+  "confidentiality": zod.string(),
+  "periodType": zod.string().describe('week | month | quarter'),
+  "current": zod.number(),
+  "target": zod.number(),
+  "direction": zod.string().describe('higher-better | lower-better'),
+  "progress": zod.number(),
+  "status": zod.string().describe('on-track | amber | off-track'),
+  "variation": zod.number(),
+  "variationPct": zod.number(),
+  "spark": zod.array(zod.number()),
+  "composite": zod.boolean(),
+  "blend": zod.string(),
+  "confidence": zod.number(),
+  "validity": zod.string(),
+  "historic": zod.boolean(),
+  "conflict": zod.boolean(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "kind": zod.string().describe('internal | external'),
+  "weight": zod.number(),
+  "docId": zod.string().nullish(),
+  "docTitle": zod.string().nullish(),
+  "sourceLoc": zod.string().nullish(),
+  "snippet": zod.string().nullish(),
+  "version": zod.string().nullish(),
+  "owner": zod.string().nullish(),
+  "confidentiality": zod.string().nullish(),
+  "validity": zod.string().nullish(),
+  "confidence": zod.number(),
+  "conflict": zod.boolean(),
+  "accessible": zod.boolean()
+})),
+  "forecast": zod.object({
+  "projected": zod.number(),
+  "target": zod.number(),
+  "note": zod.string(),
+  "deviationRisk": zod.boolean(),
+  "confidence": zod.number()
+})
+}),
+  "series": zod.array(zod.object({
+  "period": zod.string(),
+  "value": zod.number()
+})),
+  "breakdowns": zod.array(zod.object({
+  "dimension": zod.string(),
+  "points": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+}))
+}))
+})
+
+

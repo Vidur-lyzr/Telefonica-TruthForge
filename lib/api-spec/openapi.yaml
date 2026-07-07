@@ -16,6 +16,8 @@ tags:
     description: Governed knowledge corpus, axes, roles
   - name: admin
     description: Administration backend — profiles, users, schedules, audit
+  - name: kpis
+    description: Governed KPI / objective tracking
 paths:
   /healthz:
     get:
@@ -213,6 +215,83 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AuditEntry"
+
+  /kpis/query:
+    post:
+      operationId: queryKpis
+      tags: [kpis]
+      summary: Governed KPI cards for the active persona and filters
+      description: >
+        Returns the KPI cards a persona is cleared to see, scoped by clearance and
+        area, with the selected reporting period applied. A KPI whose internal
+        evidence is above the persona's clearance is withheld (fail closed). Also
+        returns the available filter facets across the persona's visible KPIs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KpiQueryInput"
+      responses:
+        "200":
+          description: KPI cards and facets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KpiQueryResult"
+
+  /kpis/ask:
+    post:
+      operationId: askKpis
+      tags: [kpis]
+      summary: Ask a question over the KPIs currently in view
+      description: >
+        Runs the KPI-scoped agent. Retrieval is seeded from the evidence behind the
+        KPIs in view (internal source chunks and external mentions), permission
+        filtered before the model, and returns a cited answer — or an honest
+        no-evidence / permission-blocked result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KpiAskInput"
+      responses:
+        "200":
+          description: Agent result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskResult"
+
+  /kpis/detail:
+    post:
+      operationId: getKpiDetail
+      tags: [kpis]
+      summary: Drill-down detail for a single KPI
+      description: >
+        Returns the time series, breakdowns and composing sources for one KPI,
+        scoped to the active persona. Withheld (403) if the persona is not cleared
+        for the KPI or its evidence.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KpiDetailInput"
+      responses:
+        "200":
+          description: KPI detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KpiDetail"
+        "403":
+          description: Not permitted or not found for this persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   schemas:
@@ -711,3 +790,268 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AxisCount"
+
+    KpiSource:
+      type: object
+      required: [id, label, kind, weight, confidence, conflict, accessible]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        kind:
+          type: string
+          description: internal | external
+        weight:
+          type: number
+        docId:
+          type: ["string", "null"]
+        docTitle:
+          type: ["string", "null"]
+        sourceLoc:
+          type: ["string", "null"]
+        snippet:
+          type: ["string", "null"]
+        version:
+          type: ["string", "null"]
+        owner:
+          type: ["string", "null"]
+        confidentiality:
+          type: ["string", "null"]
+        validity:
+          type: ["string", "null"]
+        confidence:
+          type: number
+        conflict:
+          type: boolean
+        accessible:
+          type: boolean
+
+    KpiForecast:
+      type: object
+      required: [projected, target, note, deviationRisk, confidence]
+      properties:
+        projected:
+          type: number
+        target:
+          type: number
+        note:
+          type: string
+        deviationRisk:
+          type: boolean
+        confidence:
+          type: number
+
+    KpiCard:
+      type: object
+      required:
+        [id, objectiveId, objectiveName, name, description, unit, axisId, axisName, axisColor, market, brand, initiativeType, confidentiality, periodType, current, target, direction, progress, status, variation, variationPct, spark, composite, blend, confidence, validity, historic, conflict, sources, forecast]
+      properties:
+        id:
+          type: string
+        objectiveId:
+          type: string
+        objectiveName:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        unit:
+          type: string
+        axisId:
+          type: string
+        axisName:
+          type: string
+        axisColor:
+          type: string
+        market:
+          type: string
+        brand:
+          type: string
+        initiativeType:
+          type: string
+        confidentiality:
+          type: string
+        periodType:
+          type: string
+          description: week | month | quarter
+        current:
+          type: number
+        target:
+          type: number
+        direction:
+          type: string
+          description: higher-better | lower-better
+        progress:
+          type: number
+        status:
+          type: string
+          description: on-track | amber | off-track
+        variation:
+          type: number
+        variationPct:
+          type: number
+        spark:
+          type: array
+          items:
+            type: number
+        composite:
+          type: boolean
+        blend:
+          type: string
+        confidence:
+          type: number
+        validity:
+          type: string
+        historic:
+          type: boolean
+        conflict:
+          type: boolean
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiSource"
+        forecast:
+          $ref: "#/components/schemas/KpiForecast"
+
+    KpiTimePoint:
+      type: object
+      required: [period, value]
+      properties:
+        period:
+          type: string
+        value:
+          type: number
+
+    KpiBreakdownPoint:
+      type: object
+      required: [label, value]
+      properties:
+        label:
+          type: string
+        value:
+          type: number
+
+    KpiBreakdownGroup:
+      type: object
+      required: [dimension, points]
+      properties:
+        dimension:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiBreakdownPoint"
+
+    KpiFacets:
+      type: object
+      required: [axes, markets, brands, sources, initiativeTypes]
+      properties:
+        axes:
+          type: array
+          items:
+            type: object
+            required: [id, name, color]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              color:
+                type: string
+        markets:
+          type: array
+          items:
+            type: string
+        brands:
+          type: array
+          items:
+            type: string
+        sources:
+          type: array
+          items:
+            type: string
+        initiativeTypes:
+          type: array
+          items:
+            type: string
+
+    KpiQueryInput:
+      type: object
+      required: [area, roleId, period]
+      properties:
+        area:
+          type: string
+          description: Comunicación | Marca | Gabinete
+        roleId:
+          type: string
+        period:
+          type: string
+          description: week | month | quarter
+        axisId:
+          type: ["string", "null"]
+        market:
+          type: ["string", "null"]
+        brand:
+          type: ["string", "null"]
+        source:
+          type: ["string", "null"]
+        initiativeType:
+          type: ["string", "null"]
+
+    KpiQueryResult:
+      type: object
+      required: [kpis, facets]
+      properties:
+        kpis:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiCard"
+        facets:
+          $ref: "#/components/schemas/KpiFacets"
+
+    KpiDetail:
+      type: object
+      required: [kpi, series, breakdowns]
+      properties:
+        kpi:
+          $ref: "#/components/schemas/KpiCard"
+        series:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiTimePoint"
+        breakdowns:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiBreakdownGroup"
+
+    KpiAskInput:
+      type: object
+      required: [question, area, roleId, kpiIds]
+      properties:
+        question:
+          type: string
+          minLength: 1
+        area:
+          type: string
+        roleId:
+          type: string
+        kpiIds:
+          type: array
+          items:
+            type: string
+
+    KpiDetailInput:
+      type: object
+      required: [id, area, roleId, period]
+      properties:
+        id:
+          type: string
+        area:
+          type: string
+        roleId:
+          type: string
+        period:
+          type: string
+          description: week | month | quarter

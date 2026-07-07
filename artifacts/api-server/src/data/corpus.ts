@@ -1054,3 +1054,529 @@ export function resolveScheduleStatus(s: ScheduledDoc): ScheduleStatus {
   if (s.sourceDocId && !docById.has(s.sourceDocId)) return "orphaned";
   return s.status;
 }
+
+// ============================================================
+// KPIs — governed objective tracking (configuration-as-data).
+// Objectives are the goals Telefónica has set; KPI definitions are
+// configured against those objectives, blending internal results with
+// external signals (Talkwalker, Meltwater, Kantar, Nielsen, LinkedIn).
+// Nothing here is hard-coded in the UI — the panel adapts by configuration.
+// ============================================================
+
+export type KpiPeriodType = "week" | "month" | "quarter";
+export type KpiDirection = "higher-better" | "lower-better";
+export type InitiativeType = "reputation" | "brand" | "campaign";
+
+export interface Objective {
+  id: string;
+  name: string;
+  description: string;
+  axisId: string;
+  area: Area;
+  period: string;
+}
+
+export interface KpiComposingSource {
+  id: string;
+  label: string;
+  kind: "internal" | "external";
+  weight: number;
+  docId?: string;
+  note?: string;
+  conflict?: boolean;
+}
+
+export interface KpiBreakdownGroup {
+  dimension: string;
+  points: { label: string; value: number }[];
+}
+
+export interface KpiDefinition {
+  id: string;
+  objectiveId: string;
+  name: string;
+  description: string;
+  unit: string;
+  axisId: string;
+  market: string;
+  brand: string;
+  initiativeType: InitiativeType;
+  confidentiality: Clearance;
+  areas: Area[];
+  direction: KpiDirection;
+  target: number;
+  confidence: number;
+  sources: KpiComposingSource[];
+  series: Record<KpiPeriodType, number[]>;
+  breakdowns: KpiBreakdownGroup[];
+}
+
+export interface KpiMention {
+  id: string;
+  kpiIds: string[];
+  source: string;
+  market: string;
+  sentiment: "positive" | "neutral" | "negative";
+  date: string;
+  text: string;
+  confidentiality: Clearance;
+}
+
+export const OBJECTIVES: Objective[] = [
+  {
+    id: "obj-reputation",
+    name: "Protect and grow corporate reputation",
+    description:
+      "Keep Telefónica's reputation and share of voice ahead of the sector across its main markets.",
+    axisId: "ax-digital",
+    area: "Comunicación",
+    period: "FY2026",
+  },
+  {
+    id: "obj-brand",
+    name: "Strengthen brand equity and consistency",
+    description:
+      "Grow consideration for the commercial brands and hold brand execution consistent everywhere.",
+    axisId: "ax-sustainability",
+    area: "Marca",
+    period: "FY2026",
+  },
+  {
+    id: "obj-conversation",
+    name: "Lead the industry conversation",
+    description:
+      "Own the narrative on networks, AI and enterprise technology in earned and social media.",
+    axisId: "ax-networks",
+    area: "Comunicación",
+    period: "FY2026",
+  },
+  {
+    id: "obj-campaign",
+    name: "Deliver measurable campaign impact",
+    description:
+      "Convert campaign investment into recall and consideration in the core markets.",
+    axisId: "ax-core",
+    area: "Marca",
+    period: "Q2 2026",
+  },
+];
+
+export const KPIS: KpiDefinition[] = [
+  {
+    id: "kpi-sov",
+    objectiveId: "obj-conversation",
+    name: "Share of Voice",
+    description:
+      "Telefónica's share of sector conversation across earned and social media, blended from the internal media tracker and Talkwalker.",
+    unit: "%",
+    axisId: "ax-networks",
+    market: "Group",
+    brand: "Telefónica",
+    initiativeType: "reputation",
+    confidentiality: "internal",
+    areas: ["Comunicación", "Gabinete"],
+    direction: "higher-better",
+    target: 30,
+    confidence: 0.9,
+    sources: [
+      { id: "src-sov-internal", label: "Internal media tracker", kind: "internal", weight: 0.5, docId: "doc-media-relations", note: "Media Relations desk share tracker" },
+      { id: "src-sov-talkwalker", label: "Talkwalker", kind: "external", weight: 0.5, note: "Talkwalker reports 28% vs the internal tracker's 32% — sources disagree.", conflict: true },
+    ],
+    series: {
+      week: [28, 29, 30, 31, 30, 31, 32, 32],
+      month: [27, 29, 30, 31, 32, 32],
+      quarter: [26, 29, 31, 32],
+    },
+    breakdowns: [
+      {
+        dimension: "Market",
+        points: [
+          { label: "Spain", value: 34 },
+          { label: "Germany", value: 29 },
+          { label: "Brazil", value: 21 },
+          { label: "United Kingdom", value: 16 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kpi-sentiment-brazil",
+    objectiveId: "obj-reputation",
+    name: "Net Sentiment · Brazil",
+    description:
+      "Net positive-minus-negative sentiment for Vivo in Brazil, blended from Talkwalker social listening and the internal Brazil market read.",
+    unit: "pts",
+    axisId: "ax-core",
+    market: "Brazil",
+    brand: "Vivo",
+    initiativeType: "reputation",
+    confidentiality: "internal",
+    areas: ["Comunicación", "Gabinete"],
+    direction: "higher-better",
+    target: 20,
+    confidence: 0.86,
+    sources: [
+      { id: "src-sent-talkwalker", label: "Talkwalker", kind: "external", weight: 0.6, note: "Social listening across Brazilian platforms" },
+      { id: "src-sent-internal", label: "Brazil market read", kind: "internal", weight: 0.4, docId: "doc-brazil-vivo" },
+    ],
+    series: {
+      week: [18, 16, 15, 13, 11, 9, 7, 6],
+      month: [20, 16, 12, 9, 7, 6],
+      quarter: [22, 15, 9, 6],
+    },
+    breakdowns: [
+      {
+        dimension: "Channel",
+        points: [
+          { label: "Social", value: -14 },
+          { label: "News", value: 8 },
+          { label: "Forums", value: -6 },
+          { label: "Broadcast", value: 4 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kpi-media-coverage",
+    objectiveId: "obj-reputation",
+    name: "Positive Media Coverage",
+    description:
+      "Share of earned coverage rated positive, blended from Meltwater and the internal media desk.",
+    unit: "%",
+    axisId: "ax-digital",
+    market: "Group",
+    brand: "Telefónica",
+    initiativeType: "reputation",
+    confidentiality: "internal",
+    areas: ["Comunicación", "Gabinete"],
+    direction: "higher-better",
+    target: 70,
+    confidence: 0.88,
+    sources: [
+      { id: "src-cov-meltwater", label: "Meltwater", kind: "external", weight: 0.6 },
+      { id: "src-cov-internal", label: "Internal media desk", kind: "internal", weight: 0.4, docId: "doc-media-relations" },
+    ],
+    series: {
+      week: [68, 69, 70, 71, 72, 72, 73, 73],
+      month: [66, 69, 71, 72, 73, 73],
+      quarter: [64, 69, 72, 73],
+    },
+    breakdowns: [
+      {
+        dimension: "Market",
+        points: [
+          { label: "Spain", value: 76 },
+          { label: "Germany", value: 71 },
+          { label: "Brazil", value: 70 },
+          { label: "United Kingdom", value: 72 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kpi-brand-consideration",
+    objectiveId: "obj-brand",
+    name: "Brand Consideration · Movistar",
+    description:
+      "Consideration for Movistar in Spain, blended from the Kantar brand tracker and the internal campaign read.",
+    unit: "%",
+    axisId: "ax-core",
+    market: "Spain",
+    brand: "Movistar",
+    initiativeType: "brand",
+    confidentiality: "internal",
+    areas: ["Marca", "Comunicación"],
+    direction: "higher-better",
+    target: 45,
+    confidence: 0.84,
+    sources: [
+      { id: "src-cons-kantar", label: "Kantar", kind: "external", weight: 0.5 },
+      { id: "src-cons-internal", label: "Campaign read", kind: "internal", weight: 0.5, docId: "doc-campaign-mismo-sitio" },
+    ],
+    series: {
+      week: [40, 41, 42, 42, 43, 43, 43, 43],
+      month: [39, 41, 42, 43, 43, 43],
+      quarter: [38, 41, 42, 43],
+    },
+    breakdowns: [
+      {
+        dimension: "Segment",
+        points: [
+          { label: "Youth", value: 39 },
+          { label: "Family", value: 46 },
+          { label: "Senior", value: 44 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kpi-brand-consistency",
+    objectiveId: "obj-brand",
+    name: "Brand Consistency Score",
+    description:
+      "Share of surfaces audited as fully compliant with the 2026 brand guidelines.",
+    unit: "%",
+    axisId: "ax-sustainability",
+    market: "Group",
+    brand: "Telefónica",
+    initiativeType: "brand",
+    confidentiality: "internal",
+    areas: ["Marca", "Comunicación"],
+    direction: "higher-better",
+    target: 90,
+    confidence: 0.82,
+    sources: [
+      { id: "src-consist-internal", label: "Brand guidelines audit", kind: "internal", weight: 1, docId: "doc-brand-guidelines-2026" },
+    ],
+    series: {
+      week: [89, 90, 91, 91, 92, 92, 93, 93],
+      month: [88, 90, 91, 92, 93, 93],
+      quarter: [87, 90, 92, 93],
+    },
+    breakdowns: [
+      {
+        dimension: "Channel",
+        points: [
+          { label: "Web", value: 95 },
+          { label: "Retail", value: 90 },
+          { label: "Social", value: 92 },
+          { label: "TV", value: 94 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kpi-tech-awareness",
+    objectiveId: "obj-conversation",
+    name: "Telefónica Tech Awareness",
+    description:
+      "Prompted enterprise awareness of Telefónica Tech, blended from LinkedIn signal and the confidential B2B growth read.",
+    unit: "%",
+    axisId: "ax-b2b",
+    market: "Group",
+    brand: "Telefónica Tech",
+    initiativeType: "reputation",
+    confidentiality: "confidential",
+    areas: ["Comunicación", "Gabinete"],
+    direction: "higher-better",
+    target: 25,
+    confidence: 0.8,
+    sources: [
+      { id: "src-tech-linkedin", label: "LinkedIn", kind: "external", weight: 0.4 },
+      { id: "src-tech-internal", label: "B2B growth read", kind: "internal", weight: 0.6, docId: "doc-tech-b2b-strategy" },
+    ],
+    series: {
+      week: [23, 24, 24, 25, 25, 26, 26, 27],
+      month: [22, 24, 25, 26, 26, 27],
+      quarter: [21, 24, 26, 27],
+    },
+    breakdowns: [
+      {
+        dimension: "Market",
+        points: [
+          { label: "Spain", value: 30 },
+          { label: "Germany", value: 26 },
+          { label: "United Kingdom", value: 24 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kpi-campaign-recall",
+    objectiveId: "obj-campaign",
+    name: "Campaign Recall · 'Mismo sitio'",
+    description:
+      "Aided recall of the 'Mismo sitio, mismo precio' campaign, blended from Nielsen and the internal campaign read.",
+    unit: "%",
+    axisId: "ax-core",
+    market: "Spain",
+    brand: "Movistar",
+    initiativeType: "campaign",
+    confidentiality: "internal",
+    areas: ["Marca", "Comunicación"],
+    direction: "higher-better",
+    target: 55,
+    confidence: 0.85,
+    sources: [
+      { id: "src-recall-nielsen", label: "Nielsen", kind: "external", weight: 0.5 },
+      { id: "src-recall-internal", label: "Campaign read", kind: "internal", weight: 0.5, docId: "doc-campaign-mismo-sitio" },
+    ],
+    series: {
+      week: [50, 52, 53, 54, 55, 56, 57, 58],
+      month: [48, 51, 53, 55, 57, 58],
+      quarter: [46, 51, 55, 58],
+    },
+    breakdowns: [
+      {
+        dimension: "Segment",
+        points: [
+          { label: "Existing customers", value: 61 },
+          { label: "New prospects", value: 52 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kpi-crisis-readiness",
+    objectiveId: "obj-reputation",
+    name: "Crisis Response Readiness",
+    description:
+      "Readiness score against the crisis communications playbook (drills, contacts, holding statements).",
+    unit: "%",
+    axisId: "ax-digital",
+    market: "Group",
+    brand: "Telefónica",
+    initiativeType: "reputation",
+    confidentiality: "internal",
+    areas: ["Comunicación", "Gabinete"],
+    direction: "higher-better",
+    target: 95,
+    confidence: 0.83,
+    sources: [
+      { id: "src-crisis-internal", label: "Crisis playbook audit", kind: "internal", weight: 1, docId: "doc-crisis-playbook" },
+    ],
+    series: {
+      week: [92, 93, 94, 94, 95, 95, 96, 96],
+      month: [91, 93, 94, 95, 96, 96],
+      quarter: [90, 93, 95, 96],
+    },
+    breakdowns: [
+      {
+        dimension: "Dimension",
+        points: [
+          { label: "Playbook", value: 98 },
+          { label: "Drills", value: 94 },
+          { label: "Contacts", value: 96 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kpi-employee-advocacy",
+    objectiveId: "obj-brand",
+    name: "Employee Advocacy",
+    description:
+      "Share of employees actively advocating the brand, read from the spring 2026 town hall pulse.",
+    unit: "%",
+    axisId: "ax-digital",
+    market: "Group",
+    brand: "Telefónica",
+    initiativeType: "brand",
+    confidentiality: "internal",
+    areas: ["Comunicación", "Marca"],
+    direction: "higher-better",
+    target: 60,
+    confidence: 0.72,
+    sources: [
+      { id: "src-adv-internal", label: "Town hall pulse", kind: "internal", weight: 1, docId: "doc-townhall-2026" },
+    ],
+    series: {
+      week: [55, 55, 56, 56, 57, 57, 57, 57],
+      month: [54, 55, 56, 56, 57, 57],
+      quarter: [53, 55, 56, 57],
+    },
+    breakdowns: [
+      {
+        dimension: "Market",
+        points: [
+          { label: "Spain", value: 60 },
+          { label: "Germany", value: 54 },
+          { label: "Brazil", value: 58 },
+        ],
+      },
+    ],
+  },
+];
+
+export const KPI_MENTIONS: KpiMention[] = [
+  {
+    id: "mention-br-outage",
+    kpiIds: ["kpi-sentiment-brazil", "kpi-sov"],
+    source: "Talkwalker",
+    market: "Brazil",
+    sentiment: "negative",
+    date: "2026-06-27",
+    text: "Vivo customers in São Paulo reported a weekend service outage; social sentiment turned sharply negative and drove a spike in complaint volume.",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-br-billing",
+    kpiIds: ["kpi-sentiment-brazil"],
+    source: "Talkwalker",
+    market: "Brazil",
+    sentiment: "negative",
+    date: "2026-06-25",
+    text: "Complaints about billing changes trended on Brazilian social platforms this week, weighing further on net sentiment for Vivo.",
+    confidentiality: "internal",
+  },
+  {
+    id: "mention-br-fibre",
+    kpiIds: ["kpi-sentiment-brazil", "kpi-media-coverage"],
+    source: "Meltwater",
+    market: "Brazil",
+    sentiment: "neutral",
+    date: "2026-06-24",
+    text: "Local press covered Vivo's fibre expansion with a broadly balanced tone, partly offsetting negative social chatter.",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-mwc-spike",
+    kpiIds: ["kpi-sov"],
+    source: "Talkwalker",
+    market: "Group",
+    sentiment: "positive",
+    date: "2026-06-20",
+    text: "Telefónica's MWC keynote drove a spike in positive share of voice across European tech media.",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-esg-coverage",
+    kpiIds: ["kpi-media-coverage"],
+    source: "Meltwater",
+    market: "Group",
+    sentiment: "positive",
+    date: "2026-06-18",
+    text: "The 2025 sustainability report generated favourable ESG coverage in national and trade outlets.",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-consideration-family",
+    kpiIds: ["kpi-brand-consideration"],
+    source: "Kantar",
+    market: "Spain",
+    sentiment: "neutral",
+    date: "2026-06-15",
+    text: "Brand consideration for Movistar held steady among family segments, with youth consideration still lagging the target.",
+    confidentiality: "internal",
+  },
+  {
+    id: "mention-recall-existing",
+    kpiIds: ["kpi-campaign-recall"],
+    source: "Nielsen",
+    market: "Spain",
+    sentiment: "positive",
+    date: "2026-06-12",
+    text: "'Mismo sitio, mismo precio' recall was strongest among existing customers, reinforcing the loyalty proposition.",
+    confidentiality: "internal",
+  },
+  {
+    id: "mention-tech-linkedin",
+    kpiIds: ["kpi-tech-awareness"],
+    source: "LinkedIn",
+    market: "Group",
+    sentiment: "positive",
+    date: "2026-06-10",
+    text: "Telefónica Tech thought-leadership posts lifted enterprise awareness among IT decision-makers.",
+    confidentiality: "confidential",
+  },
+];
+
+const objectiveById = new Map(OBJECTIVES.map((o) => [o.id, o]));
+export function getObjective(id: string): Objective | undefined {
+  return objectiveById.get(id);
+}
+
+const kpiById = new Map(KPIS.map((k) => [k.id, k]));
+export function getKpiById(id: string): KpiDefinition | undefined {
+  return kpiById.get(id);
+}
