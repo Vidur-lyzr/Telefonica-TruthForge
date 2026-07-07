@@ -5,12 +5,27 @@ import {
   ListRolesResponse,
   ListDocumentsResponse,
   GetCorpusStatsResponse,
+  GetHomeSummaryResponse,
+  ListRadarResponse,
   GetDocumentParams,
   GetDocumentResponse,
 } from "@workspace/api-zod";
-import { AXES, ROLES, DOCS, SUGGESTIONS, getDoc } from "../data/corpus";
+import { AXES, ROLES, DOCS, SUGGESTIONS, getDoc, type Area } from "../data/corpus";
+import { corpusStatsFor, homeSummaryFor, radarFor } from "../adapters/home";
 
 const router: IRouter = Router();
+
+function roleIdParam(value: unknown): string | undefined {
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+const AREAS: readonly Area[] = ["Comunicación", "Marca", "Gabinete"];
+
+function areaParam(value: unknown): Area | undefined {
+  return typeof value === "string" && (AREAS as readonly string[]).includes(value)
+    ? (value as Area)
+    : undefined;
+}
 
 router.get("/suggestions", (_req, res) => {
   res.json(ListSuggestionsResponse.parse(SUGGESTIONS));
@@ -46,33 +61,22 @@ router.get("/documents", (_req, res) => {
   res.json(ListDocumentsResponse.parse(items));
 });
 
-router.get("/corpus/stats", (_req, res) => {
-  const tally = (fn: (d: (typeof DOCS)[number]) => string) => {
-    const map = new Map<string, number>();
-    for (const d of DOCS) map.set(fn(d), (map.get(fn(d)) ?? 0) + 1);
-    return Array.from(map.entries()).map(([key, count]) => ({ key, count }));
-  };
-
-  const byAxisMap = new Map<string, number>();
-  for (const d of DOCS)
-    for (const a of d.axisIds) byAxisMap.set(a, (byAxisMap.get(a) ?? 0) + 1);
-
-  const stats = {
-    totalDocuments: DOCS.length,
-    totalChunks: DOCS.reduce((sum, d) => sum + d.chunks.length, 0),
-    quarantined: DOCS.filter(
-      (d) => d.validity === "superseded" || d.validity === "review",
-    ).length,
-    byCountry: tally((d) => d.country),
-    byType: tally((d) => d.type),
-    byConfidentiality: tally((d) => d.confidentiality),
-    byValidity: tally((d) => d.validity),
-    byAxis: Array.from(byAxisMap.entries()).map(([axisId, count]) => ({
-      axisId,
-      count,
-    })),
-  };
+router.get("/corpus/stats", (req, res) => {
+  const stats = corpusStatsFor(roleIdParam(req.query.roleId));
   res.json(GetCorpusStatsResponse.parse(stats));
+});
+
+router.get("/home/summary", (req, res) => {
+  const summary = homeSummaryFor(
+    roleIdParam(req.query.roleId),
+    areaParam(req.query.area),
+  );
+  res.json(GetHomeSummaryResponse.parse(summary));
+});
+
+router.get("/radar", (req, res) => {
+  const items = radarFor(roleIdParam(req.query.roleId), areaParam(req.query.area));
+  res.json(ListRadarResponse.parse(items));
 });
 
 router.get("/documents/:id", (req, res) => {

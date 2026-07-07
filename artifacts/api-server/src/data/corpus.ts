@@ -702,7 +702,7 @@ export const DOCS: CorpusDoc[] = [
     owner: "Germany Communications",
     validity: "approved",
     validUntil: "2026-06-30",
-    language: "en",
+    language: "de",
     topics: ["Germany", "O2", "mobile", "market share"],
     axisIds: ["ax-core", "ax-networks"],
     areas: ["Comunicación"],
@@ -728,7 +728,7 @@ export const DOCS: CorpusDoc[] = [
     owner: "Brazil Communications",
     validity: "approved",
     validUntil: "2026-06-30",
-    language: "en",
+    language: "pt",
     topics: ["Brazil", "Vivo", "fibre", "digital services"],
     axisIds: ["ax-core", "ax-b2b"],
     areas: ["Comunicación"],
@@ -1580,3 +1580,182 @@ const kpiById = new Map(KPIS.map((k) => [k.id, k]));
 export function getKpiById(id: string): KpiDefinition | undefined {
   return kpiById.get(id);
 }
+// ---------------------------------------------------------------------------
+// Home front-door seed data. Every item carries a clearance and the areas it
+// belongs to, so the Home endpoints can filter fail-closed exactly like the
+// retrieval path. Timestamps are stored as an `hoursAgo` offset and resolved
+// to a real ISO instant at request time so the radar always reads as fresh.
+// ---------------------------------------------------------------------------
+
+export type RadarKind = "external_signal" | "knowledge_event" | "your_queue";
+
+export interface RadarEvent {
+  id: string;
+  kind: RadarKind;
+  title: string;
+  detail: string | null;
+  hoursAgo: number;
+  href: string;
+  evidenceDocId: string | null;
+  axisId: string | null;
+  tone: "default" | "warning";
+  clearance: Clearance;
+  areas: Area[];
+}
+
+export interface KpiItem {
+  id: string;
+  name: string;
+  axisId: string;
+  status: "tracked" | "off_target";
+  clearance: Clearance;
+  areas: Area[];
+}
+
+export interface PlanningEvent {
+  id: string;
+  title: string;
+  thisWeek: boolean;
+  conflict: boolean;
+  clearance: Clearance;
+  areas: Area[];
+}
+
+export interface GenerateDraft {
+  id: string;
+  title: string;
+  status: "in_progress" | "review";
+  clearance: Clearance;
+  areas: Area[];
+}
+
+export const RADAR_EVENTS: RadarEvent[] = [
+  {
+    id: "radar-mwc-coverage",
+    kind: "external_signal",
+    title: "Press pickup rising on the MWC 2026 keynote",
+    detail: "Trade press quoting the 5G standalone commitment across Spain and Germany.",
+    hoursAgo: 2,
+    href: "/data",
+    evidenceDocId: "doc-mwc-2026-keynote",
+    axisId: "ax-networks",
+    tone: "default",
+    clearance: "public",
+    areas: ["Comunicación", "Gabinete"],
+  },
+  {
+    id: "radar-q1-results",
+    kind: "knowledge_event",
+    title: "Q1 2026 results added to the governed corpus",
+    detail: "Group revenue and guidance now citable; Q4 2025 marked superseded.",
+    hoursAgo: 6,
+    href: "/data",
+    evidenceDocId: "doc-q1-2026-results",
+    axisId: "ax-core",
+    tone: "default",
+    clearance: "public",
+    areas: ["Comunicación", "Gabinete"],
+  },
+  {
+    id: "radar-brand-refresh",
+    kind: "knowledge_event",
+    title: "Brand Guidelines 2026 updated — colour and voice",
+    detail: "Refreshed guidance on navy usage and the no-emoji voice principle.",
+    hoursAgo: 20,
+    href: "/data",
+    evidenceDocId: "doc-brand-guidelines-2026",
+    axisId: "ax-sustainability",
+    tone: "default",
+    clearance: "internal",
+    areas: ["Marca", "Comunicación"],
+  },
+  {
+    id: "radar-5g-review",
+    kind: "your_queue",
+    title: "5G & Fibre Deployment Plan awaits your review",
+    detail: "Copper-retirement section flagged for validation before it can be cited.",
+    hoursAgo: 26,
+    href: "/data",
+    evidenceDocId: "doc-5g-deployment",
+    axisId: "ax-networks",
+    tone: "warning",
+    clearance: "internal",
+    areas: ["Comunicación"],
+  },
+  {
+    id: "radar-campaign-live",
+    kind: "external_signal",
+    title: "Movistar 'Mismo sitio, mismo precio' campaign in market",
+    detail: "Loyalty and price-transparency campaign now live in Spain.",
+    hoursAgo: 32,
+    href: "/data",
+    evidenceDocId: "doc-campaign-mismo-sitio",
+    axisId: "ax-core",
+    tone: "default",
+    clearance: "internal",
+    areas: ["Marca", "Comunicación"],
+  },
+  {
+    id: "radar-b2b-strategy",
+    kind: "knowledge_event",
+    title: "Telefónica Tech B2B strategy refreshed",
+    detail: "Confidential enterprise growth plan updated with new margin targets.",
+    hoursAgo: 40,
+    href: "/data",
+    evidenceDocId: "doc-tech-b2b-strategy",
+    axisId: "ax-b2b",
+    tone: "default",
+    clearance: "confidential",
+    areas: ["Comunicación", "Gabinete"],
+  },
+  {
+    id: "radar-crisis-drill",
+    kind: "your_queue",
+    title: "Crisis playbook drill scheduled this week",
+    detail: "Confirm the first-hour holding statement owners before the drill.",
+    hoursAgo: 12,
+    href: "/planning",
+    evidenceDocId: "doc-crisis-playbook",
+    axisId: "ax-digital",
+    tone: "warning",
+    clearance: "confidential",
+    areas: ["Comunicación", "Gabinete"],
+  },
+  {
+    id: "radar-atlas-hold",
+    kind: "your_queue",
+    title: "Project Atlas — holding response ready",
+    detail: "Board-restricted memo; no external comment authorised until the Board decides.",
+    hoursAgo: 4,
+    href: "/data",
+    evidenceDocId: "doc-ma-project-atlas",
+    axisId: "ax-core",
+    tone: "warning",
+    clearance: "restricted",
+    areas: ["Gabinete"],
+  },
+];
+
+export const KPI_ITEMS: KpiItem[] = [
+  { id: "kpi-revenue", name: "Group revenue growth", axisId: "ax-core", status: "tracked", clearance: "public", areas: ["Comunicación", "Gabinete"] },
+  { id: "kpi-ebitda", name: "Adjusted EBITDA margin", axisId: "ax-core", status: "tracked", clearance: "public", areas: ["Comunicación", "Gabinete"] },
+  { id: "kpi-netzero", name: "Net-zero trajectory", axisId: "ax-sustainability", status: "tracked", clearance: "public", areas: ["Comunicación", "Gabinete"] },
+  { id: "kpi-5g", name: "5G standalone coverage", axisId: "ax-networks", status: "off_target", clearance: "internal", areas: ["Comunicación"] },
+  { id: "kpi-b2b", name: "B2B & Tech revenue", axisId: "ax-b2b", status: "off_target", clearance: "confidential", areas: ["Comunicación", "Gabinete"] },
+  { id: "kpi-brand", name: "Brand consistency score", axisId: "ax-sustainability", status: "tracked", clearance: "internal", areas: ["Marca", "Comunicación"] },
+];
+
+export const PLANNING_EVENTS: PlanningEvent[] = [
+  { id: "plan-results-briefing", title: "Q1 2026 results media briefing", thisWeek: true, conflict: false, clearance: "public", areas: ["Comunicación", "Gabinete"] },
+  { id: "plan-brand-review", title: "Brand consistency review", thisWeek: true, conflict: false, clearance: "internal", areas: ["Marca"] },
+  { id: "plan-crisis-drill", title: "Crisis playbook drill", thisWeek: true, conflict: true, clearance: "confidential", areas: ["Comunicación", "Gabinete"] },
+  { id: "plan-townhall", title: "Employee town hall follow-up", thisWeek: true, conflict: true, clearance: "internal", areas: ["Comunicación"] },
+  { id: "plan-atlas-checkpoint", title: "Project Atlas board checkpoint", thisWeek: false, conflict: false, clearance: "restricted", areas: ["Gabinete"] },
+];
+
+export const GENERATE_DRAFTS: GenerateDraft[] = [
+  { id: "gen-results-note", title: "Q1 2026 results press note", status: "in_progress", clearance: "public", areas: ["Comunicación", "Gabinete"] },
+  { id: "gen-brand-memo", title: "Brand refresh internal memo", status: "in_progress", clearance: "internal", areas: ["Marca", "Comunicación"] },
+  { id: "gen-5g-briefing", title: "5G coverage briefing", status: "review", clearance: "internal", areas: ["Comunicación"] },
+  { id: "gen-b2b-deck", title: "B2B growth narrative deck", status: "in_progress", clearance: "confidential", areas: ["Comunicación", "Gabinete"] },
+];

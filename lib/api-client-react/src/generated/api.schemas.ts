@@ -293,11 +293,16 @@ export interface CorpusStats {
   totalDocuments: number;
   totalChunks: number;
   quarantined: number;
+  /** Percentage of visible documents whose validity is approved */
+  validatedPercent: number;
+  /** ISO timestamp of the most recent visible knowledge event */
+  lastUpdated: string;
   byCountry: CountBucket[];
   byType: CountBucket[];
   byConfidentiality: CountBucket[];
   byValidity: CountBucket[];
   byAxis: AxisCount[];
+  byLanguage: CountBucket[];
 }
 
 export interface KpiSource {
@@ -618,6 +623,80 @@ export interface PlanningForecast {
   citations: Citation[];
   highlights: PlanningForecastHighlights;
 }
+
+export interface HomeCardStat {
+  /** generate | kpis | planning | ask */
+  app: string;
+  value: number;
+  caption: string;
+  /**
+     * default | warning
+     * @nullable
+     */
+  tone?: string | null;
+  /** @nullable */
+  axisId?: string | null;
+}
+
+export interface HomeSummary {
+  generate: HomeCardStat;
+  kpis: HomeCardStat;
+  planning: HomeCardStat;
+  ask: HomeCardStat;
+}
+
+export interface RadarItem {
+  id: string;
+  /** external_signal | knowledge_event | your_queue */
+  kind: string;
+  title: string;
+  /** @nullable */
+  detail?: string | null;
+  /** ISO timestamp of the event */
+  timestamp: string;
+  /** Relative destination the row navigates to */
+  href: string;
+  /** @nullable */
+  evidenceDocId?: string | null;
+  /** @nullable */
+  evidenceDocTitle?: string | null;
+  /** @nullable */
+  axisId?: string | null;
+  /**
+     * default | warning
+     * @nullable
+     */
+  tone?: string | null;
+}
+
+export type GetCorpusStatsParams = {
+/**
+ * Optional persona id to scope stats by clearance
+ */
+roleId?: string;
+};
+
+export type GetHomeSummaryParams = {
+/**
+ * Active persona id (permission scope)
+ */
+roleId?: string;
+/**
+ * Active area — Comunicación | Marca | Gabinete
+ */
+area?: string;
+};
+
+export type ListRadarParams = {
+/**
+ * Active persona id (permission scope)
+ */
+roleId?: string;
+/**
+ * Active area — Comunicación | Marca | Gabinete
+ */
+area?: string;
+};
 
 export type GetPlanningOverviewParams = {
 roleId: string;

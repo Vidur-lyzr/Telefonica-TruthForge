@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AppProvider } from "@/components/app-provider";
 import { AppLayout } from "@/components/layout";
+import Home from "@/pages/home";
 import Ask from "@/pages/ask";
 import DataPage from "@/pages/data";
 import AdminPage from "@/pages/admin";
@@ -25,7 +26,8 @@ function Router() {
   return (
     <AppLayout>
       <Switch>
-        <Route path="/" component={Ask} />
+        <Route path="/" component={Home} />
+        <Route path="/ask" component={Ask} />
         <Route path="/data" component={DataPage} />
         <Route path="/generate" component={PlaceholderPage} />
         <Route path="/kpis" component={KpisPage} />

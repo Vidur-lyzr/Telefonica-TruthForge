@@ -123,6 +123,17 @@ paths:
       operationId: getCorpusStats
       tags: [knowledge]
       summary: Corpus governance overview (counts and breakdowns)
+      description: >
+        Governance overview of the corpus. When roleId is supplied, counts and
+        breakdowns are filtered to what the persona's clearance may see
+        (fail-closed). When omitted, the full governed corpus is reported.
+      parameters:
+        - name: roleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Optional persona id to scope stats by clearance
       responses:
         "200":
           description: Corpus statistics
@@ -130,6 +141,67 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CorpusStats"
+
+  /home/summary:
+    get:
+      operationId: getHomeSummary
+      tags: [knowledge]
+      summary: Preview counts for the four Home app cards
+      description: >
+        Returns one live preview number per app (Generate, KPIs, Planning, Ask),
+        scoped to what the active persona's clearance may see (fail-closed).
+      parameters:
+        - name: roleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Active persona id (permission scope)
+        - name: area
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Active area — Comunicación | Marca | Gabinete
+      responses:
+        "200":
+          description: Home summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HomeSummary"
+
+  /radar:
+    get:
+      operationId: listRadar
+      tags: [knowledge]
+      summary: Permission-aware radar of what changed
+      description: >
+        Things that moved — external signals, knowledge events, and the
+        persona's own queue — filtered to the persona's clearance (fail-closed)
+        and ordered most-recent-first.
+      parameters:
+        - name: roleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Active persona id (permission scope)
+        - name: area
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Active area — Comunicación | Marca | Gabinete
+      responses:
+        "200":
+          description: Radar items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RadarItem"
 
   /documents/{id}:
     get:
@@ -953,7 +1025,7 @@ components:
     CorpusStats:
       type: object
       required:
-        [totalDocuments, totalChunks, quarantined, byCountry, byType, byConfidentiality, byValidity, byAxis]
+        [totalDocuments, totalChunks, quarantined, validatedPercent, lastUpdated, byCountry, byType, byConfidentiality, byValidity, byAxis, byLanguage]
       properties:
         totalDocuments:
           type: integer
@@ -961,6 +1033,12 @@ components:
           type: integer
         quarantined:
           type: integer
+        validatedPercent:
+          type: integer
+          description: Percentage of visible documents whose validity is approved
+        lastUpdated:
+          type: string
+          description: ISO timestamp of the most recent visible knowledge event
         byCountry:
           type: array
           items:
@@ -981,6 +1059,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/AxisCount"
+        byLanguage:
+          type: array
+          items:
+            $ref: "#/components/schemas/CountBucket"
 
     KpiSource:
       type: object
@@ -1598,3 +1680,62 @@ components:
               type: integer
             riskCount:
               type: integer
+
+    HomeCardStat:
+      type: object
+      required: [app, value, caption]
+      properties:
+        app:
+          type: string
+          description: generate | kpis | planning | ask
+        value:
+          type: integer
+        caption:
+          type: string
+        tone:
+          type: ["string", "null"]
+          description: default | warning
+        axisId:
+          type: ["string", "null"]
+
+    HomeSummary:
+      type: object
+      required: [generate, kpis, planning, ask]
+      properties:
+        generate:
+          $ref: "#/components/schemas/HomeCardStat"
+        kpis:
+          $ref: "#/components/schemas/HomeCardStat"
+        planning:
+          $ref: "#/components/schemas/HomeCardStat"
+        ask:
+          $ref: "#/components/schemas/HomeCardStat"
+
+    RadarItem:
+      type: object
+      required: [id, kind, title, timestamp, href]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          description: external_signal | knowledge_event | your_queue
+        title:
+          type: string
+        detail:
+          type: ["string", "null"]
+        timestamp:
+          type: string
+          description: ISO timestamp of the event
+        href:
+          type: string
+          description: Relative destination the row navigates to
+        evidenceDocId:
+          type: ["string", "null"]
+        evidenceDocTitle:
+          type: ["string", "null"]
+        axisId:
+          type: ["string", "null"]
+        tone:
+          type: ["string", "null"]
+          description: default | warning

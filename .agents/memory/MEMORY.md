@@ -4,3 +4,4 @@
 - [Ask conflict vs corroboration](ask-conflict-vs-corroboration.md) — conflict only from top-2 permitted sources; corroboration/low-confidence count over corpus/distinct-cited-docs, not retrieved chunks.
 - [Ask governed memory](ask-governed-memory.md) — conversation memory must be persona-scoped sessions; filter history by current roleId so lower-clearance persona never inherits higher-clearance turns.
 - [API server is build-once](api-server-build-once.md) — the api-server dev workflow builds then serves; edits to server code/corpus need a workflow restart (not HMR) before curl reflects them.
+- [Orval hook query options](orval-query-options.md) — generated React Query hooks require queryKey in `query` options; passing bare `{ query: { enabled } }` fails typecheck. Omit options or reuse getGetXQueryOptions.

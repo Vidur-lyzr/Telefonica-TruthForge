@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import {
   useAsk,
   useListSuggestions,
@@ -172,6 +172,9 @@ export default function Ask() {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const autoRanRef = useRef<string | null>(null);
+
+  const search = useSearch();
 
   const { data: suggestions } = useListSuggestions();
   const { data: axes } = useListAxes();
@@ -345,6 +348,18 @@ export default function Ask() {
       handleAsk(input);
     }
   };
+
+  // Home front door handoff: a `?q=` param (e.g. from the Home ask bar) is
+  // auto-run once per distinct query, but only once a persona is selected so the
+  // request is governed. Guarded by a ref so re-renders never re-fire it.
+  useEffect(() => {
+    if (!roleId) return;
+    const q = new URLSearchParams(search).get("q")?.trim();
+    if (!q || autoRanRef.current === q) return;
+    autoRanRef.current = q;
+    handleAsk(q);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, roleId]);
 
   const newConversation = () => {
     setActiveId(null);

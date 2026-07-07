@@ -12,9 +12,14 @@ export interface CorpusStats {
   totalDocuments: number;
   totalChunks: number;
   quarantined: number;
+  /** Percentage of visible documents whose validity is approved */
+  validatedPercent: number;
+  /** ISO timestamp of the most recent visible knowledge event */
+  lastUpdated: string;
   byCountry: CountBucket[];
   byType: CountBucket[];
   byConfidentiality: CountBucket[];
   byValidity: CountBucket[];
   byAxis: AxisCount[];
+  byLanguage: CountBucket[];
 }

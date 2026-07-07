@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useApp } from "./app-provider";
 import { useListRoles } from "@workspace/api-client-react";
 import { 
-  MessageSquare, Sparkles, LineChart, Calendar, BookOpen, 
+  Home, MessageSquare, Sparkles, LineChart, Calendar, BookOpen, 
   Database, Settings, ShieldCheck, ChevronDown, Check
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,7 +21,8 @@ const navGroups = [
   {
     label: "Workspace",
     items: [
-      { name: "Ask", path: "/", icon: MessageSquare },
+      { name: "Home", path: "/", icon: Home },
+      { name: "Ask", path: "/ask", icon: MessageSquare },
       { name: "Generate", path: "/generate", icon: Sparkles },
       { name: "KPIs", path: "/kpis", icon: LineChart },
       { name: "Planning", path: "/planning", icon: Calendar },
@@ -91,10 +92,10 @@ function Topbar() {
 
   return (
     <header className="h-16 border-b border-border bg-white flex items-center justify-between px-6 flex-shrink-0 space-x-4 sticky top-0 z-10">
-      <div className="flex items-center space-x-3">
+      <Link href="/" className="flex items-center space-x-3 group" aria-label="Go to Home">
         <img src={logoBlue} alt="Telefónica" className="h-6" />
-        <span className="font-bold tracking-tight text-lg text-tf-navy border-l pl-3 border-border">Hub SSoT</span>
-      </div>
+        <span className="font-bold tracking-tight text-lg text-tf-navy border-l pl-3 border-border group-hover:text-tf-blue transition-colors">Hub SSoT</span>
+      </Link>
 
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">

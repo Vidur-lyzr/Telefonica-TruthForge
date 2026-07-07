@@ -28,16 +28,20 @@ import type {
   CorpusDocumentDetail,
   CorpusStats,
   ErrorResponse,
+  GetCorpusStatsParams,
+  GetHomeSummaryParams,
   GetPlanningEventParams,
   GetPlanningInsightsParams,
   GetPlanningOverviewParams,
   HealthStatus,
+  HomeSummary,
   KpiAskInput,
   KpiDetail,
   KpiDetailInput,
   KpiQueryInput,
   KpiQueryResult,
   ListPlanningEventsParams,
+  ListRadarParams,
   PlanningAskInput,
   PlanningAskResult,
   PlanningEvent,
@@ -47,6 +51,7 @@ import type {
   PlanningInsights,
   PlanningOverview,
   PlatformUser,
+  RadarItem,
   Role,
   ScheduledDocument,
   StrategicAxis,
@@ -538,20 +543,28 @@ export function useListDocuments<TData = Awaited<ReturnType<typeof listDocuments
 
 
 
-export const getGetCorpusStatsUrl = () => {
+export const getGetCorpusStatsUrl = (params?: GetCorpusStatsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/corpus/stats`
+  return stringifiedParams.length > 0 ? `/api/corpus/stats?${stringifiedParams}` : `/api/corpus/stats`
 }
 
 /**
+ * Governance overview of the corpus. When roleId is supplied, counts and breakdowns are filtered to what the persona's clearance may see (fail-closed). When omitted, the full governed corpus is reported.
  * @summary Corpus governance overview (counts and breakdowns)
  */
-export const getCorpusStats = async ( options?: RequestInit): Promise<CorpusStats> => {
+export const getCorpusStats = async (params?: GetCorpusStatsParams, options?: RequestInit): Promise<CorpusStats> => {
 
-  return customFetch<CorpusStats>(getGetCorpusStatsUrl(),
+  return customFetch<CorpusStats>(getGetCorpusStatsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -564,23 +577,23 @@ export const getCorpusStats = async ( options?: RequestInit): Promise<CorpusStat
 
 
 
-export const getGetCorpusStatsQueryKey = () => {
+export const getGetCorpusStatsQueryKey = (params?: GetCorpusStatsParams,) => {
     return [
-    `/api/corpus/stats`
+    `/api/corpus/stats`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetCorpusStatsQueryOptions = <TData = Awaited<ReturnType<typeof getCorpusStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCorpusStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetCorpusStatsQueryOptions = <TData = Awaited<ReturnType<typeof getCorpusStats>>, TError = ErrorType<unknown>>(params?: GetCorpusStatsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCorpusStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetCorpusStatsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetCorpusStatsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCorpusStats>>> = ({ signal }) => getCorpusStats({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCorpusStats>>> = ({ signal }) => getCorpusStats(params, { signal, ...requestOptions });
 
 
 
@@ -598,11 +611,181 @@ export type GetCorpusStatsQueryError = ErrorType<unknown>
  */
 
 export function useGetCorpusStats<TData = Awaited<ReturnType<typeof getCorpusStats>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCorpusStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: GetCorpusStatsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCorpusStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetCorpusStatsQueryOptions(options)
+  const queryOptions = getGetCorpusStatsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetHomeSummaryUrl = (params?: GetHomeSummaryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/home/summary?${stringifiedParams}` : `/api/home/summary`
+}
+
+/**
+ * Returns one live preview number per app (Generate, KPIs, Planning, Ask), scoped to what the active persona's clearance may see (fail-closed).
+ * @summary Preview counts for the four Home app cards
+ */
+export const getHomeSummary = async (params?: GetHomeSummaryParams, options?: RequestInit): Promise<HomeSummary> => {
+
+  return customFetch<HomeSummary>(getGetHomeSummaryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetHomeSummaryQueryKey = (params?: GetHomeSummaryParams,) => {
+    return [
+    `/api/home/summary`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetHomeSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getHomeSummary>>, TError = ErrorType<unknown>>(params?: GetHomeSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHomeSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHomeSummaryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHomeSummary>>> = ({ signal }) => getHomeSummary(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getHomeSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetHomeSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getHomeSummary>>>
+export type GetHomeSummaryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Preview counts for the four Home app cards
+ */
+
+export function useGetHomeSummary<TData = Awaited<ReturnType<typeof getHomeSummary>>, TError = ErrorType<unknown>>(
+ params?: GetHomeSummaryParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getHomeSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetHomeSummaryQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListRadarUrl = (params?: ListRadarParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/radar?${stringifiedParams}` : `/api/radar`
+}
+
+/**
+ * Things that moved — external signals, knowledge events, and the persona's own queue — filtered to the persona's clearance (fail-closed) and ordered most-recent-first.
+ * @summary Permission-aware radar of what changed
+ */
+export const listRadar = async (params?: ListRadarParams, options?: RequestInit): Promise<RadarItem[]> => {
+
+  return customFetch<RadarItem[]>(getListRadarUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRadarQueryKey = (params?: ListRadarParams,) => {
+    return [
+    `/api/radar`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListRadarQueryOptions = <TData = Awaited<ReturnType<typeof listRadar>>, TError = ErrorType<unknown>>(params?: ListRadarParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRadar>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRadarQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRadar>>> = ({ signal }) => listRadar(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRadar>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRadarQueryResult = NonNullable<Awaited<ReturnType<typeof listRadar>>>
+export type ListRadarQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Permission-aware radar of what changed
+ */
+
+export function useListRadar<TData = Awaited<ReturnType<typeof listRadar>>, TError = ErrorType<unknown>>(
+ params?: ListRadarParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRadar>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRadarQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

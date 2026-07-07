@@ -180,12 +180,19 @@ export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
 
 
 /**
+ * Governance overview of the corpus. When roleId is supplied, counts and breakdowns are filtered to what the persona's clearance may see (fail-closed). When omitted, the full governed corpus is reported.
  * @summary Corpus governance overview (counts and breakdowns)
  */
+export const GetCorpusStatsQueryParams = zod.object({
+  "roleId": zod.coerce.string().optional().describe('Optional persona id to scope stats by clearance')
+})
+
 export const GetCorpusStatsResponse = zod.object({
   "totalDocuments": zod.number(),
   "totalChunks": zod.number(),
   "quarantined": zod.number(),
+  "validatedPercent": zod.number().describe('Percentage of visible documents whose validity is approved'),
+  "lastUpdated": zod.string().describe('ISO timestamp of the most recent visible knowledge event'),
   "byCountry": zod.array(zod.object({
   "key": zod.string(),
   "count": zod.number()
@@ -205,8 +212,77 @@ export const GetCorpusStatsResponse = zod.object({
   "byAxis": zod.array(zod.object({
   "axisId": zod.string(),
   "count": zod.number()
+})),
+  "byLanguage": zod.array(zod.object({
+  "key": zod.string(),
+  "count": zod.number()
 }))
 })
+
+
+/**
+ * Returns one live preview number per app (Generate, KPIs, Planning, Ask), scoped to what the active persona's clearance may see (fail-closed).
+ * @summary Preview counts for the four Home app cards
+ */
+export const GetHomeSummaryQueryParams = zod.object({
+  "roleId": zod.coerce.string().optional().describe('Active persona id (permission scope)'),
+  "area": zod.coerce.string().optional().describe('Active area — Comunicación | Marca | Gabinete')
+})
+
+export const GetHomeSummaryResponse = zod.object({
+  "generate": zod.object({
+  "app": zod.string().describe('generate | kpis | planning | ask'),
+  "value": zod.number(),
+  "caption": zod.string(),
+  "tone": zod.string().nullish().describe('default | warning'),
+  "axisId": zod.string().nullish()
+}),
+  "kpis": zod.object({
+  "app": zod.string().describe('generate | kpis | planning | ask'),
+  "value": zod.number(),
+  "caption": zod.string(),
+  "tone": zod.string().nullish().describe('default | warning'),
+  "axisId": zod.string().nullish()
+}),
+  "planning": zod.object({
+  "app": zod.string().describe('generate | kpis | planning | ask'),
+  "value": zod.number(),
+  "caption": zod.string(),
+  "tone": zod.string().nullish().describe('default | warning'),
+  "axisId": zod.string().nullish()
+}),
+  "ask": zod.object({
+  "app": zod.string().describe('generate | kpis | planning | ask'),
+  "value": zod.number(),
+  "caption": zod.string(),
+  "tone": zod.string().nullish().describe('default | warning'),
+  "axisId": zod.string().nullish()
+})
+})
+
+
+/**
+ * Things that moved — external signals, knowledge events, and the persona's own queue — filtered to the persona's clearance (fail-closed) and ordered most-recent-first.
+ * @summary Permission-aware radar of what changed
+ */
+export const ListRadarQueryParams = zod.object({
+  "roleId": zod.coerce.string().optional().describe('Active persona id (permission scope)'),
+  "area": zod.coerce.string().optional().describe('Active area — Comunicación | Marca | Gabinete')
+})
+
+export const ListRadarResponseItem = zod.object({
+  "id": zod.string(),
+  "kind": zod.string().describe('external_signal | knowledge_event | your_queue'),
+  "title": zod.string(),
+  "detail": zod.string().nullish(),
+  "timestamp": zod.string().describe('ISO timestamp of the event'),
+  "href": zod.string().describe('Relative destination the row navigates to'),
+  "evidenceDocId": zod.string().nullish(),
+  "evidenceDocTitle": zod.string().nullish(),
+  "axisId": zod.string().nullish(),
+  "tone": zod.string().nullish().describe('default | warning')
+})
+export const ListRadarResponse = zod.array(ListRadarResponseItem)
 
 
 /**
