@@ -9,6 +9,7 @@ export interface RetrievedChunk {
   chunkId: string;
   docId: string;
   score: number;
+  coverage: number;
   heading: string;
   breadcrumb: string;
   text: string;
@@ -75,11 +76,19 @@ export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
   const qSet = new Set(qTerms);
   const roleRank = CLEARANCE_RANK[clearance];
 
+  // Total idf mass of the query. Absent terms (df = 0) get a naturally high idf,
+  // so a question full of terms the corpus has never seen keeps its denominator
+  // large and its coverage low — that is what starves red-herring matches.
+  const queryIdfMass =
+    Array.from(qSet).reduce((sum, t) => sum + idf(t), 0) || 1;
+
   const scored = index.map((chunk) => {
     let score = 0;
+    let matchedMass = 0;
     for (const term of qSet) {
       const tf = chunk.termFreq.get(term);
       if (!tf) continue;
+      matchedMass += idf(term);
       const denom = tf + BM25_K1 * (1 - BM25_B + (BM25_B * chunk.length) / avgLen);
       score += idf(term) * ((tf * (BM25_K1 + 1)) / denom);
     }
@@ -88,7 +97,7 @@ export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
     for (const term of qSet) {
       if (term.length > 4 && lowerText.includes(term)) score += 0.15;
     }
-    return { chunk, score };
+    return { chunk, score, coverage: matchedMass / queryIdfMass };
   });
 
   const relevant = scored
@@ -96,10 +105,11 @@ export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
     .sort((a, b) => b.score - a.score)
     .slice(0, Math.max(topK, 8));
 
-  return relevant.map(({ chunk, score }) => ({
+  return relevant.map(({ chunk, score, coverage }) => ({
     chunkId: chunk.chunkId,
     docId: chunk.docId,
     score: Number(score.toFixed(4)),
+    coverage: Number(coverage.toFixed(4)),
     heading: chunk.heading,
     breadcrumb: chunk.breadcrumb,
     text: chunk.text,

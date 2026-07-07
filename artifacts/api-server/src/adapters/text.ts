@@ -7,6 +7,11 @@ const STOPWORDS = new Set([
   "when", "where", "why", "do", "does", "did", "has", "have", "had", "will",
   "would", "can", "could", "should", "about", "into", "over", "any", "all",
   "s", "our", "we", "you", "your", "their", "there", "here",
+  // conversational filler — non-content words that would otherwise inflate the
+  // query idf denominator and hurt coverage recall on chatty questions.
+  "please", "tell", "give", "show", "let", "us", "me", "my", "want", "need",
+  "know", "get", "current", "latest", "recent", "overall", "just", "kindly",
+  "some", "much", "many", "explain", "regarding",
 ]);
 
 export function tokenize(text: string): string[] {

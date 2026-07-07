@@ -16,7 +16,10 @@ import { traverse } from "../adapters/kg";
 import { CLEARANCE_RANK, ROLES, type Clearance } from "../data/corpus";
 
 const MODEL = "claude-sonnet-4-6";
-const RELEVANCE_MIN = 1.1;
+// A chunk counts as relevant only if it covers a meaningful share of the query's
+// idf mass. This keeps generic brand words (e.g. "Telefónica") or stray verbs
+// (e.g. "strategy") from making an unrelated public doc look like an answer.
+const COVERAGE_MIN = 0.33;
 const MAX_SOURCES = 4;
 
 export interface AskAgentInput {
@@ -86,7 +89,7 @@ export async function runAskAgent(
   const clearance: Clearance = role.clearance;
 
   const retrieved = retrieve({ question: input.question, clearance, topK: 8 });
-  const relevant = retrieved.filter((c) => c.score >= RELEVANCE_MIN);
+  const relevant = retrieved.filter((c) => c.coverage >= COVERAGE_MIN);
   const permitted = relevant.filter((c) => c.accessible);
   const blocked = relevant.filter((c) => !c.accessible);
 
@@ -139,10 +142,13 @@ export async function runAskAgent(
   const sources = permitted.slice(0, MAX_SOURCES);
   const topScore = sources[0]?.score ?? 1;
   const numericFact = numericQuery(input.question);
-  const numericAccessible =
+  const numericDoc = numericFact ? resolveDoc(numericFact.docId) : undefined;
+  // Fail closed: a metric whose source doc is missing is treated as inaccessible.
+  const numericAccessible = Boolean(
     numericFact &&
-    CLEARANCE_RANK[resolveDoc(numericFact.docId)?.confidentiality ?? "public"] <=
-      CLEARANCE_RANK[clearance];
+      numericDoc &&
+      CLEARANCE_RANK[numericDoc.confidentiality] <= CLEARANCE_RANK[clearance],
+  );
 
   const sourceBlock = sources
     .map((s, i) => {
@@ -151,9 +157,10 @@ export async function runAskAgent(
     })
     .join("\n\n");
 
-  const numericLine = numericAccessible
-    ? `\n\nGoverned metric available: ${numericFact.label} = ${numericFact.value}${numericFact.unit ? " " + numericFact.unit : ""} (${numericFact.period}, from ${numericFact.source}). If relevant, state this figure and cite its source.`
-    : "";
+  const numericLine =
+    numericAccessible && numericFact
+      ? `\n\nGoverned metric available: ${numericFact.label} = ${numericFact.value}${numericFact.unit ? " " + numericFact.unit : ""} (${numericFact.period}, from ${numericFact.source}). If relevant, state this figure and cite its source.`
+      : "";
 
   const systemPrompt = [
     "You are the answering engine of Telefónica's Hub SSoT, a governed single source of truth for the Communication and Brand teams.",
@@ -184,16 +191,25 @@ export async function runAskAgent(
   }
   if (!answer) answer = `${sources[0].text} [S1]`;
 
-  // Keep only the sources the answer actually referenced (fallback to the top one).
-  const referenced = sources.filter((_, i) => answer.includes(`[S${i + 1}]`));
-  const used = referenced.length > 0 ? referenced : [sources[0]];
+  // Which provided sources did the answer actually reference? Scan every S-number
+  // (handles composite markers like [S1, S2] and ignores hallucinated markers
+  // outside the 1..sources.length range). Fall back to the top source if none.
+  const referencedOld = new Set<number>();
+  for (const m of answer.matchAll(/S\s*(\d+)/gi)) {
+    const n = Number(m[1]);
+    if (n >= 1 && n <= sources.length) referencedOld.add(n);
+  }
+  const usedOld =
+    referencedOld.size > 0 ? [...referencedOld].sort((a, b) => a - b) : [1];
+  const oldToNew = new Map<number, number>();
+  usedOld.forEach((oldN, i) => oldToNew.set(oldN, i + 1));
 
-  const citations: Citation[] = used.map((s) => {
+  const citations: Citation[] = usedOld.map((oldN) => {
+    const s = sources[oldN - 1];
     const doc = resolveDoc(s.docId);
-    const idx = sources.indexOf(s);
     const isNumericDoc = numericAccessible && numericFact?.docId === s.docId;
     return {
-      id: `S${idx + 1}`,
+      id: `S${oldToNew.get(oldN)}`,
       docId: s.docId,
       docTitle: doc?.title ?? s.docId,
       sourceLoc: s.breadcrumb,
@@ -204,23 +220,30 @@ export async function runAskAgent(
       confidentiality: doc?.confidentiality ?? "public",
       validity: doc?.validity ?? "approved",
       snippet: s.text,
-      value: isNumericDoc ? `${numericFact.value}${numericFact.unit ? " " + numericFact.unit : ""}` : null,
+      value: isNumericDoc && numericFact ? `${numericFact.value}${numericFact.unit ? " " + numericFact.unit : ""}` : null,
       country: doc?.country ?? null,
       brand: doc?.brand ?? null,
       axisIds: doc?.axisIds ?? [],
     };
   });
 
-  // Re-number citation markers so they are contiguous S1..Sn in both text and chips.
-  let finalAnswer = answer;
-  citations.forEach((c, newIdx) => {
-    const oldMarker = new RegExp(`\\[${c.id}\\]`, "g");
-    finalAnswer = finalAnswer.replace(oldMarker, `[[S${newIdx + 1}]]`);
-    c.id = `S${newIdx + 1}`;
-  });
-  finalAnswer = finalAnswer.replace(/\[\[S(\d+)\]\]/g, "[S$1]");
+  // Rewrite every citation bracket: renumber used sources to contiguous S1..Sn and
+  // drop any marker (or number within a composite marker) that has no matching chip.
+  const finalAnswer = answer
+    .replace(/\[([^\]]*)\]/g, (whole, inner: string) => {
+      if (!/S\s*\d/i.test(inner)) return whole; // not a citation bracket
+      const mapped = [...inner.matchAll(/S\s*(\d+)/gi)]
+        .map((mm) => oldToNew.get(Number(mm[1])))
+        .filter((n): n is number => n !== undefined);
+      const uniq = [...new Set(mapped)].sort((a, b) => a - b);
+      if (uniq.length === 0) return "";
+      return `[${uniq.map((n) => `S${n}`).join(", ")}]`;
+    })
+    .replace(/\s+([.,;:])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
 
-  const citedDocs = used.map((s) => resolveDoc(s.docId));
+  const citedDocs = usedOld.map((oldN) => resolveDoc(sources[oldN - 1].docId));
   const historicDocs = citedDocs.filter(
     (d) => d && (d.validity === "historic" || d.validity === "superseded"),
   );
@@ -248,15 +271,16 @@ export async function runAskAgent(
     historic,
     historicNote,
     axisIds,
-    numeric: numericAccessible
-      ? {
-          label: numericFact.label,
-          value: numericFact.value,
-          unit: numericFact.unit,
-          period: numericFact.period,
-          source: numericFact.source,
-        }
-      : null,
+    numeric:
+      numericAccessible && numericFact
+        ? {
+            label: numericFact.label,
+            value: numericFact.value,
+            unit: numericFact.unit,
+            period: numericFact.period,
+            source: numericFact.source,
+          }
+        : null,
     relatedEntities,
   };
 }

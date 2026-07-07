@@ -1,0 +1,1 @@
+- [Coverage-based retrieval relevance](coverage-retrieval.md) — rank Ask relevance by query-idf coverage, not absolute BM25; don't cap absent-term idf (breaks no_evidence).
