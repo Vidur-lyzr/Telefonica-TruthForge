@@ -8,6 +8,7 @@ import planningRouter from "./planning";
 import generateRouter from "./generate";
 import wikiRouter from "./wiki";
 import dataRouter from "./data";
+import brandRouter from "./brand";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(planningRouter);
 router.use(generateRouter);
 router.use(wikiRouter);
 router.use(dataRouter);
+router.use(brandRouter);
 
 export default router;

@@ -13,6 +13,7 @@ import KpisPage from "@/pages/kpis";
 import Planning from "@/pages/planning";
 import Generate from "@/pages/generate";
 import Wiki from "@/pages/wiki";
+import BrandPage from "@/pages/brand";
 import PlaceholderPage from "@/pages/placeholder";
 
 const queryClient = new QueryClient({
@@ -36,7 +37,7 @@ function Router() {
         <Route path="/planning" component={Planning} />
         <Route path="/wiki" component={Wiki} />
         <Route path="/admin" component={AdminPage} />
-        <Route path="/brand" component={PlaceholderPage} />
+        <Route path="/brand" component={BrandPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

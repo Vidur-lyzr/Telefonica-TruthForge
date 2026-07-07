@@ -5,6 +5,90 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+export interface BrandTemplateSection {
+  key: string;
+  label: string;
+  kind: string;
+  perAxis: boolean;
+}
+
+export interface BrandTemplateDisclaimer {
+  id: string;
+  name: string;
+  text: string;
+}
+
+export interface BrandTemplate {
+  id: string;
+  shape: string;
+  name: string;
+  description: string;
+  clearance: string;
+  sections: BrandTemplateSection[];
+  disclaimers: BrandTemplateDisclaimer[];
+}
+
+export interface BrandTemplatesView {
+  personaClearance: string;
+  blockedCount: number;
+  templates: BrandTemplate[];
+}
+
+export interface TonePrinciple {
+  id: string;
+  title: string;
+  guidance: string;
+  dos: string[];
+  donts: string[];
+}
+
+export interface BrandRule {
+  id: string;
+  rule: string;
+  severity: string;
+  detail: string;
+}
+
+export interface ProhibitedPhrase {
+  id: string;
+  phrase: string;
+  reason: string;
+  rewrite: string;
+}
+
+export interface SpellingPref {
+  american: string;
+  european: string;
+}
+
+export interface BrandToneView {
+  principles: TonePrinciple[];
+  rules: BrandRule[];
+  prohibited: ProhibitedPhrase[];
+  spelling: SpellingPref[];
+}
+
+export interface BrandResource {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  detail: string;
+  format: string;
+  clearance: string;
+  validity: string;
+}
+
+export interface BrandResourcesView {
+  personaClearance: string;
+  blockedCount: number;
+  resources: BrandResource[];
+}
+
+export interface BrandCheckInput {
+  text: string;
+}
+
 export interface DraftSection {
   id: string;
   kind: string;
@@ -1334,5 +1418,19 @@ roleId: string;
 
 export type ListWikiLineageParams = {
 roleId: string;
+};
+
+export type GetBrandTemplatesParams = {
+/**
+ * Active persona id (permission scope)
+ */
+roleId?: string;
+};
+
+export type GetBrandResourcesParams = {
+/**
+ * Active persona id (permission scope)
+ */
+roleId?: string;
 };
 

@@ -25,6 +25,10 @@ import type {
   AskInput,
   AskResult,
   AuditEntry,
+  BrandCheckInput,
+  BrandResourcesView,
+  BrandTemplatesView,
+  BrandToneView,
   CheckInput,
   CorpusDocument,
   CorpusDocumentDetail,
@@ -38,6 +42,8 @@ import type {
   GeneratedAssets,
   GeneratedDraft,
   GenerationJob,
+  GetBrandResourcesParams,
+  GetBrandTemplatesParams,
   GetCorpusStatsParams,
   GetHomeSummaryParams,
   GetPlanningEventParams,
@@ -3789,4 +3795,322 @@ export function useListDocumentFreshness<TData = Awaited<ReturnType<typeof listD
 
 
 
+
+export const getGetBrandTemplatesUrl = (params?: GetBrandTemplatesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/brand/templates?${stringifiedParams}` : `/api/brand/templates`
+}
+
+/**
+ * The brand-approved document templates. Templates are internal brand governance material, so a lower-clearance persona receives an empty set with a blocked count rather than the templates themselves (fail-closed).
+ * @summary Governed document templates, permission-filtered by persona clearance
+ */
+export const getBrandTemplates = async (params?: GetBrandTemplatesParams, options?: RequestInit): Promise<BrandTemplatesView> => {
+
+  return customFetch<BrandTemplatesView>(getGetBrandTemplatesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrandTemplatesQueryKey = (params?: GetBrandTemplatesParams,) => {
+    return [
+    `/api/brand/templates`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBrandTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof getBrandTemplates>>, TError = ErrorType<unknown>>(params?: GetBrandTemplatesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrandTemplatesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrandTemplates>>> = ({ signal }) => getBrandTemplates(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBrandTemplates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBrandTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof getBrandTemplates>>>
+export type GetBrandTemplatesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Governed document templates, permission-filtered by persona clearance
+ */
+
+export function useGetBrandTemplates<TData = Awaited<ReturnType<typeof getBrandTemplates>>, TError = ErrorType<unknown>>(
+ params?: GetBrandTemplatesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBrandTemplatesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBrandToneUrl = () => {
+
+
+
+
+  return `/api/brand/tone`
+}
+
+/**
+ * @summary Tone-of-voice principles, hard rules, prohibited phrases and spelling
+ */
+export const getBrandTone = async ( options?: RequestInit): Promise<BrandToneView> => {
+
+  return customFetch<BrandToneView>(getGetBrandToneUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrandToneQueryKey = () => {
+    return [
+    `/api/brand/tone`
+    ] as const;
+    }
+
+
+export const getGetBrandToneQueryOptions = <TData = Awaited<ReturnType<typeof getBrandTone>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandTone>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrandToneQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrandTone>>> = ({ signal }) => getBrandTone({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBrandTone>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBrandToneQueryResult = NonNullable<Awaited<ReturnType<typeof getBrandTone>>>
+export type GetBrandToneQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Tone-of-voice principles, hard rules, prohibited phrases and spelling
+ */
+
+export function useGetBrandTone<TData = Awaited<ReturnType<typeof getBrandTone>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandTone>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBrandToneQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBrandResourcesUrl = (params?: GetBrandResourcesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/brand/resources?${stringifiedParams}` : `/api/brand/resources`
+}
+
+/**
+ * Corporate brand resources across identity, messaging, legal and reference. Each resource carries its own clearance and is filtered to what the persona may see before it is returned (fail-closed).
+ * @summary Governed brand resources, permission-filtered by persona clearance
+ */
+export const getBrandResources = async (params?: GetBrandResourcesParams, options?: RequestInit): Promise<BrandResourcesView> => {
+
+  return customFetch<BrandResourcesView>(getGetBrandResourcesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrandResourcesQueryKey = (params?: GetBrandResourcesParams,) => {
+    return [
+    `/api/brand/resources`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBrandResourcesQueryOptions = <TData = Awaited<ReturnType<typeof getBrandResources>>, TError = ErrorType<unknown>>(params?: GetBrandResourcesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandResources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrandResourcesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrandResources>>> = ({ signal }) => getBrandResources(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBrandResources>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBrandResourcesQueryResult = NonNullable<Awaited<ReturnType<typeof getBrandResources>>>
+export type GetBrandResourcesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Governed brand resources, permission-filtered by persona clearance
+ */
+
+export function useGetBrandResources<TData = Awaited<ReturnType<typeof getBrandResources>>, TError = ErrorType<unknown>>(
+ params?: GetBrandResourcesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandResources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBrandResourcesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCheckBrandTextUrl = () => {
+
+
+
+
+  return `/api/brand/check`
+}
+
+/**
+ * Deterministic brand check over pasted prose — emoji, unapproved superlatives, shouted lines, American spelling and uncited figures — returning the same verdict shape as the document export gate.
+ * @summary Run the live Brand Guardian over arbitrary text
+ */
+export const checkBrandText = async (brandCheckInput: BrandCheckInput, options?: RequestInit): Promise<GuardianResult> => {
+
+  return customFetch<GuardianResult>(getCheckBrandTextUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(brandCheckInput)
+  }
+);}
+
+
+
+
+export const getCheckBrandTextMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkBrandText>>, TError,{data: BodyType<BrandCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof checkBrandText>>, TError,{data: BodyType<BrandCheckInput>}, TContext> => {
+
+const mutationKey = ['checkBrandText'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkBrandText>>, {data: BodyType<BrandCheckInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  checkBrandText(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckBrandTextMutationResult = NonNullable<Awaited<ReturnType<typeof checkBrandText>>>
+    export type CheckBrandTextMutationBody = BodyType<BrandCheckInput>
+    export type CheckBrandTextMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Run the live Brand Guardian over arbitrary text
+ */
+export const useCheckBrandText = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkBrandText>>, TError,{data: BodyType<BrandCheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof checkBrandText>>,
+        TError,
+        {data: BodyType<BrandCheckInput>},
+        TContext
+      > => {
+      return useMutation(getCheckBrandTextMutationOptions(options));
+    }
 

@@ -2965,3 +2965,109 @@ export const ListDocumentFreshnessResponseItem = zod.object({
 export const ListDocumentFreshnessResponse = zod.array(ListDocumentFreshnessResponseItem)
 
 
+/**
+ * The brand-approved document templates. Templates are internal brand governance material, so a lower-clearance persona receives an empty set with a blocked count rather than the templates themselves (fail-closed).
+ * @summary Governed document templates, permission-filtered by persona clearance
+ */
+export const GetBrandTemplatesQueryParams = zod.object({
+  "roleId": zod.coerce.string().optional().describe('Active persona id (permission scope)')
+})
+
+export const GetBrandTemplatesResponse = zod.object({
+  "personaClearance": zod.string(),
+  "blockedCount": zod.number(),
+  "templates": zod.array(zod.object({
+  "id": zod.string(),
+  "shape": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "clearance": zod.string(),
+  "sections": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "kind": zod.string(),
+  "perAxis": zod.boolean()
+})),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+}))
+}))
+})
+
+
+/**
+ * @summary Tone-of-voice principles, hard rules, prohibited phrases and spelling
+ */
+export const GetBrandToneResponse = zod.object({
+  "principles": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "guidance": zod.string(),
+  "dos": zod.array(zod.string()),
+  "donts": zod.array(zod.string())
+})),
+  "rules": zod.array(zod.object({
+  "id": zod.string(),
+  "rule": zod.string(),
+  "severity": zod.string(),
+  "detail": zod.string()
+})),
+  "prohibited": zod.array(zod.object({
+  "id": zod.string(),
+  "phrase": zod.string(),
+  "reason": zod.string(),
+  "rewrite": zod.string()
+})),
+  "spelling": zod.array(zod.object({
+  "american": zod.string(),
+  "european": zod.string()
+}))
+})
+
+
+/**
+ * Corporate brand resources across identity, messaging, legal and reference. Each resource carries its own clearance and is filtered to what the persona may see before it is returned (fail-closed).
+ * @summary Governed brand resources, permission-filtered by persona clearance
+ */
+export const GetBrandResourcesQueryParams = zod.object({
+  "roleId": zod.coerce.string().optional().describe('Active persona id (permission scope)')
+})
+
+export const GetBrandResourcesResponse = zod.object({
+  "personaClearance": zod.string(),
+  "blockedCount": zod.number(),
+  "resources": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "category": zod.string(),
+  "description": zod.string(),
+  "detail": zod.string(),
+  "format": zod.string(),
+  "clearance": zod.string(),
+  "validity": zod.string()
+}))
+})
+
+
+/**
+ * Deterministic brand check over pasted prose — emoji, unapproved superlatives, shouted lines, American spelling and uncited figures — returning the same verdict shape as the document export gate.
+ * @summary Run the live Brand Guardian over arbitrary text
+ */
+export const CheckBrandTextBody = zod.object({
+  "text": zod.string()
+})
+
+export const CheckBrandTextResponse = zod.object({
+  "status": zod.string().describe('pass | block'),
+  "summary": zod.string(),
+  "findings": zod.array(zod.object({
+  "severity": zod.string().describe('error | warning'),
+  "rule": zod.string(),
+  "message": zod.string(),
+  "suggestion": zod.string().nullish()
+}))
+})
+
+

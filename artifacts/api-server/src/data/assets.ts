@@ -256,6 +256,27 @@ export const UNAPPROVED_CLAIM_PATTERNS: UnapprovedClaimPattern[] = [
   },
 ];
 
+// European-English spelling preferences. The Brand Guardian flags the American
+// form (matched by `pattern`) and the Brand Room surfaces the preferred form.
+export interface SpellingPreference {
+  id: string;
+  american: string;
+  european: string;
+  pattern: string; // regex source, matched case-insensitively
+}
+
+export const SPELLING_PREFERENCES: SpellingPreference[] = [
+  { id: "sp-colour", american: "color", european: "colour", pattern: "\\bcolor\\b" },
+  {
+    id: "sp-organise",
+    american: "organize",
+    european: "organise",
+    pattern: "\\borganiz(?:e|ed|ing|ation)\\b",
+  },
+  { id: "sp-centre", american: "center", european: "centre", pattern: "\\bcenter\\b" },
+  { id: "sp-programme", american: "program", european: "programme", pattern: "\\bprogram\\b" },
+];
+
 const templateByShape = new Map(TEMPLATES.map((t) => [t.shape, t]));
 export function getTemplate(shape: DocShape): DocumentTemplate | undefined {
   return templateByShape.get(shape);

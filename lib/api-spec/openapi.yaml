@@ -22,6 +22,8 @@ tags:
     description: Wiki / Knowledge surface — map, compiled pages, sources, compiled-layer ask
   - name: data
     description: Data Center — sources, ingestion pipeline, validation queue, freshness
+  - name: brand-room
+    description: Brand Room — templates, tone of voice, governed resources, live Brand Guardian
 paths:
   /healthz:
     get:
@@ -1057,8 +1059,256 @@ paths:
                 items:
                   $ref: "#/components/schemas/DocFreshness"
 
+  /brand/templates:
+    get:
+      operationId: getBrandTemplates
+      tags: [brand-room]
+      summary: Governed document templates, permission-filtered by persona clearance
+      description: >
+        The brand-approved document templates. Templates are internal brand
+        governance material, so a lower-clearance persona receives an empty set
+        with a blocked count rather than the templates themselves (fail-closed).
+      parameters:
+        - name: roleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Active persona id (permission scope)
+      responses:
+        "200":
+          description: Permission-scoped templates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandTemplatesView"
+
+  /brand/tone:
+    get:
+      operationId: getBrandTone
+      tags: [brand-room]
+      summary: Tone-of-voice principles, hard rules, prohibited phrases and spelling
+      responses:
+        "200":
+          description: Tone of voice
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandToneView"
+
+  /brand/resources:
+    get:
+      operationId: getBrandResources
+      tags: [brand-room]
+      summary: Governed brand resources, permission-filtered by persona clearance
+      description: >
+        Corporate brand resources across identity, messaging, legal and
+        reference. Each resource carries its own clearance and is filtered to
+        what the persona may see before it is returned (fail-closed).
+      parameters:
+        - name: roleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Active persona id (permission scope)
+      responses:
+        "200":
+          description: Permission-scoped resources
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandResourcesView"
+
+  /brand/check:
+    post:
+      operationId: checkBrandText
+      tags: [brand-room]
+      summary: Run the live Brand Guardian over arbitrary text
+      description: >
+        Deterministic brand check over pasted prose — emoji, unapproved
+        superlatives, shouted lines, American spelling and uncited figures —
+        returning the same verdict shape as the document export gate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandCheckInput"
+      responses:
+        "200":
+          description: Guardian verdict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuardianResult"
+
 components:
   schemas:
+    BrandTemplateSection:
+      type: object
+      required: [key, label, kind, perAxis]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        kind:
+          type: string
+        perAxis:
+          type: boolean
+    BrandTemplateDisclaimer:
+      type: object
+      required: [id, name, text]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        text:
+          type: string
+    BrandTemplate:
+      type: object
+      required: [id, shape, name, description, clearance, sections, disclaimers]
+      properties:
+        id:
+          type: string
+        shape:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        clearance:
+          type: string
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandTemplateSection"
+        disclaimers:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandTemplateDisclaimer"
+    BrandTemplatesView:
+      type: object
+      required: [personaClearance, blockedCount, templates]
+      properties:
+        personaClearance:
+          type: string
+        blockedCount:
+          type: integer
+        templates:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandTemplate"
+    TonePrinciple:
+      type: object
+      required: [id, title, guidance, dos, donts]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        guidance:
+          type: string
+        dos:
+          type: array
+          items:
+            type: string
+        donts:
+          type: array
+          items:
+            type: string
+    BrandRule:
+      type: object
+      required: [id, rule, severity, detail]
+      properties:
+        id:
+          type: string
+        rule:
+          type: string
+        severity:
+          type: string
+        detail:
+          type: string
+    ProhibitedPhrase:
+      type: object
+      required: [id, phrase, reason, rewrite]
+      properties:
+        id:
+          type: string
+        phrase:
+          type: string
+        reason:
+          type: string
+        rewrite:
+          type: string
+    SpellingPref:
+      type: object
+      required: [american, european]
+      properties:
+        american:
+          type: string
+        european:
+          type: string
+    BrandToneView:
+      type: object
+      required: [principles, rules, prohibited, spelling]
+      properties:
+        principles:
+          type: array
+          items:
+            $ref: "#/components/schemas/TonePrinciple"
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandRule"
+        prohibited:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProhibitedPhrase"
+        spelling:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpellingPref"
+    BrandResource:
+      type: object
+      required: [id, name, category, description, detail, format, clearance, validity]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        detail:
+          type: string
+        format:
+          type: string
+        clearance:
+          type: string
+        validity:
+          type: string
+    BrandResourcesView:
+      type: object
+      required: [personaClearance, blockedCount, resources]
+      properties:
+        personaClearance:
+          type: string
+        blockedCount:
+          type: integer
+        resources:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandResource"
+    BrandCheckInput:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
     GenerationJob:
       type: object
       required: [id, mode, stage, status, createdAt]
