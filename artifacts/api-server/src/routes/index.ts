@@ -5,6 +5,7 @@ import knowledgeRouter from "./knowledge";
 import adminRouter from "./admin";
 import kpisRouter from "./kpis";
 import planningRouter from "./planning";
+import generateRouter from "./generate";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(knowledgeRouter);
 router.use(adminRouter);
 router.use(kpisRouter);
 router.use(planningRouter);
+router.use(generateRouter);
 
 export default router;

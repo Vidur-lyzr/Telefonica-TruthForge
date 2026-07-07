@@ -796,6 +796,141 @@ export const DOCS: CorpusDoc[] = [
       },
     ],
   },
+  {
+    id: "doc-transform-grow-plan",
+    title: "Transform & Grow — Strategic Plan 2026-2028",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Group Strategy",
+    quarter: "Q1 2026",
+    type: "Plan",
+    confidentiality: "confidential",
+    owner: "Group Strategy",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "en",
+    topics: [
+      "transform and grow",
+      "transform & grow",
+      "strategy",
+      "synergies",
+      "narrative",
+      "efficiency",
+      "markets",
+    ],
+    axisIds: ["ax-core", "ax-b2b", "ax-digital"],
+    areas: ["Comunicación", "Gabinete"],
+    summary:
+      "Confidential three-year Transform & Grow plan setting the group narrative, targeted synergies and core-market priorities.",
+    chunks: [
+      {
+        id: "doc-transform-grow-plan#1",
+        heading: "Narrative",
+        breadcrumb: "Transform & Grow Plan › Narrative",
+        text: "The Transform & Grow narrative frames Telefónica as a simpler, more focused operator concentrating on four core markets while scaling B2B and technology. Communications should lead with focus, discipline and profitable growth.",
+      },
+      {
+        id: "doc-transform-grow-plan#2",
+        heading: "Synergies",
+        breadcrumb: "Transform & Grow Plan › Financials › Synergies",
+        text: "The plan targets 400 million euros of annual run-rate synergies by 2028, driven by network simplification, digitalisation and shared-service consolidation. These figures are confidential and for internal narrative alignment only.",
+      },
+      {
+        id: "doc-transform-grow-plan#3",
+        heading: "Core markets",
+        breadcrumb: "Transform & Grow Plan › Markets",
+        text: "Capital is prioritised toward Spain, Germany, Brazil and the United Kingdom. Non-core Hispanoamérica positions are managed for value, including selective disposals where they strengthen the balance sheet.",
+      },
+    ],
+  },
+  {
+    id: "doc-chile-sale",
+    title: "Sale of Chilean Subsidiary — Announcement",
+    country: "Chile",
+    brand: "Telefónica",
+    entity: "Telefónica Hispanoamérica",
+    quarter: "Q1 2026",
+    type: "Press release",
+    confidentiality: "public",
+    owner: "Group Communications",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "en",
+    topics: [
+      "chile",
+      "subsidiary",
+      "sale",
+      "disposal",
+      "divestment",
+      "hispanoamérica",
+      "transaction",
+    ],
+    axisIds: ["ax-core"],
+    areas: ["Comunicación", "Gabinete"],
+    summary:
+      "Public announcement that Telefónica has agreed to sell its Chilean subsidiary as part of its portfolio focus.",
+    chunks: [
+      {
+        id: "doc-chile-sale#1",
+        heading: "Transaction",
+        breadcrumb: "Chile Sale Announcement › Transaction",
+        text: "Telefónica has agreed to sell its Chilean subsidiary to a local infrastructure investor for an enterprise value of 1,240 million euros. The transaction is consistent with the group's focus on its four core markets.",
+      },
+      {
+        id: "doc-chile-sale#2",
+        heading: "Executive comment",
+        breadcrumb: "Chile Sale Announcement › Quote",
+        text: "The agreement strengthens our balance sheet and sharpens our focus on the markets where we can lead. Chile has a talented team and we have secured strong commitments to customers and employees under the new owner.",
+      },
+      {
+        id: "doc-chile-sale#3",
+        heading: "Boilerplate",
+        breadcrumb: "Chile Sale Announcement › About Telefónica",
+        text: "Telefónica is one of the largest telecommunications companies in the world by number of customers, with a presence in Europe and Latin America. It provides connectivity and digital services to consumers and businesses.",
+      },
+    ],
+  },
+  {
+    id: "doc-venezuela-note",
+    title: "Hispanoamérica Disposals — Internal Holding Note",
+    country: "Venezuela",
+    brand: "Telefónica",
+    entity: "Corporate Development",
+    quarter: "Q1 2026",
+    type: "Note",
+    confidentiality: "internal",
+    owner: "Corporate Development",
+    validity: "approved",
+    validUntil: "2026-09-30",
+    language: "en",
+    topics: [
+      "venezuela",
+      "hispanoamérica",
+      "disposal",
+      "timeline",
+      "holding line",
+      "do not confirm",
+      "sequencing",
+    ],
+    axisIds: ["ax-core"],
+    areas: ["Comunicación", "Gabinete"],
+    summary:
+      "Internal-only holding note on the sequencing of further Hispanoamérica disposals. Not for external use.",
+    chunks: [
+      {
+        id: "doc-venezuela-note#1",
+        heading: "Do not confirm timelines",
+        breadcrumb: "Internal Holding Note › Guidance",
+        text: "Do not confirm any timeline for further Hispanoamérica disposals, including Venezuela. If pressed, state only that the group manages its portfolio for value and does not comment on speculation. This guidance is internal and must never appear in an external release.",
+      },
+      {
+        id: "doc-venezuela-note#2",
+        heading: "Sequencing",
+        breadcrumb: "Internal Holding Note › Sequencing",
+        text: "Any further disposals will be sequenced to protect valuation and employee commitments. No sequencing detail is to be shared externally or with press under any circumstances.",
+      },
+    ],
+  },
 ];
 
 export const NUMERIC_FACTS: NumericFact[] = [
@@ -828,6 +963,98 @@ export const NUMERIC_FACTS: NumericFact[] = [
     source: "Sustainability Report 2025",
     docId: "doc-sustainability-2025",
     keywords: ["net zero", "net-zero", "carbon", "emissions", "climate target"],
+  },
+  {
+    id: "num-dividend-2026",
+    label: "Dividend per share",
+    value: "0.30",
+    unit: "€",
+    period: "FY 2026",
+    source: "Q1 2026 Results — Financial Highlights",
+    docId: "doc-q1-2026-results",
+    keywords: ["dividend", "dividend per share", "shareholder return", "payout"],
+  },
+  {
+    id: "num-netdebt-q1-2026",
+    label: "Net financial debt",
+    value: "26,140",
+    unit: "€M",
+    period: "Q1 2026",
+    source: "Q1 2026 Results — Financial Highlights",
+    docId: "doc-q1-2026-results",
+    keywords: ["net debt", "net financial debt", "leverage", "borrowings", "debt"],
+  },
+  {
+    id: "num-chile-ev",
+    label: "Chile disposal enterprise value",
+    value: "1,240",
+    unit: "€M",
+    period: "Q1 2026",
+    source: "Sale of Chilean Subsidiary — Announcement",
+    docId: "doc-chile-sale",
+    keywords: ["chile", "enterprise value", "disposal value", "sale price"],
+  },
+  {
+    id: "num-tg-synergies",
+    label: "Transform & Grow run-rate synergies",
+    value: "400",
+    unit: "€M",
+    period: "by 2028",
+    source: "Transform & Grow — Strategic Plan 2026-2028",
+    docId: "doc-transform-grow-plan",
+    keywords: ["synergies", "run-rate synergies", "efficiency savings", "transform and grow"],
+  },
+];
+
+// Time-series numeric data for chart-from-data. Each series fails closed the
+// same way single facts do: the chart is only rendered when its source doc is
+// within the caller's effective clearance.
+export interface NumericSeriesPoint {
+  label: string;
+  value: number;
+}
+
+export interface NumericSeries {
+  id: string;
+  label: string;
+  unit: string;
+  period: string;
+  source: string;
+  docId: string;
+  keywords: string[];
+  points: NumericSeriesPoint[];
+}
+
+export const NUMERIC_SERIES: NumericSeries[] = [
+  {
+    id: "series-accesses",
+    label: "Total accesses",
+    unit: "million",
+    period: "Q1 2026",
+    source: "Q1 2026 Results — Financial Highlights",
+    docId: "doc-q1-2026-results",
+    keywords: ["accesses", "access", "connections", "customers", "subscribers"],
+    points: [
+      { label: "Spain", value: 38.2 },
+      { label: "Germany", value: 45.1 },
+      { label: "Brazil", value: 116.4 },
+      { label: "United Kingdom", value: 41.7 },
+    ],
+  },
+  {
+    id: "series-revenue-trend",
+    label: "Group revenue trend",
+    unit: "€M",
+    period: "Q2 2025 - Q1 2026",
+    source: "Q1 2026 Results — Financial Highlights",
+    docId: "doc-q1-2026-results",
+    keywords: ["revenue trend", "revenue growth", "quarterly revenue", "revenue"],
+    points: [
+      { label: "Q2 2025", value: 7910 },
+      { label: "Q3 2025", value: 7955 },
+      { label: "Q4 2025", value: 7982 },
+      { label: "Q1 2026", value: 8127 },
+    ],
   },
 ];
 

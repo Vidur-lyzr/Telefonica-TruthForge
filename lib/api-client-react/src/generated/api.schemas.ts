@@ -5,6 +5,167 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+export interface DraftSection {
+  id: string;
+  kind: string;
+  heading: string;
+  /** @nullable */
+  axisId?: string | null;
+  body: string;
+  citationIds: string[];
+  internalOnly: boolean;
+}
+
+export interface SpokespersonNote {
+  question: string;
+  guidance: string;
+  /** @nullable */
+  doNotSay?: string | null;
+}
+
+export interface ChartPoint {
+  label: string;
+  value: number;
+}
+
+export interface ChartSpec {
+  id: string;
+  title: string;
+  /** bar | line */
+  type: string;
+  unit: string;
+  source: string;
+  /** @nullable */
+  citationId?: string | null;
+  points: ChartPoint[];
+}
+
+export interface Citation {
+  /** Marker referenced in the answer, e.g. S1 */
+  id: string;
+  docId: string;
+  docTitle: string;
+  /** Human-readable location, e.g. "Q1 2026 Results › slide 12" */
+  sourceLoc: string;
+  version: string;
+  owner: string;
+  /** @nullable */
+  validUntil?: string | null;
+  confidence: number;
+  /**
+     * Retrieval relevance score (idf coverage) for this source.
+     * @nullable
+     */
+  relevance?: number | null;
+  /**
+     * How many permitted sources agree with this source's headline figure.
+     * @nullable
+     */
+  corroboration?: number | null;
+  /** public | internal | confidential | restricted */
+  confidentiality: string;
+  /** approved | historic | review | superseded */
+  validity: string;
+  /** True when this source materially disagrees with another cited source. */
+  conflicting?: boolean;
+  snippet: string;
+  /**
+     * Optional headline figure for numeric evidence
+     * @nullable
+     */
+  value?: string | null;
+  /** @nullable */
+  period?: string | null;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  brand?: string | null;
+  topics?: string[];
+  entities?: string[];
+  axisIds?: string[];
+}
+
+export interface DraftDisclaimer {
+  id: string;
+  name: string;
+  text: string;
+}
+
+export interface GuardianFinding {
+  /** error | warning */
+  severity: string;
+  rule: string;
+  message: string;
+  /** @nullable */
+  suggestion?: string | null;
+}
+
+export interface GuardianResult {
+  /** pass | block */
+  status: string;
+  summary: string;
+  findings: GuardianFinding[];
+}
+
+export interface DraftParams {
+  shape: string;
+  topic: string;
+  roleId: string;
+  audience: string;
+  language: string;
+  confidentiality: string;
+  format: string;
+  axisIds: string[];
+}
+
+export interface GeneratedDraft {
+  id: string;
+  /** drafted | no_evidence | permission_blocked */
+  status: string;
+  shape: string;
+  templateId: string;
+  title: string;
+  language: string;
+  audience: string;
+  confidentiality: string;
+  /** @nullable */
+  umbrella?: string | null;
+  sections: DraftSection[];
+  spokesperson: SpokespersonNote[];
+  charts: ChartSpec[];
+  citations: Citation[];
+  disclaimers: DraftDisclaimer[];
+  axisIds: string[];
+  guardian: GuardianResult;
+  historic: boolean;
+  /** @nullable */
+  historicNote?: string | null;
+  /** @nullable */
+  permissionNote?: string | null;
+  /** @nullable */
+  note?: string | null;
+  createdAt: string;
+  params: DraftParams;
+  /** manual | scheduled */
+  origin?: string;
+  /** @nullable */
+  reviewItemId?: string | null;
+  approved?: boolean;
+}
+
+export interface GenerationJob {
+  id: string;
+  /** generate | refine */
+  mode: string;
+  /** retrieving | composing | guardian | done */
+  stage: string;
+  /** running | done | error */
+  status: string;
+  draft?: GeneratedDraft | null;
+  error?: string | null;
+  createdAt: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -55,51 +216,6 @@ export interface AskInput {
   history?: AskTurn[];
   filters?: AskFilters | null;
   attachment?: AskAttachment | null;
-}
-
-export interface Citation {
-  /** Marker referenced in the answer, e.g. S1 */
-  id: string;
-  docId: string;
-  docTitle: string;
-  /** Human-readable location, e.g. "Q1 2026 Results › slide 12" */
-  sourceLoc: string;
-  version: string;
-  owner: string;
-  /** @nullable */
-  validUntil?: string | null;
-  confidence: number;
-  /**
-     * Retrieval relevance score (idf coverage) for this source.
-     * @nullable
-     */
-  relevance?: number | null;
-  /**
-     * How many permitted sources agree with this source's headline figure.
-     * @nullable
-     */
-  corroboration?: number | null;
-  /** public | internal | confidential | restricted */
-  confidentiality: string;
-  /** approved | historic | review | superseded */
-  validity: string;
-  /** True when this source materially disagrees with another cited source. */
-  conflicting?: boolean;
-  snippet: string;
-  /**
-     * Optional headline figure for numeric evidence
-     * @nullable
-     */
-  value?: string | null;
-  /** @nullable */
-  period?: string | null;
-  /** @nullable */
-  country?: string | null;
-  /** @nullable */
-  brand?: string | null;
-  topics?: string[];
-  entities?: string[];
-  axisIds?: string[];
 }
 
 export interface NumericFact {
@@ -667,6 +783,177 @@ export interface RadarItem {
      * @nullable
      */
   tone?: string | null;
+}
+
+export interface GenerateInput {
+  /** messaging | press | multiformat */
+  shape: string;
+  /** @minLength 1 */
+  topic: string;
+  /** Active persona id (drives clearance) */
+  roleId: string;
+  /** internal | external */
+  audience: string;
+  /** BCP-47-ish code, e.g. en, es */
+  language?: string;
+  /** Destination confidentiality of the document */
+  confidentiality?: string;
+  /** Output format hint, e.g. document, email, note */
+  format?: string;
+  axisIds?: string[];
+}
+
+export interface RefineInput {
+  draft: GeneratedDraft;
+  /** @minLength 1 */
+  instruction: string;
+  roleId: string;
+}
+
+export interface CheckInput {
+  draft: GeneratedDraft;
+}
+
+export interface ApproveInput {
+  draft: GeneratedDraft;
+}
+
+export interface SaveVersionInput {
+  draft: GeneratedDraft;
+  savedBy: string;
+}
+
+export interface DocumentShapeSection {
+  key: string;
+  label: string;
+  kind: string;
+  perAxis: boolean;
+}
+
+export interface DocumentShape {
+  id: string;
+  shape: string;
+  name: string;
+  description: string;
+  sections: DocumentShapeSection[];
+}
+
+export interface ApprovedClaim {
+  id: string;
+  text: string;
+  confidentiality: string;
+  validity: string;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface ApprovedQuote {
+  id: string;
+  text: string;
+  attribution: string;
+  confidentiality: string;
+  validity: string;
+}
+
+export interface Boilerplate {
+  id: string;
+  name: string;
+  text: string;
+  confidentiality: string;
+  validity: string;
+}
+
+export interface DisclaimerAsset {
+  id: string;
+  name: string;
+  text: string;
+  appliesTo: string[];
+}
+
+export interface GlossaryTerm {
+  id: string;
+  term: string;
+  definition: string;
+}
+
+export interface GeneratedAssets {
+  claims: ApprovedClaim[];
+  quotes: ApprovedQuote[];
+  boilerplates: Boilerplate[];
+  disclaimers: DisclaimerAsset[];
+  glossary: GlossaryTerm[];
+}
+
+export interface CreateScheduleInput {
+  /** @minLength 1 */
+  name: string;
+  shape: string;
+  /** @minLength 1 */
+  topic: string;
+  /** Governed source/query presets the recurring run retrieves against. */
+  queries?: string[];
+  axisIds?: string[];
+  language?: string;
+  audience: string;
+  confidentiality?: string;
+  /** daily | weekly | monthly */
+  frequency: string;
+  ownerRoleId: string;
+  reviewFolder?: string;
+}
+
+export interface Schedule {
+  id: string;
+  name: string;
+  shape: string;
+  topic: string;
+  queries: string[];
+  axisIds: string[];
+  language: string;
+  audience: string;
+  confidentiality: string;
+  frequency: string;
+  ownerRoleId: string;
+  ownerLabel: string;
+  reviewFolder: string;
+  createdAt: string;
+  /** @nullable */
+  lastRunAt?: string | null;
+}
+
+export interface ReviewItem {
+  id: string;
+  scheduleId: string;
+  scheduleName: string;
+  reviewFolder: string;
+  ownerRoleId: string;
+  ownerLabel: string;
+  /** pending | approved */
+  status: string;
+  createdAt: string;
+  /** @nullable */
+  approvedAt?: string | null;
+  draft: GeneratedDraft;
+}
+
+export interface VersionGovernance {
+  confidentiality: string;
+  validity: string;
+  owner: string;
+}
+
+export interface SavedVersion {
+  id: string;
+  version: number;
+  title: string;
+  shape: string;
+  language: string;
+  audience: string;
+  confidentiality: string;
+  savedAt: string;
+  savedBy: string;
+  governance: VersionGovernance;
+  draft: GeneratedDraft;
 }
 
 export type GetCorpusStatsParams = {

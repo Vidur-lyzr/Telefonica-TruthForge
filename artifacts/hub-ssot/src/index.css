@@ -381,3 +381,40 @@
     inset: -1px;
   }
 }
+
+/* ============================================================
+   Print-ready export. When a governed document is exported the
+   app hides its chrome (sidebar, top bar, side panels) and prints
+   only the .print-document canvas as a clean, letter-width sheet.
+   ============================================================ */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-document,
+  .print-document * {
+    visibility: visible !important;
+  }
+
+  .print-document {
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 2rem !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+  }
+
+  .print-hide {
+    display: none !important;
+  }
+
+  @page {
+    margin: 20mm;
+  }
+}

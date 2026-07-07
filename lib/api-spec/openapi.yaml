@@ -556,8 +556,338 @@ paths:
               schema:
                 $ref: "#/components/schemas/PlanningForecast"
 
+  /generate:
+    post:
+      operationId: generate
+      tags: [generate]
+      summary: Generate a governed document (messaging, press+Q&A, or multi-format)
+      description: >
+        Runs the document-generation engine. Resolves the persona's clearance,
+        applies the audience gate (external caps sources to public BEFORE
+        retrieval), retrieves permission-filtered evidence, composes a cited
+        draft, and runs the Brand Guardian. Returns an honest no_evidence /
+        permission_blocked state when nothing can be safely produced.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateInput"
+      responses:
+        "200":
+          description: A generated draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedDraft"
+
+  /generate/refine:
+    post:
+      operationId: refineDocument
+      tags: [generate]
+      summary: Refine an existing draft with a natural-language instruction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefineInput"
+      responses:
+        "200":
+          description: The refined draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedDraft"
+
+  /generate/check:
+    post:
+      operationId: checkDocument
+      tags: [generate]
+      summary: Re-run the Brand Guardian on a (possibly edited) draft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckInput"
+      responses:
+        "200":
+          description: Guardian verdict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GuardianResult"
+
+  /generate/shapes:
+    get:
+      operationId: listShapes
+      tags: [generate]
+      summary: The document shapes / templates the engine can produce
+      responses:
+        "200":
+          description: Document shapes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentShape"
+
+  /generate/assets:
+    get:
+      operationId: listAssets
+      tags: [generate]
+      summary: Governed assets (approved claims, quotes, boilerplate, disclaimers, glossary)
+      responses:
+        "200":
+          description: Governed assets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedAssets"
+
+  /generate/schedules:
+    get:
+      operationId: listSchedules
+      tags: [generate]
+      summary: Scheduled document definitions
+      responses:
+        "200":
+          description: Schedules
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Schedule"
+    post:
+      operationId: createSchedule
+      tags: [generate]
+      summary: Create a scheduled document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScheduleInput"
+      responses:
+        "200":
+          description: The created schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Schedule"
+
+  /generate/schedules/{id}/run:
+    post:
+      operationId: runSchedule
+      tags: [generate]
+      summary: Run a schedule now and place the result in the review inbox
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The review item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /generate/inbox:
+    get:
+      operationId: listReviewItems
+      tags: [generate]
+      summary: The human review inbox for scheduled documents
+      responses:
+        "200":
+          description: Review items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReviewItem"
+
+  /generate/inbox/{id}/approve:
+    post:
+      operationId: approveReviewItem
+      tags: [generate]
+      summary: Approve a review item (requires a passing Brand Guardian verdict)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApproveInput"
+      responses:
+        "200":
+          description: The approved review item
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewItem"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Guardian has not passed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /generate/versions:
+    get:
+      operationId: listVersions
+      tags: [generate]
+      summary: Saved document versions (in-memory; reset on restart)
+      responses:
+        "200":
+          description: Saved versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SavedVersion"
+    post:
+      operationId: saveVersion
+      tags: [generate]
+      summary: Save a draft as a version (requires a passing Brand Guardian verdict)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveVersionInput"
+      responses:
+        "200":
+          description: The saved version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedVersion"
+        "409":
+          description: Guardian has not passed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /generate/jobs:
+    post:
+      operationId: startGenerateJob
+      tags: [generate]
+      summary: Start a generation job (observable, staged pipeline)
+      description: >
+        Starts the same governed compose pipeline as /generate but returns a job
+        immediately so the client can poll GET /generate/jobs/{id} and watch the
+        real backend phases (retrieving -> composing -> guardian -> done).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateInput"
+      responses:
+        "202":
+          description: The started job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationJob"
+
+  /generate/refine/jobs:
+    post:
+      operationId: startRefineJob
+      tags: [generate]
+      summary: Start a refine job (observable, staged pipeline)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefineInput"
+      responses:
+        "202":
+          description: The started job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationJob"
+
+  /generate/jobs/{id}:
+    get:
+      operationId: getGenerationJob
+      tags: [generate]
+      summary: Poll the state of a generation/refine job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Current job state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationJob"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+
+
 components:
   schemas:
+    GenerationJob:
+      type: object
+      required: [id, mode, stage, status, createdAt]
+      properties:
+        id:
+          type: string
+        mode:
+          type: string
+          description: generate | refine
+        stage:
+          type: string
+          description: retrieving | composing | guardian | done
+        status:
+          type: string
+          description: running | done | error
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
     HealthStatus:
       type: object
       properties:
@@ -1739,3 +2069,530 @@ components:
         tone:
           type: ["string", "null"]
           description: default | warning
+
+    GenerateInput:
+      type: object
+      required: [shape, topic, roleId, audience]
+      properties:
+        shape:
+          type: string
+          description: messaging | press | multiformat
+        topic:
+          type: string
+          minLength: 1
+        roleId:
+          type: string
+          description: Active persona id (drives clearance)
+        audience:
+          type: string
+          description: internal | external
+        language:
+          type: string
+          description: BCP-47-ish code, e.g. en, es
+        confidentiality:
+          type: string
+          description: Destination confidentiality of the document
+        format:
+          type: string
+          description: Output format hint, e.g. document, email, note
+        axisIds:
+          type: array
+          items:
+            type: string
+
+    DraftParams:
+      type: object
+      required: [shape, topic, roleId, audience, language, confidentiality, format, axisIds]
+      properties:
+        shape:
+          type: string
+        topic:
+          type: string
+        roleId:
+          type: string
+        audience:
+          type: string
+        language:
+          type: string
+        confidentiality:
+          type: string
+        format:
+          type: string
+        axisIds:
+          type: array
+          items:
+            type: string
+
+    ChartPoint:
+      type: object
+      required: [label, value]
+      properties:
+        label:
+          type: string
+        value:
+          type: number
+
+    ChartSpec:
+      type: object
+      required: [id, title, type, unit, source, points]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          description: bar | line
+        unit:
+          type: string
+        source:
+          type: string
+        citationId:
+          type: ["string", "null"]
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartPoint"
+
+    SpokespersonNote:
+      type: object
+      required: [question, guidance]
+      properties:
+        question:
+          type: string
+        guidance:
+          type: string
+        doNotSay:
+          type: ["string", "null"]
+
+    DraftSection:
+      type: object
+      required: [id, kind, heading, body, citationIds, internalOnly]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        heading:
+          type: string
+        axisId:
+          type: ["string", "null"]
+        body:
+          type: string
+        citationIds:
+          type: array
+          items:
+            type: string
+        internalOnly:
+          type: boolean
+
+    DraftDisclaimer:
+      type: object
+      required: [id, name, text]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        text:
+          type: string
+
+    GuardianFinding:
+      type: object
+      required: [severity, rule, message]
+      properties:
+        severity:
+          type: string
+          description: error | warning
+        rule:
+          type: string
+        message:
+          type: string
+        suggestion:
+          type: ["string", "null"]
+
+    GuardianResult:
+      type: object
+      required: [status, summary, findings]
+      properties:
+        status:
+          type: string
+          description: pass | block
+        summary:
+          type: string
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/GuardianFinding"
+
+    GeneratedDraft:
+      type: object
+      required:
+        [id, status, shape, templateId, title, language, audience, confidentiality, sections, spokesperson, charts, citations, disclaimers, axisIds, guardian, historic, createdAt, params]
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          description: drafted | no_evidence | permission_blocked
+        shape:
+          type: string
+        templateId:
+          type: string
+        title:
+          type: string
+        language:
+          type: string
+        audience:
+          type: string
+        confidentiality:
+          type: string
+        umbrella:
+          type: ["string", "null"]
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftSection"
+        spokesperson:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpokespersonNote"
+        charts:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartSpec"
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Citation"
+        disclaimers:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftDisclaimer"
+        axisIds:
+          type: array
+          items:
+            type: string
+        guardian:
+          $ref: "#/components/schemas/GuardianResult"
+        historic:
+          type: boolean
+        historicNote:
+          type: ["string", "null"]
+        permissionNote:
+          type: ["string", "null"]
+        note:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        params:
+          $ref: "#/components/schemas/DraftParams"
+        origin:
+          type: string
+          description: manual | scheduled
+        reviewItemId:
+          type: ["string", "null"]
+        approved:
+          type: boolean
+
+    RefineInput:
+      type: object
+      required: [draft, instruction, roleId]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+        instruction:
+          type: string
+          minLength: 1
+        roleId:
+          type: string
+
+    CheckInput:
+      type: object
+      required: [draft]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+
+    ApproveInput:
+      type: object
+      required: [draft]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+
+    SaveVersionInput:
+      type: object
+      required: [draft, savedBy]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+        savedBy:
+          type: string
+
+    DocumentShapeSection:
+      type: object
+      required: [key, label, kind, perAxis]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        kind:
+          type: string
+        perAxis:
+          type: boolean
+
+    DocumentShape:
+      type: object
+      required: [id, shape, name, description, sections]
+      properties:
+        id:
+          type: string
+        shape:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/DocumentShapeSection"
+
+    ApprovedClaim:
+      type: object
+      required: [id, text, confidentiality, validity]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        confidentiality:
+          type: string
+        validity:
+          type: string
+        note:
+          type: ["string", "null"]
+
+    ApprovedQuote:
+      type: object
+      required: [id, text, attribution, confidentiality, validity]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        attribution:
+          type: string
+        confidentiality:
+          type: string
+        validity:
+          type: string
+
+    Boilerplate:
+      type: object
+      required: [id, name, text, confidentiality, validity]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        text:
+          type: string
+        confidentiality:
+          type: string
+        validity:
+          type: string
+
+    DisclaimerAsset:
+      type: object
+      required: [id, name, text, appliesTo]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        text:
+          type: string
+        appliesTo:
+          type: array
+          items:
+            type: string
+
+    GlossaryTerm:
+      type: object
+      required: [id, term, definition]
+      properties:
+        id:
+          type: string
+        term:
+          type: string
+        definition:
+          type: string
+
+    GeneratedAssets:
+      type: object
+      required: [claims, quotes, boilerplates, disclaimers, glossary]
+      properties:
+        claims:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovedClaim"
+        quotes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovedQuote"
+        boilerplates:
+          type: array
+          items:
+            $ref: "#/components/schemas/Boilerplate"
+        disclaimers:
+          type: array
+          items:
+            $ref: "#/components/schemas/DisclaimerAsset"
+        glossary:
+          type: array
+          items:
+            $ref: "#/components/schemas/GlossaryTerm"
+
+    CreateScheduleInput:
+      type: object
+      required: [name, shape, topic, audience, ownerRoleId, frequency]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        shape:
+          type: string
+        topic:
+          type: string
+          minLength: 1
+        queries:
+          type: array
+          description: Governed source/query presets the recurring run retrieves against.
+          items:
+            type: string
+        axisIds:
+          type: array
+          items:
+            type: string
+        language:
+          type: string
+        audience:
+          type: string
+        confidentiality:
+          type: string
+        frequency:
+          type: string
+          description: daily | weekly | monthly
+        ownerRoleId:
+          type: string
+        reviewFolder:
+          type: string
+
+    Schedule:
+      type: object
+      required:
+        [id, name, shape, topic, queries, axisIds, language, audience, confidentiality, frequency, ownerRoleId, ownerLabel, reviewFolder, createdAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        shape:
+          type: string
+        topic:
+          type: string
+        queries:
+          type: array
+          items:
+            type: string
+        axisIds:
+          type: array
+          items:
+            type: string
+        language:
+          type: string
+        audience:
+          type: string
+        confidentiality:
+          type: string
+        frequency:
+          type: string
+        ownerRoleId:
+          type: string
+        ownerLabel:
+          type: string
+        reviewFolder:
+          type: string
+        createdAt:
+          type: string
+        lastRunAt:
+          type: ["string", "null"]
+
+    ReviewItem:
+      type: object
+      required:
+        [id, scheduleId, scheduleName, reviewFolder, ownerRoleId, ownerLabel, status, createdAt, draft]
+      properties:
+        id:
+          type: string
+        scheduleId:
+          type: string
+        scheduleName:
+          type: string
+        reviewFolder:
+          type: string
+        ownerRoleId:
+          type: string
+        ownerLabel:
+          type: string
+        status:
+          type: string
+          description: pending | approved
+        createdAt:
+          type: string
+        approvedAt:
+          type: ["string", "null"]
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+
+    VersionGovernance:
+      type: object
+      required: [confidentiality, validity, owner]
+      properties:
+        confidentiality:
+          type: string
+        validity:
+          type: string
+        owner:
+          type: string
+
+    SavedVersion:
+      type: object
+      required:
+        [id, version, title, shape, language, audience, confidentiality, savedAt, savedBy, governance, draft]
+      properties:
+        id:
+          type: string
+        version:
+          type: integer
+        title:
+          type: string
+        shape:
+          type: string
+        language:
+          type: string
+        audience:
+          type: string
+        confidentiality:
+          type: string
+        savedAt:
+          type: string
+        savedBy:
+          type: string
+        governance:
+          $ref: "#/components/schemas/VersionGovernance"
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"

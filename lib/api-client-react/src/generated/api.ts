@@ -21,18 +21,27 @@ import type {
 
 import type {
   AdminProfile,
+  ApproveInput,
   AskInput,
   AskResult,
   AuditEntry,
+  CheckInput,
   CorpusDocument,
   CorpusDocumentDetail,
   CorpusStats,
+  CreateScheduleInput,
+  DocumentShape,
   ErrorResponse,
+  GenerateInput,
+  GeneratedAssets,
+  GeneratedDraft,
+  GenerationJob,
   GetCorpusStatsParams,
   GetHomeSummaryParams,
   GetPlanningEventParams,
   GetPlanningInsightsParams,
   GetPlanningOverviewParams,
+  GuardianResult,
   HealthStatus,
   HomeSummary,
   KpiAskInput,
@@ -52,7 +61,12 @@ import type {
   PlanningOverview,
   PlatformUser,
   RadarItem,
+  RefineInput,
+  ReviewItem,
   Role,
+  SaveVersionInput,
+  SavedVersion,
+  Schedule,
   ScheduledDocument,
   StrategicAxis,
   SuggestedQuery
@@ -1872,4 +1886,1099 @@ export const usePlanningForecast = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getPlanningForecastMutationOptions(options));
     }
+
+export const getGenerateUrl = () => {
+
+
+
+
+  return `/api/generate`
+}
+
+/**
+ * Runs the document-generation engine. Resolves the persona's clearance, applies the audience gate (external caps sources to public BEFORE retrieval), retrieves permission-filtered evidence, composes a cited draft, and runs the Brand Guardian. Returns an honest no_evidence / permission_blocked state when nothing can be safely produced.
+ * @summary Generate a governed document (messaging, press+Q&A, or multi-format)
+ */
+export const generate = async (generateInput: GenerateInput, options?: RequestInit): Promise<GeneratedDraft> => {
+
+  return customFetch<GeneratedDraft>(getGenerateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(generateInput)
+  }
+);}
+
+
+
+
+export const getGenerateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generate>>, TError,{data: BodyType<GenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generate>>, TError,{data: BodyType<GenerateInput>}, TContext> => {
+
+const mutationKey = ['generate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generate>>, {data: BodyType<GenerateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  generate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateMutationResult = NonNullable<Awaited<ReturnType<typeof generate>>>
+    export type GenerateMutationBody = BodyType<GenerateInput>
+    export type GenerateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate a governed document (messaging, press+Q&A, or multi-format)
+ */
+export const useGenerate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generate>>, TError,{data: BodyType<GenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generate>>,
+        TError,
+        {data: BodyType<GenerateInput>},
+        TContext
+      > => {
+      return useMutation(getGenerateMutationOptions(options));
+    }
+
+export const getRefineDocumentUrl = () => {
+
+
+
+
+  return `/api/generate/refine`
+}
+
+/**
+ * @summary Refine an existing draft with a natural-language instruction
+ */
+export const refineDocument = async (refineInput: RefineInput, options?: RequestInit): Promise<GeneratedDraft> => {
+
+  return customFetch<GeneratedDraft>(getRefineDocumentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(refineInput)
+  }
+);}
+
+
+
+
+export const getRefineDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refineDocument>>, TError,{data: BodyType<RefineInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof refineDocument>>, TError,{data: BodyType<RefineInput>}, TContext> => {
+
+const mutationKey = ['refineDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof refineDocument>>, {data: BodyType<RefineInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  refineDocument(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RefineDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof refineDocument>>>
+    export type RefineDocumentMutationBody = BodyType<RefineInput>
+    export type RefineDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Refine an existing draft with a natural-language instruction
+ */
+export const useRefineDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof refineDocument>>, TError,{data: BodyType<RefineInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof refineDocument>>,
+        TError,
+        {data: BodyType<RefineInput>},
+        TContext
+      > => {
+      return useMutation(getRefineDocumentMutationOptions(options));
+    }
+
+export const getCheckDocumentUrl = () => {
+
+
+
+
+  return `/api/generate/check`
+}
+
+/**
+ * @summary Re-run the Brand Guardian on a (possibly edited) draft
+ */
+export const checkDocument = async (checkInput: CheckInput, options?: RequestInit): Promise<GuardianResult> => {
+
+  return customFetch<GuardianResult>(getCheckDocumentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(checkInput)
+  }
+);}
+
+
+
+
+export const getCheckDocumentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkDocument>>, TError,{data: BodyType<CheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof checkDocument>>, TError,{data: BodyType<CheckInput>}, TContext> => {
+
+const mutationKey = ['checkDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkDocument>>, {data: BodyType<CheckInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  checkDocument(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof checkDocument>>>
+    export type CheckDocumentMutationBody = BodyType<CheckInput>
+    export type CheckDocumentMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Re-run the Brand Guardian on a (possibly edited) draft
+ */
+export const useCheckDocument = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkDocument>>, TError,{data: BodyType<CheckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof checkDocument>>,
+        TError,
+        {data: BodyType<CheckInput>},
+        TContext
+      > => {
+      return useMutation(getCheckDocumentMutationOptions(options));
+    }
+
+export const getListShapesUrl = () => {
+
+
+
+
+  return `/api/generate/shapes`
+}
+
+/**
+ * @summary The document shapes / templates the engine can produce
+ */
+export const listShapes = async ( options?: RequestInit): Promise<DocumentShape[]> => {
+
+  return customFetch<DocumentShape[]>(getListShapesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListShapesQueryKey = () => {
+    return [
+    `/api/generate/shapes`
+    ] as const;
+    }
+
+
+export const getListShapesQueryOptions = <TData = Awaited<ReturnType<typeof listShapes>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listShapes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListShapesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listShapes>>> = ({ signal }) => listShapes({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listShapes>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListShapesQueryResult = NonNullable<Awaited<ReturnType<typeof listShapes>>>
+export type ListShapesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The document shapes / templates the engine can produce
+ */
+
+export function useListShapes<TData = Awaited<ReturnType<typeof listShapes>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listShapes>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListShapesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAssetsUrl = () => {
+
+
+
+
+  return `/api/generate/assets`
+}
+
+/**
+ * @summary Governed assets (approved claims, quotes, boilerplate, disclaimers, glossary)
+ */
+export const listAssets = async ( options?: RequestInit): Promise<GeneratedAssets> => {
+
+  return customFetch<GeneratedAssets>(getListAssetsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAssetsQueryKey = () => {
+    return [
+    `/api/generate/assets`
+    ] as const;
+    }
+
+
+export const getListAssetsQueryOptions = <TData = Awaited<ReturnType<typeof listAssets>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAssets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAssetsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAssets>>> = ({ signal }) => listAssets({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAssets>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAssetsQueryResult = NonNullable<Awaited<ReturnType<typeof listAssets>>>
+export type ListAssetsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Governed assets (approved claims, quotes, boilerplate, disclaimers, glossary)
+ */
+
+export function useListAssets<TData = Awaited<ReturnType<typeof listAssets>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAssets>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAssetsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListSchedulesUrl = () => {
+
+
+
+
+  return `/api/generate/schedules`
+}
+
+/**
+ * @summary Scheduled document definitions
+ */
+export const listSchedules = async ( options?: RequestInit): Promise<Schedule[]> => {
+
+  return customFetch<Schedule[]>(getListSchedulesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSchedulesQueryKey = () => {
+    return [
+    `/api/generate/schedules`
+    ] as const;
+    }
+
+
+export const getListSchedulesQueryOptions = <TData = Awaited<ReturnType<typeof listSchedules>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSchedules>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSchedulesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSchedules>>> = ({ signal }) => listSchedules({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSchedules>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSchedulesQueryResult = NonNullable<Awaited<ReturnType<typeof listSchedules>>>
+export type ListSchedulesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Scheduled document definitions
+ */
+
+export function useListSchedules<TData = Awaited<ReturnType<typeof listSchedules>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSchedules>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSchedulesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateScheduleUrl = () => {
+
+
+
+
+  return `/api/generate/schedules`
+}
+
+/**
+ * @summary Create a scheduled document
+ */
+export const createSchedule = async (createScheduleInput: CreateScheduleInput, options?: RequestInit): Promise<Schedule> => {
+
+  return customFetch<Schedule>(getCreateScheduleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createScheduleInput)
+  }
+);}
+
+
+
+
+export const getCreateScheduleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSchedule>>, TError,{data: BodyType<CreateScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSchedule>>, TError,{data: BodyType<CreateScheduleInput>}, TContext> => {
+
+const mutationKey = ['createSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSchedule>>, {data: BodyType<CreateScheduleInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSchedule(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof createSchedule>>>
+    export type CreateScheduleMutationBody = BodyType<CreateScheduleInput>
+    export type CreateScheduleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a scheduled document
+ */
+export const useCreateSchedule = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSchedule>>, TError,{data: BodyType<CreateScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSchedule>>,
+        TError,
+        {data: BodyType<CreateScheduleInput>},
+        TContext
+      > => {
+      return useMutation(getCreateScheduleMutationOptions(options));
+    }
+
+export const getRunScheduleUrl = (id: string,) => {
+
+
+
+
+  return `/api/generate/schedules/${id}/run`
+}
+
+/**
+ * @summary Run a schedule now and place the result in the review inbox
+ */
+export const runSchedule = async (id: string, options?: RequestInit): Promise<ReviewItem> => {
+
+  return customFetch<ReviewItem>(getRunScheduleUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRunScheduleMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSchedule>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runSchedule>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['runSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runSchedule>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  runSchedule(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof runSchedule>>>
+
+    export type RunScheduleMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Run a schedule now and place the result in the review inbox
+ */
+export const useRunSchedule = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSchedule>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runSchedule>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getRunScheduleMutationOptions(options));
+    }
+
+export const getListReviewItemsUrl = () => {
+
+
+
+
+  return `/api/generate/inbox`
+}
+
+/**
+ * @summary The human review inbox for scheduled documents
+ */
+export const listReviewItems = async ( options?: RequestInit): Promise<ReviewItem[]> => {
+
+  return customFetch<ReviewItem[]>(getListReviewItemsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListReviewItemsQueryKey = () => {
+    return [
+    `/api/generate/inbox`
+    ] as const;
+    }
+
+
+export const getListReviewItemsQueryOptions = <TData = Awaited<ReturnType<typeof listReviewItems>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listReviewItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListReviewItemsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listReviewItems>>> = ({ signal }) => listReviewItems({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listReviewItems>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListReviewItemsQueryResult = NonNullable<Awaited<ReturnType<typeof listReviewItems>>>
+export type ListReviewItemsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The human review inbox for scheduled documents
+ */
+
+export function useListReviewItems<TData = Awaited<ReturnType<typeof listReviewItems>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listReviewItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListReviewItemsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getApproveReviewItemUrl = (id: string,) => {
+
+
+
+
+  return `/api/generate/inbox/${id}/approve`
+}
+
+/**
+ * @summary Approve a review item (requires a passing Brand Guardian verdict)
+ */
+export const approveReviewItem = async (id: string,
+    approveInput: ApproveInput, options?: RequestInit): Promise<ReviewItem> => {
+
+  return customFetch<ReviewItem>(getApproveReviewItemUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(approveInput)
+  }
+);}
+
+
+
+
+export const getApproveReviewItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveReviewItem>>, TError,{id: string;data: BodyType<ApproveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveReviewItem>>, TError,{id: string;data: BodyType<ApproveInput>}, TContext> => {
+
+const mutationKey = ['approveReviewItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveReviewItem>>, {id: string;data: BodyType<ApproveInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  approveReviewItem(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveReviewItemMutationResult = NonNullable<Awaited<ReturnType<typeof approveReviewItem>>>
+    export type ApproveReviewItemMutationBody = BodyType<ApproveInput>
+    export type ApproveReviewItemMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Approve a review item (requires a passing Brand Guardian verdict)
+ */
+export const useApproveReviewItem = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveReviewItem>>, TError,{id: string;data: BodyType<ApproveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveReviewItem>>,
+        TError,
+        {id: string;data: BodyType<ApproveInput>},
+        TContext
+      > => {
+      return useMutation(getApproveReviewItemMutationOptions(options));
+    }
+
+export const getListVersionsUrl = () => {
+
+
+
+
+  return `/api/generate/versions`
+}
+
+/**
+ * @summary Saved document versions (in-memory; reset on restart)
+ */
+export const listVersions = async ( options?: RequestInit): Promise<SavedVersion[]> => {
+
+  return customFetch<SavedVersion[]>(getListVersionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListVersionsQueryKey = () => {
+    return [
+    `/api/generate/versions`
+    ] as const;
+    }
+
+
+export const getListVersionsQueryOptions = <TData = Awaited<ReturnType<typeof listVersions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVersions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListVersionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVersions>>> = ({ signal }) => listVersions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listVersions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListVersionsQueryResult = NonNullable<Awaited<ReturnType<typeof listVersions>>>
+export type ListVersionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Saved document versions (in-memory; reset on restart)
+ */
+
+export function useListVersions<TData = Awaited<ReturnType<typeof listVersions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVersions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListVersionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveVersionUrl = () => {
+
+
+
+
+  return `/api/generate/versions`
+}
+
+/**
+ * @summary Save a draft as a version (requires a passing Brand Guardian verdict)
+ */
+export const saveVersion = async (saveVersionInput: SaveVersionInput, options?: RequestInit): Promise<SavedVersion> => {
+
+  return customFetch<SavedVersion>(getSaveVersionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(saveVersionInput)
+  }
+);}
+
+
+
+
+export const getSaveVersionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveVersion>>, TError,{data: BodyType<SaveVersionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveVersion>>, TError,{data: BodyType<SaveVersionInput>}, TContext> => {
+
+const mutationKey = ['saveVersion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveVersion>>, {data: BodyType<SaveVersionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveVersion(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveVersionMutationResult = NonNullable<Awaited<ReturnType<typeof saveVersion>>>
+    export type SaveVersionMutationBody = BodyType<SaveVersionInput>
+    export type SaveVersionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save a draft as a version (requires a passing Brand Guardian verdict)
+ */
+export const useSaveVersion = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveVersion>>, TError,{data: BodyType<SaveVersionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveVersion>>,
+        TError,
+        {data: BodyType<SaveVersionInput>},
+        TContext
+      > => {
+      return useMutation(getSaveVersionMutationOptions(options));
+    }
+
+export const getStartGenerateJobUrl = () => {
+
+
+
+
+  return `/api/generate/jobs`
+}
+
+/**
+ * Starts the same governed compose pipeline as /generate but returns a job immediately so the client can poll GET /generate/jobs/{id} and watch the real backend phases (retrieving -> composing -> guardian -> done).
+ * @summary Start a generation job (observable, staged pipeline)
+ */
+export const startGenerateJob = async (generateInput: GenerateInput, options?: RequestInit): Promise<GenerationJob> => {
+
+  return customFetch<GenerationJob>(getStartGenerateJobUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(generateInput)
+  }
+);}
+
+
+
+
+export const getStartGenerateJobMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startGenerateJob>>, TError,{data: BodyType<GenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startGenerateJob>>, TError,{data: BodyType<GenerateInput>}, TContext> => {
+
+const mutationKey = ['startGenerateJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startGenerateJob>>, {data: BodyType<GenerateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startGenerateJob(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartGenerateJobMutationResult = NonNullable<Awaited<ReturnType<typeof startGenerateJob>>>
+    export type StartGenerateJobMutationBody = BodyType<GenerateInput>
+    export type StartGenerateJobMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Start a generation job (observable, staged pipeline)
+ */
+export const useStartGenerateJob = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startGenerateJob>>, TError,{data: BodyType<GenerateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startGenerateJob>>,
+        TError,
+        {data: BodyType<GenerateInput>},
+        TContext
+      > => {
+      return useMutation(getStartGenerateJobMutationOptions(options));
+    }
+
+export const getStartRefineJobUrl = () => {
+
+
+
+
+  return `/api/generate/refine/jobs`
+}
+
+/**
+ * @summary Start a refine job (observable, staged pipeline)
+ */
+export const startRefineJob = async (refineInput: RefineInput, options?: RequestInit): Promise<GenerationJob> => {
+
+  return customFetch<GenerationJob>(getStartRefineJobUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(refineInput)
+  }
+);}
+
+
+
+
+export const getStartRefineJobMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startRefineJob>>, TError,{data: BodyType<RefineInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startRefineJob>>, TError,{data: BodyType<RefineInput>}, TContext> => {
+
+const mutationKey = ['startRefineJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startRefineJob>>, {data: BodyType<RefineInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startRefineJob(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartRefineJobMutationResult = NonNullable<Awaited<ReturnType<typeof startRefineJob>>>
+    export type StartRefineJobMutationBody = BodyType<RefineInput>
+    export type StartRefineJobMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Start a refine job (observable, staged pipeline)
+ */
+export const useStartRefineJob = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startRefineJob>>, TError,{data: BodyType<RefineInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startRefineJob>>,
+        TError,
+        {data: BodyType<RefineInput>},
+        TContext
+      > => {
+      return useMutation(getStartRefineJobMutationOptions(options));
+    }
+
+export const getGetGenerationJobUrl = (id: string,) => {
+
+
+
+
+  return `/api/generate/jobs/${id}`
+}
+
+/**
+ * @summary Poll the state of a generation/refine job
+ */
+export const getGenerationJob = async (id: string, options?: RequestInit): Promise<GenerationJob> => {
+
+  return customFetch<GenerationJob>(getGetGenerationJobUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetGenerationJobQueryKey = (id: string,) => {
+    return [
+    `/api/generate/jobs/${id}`
+    ] as const;
+    }
+
+
+export const getGetGenerationJobQueryOptions = <TData = Awaited<ReturnType<typeof getGenerationJob>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGenerationJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGenerationJobQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGenerationJob>>> = ({ signal }) => getGenerationJob(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGenerationJob>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetGenerationJobQueryResult = NonNullable<Awaited<ReturnType<typeof getGenerationJob>>>
+export type GetGenerationJobQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Poll the state of a generation/refine job
+ */
+
+export function useGetGenerationJob<TData = Awaited<ReturnType<typeof getGenerationJob>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getGenerationJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetGenerationJobQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

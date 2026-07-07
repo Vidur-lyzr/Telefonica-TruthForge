@@ -1,0 +1,424 @@
+import { Router, type IRouter } from "express";
+import {
+  GenerateBody,
+  GenerateResponse,
+  RefineDocumentBody,
+  RefineDocumentResponse,
+  CheckDocumentBody,
+  CheckDocumentResponse,
+  ListShapesResponse,
+  ListAssetsResponse,
+  ListSchedulesResponse,
+  CreateScheduleBody,
+  CreateScheduleResponse,
+  RunScheduleResponse,
+  ListReviewItemsResponse,
+  ApproveReviewItemBody,
+  ApproveReviewItemResponse,
+  ListVersionsResponse,
+  SaveVersionBody,
+  SaveVersionResponse,
+  StartGenerateJobBody,
+  StartRefineJobBody,
+  GetGenerationJobResponse,
+} from "@workspace/api-zod";
+import {
+  runGenerateAgent,
+  refineDraft,
+  type GeneratedDraft,
+} from "../agent/generateAgent";
+import { runBrandGuardian } from "../agent/brandGuardian";
+import { ROLES } from "../data/corpus";
+import {
+  TEMPLATES,
+  APPROVED_CLAIMS,
+  APPROVED_QUOTES,
+  BOILERPLATES,
+  DISCLAIMERS,
+  GLOSSARY,
+} from "../data/assets";
+import {
+  listSchedules,
+  getSchedule,
+  createSchedule,
+  markScheduleRun,
+  listReviewItems,
+  getReviewItem,
+  addReviewItem,
+  approveReviewItem,
+  listVersions,
+  saveVersion,
+  registerScheduledDraft,
+  findScheduledReviewItemId,
+  hashDraftContent,
+  createJob,
+  getJob,
+  setJobStage,
+  completeJob,
+  failJob,
+} from "../data/generateStore";
+
+const router: IRouter = Router();
+
+function roleLabel(roleId: string): string {
+  return ROLES.find((r) => r.id === roleId)?.label ?? roleId;
+}
+
+router.post("/generate", async (req, res) => {
+  const parsed = GenerateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  try {
+    const result = await runGenerateAgent(
+      {
+        shape: parsed.data.shape as "messaging" | "press" | "multiformat",
+        topic: parsed.data.topic,
+        roleId: parsed.data.roleId,
+        audience: parsed.data.audience as "internal" | "external",
+        language: parsed.data.language,
+        confidentiality: parsed.data.confidentiality,
+        format: parsed.data.format,
+        axisIds: parsed.data.axisIds,
+      },
+      req.log,
+    );
+    res.json(GenerateResponse.parse(result));
+  } catch (err) {
+    req.log.error({ err }, "generate route failed");
+    res.status(500).json({ error: "The Hub could not generate this document." });
+  }
+});
+
+router.post("/generate/refine", async (req, res) => {
+  const parsed = RefineDocumentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  try {
+    const result = await refineDraft(
+      {
+        draft: parsed.data.draft as unknown as GeneratedDraft,
+        instruction: parsed.data.instruction,
+        roleId: parsed.data.roleId,
+      },
+      req.log,
+    );
+    res.json(RefineDocumentResponse.parse(result));
+  } catch (err) {
+    req.log.error({ err }, "refine route failed");
+    res.status(500).json({ error: "The Hub could not refine this document." });
+  }
+});
+
+router.post("/generate/check", async (req, res) => {
+  const parsed = CheckDocumentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  try {
+    const guardian = runBrandGuardian(parsed.data.draft as unknown as GeneratedDraft);
+    res.json(CheckDocumentResponse.parse(guardian));
+  } catch (err) {
+    req.log.error({ err }, "check route failed");
+    res.status(500).json({ error: "The Brand Guardian could not check this document." });
+  }
+});
+
+router.get("/generate/shapes", async (_req, res) => {
+  const shapes = TEMPLATES.map((t) => ({
+    id: t.id,
+    shape: t.shape,
+    name: t.name,
+    description: t.description,
+    sections: t.sections.map((s) => ({
+      key: s.key,
+      label: s.label,
+      kind: s.kind,
+      perAxis: Boolean(s.perAxis),
+    })),
+  }));
+  res.json(ListShapesResponse.parse(shapes));
+});
+
+router.get("/generate/assets", async (_req, res) => {
+  const assets = {
+    claims: APPROVED_CLAIMS.map((c) => ({
+      id: c.id,
+      text: c.text,
+      confidentiality: c.confidentiality,
+      validity: c.validity,
+      note: c.note ?? null,
+    })),
+    quotes: APPROVED_QUOTES.map((q) => ({
+      id: q.id,
+      text: q.text,
+      attribution: q.attribution,
+      confidentiality: q.confidentiality,
+      validity: q.validity,
+    })),
+    boilerplates: BOILERPLATES.map((b) => ({
+      id: b.id,
+      name: b.name,
+      text: b.text,
+      confidentiality: b.confidentiality,
+      validity: b.validity,
+    })),
+    disclaimers: DISCLAIMERS.map((d) => ({
+      id: d.id,
+      name: d.name,
+      text: d.text,
+      appliesTo: d.appliesTo,
+    })),
+    glossary: GLOSSARY.map((g) => ({ id: g.id, term: g.term, definition: g.definition })),
+  };
+  res.json(ListAssetsResponse.parse(assets));
+});
+
+router.get("/generate/schedules", async (_req, res) => {
+  res.json(ListSchedulesResponse.parse(listSchedules()));
+});
+
+router.post("/generate/schedules", async (req, res) => {
+  const parsed = CreateScheduleBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const d = parsed.data;
+  const schedule = createSchedule({
+    name: d.name,
+    shape: d.shape,
+    topic: d.topic,
+    queries: (d.queries ?? []).map((q) => q.trim()).filter(Boolean),
+    axisIds: d.axisIds ?? [],
+    language: d.language ?? "en",
+    audience: (d.audience as "internal" | "external") ?? "internal",
+    confidentiality: d.confidentiality ?? "internal",
+    frequency: (d.frequency as "daily" | "weekly" | "monthly") ?? "weekly",
+    ownerRoleId: d.ownerRoleId,
+    ownerLabel: roleLabel(d.ownerRoleId),
+    reviewFolder: d.reviewFolder ?? "Review inbox",
+  });
+  res.json(CreateScheduleResponse.parse(schedule));
+});
+
+router.post("/generate/schedules/:id/run", async (req, res) => {
+  const schedule = getSchedule(req.params.id);
+  if (!schedule) {
+    res.status(404).json({ error: "Schedule not found." });
+    return;
+  }
+  try {
+    const draft = await runGenerateAgent(
+      {
+        shape: schedule.shape as "messaging" | "press" | "multiformat",
+        topic: schedule.topic,
+        roleId: schedule.ownerRoleId,
+        audience: schedule.audience,
+        language: schedule.language,
+        confidentiality: schedule.confidentiality,
+        axisIds: schedule.axisIds,
+        sourceQueries: schedule.queries,
+      },
+      req.log,
+    );
+    markScheduleRun(schedule.id);
+    const item = addReviewItem({
+      scheduleId: schedule.id,
+      scheduleName: schedule.name,
+      reviewFolder: schedule.reviewFolder,
+      ownerRoleId: schedule.ownerRoleId,
+      ownerLabel: schedule.ownerLabel,
+      draft,
+    });
+    // Stamp scheduled provenance so this draft cannot be exported or versioned
+    // until it is approved in the review inbox. item.draft is the stored ref.
+    item.draft.origin = "scheduled";
+    item.draft.reviewItemId = item.id;
+    item.draft.approved = false;
+    // Server-authoritative lineage: bind this draft's id AND content hash to its
+    // review item so the save/version gate never has to trust client-submitted
+    // provenance — mutating draft.id cannot escape the gate.
+    registerScheduledDraft([item.draft.id, hashDraftContent(item.draft)], item.id);
+    res.json(RunScheduleResponse.parse(item));
+  } catch (err) {
+    req.log.error({ err }, "run schedule failed");
+    res.status(500).json({ error: "The scheduled run could not complete." });
+  }
+});
+
+router.get("/generate/inbox", async (_req, res) => {
+  res.json(ListReviewItemsResponse.parse(listReviewItems()));
+});
+
+router.post("/generate/inbox/:id/approve", async (req, res) => {
+  const parsed = ApproveReviewItemBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const item = getReviewItem(req.params.id);
+  if (!item) {
+    res.status(404).json({ error: "Review item not found." });
+    return;
+  }
+  const draft = parsed.data.draft as unknown as GeneratedDraft;
+  const guardian = runBrandGuardian(draft);
+  if (guardian.status !== "pass") {
+    res
+      .status(409)
+      .json({ error: "The Brand Guardian must pass before this item can be approved." });
+    return;
+  }
+  // Approval is the ONLY place a scheduled draft becomes exportable/versionable.
+  const approved = approveReviewItem(item.id, {
+    ...draft,
+    guardian,
+    origin: "scheduled",
+    reviewItemId: item.id,
+    approved: true,
+  });
+  // Bind the approved content hash (and any post-review id) to the lineage too,
+  // so the save/version gate resolves this item even if the human edited during
+  // review before approving.
+  if (approved) {
+    registerScheduledDraft([approved.draft.id, hashDraftContent(approved.draft)], item.id);
+  }
+  res.json(ApproveReviewItemResponse.parse(approved));
+});
+
+router.get("/generate/versions", async (_req, res) => {
+  res.json(ListVersionsResponse.parse(listVersions()));
+});
+
+router.post("/generate/versions", async (req, res) => {
+  const parsed = SaveVersionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const draft = parsed.data.draft as unknown as GeneratedDraft;
+  // Scheduled human-approval gate — SERVER-AUTHORITATIVE. Whether a draft is
+  // scheduled is decided by the server's lineage index (keyed on the draft id),
+  // never by the client-submitted draft.origin/approved flags (which are UX hints
+  // and can be tampered with). A scheduled draft may only be versioned when its
+  // linked review item is approved AND the submitted content still matches the
+  // exact content that was approved (hash bind) — so any post-approval edit voids
+  // approval until it is re-reviewed.
+  const submittedHash = hashDraftContent(draft);
+  const scheduledReviewItemId = findScheduledReviewItemId([draft.id, submittedHash]);
+  if (scheduledReviewItemId) {
+    const item = getReviewItem(scheduledReviewItemId);
+    if (
+      !item ||
+      item.status !== "approved" ||
+      item.approvedHash === null ||
+      item.approvedHash !== submittedHash
+    ) {
+      res.status(409).json({
+        error:
+          "Scheduled documents must be approved in the review inbox before a version can be saved, and the content must match the approved version.",
+      });
+      return;
+    }
+  }
+  const guardian = runBrandGuardian(draft);
+  if (guardian.status !== "pass") {
+    res
+      .status(409)
+      .json({ error: "The Brand Guardian must pass before a version can be saved." });
+    return;
+  }
+  const owner = ROLES.find((r) => r.id === draft.params.roleId);
+  const record = saveVersion({
+    title: draft.title,
+    shape: draft.shape,
+    language: draft.language,
+    audience: draft.audience,
+    confidentiality: draft.confidentiality,
+    savedBy: parsed.data.savedBy,
+    governance: {
+      confidentiality: draft.confidentiality,
+      validity: "approved",
+      owner: owner?.label ?? draft.params.roleId,
+    },
+    draft: { ...draft, guardian },
+  });
+  res.json(SaveVersionResponse.parse(record));
+});
+
+// ---- Observable, staged jobs -----------------------------------------------
+// These start the SAME governed pipelines as /generate and /generate/refine but
+// return a job immediately so the client can poll and watch the real backend
+// phases (retrieving -> composing -> guardian -> done) rather than guess on a
+// timer. The synchronous endpoints above remain for back-compat and curl.
+
+router.post("/generate/jobs", async (req, res) => {
+  const parsed = StartGenerateJobBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const job = createJob("generate");
+  const input = {
+    shape: parsed.data.shape as "messaging" | "press" | "multiformat",
+    topic: parsed.data.topic,
+    roleId: parsed.data.roleId,
+    audience: parsed.data.audience as "internal" | "external",
+    language: parsed.data.language,
+    confidentiality: parsed.data.confidentiality,
+    format: parsed.data.format,
+    axisIds: parsed.data.axisIds,
+  };
+  const log = req.log;
+  void (async () => {
+    try {
+      const draft = await runGenerateAgent(input, log, (stage) => setJobStage(job.id, stage));
+      completeJob(job.id, draft);
+    } catch (err) {
+      log.error({ err }, "generate job failed");
+      failJob(job.id, "The Hub could not generate this document.");
+    }
+  })();
+  res.status(202).json(GetGenerationJobResponse.parse(getJob(job.id)));
+});
+
+router.post("/generate/refine/jobs", async (req, res) => {
+  const parsed = StartRefineJobBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const job = createJob("refine");
+  const input = {
+    draft: parsed.data.draft as unknown as GeneratedDraft,
+    instruction: parsed.data.instruction,
+    roleId: parsed.data.roleId,
+  };
+  const log = req.log;
+  void (async () => {
+    try {
+      const draft = await refineDraft(input, log, (stage) => setJobStage(job.id, stage));
+      completeJob(job.id, draft);
+    } catch (err) {
+      log.error({ err }, "refine job failed");
+      failJob(job.id, "The Hub could not refine this document.");
+    }
+  })();
+  res.status(202).json(GetGenerationJobResponse.parse(getJob(job.id)));
+});
+
+router.get("/generate/jobs/:id", async (req, res) => {
+  const job = getJob(req.params.id);
+  if (!job) {
+    res.status(404).json({ error: "Job not found." });
+    return;
+  }
+  res.json(GetGenerationJobResponse.parse(job));
+});
+
+export default router;

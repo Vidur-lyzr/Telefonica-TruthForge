@@ -11,6 +11,7 @@ import DataPage from "@/pages/data";
 import AdminPage from "@/pages/admin";
 import KpisPage from "@/pages/kpis";
 import Planning from "@/pages/planning";
+import Generate from "@/pages/generate";
 import PlaceholderPage from "@/pages/placeholder";
 
 const queryClient = new QueryClient({
@@ -29,7 +30,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/ask" component={Ask} />
         <Route path="/data" component={DataPage} />
-        <Route path="/generate" component={PlaceholderPage} />
+        <Route path="/generate" component={Generate} />
         <Route path="/kpis" component={KpisPage} />
         <Route path="/planning" component={Planning} />
         <Route path="/wiki" component={PlaceholderPage} />

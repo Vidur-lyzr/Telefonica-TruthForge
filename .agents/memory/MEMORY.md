@@ -5,3 +5,6 @@
 - [Ask governed memory](ask-governed-memory.md) — conversation memory must be persona-scoped sessions; filter history by current roleId so lower-clearance persona never inherits higher-clearance turns.
 - [API server is build-once](api-server-build-once.md) — the api-server dev workflow builds then serves; edits to server code/corpus need a workflow restart (not HMR) before curl reflects them.
 - [Orval hook query options](orval-query-options.md) — generated React Query hooks require queryKey in `query` options; passing bare `{ query: { enabled } }` fails typecheck. Omit options or reuse getGetXQueryOptions.
+- [api-server restart for new routes](api-server-restart-required.md) — new backend routes 404 until you restart `artifacts/api-server: API Server`; dev is build&&start, not watch.
+- [Generate confidentiality gate](generate-confidentiality-gate.md) — external audience must cap ALL retrieval (body AND guidance) to public before the model, not just body sources.
+- [Generate scheduled approval gate](generate-scheduled-approval-gate.md) — scheduled gate must be SERVER-authoritative: index review item by draft id AND content hash; bind save/export to approved content hash; never trust client origin/approved/id.
