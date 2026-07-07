@@ -25,7 +25,7 @@ function EvidenceChip({ citation, onOpen }: { citation: Citation, onOpen: () => 
           {citation.value && (
             <span className="text-xs font-bold text-tf-success">{citation.value}</span>
           )}
-          <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{citation.owner}</span>
+          <span className="text-[10px] uppercase tracking-eyebrow text-muted-foreground">{citation.owner}</span>
         </div>
       </div>
     </button>
@@ -62,7 +62,7 @@ export default function Ask() {
       {!result && !isPending && (
         <div className="flex-1 flex flex-col items-center justify-center space-y-8 animate-in fade-in zoom-in duration-500">
           <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold tracking-tight text-tf-navy">How can I help you today?</h1>
+            <h1 className="text-display-sm text-tf-navy">How can I help you today?</h1>
             <p className="text-muted-foreground text-lg max-w-lg mx-auto">
               Ask anything about Telefónica's strategy, brand, and corporate facts. Every answer is backed by our governed knowledge core.
             </p>
@@ -76,7 +76,7 @@ export default function Ask() {
                 className="text-left p-4 rounded-xl border bg-card hover:bg-muted/50 transition-colors shadow-sm hover:shadow-md text-sm text-card-foreground group"
               >
                 <div className="flex items-center space-x-2 mb-2">
-                  <Badge variant="secondary" className="uppercase text-[10px] tracking-widest bg-tf-blue-tint text-tf-blue">{s.kind.replace('_', ' ')}</Badge>
+                  <Badge variant="secondary" className="uppercase text-[10px] tracking-eyebrow bg-tf-blue-tint text-tf-blue">{s.kind.replace('_', ' ')}</Badge>
                 </div>
                 <span className="line-clamp-2 font-medium leading-relaxed">{s.text}</span>
               </button>
@@ -139,14 +139,14 @@ export default function Ask() {
                   {result.numeric && (
                     <div className="bg-tf-blue-tint text-tf-navy p-6 rounded-xl border border-tf-blue/10 flex items-center justify-between">
                       <div>
-                        <div className="text-xs font-bold uppercase tracking-widest text-tf-blue mb-2">{result.numeric.label}</div>
-                        <div className="text-5xl font-bold tracking-tight">
+                        <div className="text-xs font-bold uppercase tracking-eyebrow text-tf-blue mb-2">{result.numeric.label}</div>
+                        <div className="text-display-md">
                           {result.numeric.value} <span className="text-2xl text-tf-blue font-medium ml-1">{result.numeric.unit}</span>
                         </div>
                       </div>
                       <div className="text-right text-sm font-medium space-y-1">
                         <div className="bg-white/60 px-3 py-1 rounded-full text-tf-blue">{result.numeric.period}</div>
-                        <div className="text-tf-navy/60 uppercase tracking-widest text-[10px] mt-2">{result.numeric.source}</div>
+                        <div className="text-tf-navy/60 uppercase tracking-eyebrow text-[10px] mt-2">{result.numeric.source}</div>
                       </div>
                     </div>
                   )}
@@ -169,7 +169,7 @@ export default function Ask() {
 
                   {result.relatedEntities && result.relatedEntities.length > 0 && (
                     <div className="pt-4 flex flex-wrap gap-3">
-                      <span className="text-xs uppercase tracking-widest font-bold text-muted-foreground py-1">Related:</span>
+                      <span className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground py-1">Related:</span>
                       {result.relatedEntities.map(ent => (
                         <span key={ent.id} className="text-sm font-medium text-muted-foreground bg-muted px-2 py-1 rounded-md">
                           {ent.name} <span className="opacity-50 text-xs ml-1">({ent.kind})</span>
@@ -180,7 +180,7 @@ export default function Ask() {
 
                   {result.citations && result.citations.length > 0 && (
                     <div className="pt-6 border-t space-y-4">
-                      <h4 className="text-xs uppercase tracking-widest font-bold text-muted-foreground flex items-center">
+                      <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground flex items-center">
                         <FileText className="w-4 h-4 mr-2" /> Evidence & Citations
                       </h4>
                       <div className="flex overflow-x-auto pb-4 space-x-4 -mx-1 px-1 snap-x">
@@ -230,12 +230,12 @@ export default function Ask() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Badge variant={selectedCitation.validity === 'approved' ? 'default' : 'secondary'} className={cn(
-                        "uppercase tracking-widest text-[10px]",
+                        "uppercase tracking-eyebrow text-[10px]",
                         selectedCitation.validity === 'approved' ? "bg-tf-success text-white" : ""
                       )}>
                         {selectedCitation.validity}
                       </Badge>
-                      <Badge variant={selectedCitation.confidentiality === 'public' ? 'secondary' : 'destructive'} className="uppercase tracking-widest text-[10px]">
+                      <Badge variant={selectedCitation.confidentiality === 'public' ? 'secondary' : 'destructive'} className="uppercase tracking-eyebrow text-[10px]">
                         {selectedCitation.confidentiality}
                       </Badge>
                     </div>
@@ -248,21 +248,21 @@ export default function Ask() {
 
                 <div className="space-y-6 mt-4">
                   <div className="bg-muted p-6 rounded-xl border border-border">
-                    <h4 className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-3">Extracted Snippet</h4>
+                    <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground mb-3">Extracted Snippet</h4>
                     <p className="text-foreground leading-relaxed font-serif text-lg">"{selectedCitation.snippet}"</p>
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="space-y-1">
-                      <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground">Version</div>
+                      <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Version</div>
                       <div className="font-medium text-sm">{selectedCitation.version}</div>
                     </div>
                     <div className="space-y-1">
-                      <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground">Owner</div>
+                      <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Owner</div>
                       <div className="font-medium text-sm">{selectedCitation.owner}</div>
                     </div>
                     <div className="space-y-1">
-                      <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground">Confidence</div>
+                      <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Confidence</div>
                       <div className="font-medium text-sm flex items-center space-x-2">
                         <span>{Math.round(selectedCitation.confidence * 100)}%</span>
                         {selectedCitation.confidence > 0.8 && <CheckCircle2 className="w-4 h-4 text-tf-success" />}
@@ -270,7 +270,7 @@ export default function Ask() {
                     </div>
                     {selectedCitation.validUntil && (
                       <div className="space-y-1">
-                        <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground">Valid Until</div>
+                        <div className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">Valid Until</div>
                         <div className="font-medium text-sm">{selectedCitation.validUntil}</div>
                       </div>
                     )}

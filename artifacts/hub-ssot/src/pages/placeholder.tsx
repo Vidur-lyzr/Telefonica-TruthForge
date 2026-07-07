@@ -10,7 +10,7 @@ export default function PlaceholderPage() {
       <div className="w-20 h-20 bg-tf-blue-tint rounded-full flex items-center justify-center mb-6">
         <div className="w-10 h-10 bg-tf-blue rounded-full opacity-50" />
       </div>
-      <h1 className="text-3xl font-bold tracking-tight text-tf-navy mb-3">{name} Workspace</h1>
+      <h1 className="text-title-lg text-tf-navy mb-3">{name} Workspace</h1>
       <p className="text-muted-foreground text-lg max-w-md">
         This area is in active development. Check back soon for new governance tools.
       </p>

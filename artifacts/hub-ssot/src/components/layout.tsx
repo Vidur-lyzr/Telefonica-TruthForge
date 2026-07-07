@@ -51,7 +51,7 @@ function Sidebar() {
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
         {navGroups.map((group, idx) => (
           <div key={idx}>
-            <div className="text-xs uppercase tracking-widest text-tf-navy-tint mb-3 px-3 font-bold">
+            <div className="text-xs uppercase tracking-eyebrow text-tf-navy-tint mb-3 px-3 font-bold">
               {group.label}
             </div>
             <div className="space-y-1">
@@ -98,7 +98,7 @@ function Topbar() {
 
       <div className="flex items-center space-x-4">
         <div className="flex items-center space-x-2">
-          <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Area</span>
+          <span className="text-xs uppercase tracking-eyebrow text-muted-foreground font-bold">Area</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="rounded-pill h-8 px-4 font-semibold border-border bg-muted/50 hover:bg-muted">
@@ -119,7 +119,7 @@ function Topbar() {
         <div className="w-px h-6 bg-border mx-1" />
 
         <div className="flex items-center space-x-2">
-          <span className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Persona</span>
+          <span className="text-xs uppercase tracking-eyebrow text-muted-foreground font-bold">Persona</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="rounded-pill h-8 px-4 font-semibold border-border bg-muted/50 hover:bg-muted">
@@ -135,7 +135,7 @@ function Topbar() {
                   </div>
                   <div className="text-xs text-muted-foreground mt-1 flex items-center justify-between w-full">
                     <span className="truncate mr-2" title={r.description}>{r.description}</span>
-                    <span className="uppercase tracking-widest text-[9px] font-bold px-1.5 py-0.5 rounded-sm bg-muted whitespace-nowrap">{r.clearance}</span>
+                    <span className="uppercase tracking-eyebrow text-[9px] font-bold px-1.5 py-0.5 rounded-sm bg-muted whitespace-nowrap">{r.clearance}</span>
                   </div>
                 </DropdownMenuItem>
               ))}

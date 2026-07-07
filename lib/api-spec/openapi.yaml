@@ -99,7 +99,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/Role"
 
-  /corpus:
+  /documents:
     get:
       operationId: listDocuments
       tags: [knowledge]

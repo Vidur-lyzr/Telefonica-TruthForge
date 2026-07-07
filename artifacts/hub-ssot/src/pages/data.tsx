@@ -20,7 +20,7 @@ export default function DataPage() {
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="space-y-2">
-        <h1 className="text-3xl font-bold tracking-tight text-tf-navy">Data Governance</h1>
+        <h1 className="text-title-lg text-tf-navy">Data Governance</h1>
         <p className="text-muted-foreground text-lg">Manage the governed corpus and metadata contracts backing Hub SSoT.</p>
       </div>
 
@@ -31,7 +31,7 @@ export default function DataPage() {
               <Database className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Total Documents</p>
+              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">Total Documents</p>
               <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.totalDocuments || 0}</h3>
             </div>
           </CardContent>
@@ -43,7 +43,7 @@ export default function DataPage() {
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Total Chunks</p>
+              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">Total Chunks</p>
               <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.totalChunks || 0}</h3>
             </div>
           </CardContent>
@@ -55,7 +55,7 @@ export default function DataPage() {
               <Globe className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Countries</p>
+              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">Countries</p>
               <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.byCountry?.length || 0}</h3>
             </div>
           </CardContent>
@@ -67,7 +67,7 @@ export default function DataPage() {
               <Shield className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Quarantined</p>
+              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">Quarantined</p>
               <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.quarantined || 0}</h3>
             </div>
           </CardContent>
@@ -85,11 +85,11 @@ export default function DataPage() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="font-bold text-xs uppercase tracking-widest">Title</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-widest">Brand</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-widest">Confidentiality</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-widest">Validity</TableHead>
-                <TableHead className="text-right font-bold text-xs uppercase tracking-widest">Chunks</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Title</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Brand</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Confidentiality</TableHead>
+                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Validity</TableHead>
+                <TableHead className="text-right font-bold text-xs uppercase tracking-eyebrow">Chunks</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -103,13 +103,13 @@ export default function DataPage() {
                   <TableCell className="font-semibold text-tf-navy max-w-[300px] truncate">{doc.title}</TableCell>
                   <TableCell className="text-muted-foreground font-medium">{doc.brand}</TableCell>
                   <TableCell>
-                    <Badge variant={doc.confidentiality === 'public' ? 'secondary' : 'destructive'} className="uppercase text-[10px] tracking-widest rounded-full font-bold">
+                    <Badge variant={doc.confidentiality === 'public' ? 'secondary' : 'destructive'} className="uppercase text-[10px] tracking-eyebrow rounded-full font-bold">
                       {doc.confidentiality}
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge variant={doc.validity === 'approved' ? 'default' : 'secondary'} className={cn(
-                      "uppercase text-[10px] tracking-widest rounded-full font-bold",
+                      "uppercase text-[10px] tracking-eyebrow rounded-full font-bold",
                       doc.validity === 'approved' ? "bg-tf-success hover:bg-tf-success text-white" : ""
                     )}>
                       {doc.validity}
@@ -137,17 +137,17 @@ export default function DataPage() {
               <>
                 <DrawerHeader className="px-0 pb-4 shrink-0 border-b border-border mb-4">
                   <div className="flex items-center justify-between mb-3">
-                    <Badge className="bg-tf-blue-tint text-tf-blue hover:bg-tf-blue-tint text-xs uppercase tracking-widest font-bold">
+                    <Badge className="bg-tf-blue-tint text-tf-blue hover:bg-tf-blue-tint text-xs uppercase tracking-eyebrow font-bold">
                       {docDetail.document.type}
                     </Badge>
                     <div className="flex items-center space-x-2">
                       <Badge variant={docDetail.document.validity === 'approved' ? 'default' : 'secondary'} className={cn(
-                        "uppercase tracking-widest text-[10px] font-bold",
+                        "uppercase tracking-eyebrow text-[10px] font-bold",
                         docDetail.document.validity === 'approved' ? "bg-tf-success text-white" : ""
                       )}>
                         {docDetail.document.validity}
                       </Badge>
-                      <Badge variant={docDetail.document.confidentiality === 'public' ? 'secondary' : 'destructive'} className="uppercase tracking-widest text-[10px] font-bold">
+                      <Badge variant={docDetail.document.confidentiality === 'public' ? 'secondary' : 'destructive'} className="uppercase tracking-eyebrow text-[10px] font-bold">
                         {docDetail.document.confidentiality}
                       </Badge>
                     </div>
@@ -166,13 +166,13 @@ export default function DataPage() {
                     </div>
 
                     <div className="space-y-4">
-                      <h4 className="text-xs uppercase tracking-widest font-bold text-muted-foreground">
+                      <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
                         Document Chunks ({docDetail.chunks.length})
                       </h4>
                       <div className="space-y-3">
                         {docDetail.chunks.map((chunk) => (
                           <div key={chunk.id} className="border border-border rounded-xl p-4 hover:shadow-sm transition-shadow bg-card">
-                            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1">
+                            <div className="text-[10px] uppercase tracking-eyebrow text-muted-foreground font-bold mb-1">
                               {chunk.breadcrumb}
                             </div>
                             <h5 className="font-bold text-tf-navy mb-2">{chunk.heading}</h5>

@@ -445,7 +445,7 @@ export const getListDocumentsUrl = () => {
 
 
 
-  return `/api/corpus`
+  return `/api/documents`
 }
 
 /**
@@ -468,7 +468,7 @@ export const listDocuments = async ( options?: RequestInit): Promise<CorpusDocum
 
 export const getListDocumentsQueryKey = () => {
     return [
-    `/api/corpus`
+    `/api/documents`
     ] as const;
     }
 

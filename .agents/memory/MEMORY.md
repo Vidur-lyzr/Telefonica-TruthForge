@@ -1,1 +1,3 @@
 - [Coverage-based retrieval relevance](coverage-retrieval.md) — rank Ask relevance by query-idf coverage, not absolute BM25; don't cap absent-term idf (breaks no_evidence).
+- [Tailwind v4 font @import](tailwind-v4-font-import.md) — Tailwind v4 strips a raw CSS `@import url(google fonts)`; load web fonts via an index.html `<link>`, and check the scaffold isn't linking the wrong font.
+- [OpenAPI path vs server route](api-contract-path-mismatch.md) — empty table but curl 200 + no JS error usually means the generated client URL (from the OpenAPI path) doesn't match the server route.
