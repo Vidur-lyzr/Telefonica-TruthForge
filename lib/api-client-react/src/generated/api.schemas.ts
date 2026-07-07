@@ -445,3 +445,206 @@ export interface KpiDetailInput {
   period: string;
 }
 
+export interface PlanningSource {
+  id: string;
+  name: string;
+  kind: string;
+  /** connected | read_only */
+  status: string;
+  description: string;
+}
+
+export interface PlanningOverview {
+  /** Anchor date the calendar and forecast are aligned to */
+  today: string;
+  sources: PlanningSource[];
+}
+
+export interface PlanningEvent {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  area: string;
+  /** campaign | milestone | event | publication */
+  type: string;
+  /** planned | in_progress | live | done | at_risk */
+  status: string;
+  owner: string;
+  axisId: string;
+  market: string;
+  brand: string;
+  source: string;
+  confidentiality: string;
+  /** True when redacted to a busy/blocked stub above the persona's clearance */
+  restricted: boolean;
+  conflict: boolean;
+  description: string;
+}
+
+export interface PlanningEventLite {
+  id: string;
+  title: string;
+  type: string;
+  area: string;
+  market: string;
+  brand: string;
+}
+
+export interface PlanningEventDetail {
+  event: PlanningEvent;
+  conflictsWith: PlanningEventLite[];
+}
+
+export interface PlanningConflict {
+  id: string;
+  date: string;
+  market: string;
+  severity: string;
+  eventIds: string[];
+  events: PlanningEventLite[];
+  suggestion: string;
+}
+
+export interface PlanningGap {
+  start: string;
+  end: string;
+  days: number;
+  note: string;
+}
+
+export interface ExternalSignal {
+  id: string;
+  title: string;
+  date: string;
+  kind: string;
+  market: string;
+  description: string;
+}
+
+export interface WorkloadPeriod {
+  id: string;
+  label: string;
+  count: number;
+  note: string;
+}
+
+export interface SuggestedDate {
+  date: string;
+  note: string;
+}
+
+export interface FutureConflict {
+  id: string;
+  market: string;
+  date: string;
+  note: string;
+}
+
+export interface SignalWarning {
+  id: string;
+  date: string;
+  market: string;
+  note: string;
+}
+
+export interface CascadeShift {
+  eventId: string;
+  title: string;
+  note: string;
+}
+
+export interface Cascade {
+  eventId: string;
+  eventTitle: string;
+  fromDate: string;
+  toDate: string;
+  note: string;
+  shifts: CascadeShift[];
+}
+
+export interface Predictions {
+  workloadPeriods: WorkloadPeriod[];
+  suggestedDates: SuggestedDate[];
+  futureConflicts: FutureConflict[];
+  signalWarnings: SignalWarning[];
+  cascade: Cascade | null;
+}
+
+export interface PlanningInsights {
+  conflicts: PlanningConflict[];
+  gaps: PlanningGap[];
+  predictions: Predictions;
+  signals: ExternalSignal[];
+}
+
+export interface PlanningAskInput {
+  /** @minLength 1 */
+  question: string;
+  area: string;
+  roleId: string;
+}
+
+export interface PlanningAskResult {
+  /** answered | no_evidence | permission_blocked */
+  status: string;
+  answer: string;
+  citations: Citation[];
+  historic: boolean;
+  permissionNote?: string | null;
+  axisIds: string[];
+  suggestedActions: string[];
+}
+
+export interface PlanningForecastInput {
+  area: string;
+  roleId: string;
+}
+
+export type PlanningForecastHighlights = {
+  liveCount: number;
+  conflictCount: number;
+  riskCount: number;
+};
+
+export interface PlanningForecast {
+  /** generated | no_activity */
+  status: string;
+  generatedAt: string;
+  horizonDays: number;
+  rangeStart: string;
+  rangeEnd: string;
+  summary: string;
+  citations: Citation[];
+  highlights: PlanningForecastHighlights;
+}
+
+export type GetPlanningOverviewParams = {
+roleId: string;
+};
+
+export type ListPlanningEventsParams = {
+roleId: string;
+from?: string;
+to?: string;
+area?: string;
+market?: string;
+brand?: string;
+axis?: string;
+};
+
+export type GetPlanningEventParams = {
+id: string;
+roleId: string;
+};
+
+export type GetPlanningInsightsParams = {
+roleId: string;
+from?: string;
+to?: string;
+area?: string;
+market?: string;
+brand?: string;
+axis?: string;
+};
+

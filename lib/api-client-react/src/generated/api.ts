@@ -28,12 +28,24 @@ import type {
   CorpusDocumentDetail,
   CorpusStats,
   ErrorResponse,
+  GetPlanningEventParams,
+  GetPlanningInsightsParams,
+  GetPlanningOverviewParams,
   HealthStatus,
   KpiAskInput,
   KpiDetail,
   KpiDetailInput,
   KpiQueryInput,
   KpiQueryResult,
+  ListPlanningEventsParams,
+  PlanningAskInput,
+  PlanningAskResult,
+  PlanningEvent,
+  PlanningEventDetail,
+  PlanningForecast,
+  PlanningForecastInput,
+  PlanningInsights,
+  PlanningOverview,
   PlatformUser,
   Role,
   ScheduledDocument,
@@ -1199,5 +1211,482 @@ export const useGetKpiDetail = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getGetKpiDetailMutationOptions(options));
+    }
+
+export const getGetPlanningOverviewUrl = (params: GetPlanningOverviewParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/planning/overview?${stringifiedParams}` : `/api/planning/overview`
+}
+
+/**
+ * @summary Planning surface overview (connected source calendars + anchor date)
+ */
+export const getPlanningOverview = async (params: GetPlanningOverviewParams, options?: RequestInit): Promise<PlanningOverview> => {
+
+  return customFetch<PlanningOverview>(getGetPlanningOverviewUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlanningOverviewQueryKey = (params?: GetPlanningOverviewParams,) => {
+    return [
+    `/api/planning/overview`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPlanningOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getPlanningOverview>>, TError = ErrorType<unknown>>(params: GetPlanningOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlanningOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlanningOverviewQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlanningOverview>>> = ({ signal }) => getPlanningOverview(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlanningOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlanningOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getPlanningOverview>>>
+export type GetPlanningOverviewQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Planning surface overview (connected source calendars + anchor date)
+ */
+
+export function useGetPlanningOverview<TData = Awaited<ReturnType<typeof getPlanningOverview>>, TError = ErrorType<unknown>>(
+ params: GetPlanningOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlanningOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlanningOverviewQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListPlanningEventsUrl = (params: ListPlanningEventsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/planning/events?${stringifiedParams}` : `/api/planning/events`
+}
+
+/**
+ * Returns events the active persona is cleared to see. Events above the persona's clearance are returned as redacted "busy/blocked" stubs with no detail.
+ * @summary Permission-scoped calendar events for a range and filters
+ */
+export const listPlanningEvents = async (params: ListPlanningEventsParams, options?: RequestInit): Promise<PlanningEvent[]> => {
+
+  return customFetch<PlanningEvent[]>(getListPlanningEventsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlanningEventsQueryKey = (params?: ListPlanningEventsParams,) => {
+    return [
+    `/api/planning/events`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListPlanningEventsQueryOptions = <TData = Awaited<ReturnType<typeof listPlanningEvents>>, TError = ErrorType<unknown>>(params: ListPlanningEventsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanningEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlanningEventsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlanningEvents>>> = ({ signal }) => listPlanningEvents(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlanningEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlanningEventsQueryResult = NonNullable<Awaited<ReturnType<typeof listPlanningEvents>>>
+export type ListPlanningEventsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Permission-scoped calendar events for a range and filters
+ */
+
+export function useListPlanningEvents<TData = Awaited<ReturnType<typeof listPlanningEvents>>, TError = ErrorType<unknown>>(
+ params: ListPlanningEventsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanningEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlanningEventsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPlanningEventUrl = (params: GetPlanningEventParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/planning/event?${stringifiedParams}` : `/api/planning/event`
+}
+
+/**
+ * @summary A single event with its overlapping siblings
+ */
+export const getPlanningEvent = async (params: GetPlanningEventParams, options?: RequestInit): Promise<PlanningEventDetail> => {
+
+  return customFetch<PlanningEventDetail>(getGetPlanningEventUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlanningEventQueryKey = (params?: GetPlanningEventParams,) => {
+    return [
+    `/api/planning/event`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPlanningEventQueryOptions = <TData = Awaited<ReturnType<typeof getPlanningEvent>>, TError = ErrorType<ErrorResponse>>(params: GetPlanningEventParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlanningEvent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlanningEventQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlanningEvent>>> = ({ signal }) => getPlanningEvent(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlanningEvent>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlanningEventQueryResult = NonNullable<Awaited<ReturnType<typeof getPlanningEvent>>>
+export type GetPlanningEventQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary A single event with its overlapping siblings
+ */
+
+export function useGetPlanningEvent<TData = Awaited<ReturnType<typeof getPlanningEvent>>, TError = ErrorType<ErrorResponse>>(
+ params: GetPlanningEventParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlanningEvent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlanningEventQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPlanningInsightsUrl = (params: GetPlanningInsightsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/planning/insights?${stringifiedParams}` : `/api/planning/insights`
+}
+
+/**
+ * @summary Conflicts, gaps, predictions and external signals for a range
+ */
+export const getPlanningInsights = async (params: GetPlanningInsightsParams, options?: RequestInit): Promise<PlanningInsights> => {
+
+  return customFetch<PlanningInsights>(getGetPlanningInsightsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPlanningInsightsQueryKey = (params?: GetPlanningInsightsParams,) => {
+    return [
+    `/api/planning/insights`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPlanningInsightsQueryOptions = <TData = Awaited<ReturnType<typeof getPlanningInsights>>, TError = ErrorType<unknown>>(params: GetPlanningInsightsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlanningInsights>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPlanningInsightsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPlanningInsights>>> = ({ signal }) => getPlanningInsights(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPlanningInsights>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetPlanningInsightsQueryResult = NonNullable<Awaited<ReturnType<typeof getPlanningInsights>>>
+export type GetPlanningInsightsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Conflicts, gaps, predictions and external signals for a range
+ */
+
+export function useGetPlanningInsights<TData = Awaited<ReturnType<typeof getPlanningInsights>>, TError = ErrorType<unknown>>(
+ params: GetPlanningInsightsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getPlanningInsights>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetPlanningInsightsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getPlanningAskUrl = () => {
+
+
+
+
+  return `/api/planning/ask`
+}
+
+/**
+ * @summary Scoped natural-language question over the governed calendar
+ */
+export const planningAsk = async (planningAskInput: PlanningAskInput, options?: RequestInit): Promise<PlanningAskResult> => {
+
+  return customFetch<PlanningAskResult>(getPlanningAskUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planningAskInput)
+  }
+);}
+
+
+
+
+export const getPlanningAskMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof planningAsk>>, TError,{data: BodyType<PlanningAskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof planningAsk>>, TError,{data: BodyType<PlanningAskInput>}, TContext> => {
+
+const mutationKey = ['planningAsk'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof planningAsk>>, {data: BodyType<PlanningAskInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  planningAsk(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PlanningAskMutationResult = NonNullable<Awaited<ReturnType<typeof planningAsk>>>
+    export type PlanningAskMutationBody = BodyType<PlanningAskInput>
+    export type PlanningAskMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Scoped natural-language question over the governed calendar
+ */
+export const usePlanningAsk = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof planningAsk>>, TError,{data: BodyType<PlanningAskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof planningAsk>>,
+        TError,
+        {data: BodyType<PlanningAskInput>},
+        TContext
+      > => {
+      return useMutation(getPlanningAskMutationOptions(options));
+    }
+
+export const getPlanningForecastUrl = () => {
+
+
+
+
+  return `/api/planning/forecast`
+}
+
+/**
+ * @summary Generate a cited 10-day forecast
+ */
+export const planningForecast = async (planningForecastInput: PlanningForecastInput, options?: RequestInit): Promise<PlanningForecast> => {
+
+  return customFetch<PlanningForecast>(getPlanningForecastUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planningForecastInput)
+  }
+);}
+
+
+
+
+export const getPlanningForecastMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof planningForecast>>, TError,{data: BodyType<PlanningForecastInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof planningForecast>>, TError,{data: BodyType<PlanningForecastInput>}, TContext> => {
+
+const mutationKey = ['planningForecast'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof planningForecast>>, {data: BodyType<PlanningForecastInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  planningForecast(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PlanningForecastMutationResult = NonNullable<Awaited<ReturnType<typeof planningForecast>>>
+    export type PlanningForecastMutationBody = BodyType<PlanningForecastInput>
+    export type PlanningForecastMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate a cited 10-day forecast
+ */
+export const usePlanningForecast = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof planningForecast>>, TError,{data: BodyType<PlanningForecastInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof planningForecast>>,
+        TError,
+        {data: BodyType<PlanningForecastInput>},
+        TContext
+      > => {
+      return useMutation(getPlanningForecastMutationOptions(options));
     }
 
