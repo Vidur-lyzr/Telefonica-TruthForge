@@ -193,25 +193,27 @@ function HeroAskBar({
 
   return (
     <Stack space={12}>
-      <div style={{ position: "relative" }} onKeyDown={onKeyDown}>
-        <TextField
-          key={placeholder}
-          name="ask"
-          multiline
-          fullWidth
-          label={placeholder}
-          value={text}
-          onChangeValue={setText}
-        />
-        <div style={{ position: "absolute", bottom: 12, right: 12 }}>
-          <IconButton
-            aria-label="Ask"
-            onPress={() => submit(text.trim() ? text : rotatingPrompt)}
-            disabled={disabled}
-            Icon={IconSendRegular}
-            type="brand"
+      <div
+        style={{ display: "flex", alignItems: "center", gap: 8 }}
+        onKeyDown={onKeyDown}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <TextField
+            key={placeholder}
+            name="ask"
+            fullWidth
+            label={placeholder}
+            value={text}
+            onChangeValue={setText}
           />
         </div>
+        <IconButton
+          aria-label="Ask"
+          onPress={() => submit(text.trim() ? text : rotatingPrompt)}
+          disabled={disabled}
+          Icon={IconSendRegular}
+          type="brand"
+        />
       </div>
       <Inline space={8} alignItems="center">
         <IconShieldCheckedOkRegular size={16} color={skinVars.colors.brand} />

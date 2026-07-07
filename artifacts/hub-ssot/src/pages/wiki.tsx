@@ -185,7 +185,7 @@ function FilterSelect({
   options: { value: string; label: string }[];
 }) {
   return (
-    <div style={{ minWidth: 150 }}>
+    <div style={{ width: 150, flexShrink: 0 }}>
       <Select
         name={`filter-${label}`}
         label={label}
@@ -1054,8 +1054,7 @@ export default function Wiki() {
             >
               <TextField
                 name="ask"
-                label="Ask the compiled memory — answers cite compiled pages and their sources"
-                multiline
+                label="Ask the compiled memory"
                 value={question}
                 onChangeValue={setQuestion}
                 fullWidth

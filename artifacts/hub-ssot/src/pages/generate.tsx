@@ -707,7 +707,6 @@ function BriefForm({
                 placeholder="Add the missing detail so the draft is framed correctly (optional)"
                 value={followUpAnswer}
                 onChangeValue={setFollowUpAnswer}
-                multiline
                 fullWidth
               />
               <Inline space={8}>
@@ -1157,7 +1156,6 @@ export default function Generate() {
                     placeholder="e.g. Tighten the B2B section and add the dividend figure"
                     value={instruction}
                     onChangeValue={setInstruction}
-                    multiline
                     fullWidth
                   />
                   <Inline space={8} alignItems="center">
@@ -1501,7 +1499,7 @@ function ScheduledTab({
                     fullWidth
                   />
                 </div>
-                <TextField name="scheduleTopic" label="Standing brief" placeholder="e.g. Weekly readout of Transform & Grow progress" value={topic} onChangeValue={setTopic} multiline fullWidth />
+                <TextField name="scheduleTopic" label="Standing brief" placeholder="e.g. Weekly readout of Transform & Grow progress" value={topic} onChangeValue={setTopic} fullWidth />
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
                   <Select
                     name="frequency"
