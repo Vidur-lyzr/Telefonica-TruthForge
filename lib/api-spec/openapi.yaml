@@ -232,6 +232,43 @@ components:
       required:
         - error
 
+    AskTurn:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          description: user | assistant
+        content:
+          type: string
+
+    AskFilters:
+      type: object
+      description: Retrieval scope applied BEFORE retrieval. Absent/empty means "all data".
+      properties:
+        market:
+          type: ["string", "null"]
+        brand:
+          type: ["string", "null"]
+        period:
+          type: ["string", "null"]
+        source:
+          type: ["string", "null"]
+        axis:
+          type: ["string", "null"]
+
+    AskAttachment:
+      type: object
+      description: Working-context document. Never enters the corpus unless ingest is true.
+      required: [name, content]
+      properties:
+        name:
+          type: string
+        content:
+          type: string
+        ingest:
+          type: boolean
+
     AskInput:
       type: object
       required: [question, area, roleId]
@@ -245,6 +282,19 @@ components:
         roleId:
           type: string
           description: The active permission scope / persona id
+        history:
+          type: array
+          description: Prior conversation turns, oldest first.
+          items:
+            $ref: "#/components/schemas/AskTurn"
+        filters:
+          oneOf:
+            - $ref: "#/components/schemas/AskFilters"
+            - type: "null"
+        attachment:
+          oneOf:
+            - $ref: "#/components/schemas/AskAttachment"
+            - type: "null"
 
     AskResult:
       type: object
@@ -252,7 +302,7 @@ components:
       properties:
         status:
           type: string
-          description: answered | no_evidence | permission_blocked
+          description: answered | no_evidence | permission_blocked | conflict
         answer:
           type: string
         citations:
@@ -263,7 +313,24 @@ components:
           type: boolean
         historicNote:
           type: ["string", "null"]
+        historicPointer:
+          type: ["string", "null"]
+          description: Pointer to the current/superseding series when the answer is historic.
         permissionNote:
+          type: ["string", "null"]
+        conflictNote:
+          type: ["string", "null"]
+        resolutionPath:
+          type: ["string", "null"]
+          description: Where to resolve a conflict, e.g. "wiki".
+        lowConfidence:
+          type: boolean
+        lowConfidenceNote:
+          type: ["string", "null"]
+        corroborationCount:
+          type: ["integer", "null"]
+          description: Number of permitted sources that agree on the headline figure.
+        corroborationNote:
           type: ["string", "null"]
         axisIds:
           type: array
@@ -273,10 +340,50 @@ components:
           oneOf:
             - $ref: "#/components/schemas/NumericFact"
             - type: "null"
+        adjacentDatum:
+          oneOf:
+            - $ref: "#/components/schemas/NumericFact"
+            - type: "null"
+          description: Closest adjacent/historic datum offered on a no-evidence result.
         relatedEntities:
           type: array
           items:
             $ref: "#/components/schemas/GraphEntity"
+        suggestedNext:
+          type: array
+          items:
+            $ref: "#/components/schemas/SuggestedNext"
+        retrievalModes:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetrievalMode"
+        attachmentAck:
+          type: ["string", "null"]
+
+    SuggestedNext:
+      type: object
+      required: [id, text]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        rationale:
+          type: ["string", "null"]
+
+    RetrievalMode:
+      type: object
+      required: [mode, label, used]
+      properties:
+        mode:
+          type: string
+          description: semantic | agentic | graph | keyword
+        label:
+          type: string
+        used:
+          type: boolean
+        detail:
+          type: ["string", "null"]
 
     Citation:
       type: object
@@ -300,21 +407,40 @@ components:
           type: ["string", "null"]
         confidence:
           type: number
+        relevance:
+          type: ["number", "null"]
+          description: Retrieval relevance score (idf coverage) for this source.
+        corroboration:
+          type: ["integer", "null"]
+          description: How many permitted sources agree with this source's headline figure.
         confidentiality:
           type: string
           description: public | internal | confidential | restricted
         validity:
           type: string
           description: approved | historic | review | superseded
+        conflicting:
+          type: boolean
+          description: True when this source materially disagrees with another cited source.
         snippet:
           type: string
         value:
           type: ["string", "null"]
           description: Optional headline figure for numeric evidence
+        period:
+          type: ["string", "null"]
         country:
           type: ["string", "null"]
         brand:
           type: ["string", "null"]
+        topics:
+          type: array
+          items:
+            type: string
+        entities:
+          type: array
+          items:
+            type: string
         axisIds:
           type: array
           items:

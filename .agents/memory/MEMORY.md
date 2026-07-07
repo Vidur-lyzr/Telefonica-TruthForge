@@ -1,3 +1,6 @@
 - [Coverage-based retrieval relevance](coverage-retrieval.md) — rank Ask relevance by query-idf coverage, not absolute BM25; don't cap absent-term idf (breaks no_evidence).
 - [Tailwind v4 font @import](tailwind-v4-font-import.md) — Tailwind v4 strips a raw CSS `@import url(google fonts)`; load web fonts via an index.html `<link>`, and check the scaffold isn't linking the wrong font.
 - [OpenAPI path vs server route](api-contract-path-mismatch.md) — empty table but curl 200 + no JS error usually means the generated client URL (from the OpenAPI path) doesn't match the server route.
+- [Ask conflict vs corroboration](ask-conflict-vs-corroboration.md) — conflict only from top-2 permitted sources; corroboration/low-confidence count over corpus/distinct-cited-docs, not retrieved chunks.
+- [Ask governed memory](ask-governed-memory.md) — conversation memory must be persona-scoped sessions; filter history by current roleId so lower-clearance persona never inherits higher-clearance turns.
+- [API server is build-once](api-server-build-once.md) — the api-server dev workflow builds then serves; edits to server code/corpus need a workflow restart (not HMR) before curl reflects them.

@@ -23,6 +23,11 @@ interface IndexedChunk {
   breadcrumb: string;
   text: string;
   confidentiality: Clearance;
+  country: string;
+  brand: string;
+  quarter: string;
+  type: string;
+  axisIds: string[];
   terms: string[];
   termFreq: Map<string, number>;
   length: number;
@@ -49,6 +54,11 @@ for (const doc of DOCS) {
       breadcrumb: chunk.breadcrumb,
       text: chunk.text,
       confidentiality: doc.confidentiality,
+      country: doc.country,
+      brand: doc.brand,
+      quarter: doc.quarter,
+      type: doc.type,
+      axisIds: doc.axisIds,
       terms,
       termFreq,
       length: terms.length,
@@ -63,14 +73,35 @@ function idf(term: string): number {
   return Math.log(1 + (N - df + 0.5) / (df + 0.5));
 }
 
+export interface RetrieveFilters {
+  market?: string | null;
+  brand?: string | null;
+  period?: string | null;
+  source?: string | null;
+  axis?: string | null;
+}
+
 export interface RetrieveOptions {
   question: string;
   clearance: Clearance;
   topK?: number;
+  filters?: RetrieveFilters | null;
+}
+
+function passesFilters(chunk: IndexedChunk, f?: RetrieveFilters | null): boolean {
+  if (!f) return true;
+  const eq = (a: string, b?: string | null) =>
+    !b || a.toLowerCase() === b.toLowerCase();
+  if (!eq(chunk.country, f.market)) return false;
+  if (!eq(chunk.brand, f.brand)) return false;
+  if (!eq(chunk.quarter, f.period)) return false;
+  if (!eq(chunk.type, f.source)) return false;
+  if (f.axis && !chunk.axisIds.includes(f.axis)) return false;
+  return true;
 }
 
 export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
-  const { question, clearance, topK = 6 } = opts;
+  const { question, clearance, topK = 6, filters } = opts;
   const qTerms = tokenize(question);
   if (qTerms.length === 0) return [];
   const qSet = new Set(qTerms);
@@ -82,7 +113,7 @@ export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
   const queryIdfMass =
     Array.from(qSet).reduce((sum, t) => sum + idf(t), 0) || 1;
 
-  const scored = index.map((chunk) => {
+  const scored = index.filter((c) => passesFilters(c, filters)).map((chunk) => {
     let score = 0;
     let matchedMass = 0;
     for (const term of qSet) {

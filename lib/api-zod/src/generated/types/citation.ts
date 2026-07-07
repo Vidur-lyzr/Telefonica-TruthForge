@@ -18,10 +18,22 @@ export interface Citation {
   /** @nullable */
   validUntil?: string | null;
   confidence: number;
+  /**
+     * Retrieval relevance score (idf coverage) for this source.
+     * @nullable
+     */
+  relevance?: number | null;
+  /**
+     * How many permitted sources agree with this source's headline figure.
+     * @nullable
+     */
+  corroboration?: number | null;
   /** public | internal | confidential | restricted */
   confidentiality: string;
   /** approved | historic | review | superseded */
   validity: string;
+  /** True when this source materially disagrees with another cited source. */
+  conflicting?: boolean;
   snippet: string;
   /**
      * Optional headline figure for numeric evidence
@@ -29,8 +41,12 @@ export interface Citation {
      */
   value?: string | null;
   /** @nullable */
+  period?: string | null;
+  /** @nullable */
   country?: string | null;
   /** @nullable */
   brand?: string | null;
+  topics?: string[];
+  entities?: string[];
   axisIds?: string[];
 }

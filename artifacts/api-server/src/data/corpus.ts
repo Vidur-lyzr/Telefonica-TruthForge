@@ -35,6 +35,15 @@ export interface Chunk {
   text: string;
 }
 
+// A machine-checkable claim a document makes about a metric for a period.
+// Used to compute corroboration ("n sources agree") and to detect conflicts
+// (same metric + period, different value) deterministically.
+export interface Assertion {
+  metric: string;
+  period: string;
+  value: string;
+}
+
 export interface CorpusDoc {
   id: string;
   title: string;
@@ -53,6 +62,9 @@ export interface CorpusDoc {
   summary: string;
   areas: Area[];
   chunks: Chunk[];
+  assertions?: Assertion[];
+  // Ids of documents this document materially contradicts. Drives the conflict flag.
+  contradicts?: string[];
 }
 
 export interface NumericFact {
@@ -218,13 +230,14 @@ export const DOCS: CorpusDoc[] = [
     axisIds: ["ax-core", "ax-b2b"],
     areas: ["Comunicación", "Gabinete"],
     summary:
-      "Group revenue reached €8,127M in Q1 2026, up 1.8% year on year, driven by core-market convergence and B2B growth.",
+      "Group revenue reached €8,127M in Q1 2026, up 1.8% year on year, driven by core-market convergence and B2B growth. This is the defensible, externally reported figure.",
+    assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€8,127M" }],
     chunks: [
       {
         id: "doc-q1-2026-results#1",
         heading: "Group revenue",
         breadcrumb: "Q1 2026 Results › Financial highlights › slide 4",
-        text: "Group revenue reached €8,127M in the first quarter of 2026, an increase of 1.8% year on year. Growth was led by convergent bundles in the core markets and by double-digit growth at Telefónica Tech.",
+        text: "Group revenue reached €8,127M in the first quarter of 2026, an increase of 1.8% year on year. This is the defensible figure Telefónica reports and defends externally for Q1 2026. Growth was led by convergent bundles in the core markets and by double-digit growth at Telefónica Tech.",
       },
       {
         id: "doc-q1-2026-results#2",
@@ -258,12 +271,158 @@ export const DOCS: CorpusDoc[] = [
     areas: ["Comunicación", "Gabinete"],
     summary:
       "Q4 2025 group revenue was €7,982M. Superseded by the Q1 2026 results release.",
+    assertions: [{ metric: "group-revenue", period: "Q4 2025", value: "€7,982M" }],
     chunks: [
       {
         id: "doc-q4-2025-results#1",
         heading: "Group revenue",
         breadcrumb: "Q4 2025 Results › Financial highlights › slide 4",
         text: "Group revenue for the fourth quarter of 2025 was €7,982M. This figure has since been superseded by the Q1 2026 results and should not be used as the current revenue reference.",
+      },
+    ],
+  },
+  {
+    id: "doc-q1-2026-press-release",
+    title: "Q1 2026 Results — Press Release",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Telefónica, S.A.",
+    quarter: "Q1 2026",
+    type: "Press release",
+    confidentiality: "public",
+    owner: "Investor Relations",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "en",
+    topics: ["revenue", "results", "press release", "financials"],
+    axisIds: ["ax-core"],
+    areas: ["Comunicación", "Gabinete"],
+    summary:
+      "Public press release confirming €8,127M group revenue in Q1 2026 — the defensible figure for external use.",
+    assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€8,127M" }],
+    chunks: [
+      {
+        id: "doc-q1-2026-press-release#1",
+        heading: "Headline",
+        breadcrumb: "Q1 2026 Press Release › Headline",
+        text: "Telefónica today reported group revenue of €8,127M for the first quarter of 2026. This is the figure the company defends externally and is consistent with the results presentation for Q1 2026.",
+      },
+    ],
+  },
+  {
+    id: "doc-q1-2026-ir-factsheet",
+    title: "Q1 2026 Investor Relations Factsheet",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Investor Relations",
+    quarter: "Q1 2026",
+    type: "Factsheet",
+    confidentiality: "public",
+    owner: "Investor Relations",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "en",
+    topics: ["revenue", "financials", "investor relations", "factsheet"],
+    axisIds: ["ax-core", "ax-b2b"],
+    areas: ["Comunicación", "Gabinete"],
+    summary:
+      "Investor factsheet reaffirming the €8,127M Q1 2026 group revenue figure defended externally.",
+    assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€8,127M" }],
+    chunks: [
+      {
+        id: "doc-q1-2026-ir-factsheet#1",
+        heading: "Key figures",
+        breadcrumb: "Q1 2026 IR Factsheet › Key figures",
+        text: "Q1 2026 group revenue: €8,127M. This defensible figure is reconciled with the audited management accounts and is the reference the company defends with analysts for Q1 2026.",
+      },
+    ],
+  },
+  {
+    id: "doc-q1-2026-prelim-finance",
+    title: "Q1 2026 Preliminary Finance Flash (Pre-Publication)",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Group Finance",
+    quarter: "Q1 2026",
+    type: "Finance flash",
+    confidentiality: "confidential",
+    owner: "Group Finance",
+    validity: "review",
+    validUntil: "2026-04-25",
+    language: "en",
+    topics: ["revenue", "pre-publication", "preliminary", "flash", "unpublished", "finance"],
+    axisIds: ["ax-core"],
+    areas: ["Gabinete"],
+    summary:
+      "Confidential pre-publication finance flash with unaudited preliminary Q1 figures. Not for external or Comms use before publication.",
+    chunks: [
+      {
+        id: "doc-q1-2026-prelim-finance#1",
+        heading: "Preliminary flash",
+        breadcrumb: "Q1 2026 Preliminary Finance Flash › Summary",
+        text: "This confidential pre-publication finance flash contains unaudited preliminary Q1 numbers circulated to Group Finance ahead of the results release. Preliminary figures are embargoed and must not be quoted before publication.",
+      },
+    ],
+  },
+  {
+    id: "doc-hispam-exit",
+    title: "Hispam Footprint — Spanish America Exit Update",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Corporate Development",
+    quarter: "Q1 2026",
+    type: "Market update",
+    confidentiality: "public",
+    owner: "Corporate Development",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "en",
+    topics: ["Hispam", "Mexico", "Chile", "Spanish America", "divestment", "footprint"],
+    axisIds: ["ax-core"],
+    areas: ["Comunicación", "Gabinete"],
+    summary:
+      "Public update on Telefónica's reduction of its Spanish America (Hispam) footprint, including the completed sale of Chile.",
+    chunks: [
+      {
+        id: "doc-hispam-exit#1",
+        heading: "Spanish America footprint",
+        breadcrumb: "Hispam Exit Update › Footprint",
+        text: "Telefónica has been reducing its presence across Spanish America (Hispam). The sale of its Chile operation completed on 10 February 2026, and the group continues to review its remaining Spanish American positions, including Mexico.",
+      },
+      {
+        id: "doc-hispam-exit#2",
+        heading: "What is not affected",
+        breadcrumb: "Hispam Exit Update › Scope",
+        text: "This reduction concerns Spanish America only. Brazil, operated under the Vivo brand, is a core market and is not part of the Hispam exit. Vivo does not operate in Mexico.",
+      },
+    ],
+  },
+  {
+    id: "doc-approved-messaging-q1",
+    title: "Approved Q1 Messaging — Spokesperson Talking Points",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Group Communications",
+    quarter: "Q1 2026",
+    type: "Messaging",
+    confidentiality: "internal",
+    owner: "Group Communications",
+    validity: "superseded",
+    validUntil: "2026-03-31",
+    language: "en",
+    topics: ["messaging", "talking points", "spokesperson", "positioning", "lines to take"],
+    axisIds: ["ax-core"],
+    areas: ["Comunicación", "Marca"],
+    summary:
+      "Superseded approved messaging pack. Its headline top-line figure predates and disagrees with the published Q1 2026 results.",
+    assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€7,982M" }],
+    contradicts: ["doc-q1-2026-results"],
+    chunks: [
+      {
+        id: "doc-approved-messaging-q1#1",
+        heading: "Lines to take",
+        breadcrumb: "Approved Q1 Messaging › Lines to take",
+        text: "Approved spokesperson talking points and lines to take for the quarter. The agreed external line references a group top-line of around €7,982M for the period. Note: this messaging pack has been superseded and its top-line figure no longer matches the published results.",
       },
     ],
   },
@@ -677,6 +836,8 @@ export const GRAPH_NODES: GraphNode[] = [
   { id: "mkt-germany", name: "Germany", kind: "market", keywords: ["germany", "german", "alemania"] },
   { id: "mkt-brazil", name: "Brazil", kind: "market", keywords: ["brazil", "brasil", "brazilian"] },
   { id: "mkt-uk", name: "United Kingdom", kind: "market", keywords: ["uk", "united kingdom", "britain"] },
+  { id: "mkt-mexico", name: "Mexico", kind: "market", keywords: ["mexico", "méxico", "mexican"] },
+  { id: "mkt-chile", name: "Chile", kind: "market", keywords: ["chile", "chilean"] },
   { id: "brand-movistar", name: "Movistar", kind: "brand", keywords: ["movistar"] },
   { id: "brand-o2", name: "O2", kind: "brand", keywords: ["o2"] },
   { id: "brand-vivo", name: "Vivo", kind: "brand", keywords: ["vivo"] },
@@ -693,15 +854,22 @@ export const GRAPH_EDGES: GraphEdge[] = [
   { from: "brand-movistar", to: "ax-core", relation: "contributes to" },
   { from: "brand-tech", to: "ax-b2b", relation: "leads" },
   { from: "mkt-spain", to: "ax-networks", relation: "invests in" },
+  { from: "brand-vivo", to: "ax-core", relation: "contributes to" },
+  { from: "mkt-chile", to: "mkt-mexico", relation: "Spanish America (Hispam)" },
 ];
 
 export const SUGGESTIONS = [
   { id: "sug-revenue", text: "What was Telefónica's group revenue in Q1 2026?", kind: "cited" },
   { id: "sug-brand-blue", text: "What is the primary Telefónica brand colour and when is navy used?", kind: "cited" },
   { id: "sug-netzero", text: "What is Telefónica's net-zero commitment?", kind: "cited" },
+  { id: "sug-defend", text: "What group revenue figure do we defend for Q1 2026?", kind: "cited" },
+  { id: "sug-vivo-mexico", text: "What is Vivo's position in Mexico?", kind: "cited" },
+  { id: "sug-messaging", text: "What is our approved messaging on Q1 2026 revenue?", kind: "conflict" },
+  { id: "sug-prelim", text: "What are the pre-publication preliminary Q1 finance figures?", kind: "permission" },
   { id: "sug-atlas", text: "Is Telefónica planning any acquisition or merger?", kind: "permission" },
   { id: "sug-quantum", text: "What is Telefónica's strategy for consumer quantum computing devices?", kind: "no_evidence" },
   { id: "sug-oldrev", text: "What was group revenue in Q4 2025?", kind: "historic" },
+  { id: "sug-copper", text: "What is the plan for copper network retirement in Spain?", kind: "low_confidence" },
 ];
 
 export const ADMIN_PROFILES: AdminProfile[] = [

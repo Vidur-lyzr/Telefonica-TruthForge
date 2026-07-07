@@ -13,6 +13,37 @@ export interface ErrorResponse {
   error: string;
 }
 
+export interface AskTurn {
+  /** user | assistant */
+  role: string;
+  content: string;
+}
+
+/**
+ * Retrieval scope applied BEFORE retrieval. Absent/empty means "all data".
+ */
+export interface AskFilters {
+  /** @nullable */
+  market?: string | null;
+  /** @nullable */
+  brand?: string | null;
+  /** @nullable */
+  period?: string | null;
+  /** @nullable */
+  source?: string | null;
+  /** @nullable */
+  axis?: string | null;
+}
+
+/**
+ * Working-context document. Never enters the corpus unless ingest is true.
+ */
+export interface AskAttachment {
+  name: string;
+  content: string;
+  ingest?: boolean;
+}
+
 export interface AskInput {
   /** @minLength 1 */
   question: string;
@@ -20,6 +51,10 @@ export interface AskInput {
   area: string;
   /** The active permission scope / persona id */
   roleId: string;
+  /** Prior conversation turns, oldest first. */
+  history?: AskTurn[];
+  filters?: AskFilters | null;
+  attachment?: AskAttachment | null;
 }
 
 export interface Citation {
@@ -34,10 +69,22 @@ export interface Citation {
   /** @nullable */
   validUntil?: string | null;
   confidence: number;
+  /**
+     * Retrieval relevance score (idf coverage) for this source.
+     * @nullable
+     */
+  relevance?: number | null;
+  /**
+     * How many permitted sources agree with this source's headline figure.
+     * @nullable
+     */
+  corroboration?: number | null;
   /** public | internal | confidential | restricted */
   confidentiality: string;
   /** approved | historic | review | superseded */
   validity: string;
+  /** True when this source materially disagrees with another cited source. */
+  conflicting?: boolean;
   snippet: string;
   /**
      * Optional headline figure for numeric evidence
@@ -45,9 +92,13 @@ export interface Citation {
      */
   value?: string | null;
   /** @nullable */
+  period?: string | null;
+  /** @nullable */
   country?: string | null;
   /** @nullable */
   brand?: string | null;
+  topics?: string[];
+  entities?: string[];
   axisIds?: string[];
 }
 
@@ -68,19 +119,63 @@ export interface GraphEntity {
   relation?: string | null;
 }
 
+export interface SuggestedNext {
+  id: string;
+  text: string;
+  /** @nullable */
+  rationale?: string | null;
+}
+
+export interface RetrievalMode {
+  /** semantic | agentic | graph | keyword */
+  mode: string;
+  label: string;
+  used: boolean;
+  /** @nullable */
+  detail?: string | null;
+}
+
 export interface AskResult {
-  /** answered | no_evidence | permission_blocked */
+  /** answered | no_evidence | permission_blocked | conflict */
   status: string;
   answer: string;
   citations: Citation[];
   historic: boolean;
   /** @nullable */
   historicNote?: string | null;
+  /**
+     * Pointer to the current/superseding series when the answer is historic.
+     * @nullable
+     */
+  historicPointer?: string | null;
   /** @nullable */
   permissionNote?: string | null;
+  /** @nullable */
+  conflictNote?: string | null;
+  /**
+     * Where to resolve a conflict, e.g. "wiki".
+     * @nullable
+     */
+  resolutionPath?: string | null;
+  lowConfidence?: boolean;
+  /** @nullable */
+  lowConfidenceNote?: string | null;
+  /**
+     * Number of permitted sources that agree on the headline figure.
+     * @nullable
+     */
+  corroborationCount?: number | null;
+  /** @nullable */
+  corroborationNote?: string | null;
   axisIds: string[];
   numeric?: NumericFact | null;
+  /** Closest adjacent/historic datum offered on a no-evidence result. */
+  adjacentDatum?: NumericFact | null;
   relatedEntities?: GraphEntity[];
+  suggestedNext?: SuggestedNext[];
+  retrievalModes?: RetrievalMode[];
+  /** @nullable */
+  attachmentAck?: string | null;
 }
 
 export interface AdminProfile {

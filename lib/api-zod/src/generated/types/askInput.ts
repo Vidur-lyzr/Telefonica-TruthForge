@@ -5,6 +5,9 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { AskAttachment } from './askAttachment';
+import type { AskFilters } from './askFilters';
+import type { AskTurn } from './askTurn';
 
 export interface AskInput {
   /** @minLength 1 */
@@ -13,4 +16,8 @@ export interface AskInput {
   area: string;
   /** The active permission scope / persona id */
   roleId: string;
+  /** Prior conversation turns, oldest first. */
+  history?: AskTurn[];
+  filters?: AskFilters | null;
+  attachment?: AskAttachment | null;
 }

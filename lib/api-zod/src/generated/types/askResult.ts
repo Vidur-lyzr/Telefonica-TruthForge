@@ -8,18 +8,48 @@
 import type { Citation } from './citation';
 import type { GraphEntity } from './graphEntity';
 import type { NumericFact } from './numericFact';
+import type { RetrievalMode } from './retrievalMode';
+import type { SuggestedNext } from './suggestedNext';
 
 export interface AskResult {
-  /** answered | no_evidence | permission_blocked */
+  /** answered | no_evidence | permission_blocked | conflict */
   status: string;
   answer: string;
   citations: Citation[];
   historic: boolean;
   /** @nullable */
   historicNote?: string | null;
+  /**
+     * Pointer to the current/superseding series when the answer is historic.
+     * @nullable
+     */
+  historicPointer?: string | null;
   /** @nullable */
   permissionNote?: string | null;
+  /** @nullable */
+  conflictNote?: string | null;
+  /**
+     * Where to resolve a conflict, e.g. "wiki".
+     * @nullable
+     */
+  resolutionPath?: string | null;
+  lowConfidence?: boolean;
+  /** @nullable */
+  lowConfidenceNote?: string | null;
+  /**
+     * Number of permitted sources that agree on the headline figure.
+     * @nullable
+     */
+  corroborationCount?: number | null;
+  /** @nullable */
+  corroborationNote?: string | null;
   axisIds: string[];
   numeric?: NumericFact | null;
+  /** Closest adjacent/historic datum offered on a no-evidence result. */
+  adjacentDatum?: NumericFact | null;
   relatedEntities?: GraphEntity[];
+  suggestedNext?: SuggestedNext[];
+  retrievalModes?: RetrievalMode[];
+  /** @nullable */
+  attachmentAck?: string | null;
 }

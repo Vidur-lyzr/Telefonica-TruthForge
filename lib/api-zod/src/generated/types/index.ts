@@ -7,8 +7,11 @@
  */
 
 export * from './adminProfile';
+export * from './askAttachment';
+export * from './askFilters';
 export * from './askInput';
 export * from './askResult';
+export * from './askTurn';
 export * from './auditEntry';
 export * from './axisCount';
 export * from './citation';
@@ -22,7 +25,9 @@ export * from './graphEntity';
 export * from './healthStatus';
 export * from './numericFact';
 export * from './platformUser';
+export * from './retrievalMode';
 export * from './role';
 export * from './scheduledDocument';
 export * from './strategicAxis';
+export * from './suggestedNext';
 export * from './suggestedQuery';

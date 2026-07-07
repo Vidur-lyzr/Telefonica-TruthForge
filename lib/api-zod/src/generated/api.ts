@@ -27,11 +27,27 @@ export const HealthCheckResponse = zod.object({
 export const AskBody = zod.object({
   "question": zod.string().min(1),
   "area": zod.string().describe('Comunicación | Marca | Gabinete'),
-  "roleId": zod.string().describe('The active permission scope \/ persona id')
+  "roleId": zod.string().describe('The active permission scope \/ persona id'),
+  "history": zod.array(zod.object({
+  "role": zod.string().describe('user | assistant'),
+  "content": zod.string()
+})).optional().describe('Prior conversation turns, oldest first.'),
+  "filters": zod.union([zod.object({
+  "market": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "period": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "axis": zod.string().nullish()
+}).describe('Retrieval scope applied BEFORE retrieval. Absent\/empty means \"all data\".'),zod.null()]).optional(),
+  "attachment": zod.union([zod.object({
+  "name": zod.string(),
+  "content": zod.string(),
+  "ingest": zod.boolean().optional()
+}).describe('Working-context document. Never enters the corpus unless ingest is true.'),zod.null()]).optional()
 })
 
 export const AskResponse = zod.object({
-  "status": zod.string().describe('answered | no_evidence | permission_blocked'),
+  "status": zod.string().describe('answered | no_evidence | permission_blocked | conflict'),
   "answer": zod.string(),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
@@ -42,17 +58,30 @@ export const AskResponse = zod.object({
   "owner": zod.string(),
   "validUntil": zod.string().nullish(),
   "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
   "confidentiality": zod.string().describe('public | internal | confidential | restricted'),
   "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
   "snippet": zod.string(),
   "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
   "country": zod.string().nullish(),
   "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
   "axisIds": zod.array(zod.string()).optional()
 })),
   "historic": zod.boolean(),
   "historicNote": zod.string().nullish(),
+  "historicPointer": zod.string().nullish().describe('Pointer to the current\/superseding series when the answer is historic.'),
   "permissionNote": zod.string().nullish(),
+  "conflictNote": zod.string().nullish(),
+  "resolutionPath": zod.string().nullish().describe('Where to resolve a conflict, e.g. \"wiki\".'),
+  "lowConfidence": zod.boolean().optional(),
+  "lowConfidenceNote": zod.string().nullish(),
+  "corroborationCount": zod.number().nullish().describe('Number of permitted sources that agree on the headline figure.'),
+  "corroborationNote": zod.string().nullish(),
   "axisIds": zod.array(zod.string()),
   "numeric": zod.union([zod.object({
   "label": zod.string(),
@@ -61,12 +90,31 @@ export const AskResponse = zod.object({
   "period": zod.string(),
   "source": zod.string()
 }),zod.null()]).optional(),
+  "adjacentDatum": zod.union([zod.object({
+  "label": zod.string(),
+  "value": zod.string(),
+  "unit": zod.string(),
+  "period": zod.string(),
+  "source": zod.string()
+}),zod.null()]).optional().describe('Closest adjacent\/historic datum offered on a no-evidence result.'),
   "relatedEntities": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "kind": zod.string().describe('market | brand | executive | axis'),
   "relation": zod.string().nullish()
-})).optional()
+})).optional(),
+  "suggestedNext": zod.array(zod.object({
+  "id": zod.string(),
+  "text": zod.string(),
+  "rationale": zod.string().nullish()
+})).optional(),
+  "retrievalModes": zod.array(zod.object({
+  "mode": zod.string().describe('semantic | agentic | graph | keyword'),
+  "label": zod.string(),
+  "used": zod.boolean(),
+  "detail": zod.string().nullish()
+})).optional(),
+  "attachmentAck": zod.string().nullish()
 })
 
 
