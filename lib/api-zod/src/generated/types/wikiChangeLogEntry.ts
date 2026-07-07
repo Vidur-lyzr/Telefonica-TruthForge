@@ -6,8 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PlanningAskInput {
-  question: string;
-  area: string;
-  roleId: string;
+export interface WikiChangeLogEntry {
+  id: string;
+  at: string;
+  by: string;
+  summary: string;
 }

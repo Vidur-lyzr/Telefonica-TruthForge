@@ -806,11 +806,8 @@ export const GetPlanningInsightsResponse = zod.object({
 /**
  * @summary Scoped natural-language question over the governed calendar
  */
-
-
-
 export const PlanningAskBody = zod.object({
-  "question": zod.string().min(1),
+  "question": zod.string(),
   "area": zod.string(),
   "roleId": zod.string()
 })
@@ -2645,6 +2642,232 @@ export const GetGenerationJobResponse = zod.object({
 }).nullish(),
   "error": zod.string().nullish(),
   "createdAt": zod.string()
+})
+
+
+/**
+ * Returns the knowledge graph shaped for the Map view — axes, compiled pages, documents, figures and entities with citation/relationship edges. Nodes above the active persona's clearance are surfaced as existence-only (locked, contents hidden). Figures fail closed on their source document.
+ * @summary Permission-filtered knowledge map (nodes and edges)
+ */
+export const GetWikiGraphQueryParams = zod.object({
+  "roleId": zod.coerce.string().describe('The active permission scope \/ persona id')
+})
+
+export const GetWikiGraphResponse = zod.object({
+  "nodes": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "kind": zod.string().describe('axis | compiled_page | document | figure | market | brand | product | executive'),
+  "axisId": zod.string().nullish(),
+  "market": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "language": zod.string().nullish(),
+  "confidentiality": zod.string().nullish(),
+  "validity": zod.string().nullish(),
+  "locked": zod.boolean(),
+  "refined": zod.boolean(),
+  "pageId": zod.string().nullish(),
+  "docId": zod.string().nullish(),
+  "figure": zod.union([zod.object({
+  "value": zod.string(),
+  "unit": zod.string(),
+  "period": zod.string(),
+  "sources": zod.array(zod.object({
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "confidence": zod.number(),
+  "locked": zod.boolean()
+}))
+}),zod.null()]).optional(),
+  "status": zod.string().optional().describe('connected | read_only'),
+  "description": zod.string().optional()
+})),
+  "edges": zod.array(zod.object({
+  "from": zod.string(),
+  "to": zod.string(),
+  "type": zod.string().describe('citation | relationship'),
+  "relation": zod.string(),
+  "confidence": zod.number().nullish()
+}))
+})
+
+
+/**
+ * @summary Compiled corporate-memory pages (permission-filtered summaries)
+ */
+export const ListWikiPagesQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
+export const ListWikiPagesResponseItem = zod.object({
+  "id": zod.string(),
+  "nodeId": zod.string(),
+  "title": zod.string(),
+  "axisId": zod.string(),
+  "summary": zod.string(),
+  "confidentiality": zod.string(),
+  "validity": zod.string(),
+  "sourceCount": zod.number(),
+  "owners": zod.array(zod.string()),
+  "lastRefinedBy": zod.string(),
+  "lastRefinedAt": zod.string(),
+  "refined": zod.boolean(),
+  "locked": zod.boolean()
+})
+export const ListWikiPagesResponse = zod.array(ListWikiPagesResponseItem)
+
+
+/**
+ * @summary A single compiled page with its defended position and evidence
+ */
+export const GetWikiPageQueryParams = zod.object({
+  "id": zod.coerce.string(),
+  "roleId": zod.coerce.string()
+})
+
+export const GetWikiPageResponse = zod.object({
+  "locked": zod.boolean(),
+  "requiredClearance": zod.string().nullish(),
+  "title": zod.string().nullish(),
+  "page": zod.union([zod.object({
+  "id": zod.string(),
+  "nodeId": zod.string(),
+  "title": zod.string(),
+  "axisId": zod.string(),
+  "confidentiality": zod.string(),
+  "validity": zod.string(),
+  "summary": zod.string(),
+  "position": zod.string(),
+  "evidence": zod.array(zod.object({
+  "marker": zod.string(),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string(),
+  "snippet": zod.string(),
+  "confidentiality": zod.string(),
+  "validity": zod.string(),
+  "note": zod.string()
+})),
+  "resolvedFacts": zod.array(zod.object({
+  "id": zod.string(),
+  "claim": zod.string(),
+  "resolvedValue": zod.string(),
+  "supersededValue": zod.string(),
+  "resolution": zod.string(),
+  "currentDocId": zod.string(),
+  "currentDocTitle": zod.string(),
+  "historicDocId": zod.string(),
+  "historicDocTitle": zod.string(),
+  "resolvedBy": zod.string(),
+  "resolvedAt": zod.string()
+})),
+  "openItems": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string().describe('open | watch'),
+  "text": zod.string(),
+  "owner": zod.string()
+})),
+  "relatedPages": zod.array(zod.object({
+  "id": zod.string(),
+  "nodeId": zod.string(),
+  "title": zod.string(),
+  "locked": zod.boolean()
+})),
+  "changeLog": zod.array(zod.object({
+  "id": zod.string(),
+  "at": zod.string(),
+  "by": zod.string(),
+  "summary": zod.string()
+})),
+  "owners": zod.array(zod.string()),
+  "sourceDocIds": zod.array(zod.string()),
+  "lastRefinedBy": zod.string(),
+  "lastRefinedAt": zod.string(),
+  "refined": zod.boolean()
+}),zod.null()]).optional()
+})
+
+
+/**
+ * @summary Source inspector — ingestion lineage and validation trail per document
+ */
+export const ListWikiLineageQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
+export const ListWikiLineageResponseItem = zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "confidentiality": zod.string(),
+  "validity": zod.string(),
+  "axisIds": zod.array(zod.string()),
+  "owner": zod.string(),
+  "locked": zod.boolean(),
+  "sourceFile": zod.string().nullish(),
+  "taxonomyVersion": zod.string().nullish(),
+  "chunkCount": zod.number().nullish(),
+  "ingestion": zod.array(zod.object({
+  "stage": zod.string(),
+  "detail": zod.string(),
+  "at": zod.string(),
+  "actor": zod.string()
+})).optional(),
+  "validation": zod.array(zod.object({
+  "field": zod.string(),
+  "proposed": zod.string(),
+  "approved": zod.string(),
+  "by": zod.string(),
+  "at": zod.string(),
+  "status": zod.string().describe('accepted | corrected')
+})).optional()
+})
+export const ListWikiLineageResponse = zod.array(ListWikiLineageResponseItem)
+
+
+/**
+ * @summary Compounding-memory counter (facts resolved, conflicts settled, pages refined)
+ */
+export const GetWikiStatsResponse = zod.object({
+  "factsResolved": zod.number(),
+  "conflictsSettled": zod.number(),
+  "pagesRefined": zod.number(),
+  "windowLabel": zod.string()
+})
+
+
+/**
+ * Reasons over the compiled corporate-memory pages the persona may access. Returns a synthesised answer with evidence chips and wiki-links to lit-up pages/nodes — or an honest no-evidence / permission-blocked result. Pages above the persona's clearance never reach the model.
+ * @summary Ask the compiled layer a question and get a cited answer
+ */
+
+
+
+export const SearchWikiBody = zod.object({
+  "question": zod.string().min(1),
+  "roleId": zod.string()
+})
+
+export const SearchWikiResponse = zod.object({
+  "status": zod.string().describe('answered | no_evidence | permission_blocked'),
+  "answer": zod.string(),
+  "evidence": zod.array(zod.object({
+  "marker": zod.string(),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string(),
+  "snippet": zod.string(),
+  "confidentiality": zod.string(),
+  "validity": zod.string(),
+  "note": zod.string()
+})),
+  "wikiLinks": zod.array(zod.object({
+  "id": zod.string(),
+  "nodeId": zod.string(),
+  "title": zod.string(),
+  "locked": zod.boolean()
+})),
+  "historic": zod.boolean(),
+  "permissionNote": zod.string().nullish()
 })
 
 

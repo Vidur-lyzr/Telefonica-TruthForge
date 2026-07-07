@@ -5,9 +5,10 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { WikiEdge } from './wikiEdge';
+import type { WikiNode } from './wikiNode';
 
-export interface PlanningAskInput {
-  question: string;
-  area: string;
-  roleId: string;
+export interface WikiGraph {
+  nodes: WikiNode[];
+  edges: WikiEdge[];
 }

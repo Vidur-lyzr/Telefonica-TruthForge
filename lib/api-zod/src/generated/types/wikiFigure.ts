@@ -5,9 +5,11 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { WikiFigureSource } from './wikiFigureSource';
 
-export interface PlanningAskInput {
-  question: string;
-  area: string;
-  roleId: string;
+export interface WikiFigure {
+  value: string;
+  unit: string;
+  period: string;
+  sources: WikiFigureSource[];
 }

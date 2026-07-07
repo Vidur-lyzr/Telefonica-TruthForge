@@ -6,8 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PlanningAskInput {
-  question: string;
-  area: string;
-  roleId: string;
-}
+export type GetWikiGraphParams = {
+/**
+ * The active permission scope / persona id
+ */
+roleId: string;
+};

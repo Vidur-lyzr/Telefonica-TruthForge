@@ -6,8 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PlanningAskInput {
-  question: string;
-  area: string;
-  roleId: string;
+export interface WikiEdge {
+  from: string;
+  to: string;
+  /** citation | relationship */
+  type: string;
+  relation: string;
+  /** @nullable */
+  confidence?: number | null;
 }

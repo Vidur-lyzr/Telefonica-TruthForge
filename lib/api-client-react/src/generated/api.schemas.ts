@@ -575,6 +575,49 @@ export interface PlanningSource {
   description: string;
 }
 
+export interface WikiFigureSource {
+  docId: string;
+  docTitle: string;
+  confidence: number;
+  locked: boolean;
+}
+
+export interface WikiFigure {
+  value: string;
+  unit: string;
+  period: string;
+  sources: WikiFigureSource[];
+}
+
+export interface WikiNode {
+  id: string;
+  name: string;
+  /** axis | compiled_page | document | figure | market | brand | product | executive */
+  kind: string;
+  /** @nullable */
+  axisId?: string | null;
+  /** @nullable */
+  market?: string | null;
+  /** @nullable */
+  brand?: string | null;
+  /** @nullable */
+  language?: string | null;
+  /** @nullable */
+  confidentiality?: string | null;
+  /** @nullable */
+  validity?: string | null;
+  locked: boolean;
+  refined: boolean;
+  /** @nullable */
+  pageId?: string | null;
+  /** @nullable */
+  docId?: string | null;
+  figure?: WikiFigure | null;
+  /** connected | read_only */
+  status?: string;
+  description?: string;
+}
+
 export interface PlanningOverview {
   /** Anchor date the calendar and forecast are aligned to */
   today: string;
@@ -700,9 +743,164 @@ export interface PlanningInsights {
 }
 
 export interface PlanningAskInput {
-  /** @minLength 1 */
   question: string;
   area: string;
+  roleId: string;
+}
+
+export interface WikiEdge {
+  from: string;
+  to: string;
+  /** citation | relationship */
+  type: string;
+  relation: string;
+  /** @nullable */
+  confidence?: number | null;
+}
+
+export interface WikiGraph {
+  nodes: WikiNode[];
+  edges: WikiEdge[];
+}
+
+export interface WikiPageSummary {
+  id: string;
+  nodeId: string;
+  title: string;
+  axisId: string;
+  summary: string;
+  confidentiality: string;
+  validity: string;
+  sourceCount: number;
+  owners: string[];
+  lastRefinedBy: string;
+  lastRefinedAt: string;
+  refined: boolean;
+  locked: boolean;
+}
+
+export interface WikiEvidenceRef {
+  marker: string;
+  docId: string;
+  docTitle: string;
+  sourceLoc: string;
+  snippet: string;
+  confidentiality: string;
+  validity: string;
+  note: string;
+}
+
+export interface WikiResolvedFact {
+  id: string;
+  claim: string;
+  resolvedValue: string;
+  supersededValue: string;
+  resolution: string;
+  currentDocId: string;
+  currentDocTitle: string;
+  historicDocId: string;
+  historicDocTitle: string;
+  resolvedBy: string;
+  resolvedAt: string;
+}
+
+export interface WikiOpenItem {
+  id: string;
+  /** open | watch */
+  kind: string;
+  text: string;
+  owner: string;
+}
+
+export interface WikiChangeLogEntry {
+  id: string;
+  at: string;
+  by: string;
+  summary: string;
+}
+
+export interface WikiRelatedPage {
+  id: string;
+  nodeId: string;
+  title: string;
+  locked: boolean;
+}
+
+export interface WikiPageContent {
+  id: string;
+  nodeId: string;
+  title: string;
+  axisId: string;
+  confidentiality: string;
+  validity: string;
+  summary: string;
+  position: string;
+  evidence: WikiEvidenceRef[];
+  resolvedFacts: WikiResolvedFact[];
+  openItems: WikiOpenItem[];
+  relatedPages: WikiRelatedPage[];
+  changeLog: WikiChangeLogEntry[];
+  owners: string[];
+  sourceDocIds: string[];
+  lastRefinedBy: string;
+  lastRefinedAt: string;
+  refined: boolean;
+}
+
+export interface WikiPageDetail {
+  locked: boolean;
+  /** @nullable */
+  requiredClearance?: string | null;
+  /** @nullable */
+  title?: string | null;
+  page?: WikiPageContent | null;
+}
+
+export interface WikiLineageStep {
+  stage: string;
+  detail: string;
+  at: string;
+  actor: string;
+}
+
+export interface WikiValidationEntry {
+  field: string;
+  proposed: string;
+  approved: string;
+  by: string;
+  at: string;
+  /** accepted | corrected */
+  status: string;
+}
+
+export interface WikiLineage {
+  docId: string;
+  title: string;
+  confidentiality: string;
+  validity: string;
+  axisIds: string[];
+  owner: string;
+  locked: boolean;
+  /** @nullable */
+  sourceFile?: string | null;
+  /** @nullable */
+  taxonomyVersion?: string | null;
+  /** @nullable */
+  chunkCount?: number | null;
+  ingestion?: WikiLineageStep[];
+  validation?: WikiValidationEntry[];
+}
+
+export interface WikiStats {
+  factsResolved: number;
+  conflictsSettled: number;
+  pagesRefined: number;
+  windowLabel: string;
+}
+
+export interface WikiSearchInput {
+  /** @minLength 1 */
+  question: string;
   roleId: string;
 }
 
@@ -956,6 +1154,17 @@ export interface SavedVersion {
   draft: GeneratedDraft;
 }
 
+export interface WikiSearchResult {
+  /** answered | no_evidence | permission_blocked */
+  status: string;
+  answer: string;
+  evidence: WikiEvidenceRef[];
+  wikiLinks: WikiRelatedPage[];
+  historic: boolean;
+  /** @nullable */
+  permissionNote?: string | null;
+}
+
 export type GetCorpusStatsParams = {
 /**
  * Optional persona id to scope stats by clearance
@@ -1012,5 +1221,25 @@ area?: string;
 market?: string;
 brand?: string;
 axis?: string;
+};
+
+export type GetWikiGraphParams = {
+/**
+ * The active permission scope / persona id
+ */
+roleId: string;
+};
+
+export type ListWikiPagesParams = {
+roleId: string;
+};
+
+export type GetWikiPageParams = {
+id: string;
+roleId: string;
+};
+
+export type ListWikiLineageParams = {
+roleId: string;
 };
 

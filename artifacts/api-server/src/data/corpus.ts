@@ -121,19 +121,126 @@ export interface AuditEntry {
   detail: string;
 }
 
-export type GraphKind = "market" | "brand" | "executive" | "axis";
+export type GraphKind =
+  | "market"
+  | "brand"
+  | "executive"
+  | "axis"
+  | "compiled_page"
+  | "document"
+  | "figure"
+  | "product";
+
+export type EdgeType = "citation" | "relationship";
 
 export interface GraphNode {
   id: string;
   name: string;
   kind: GraphKind;
   keywords: string[];
+  /** Strategic axis this node is coloured by (map encoding: colour = axis). */
+  axisId?: string;
+  /** Confidentiality of the underlying material, when the node wraps a source. */
+  confidentiality?: Clearance;
+  /** Validity of the underlying material (drives historic/amber rendering). */
+  validity?: Validity;
+  /** For figure nodes: the governed measurement this node represents. */
+  figure?: { value: string; unit: string; period: string; docId: string };
 }
 
 export interface GraphEdge {
   from: string;
   to: string;
   relation: string;
+  /** citation = solid (evidence), relationship = dashed (association). */
+  type: EdgeType;
+  /** Optional confidence (0..1) shown as a small edge label. */
+  confidence?: number;
+}
+
+/** A single piece of cited evidence embedded in a compiled page's position. */
+export interface EvidenceRef {
+  marker: string; // e.g. "E1" — referenced inline in the position text
+  docId: string;
+  chunkId: string;
+  note: string; // what this evidence supports
+}
+
+/** A fact where two sources disagreed and the documentalist settled it. */
+export interface ResolvedFact {
+  id: string;
+  claim: string;
+  resolvedValue: string;
+  supersededValue: string;
+  resolution: string;
+  currentDocId: string;
+  historicDocId: string;
+  resolvedBy: string;
+  resolvedAt: string;
+}
+
+export interface OpenItem {
+  id: string;
+  kind: "open" | "watch";
+  text: string;
+  owner: string;
+}
+
+export interface ChangeLogEntry {
+  id: string;
+  at: string;
+  by: string;
+  summary: string;
+}
+
+/** A compiled "institutional truth" page — the crystallised layer. */
+export interface CompiledPage {
+  id: string;
+  nodeId: string;
+  title: string;
+  axisId: string;
+  confidentiality: Clearance;
+  validity: Validity;
+  summary: string;
+  /** The position we defend — plain prose with [E1] evidence + [[Title]] wiki-links. */
+  position: string;
+  evidence: EvidenceRef[];
+  resolvedFacts: ResolvedFact[];
+  openItems: OpenItem[];
+  relatedPageIds: string[];
+  changeLog: ChangeLogEntry[];
+  owners: string[];
+  sourceDocIds: string[];
+  lastRefinedBy: string;
+  lastRefinedAt: string;
+  /** True when the page was refined this cycle (drives the map validation pulse). */
+  refined: boolean;
+  keywords: string[];
+}
+
+export interface LineageStep {
+  stage: string; // Source file | Extraction | Classification
+  detail: string;
+  at: string;
+  actor: string;
+}
+
+export interface ValidationEntry {
+  field: string;
+  proposed: string;
+  approved: string;
+  by: string;
+  at: string;
+  status: "accepted" | "corrected";
+}
+
+/** Ingestion lineage + validation trail for a governed document. */
+export interface DocLineage {
+  docId: string;
+  sourceFile: string;
+  taxonomyVersion: string;
+  ingestion: LineageStep[];
+  validation: ValidationEntry[];
 }
 
 export const AXES: StrategicAxis[] = [
@@ -1058,32 +1165,337 @@ export const NUMERIC_SERIES: NumericSeries[] = [
   },
 ];
 
+// Entity nodes (markets, brands, products, executives, figures). Axes come from
+// AXES, compiled pages from COMPILED_PAGES and documents from DOCS — the full
+// map graph is assembled in the kg adapter from all four sources.
 export const GRAPH_NODES: GraphNode[] = [
-  { id: "mkt-spain", name: "Spain", kind: "market", keywords: ["spain", "españa", "spanish"] },
-  { id: "mkt-germany", name: "Germany", kind: "market", keywords: ["germany", "german", "alemania"] },
-  { id: "mkt-brazil", name: "Brazil", kind: "market", keywords: ["brazil", "brasil", "brazilian"] },
-  { id: "mkt-uk", name: "United Kingdom", kind: "market", keywords: ["uk", "united kingdom", "britain"] },
+  { id: "mkt-spain", name: "Spain", kind: "market", axisId: "ax-core", keywords: ["spain", "españa", "spanish"] },
+  { id: "mkt-germany", name: "Germany", kind: "market", axisId: "ax-core", keywords: ["germany", "german", "alemania"] },
+  { id: "mkt-brazil", name: "Brazil", kind: "market", axisId: "ax-core", keywords: ["brazil", "brasil", "brazilian"] },
+  { id: "mkt-uk", name: "United Kingdom", kind: "market", axisId: "ax-core", keywords: ["uk", "united kingdom", "britain"] },
   { id: "mkt-mexico", name: "Mexico", kind: "market", keywords: ["mexico", "méxico", "mexican"] },
   { id: "mkt-chile", name: "Chile", kind: "market", keywords: ["chile", "chilean"] },
-  { id: "brand-movistar", name: "Movistar", kind: "brand", keywords: ["movistar"] },
-  { id: "brand-o2", name: "O2", kind: "brand", keywords: ["o2"] },
-  { id: "brand-vivo", name: "Vivo", kind: "brand", keywords: ["vivo"] },
-  { id: "brand-tech", name: "Telefónica Tech", kind: "brand", keywords: ["telefónica tech", "telefonica tech", "b2b", "enterprise"] },
+  { id: "brand-movistar", name: "Movistar", kind: "brand", axisId: "ax-core", keywords: ["movistar"] },
+  { id: "brand-o2", name: "O2", kind: "brand", axisId: "ax-core", keywords: ["o2"] },
+  { id: "brand-vivo", name: "Vivo", kind: "brand", axisId: "ax-core", keywords: ["vivo"] },
+  { id: "brand-tech", name: "Telefónica Tech", kind: "brand", axisId: "ax-b2b", keywords: ["telefónica tech", "telefonica tech", "b2b", "enterprise"] },
   { id: "ax-core", name: "Grow the core", kind: "axis", keywords: ["core", "grow the core"] },
   { id: "ax-b2b", name: "Scale B2B & Tech", kind: "axis", keywords: ["b2b", "tech"] },
   { id: "ax-networks", name: "Build the best networks", kind: "axis", keywords: ["network", "5g", "fibre"] },
+  { id: "prod-fusion", name: "Movistar Fusión", kind: "product", axisId: "ax-core", keywords: ["fusion", "fusión", "convergent", "bundle"] },
+  { id: "prod-movistar-plus", name: "Movistar Plus+", kind: "product", axisId: "ax-core", keywords: ["movistar plus", "content", "tv"] },
+  { id: "prod-tech-cyber", name: "Tech Cyber Security", kind: "product", axisId: "ax-b2b", keywords: ["cyber", "security", "managed"] },
+  { id: "exec-ceo", name: "Group CEO", kind: "executive", axisId: "ax-networks", keywords: ["ceo", "chief executive"] },
+  { id: "exec-cfo", name: "Group CFO", kind: "executive", axisId: "ax-core", keywords: ["cfo", "chief financial"] },
+  {
+    id: "fig-revenue-q1", name: "Group revenue Q1 2026", kind: "figure", axisId: "ax-core",
+    confidentiality: "public", validity: "approved",
+    figure: { value: "8,127", unit: "€M", period: "Q1 2026", docId: "doc-q1-2026-results" },
+    keywords: ["revenue", "group revenue", "8127"],
+  },
+  {
+    id: "fig-revenue-q4", name: "Group revenue Q4 2025", kind: "figure", axisId: "ax-core",
+    confidentiality: "public", validity: "superseded",
+    figure: { value: "7,982", unit: "€M", period: "Q4 2025", docId: "doc-q4-2025-results" },
+    keywords: ["revenue", "q4 2025", "7982", "superseded"],
+  },
+  {
+    id: "fig-ebitda-q1", name: "Adj. EBITDA margin Q1 2026", kind: "figure", axisId: "ax-core",
+    confidentiality: "public", validity: "approved",
+    figure: { value: "32.1", unit: "%", period: "Q1 2026", docId: "doc-q1-2026-results" },
+    keywords: ["ebitda", "margin"],
+  },
+  {
+    id: "fig-netzero", name: "Net-zero target year", kind: "figure", axisId: "ax-sustainability",
+    confidentiality: "public", validity: "approved",
+    figure: { value: "2040", unit: "", period: "Group", docId: "doc-sustainability-2025" },
+    keywords: ["net zero", "net-zero", "2040", "emissions"],
+  },
 ];
 
+// Entity ↔ entity / entity → axis relationships (all dashed on the map).
 export const GRAPH_EDGES: GraphEdge[] = [
-  { from: "brand-movistar", to: "mkt-spain", relation: "operates in" },
-  { from: "brand-o2", to: "mkt-germany", relation: "operates in" },
-  { from: "brand-vivo", to: "mkt-brazil", relation: "operates in" },
-  { from: "brand-movistar", to: "ax-core", relation: "contributes to" },
-  { from: "brand-tech", to: "ax-b2b", relation: "leads" },
-  { from: "mkt-spain", to: "ax-networks", relation: "invests in" },
-  { from: "brand-vivo", to: "ax-core", relation: "contributes to" },
-  { from: "mkt-chile", to: "mkt-mexico", relation: "Spanish America (Hispam)" },
+  { from: "brand-movistar", to: "mkt-spain", relation: "operates in", type: "relationship" },
+  { from: "brand-o2", to: "mkt-germany", relation: "operates in", type: "relationship" },
+  { from: "brand-vivo", to: "mkt-brazil", relation: "operates in", type: "relationship" },
+  { from: "brand-movistar", to: "ax-core", relation: "contributes to", type: "relationship", confidence: 0.9 },
+  { from: "brand-tech", to: "ax-b2b", relation: "leads", type: "relationship", confidence: 0.92 },
+  { from: "mkt-spain", to: "ax-networks", relation: "invests in", type: "relationship", confidence: 0.8 },
+  { from: "brand-vivo", to: "ax-core", relation: "contributes to", type: "relationship" },
+  { from: "mkt-chile", to: "mkt-mexico", relation: "Spanish America (Hispam)", type: "relationship" },
+  { from: "prod-fusion", to: "brand-movistar", relation: "offered by", type: "relationship" },
+  { from: "prod-movistar-plus", to: "brand-movistar", relation: "offered by", type: "relationship" },
+  { from: "prod-tech-cyber", to: "brand-tech", relation: "offered by", type: "relationship" },
+  { from: "exec-ceo", to: "ax-networks", relation: "champions", type: "relationship", confidence: 0.7 },
+  { from: "exec-cfo", to: "ax-core", relation: "reports on", type: "relationship", confidence: 0.75 },
 ];
+
+export const COMPILED_PAGES: CompiledPage[] = [
+  {
+    id: "page-core-revenue",
+    nodeId: "page-core-revenue",
+    title: "Core revenue trajectory",
+    axisId: "ax-core",
+    confidentiality: "public",
+    validity: "approved",
+    summary: "Group revenue is on a low-single-digit growth path, led by convergence and B2B.",
+    position:
+      "Telefónica's group revenue is on a low-single-digit growth path. In Q1 2026 group revenue reached €8,127M, up 1.8% year on year [E1], driven by convergent bundles in the core markets and double-digit growth at Telefónica Tech [E1]. The company has reaffirmed full-year 2026 guidance of low-single-digit revenue growth with stable-to-improving margins [E2]. The operational levers behind this trajectory are set out in [[Network leadership position]] and [[B2B growth thesis]].",
+    evidence: [
+      { marker: "E1", docId: "doc-q1-2026-results", chunkId: "doc-q1-2026-results#1", note: "Q1 2026 group revenue and growth drivers" },
+      { marker: "E2", docId: "doc-q1-2026-results", chunkId: "doc-q1-2026-results#3", note: "Reaffirmed full-year guidance" },
+    ],
+    resolvedFacts: [
+      {
+        id: "rf-revenue",
+        claim: "Current group revenue reference",
+        resolvedValue: "€8,127M (Q1 2026)",
+        supersededValue: "€7,982M (Q4 2025)",
+        resolution:
+          "The Q1 2026 release supersedes the Q4 2025 figure. The historic figure is retained but must not be cited as the current reference.",
+        currentDocId: "doc-q1-2026-results",
+        historicDocId: "doc-q4-2025-results",
+        resolvedBy: "Investor Relations",
+        resolvedAt: "2026-04-24",
+      },
+    ],
+    openItems: [
+      { id: "oi-fx", kind: "open", text: "Confirm FX impact on Brazil revenue for the H1 restatement.", owner: "Group Finance" },
+      { id: "oi-guid", kind: "watch", text: "Full-year guidance to be re-tested at the H1 2026 results.", owner: "Investor Relations" },
+    ],
+    relatedPageIds: ["page-networks", "page-b2b"],
+    changeLog: [
+      { id: "cl-1", at: "2026-04-24", by: "Investor Relations", summary: "Refined position with Q1 2026 revenue; superseded the Q4 2025 figure." },
+      { id: "cl-2", at: "2026-02-20", by: "Group Communications", summary: "Created page from Q4 2025 results release." },
+    ],
+    owners: ["Investor Relations", "Group Communications"],
+    sourceDocIds: ["doc-q1-2026-results", "doc-q4-2025-results"],
+    lastRefinedBy: "Investor Relations",
+    lastRefinedAt: "2026-04-24",
+    refined: true,
+    keywords: ["revenue", "growth", "guidance", "convergence", "ebitda", "margin", "financials"],
+  },
+  {
+    id: "page-networks",
+    nodeId: "page-networks",
+    title: "Network leadership position",
+    axisId: "ax-networks",
+    confidentiality: "public",
+    validity: "approved",
+    summary: "We claim network leadership on 5G standalone and full-fibre, retiring legacy copper.",
+    position:
+      "Telefónica positions itself to operate the best networks in each of its markets. At MWC Barcelona 2026 the CEO reaffirmed 5G standalone availability across major Spanish and German cities [E1]. AI is framed as a lever to simplify operations and improve experience, not to replace human judgement in sensitive communications [E2]. The internal deployment plan accelerates copper retirement in favour of full-fibre access, subject to regulatory milestones. This trajectory underpins [[Core revenue trajectory]].",
+    evidence: [
+      { marker: "E1", docId: "doc-mwc-2026-keynote", chunkId: "doc-mwc-2026-keynote#1", note: "5G standalone coverage claim" },
+      { marker: "E2", docId: "doc-mwc-2026-keynote", chunkId: "doc-mwc-2026-keynote#2", note: "AI framing for operations" },
+    ],
+    resolvedFacts: [],
+    openItems: [
+      { id: "oi-copper", kind: "watch", text: "Copper retirement schedule pending regulatory milestones (plan under review).", owner: "Network Strategy" },
+    ],
+    relatedPageIds: ["page-core-revenue"],
+    changeLog: [
+      { id: "cl-1", at: "2026-03-04", by: "Executive Communications", summary: "Refined with MWC 2026 keynote positioning." },
+    ],
+    owners: ["Executive Communications", "Network Strategy"],
+    sourceDocIds: ["doc-mwc-2026-keynote", "doc-5g-deployment"],
+    lastRefinedBy: "Executive Communications",
+    lastRefinedAt: "2026-03-04",
+    refined: true,
+    keywords: ["network", "5g", "fibre", "copper", "coverage", "mwc", "ai"],
+  },
+  {
+    id: "page-b2b",
+    nodeId: "page-b2b",
+    title: "B2B growth thesis",
+    axisId: "ax-b2b",
+    confidentiality: "confidential",
+    validity: "approved",
+    summary: "Telefónica Tech scales high-margin enterprise revenue in cyber, cloud and IoT.",
+    position:
+      "Telefónica Tech is the engine of the Scale B2B & Tech axis. The plan prioritises managed cyber security and multi-cloud services for large enterprises, targeting double-digit annual revenue growth in the segment [E1]. The enterprise portfolio carries a higher margin profile than legacy connectivity and is a core lever of group profitability [E2]. Enterprise momentum reinforces [[Core revenue trajectory]].",
+    evidence: [
+      { marker: "E1", docId: "doc-tech-b2b-strategy", chunkId: "doc-tech-b2b-strategy#1", note: "Enterprise priorities and growth target" },
+      { marker: "E2", docId: "doc-tech-b2b-strategy", chunkId: "doc-tech-b2b-strategy#2", note: "Margin profile of the enterprise portfolio" },
+    ],
+    resolvedFacts: [],
+    openItems: [
+      { id: "oi-mix", kind: "open", text: "Quantify cyber vs cloud revenue mix for the next board review.", owner: "B2B Strategy" },
+    ],
+    relatedPageIds: ["page-core-revenue"],
+    changeLog: [
+      { id: "cl-1", at: "2026-03-18", by: "B2B Strategy", summary: "Compiled thesis from the confidential B2B growth strategy." },
+    ],
+    owners: ["B2B Strategy"],
+    sourceDocIds: ["doc-tech-b2b-strategy"],
+    lastRefinedBy: "B2B Strategy",
+    lastRefinedAt: "2026-03-18",
+    refined: false,
+    keywords: ["b2b", "enterprise", "cyber", "cloud", "iot", "tech", "margin"],
+  },
+  {
+    id: "page-simplify",
+    nodeId: "page-simplify",
+    title: "Simplify & digitalise operations",
+    axisId: "ax-digital",
+    confidentiality: "internal",
+    validity: "approved",
+    summary: "Disciplined media operations and AI-led simplification lower cost-to-serve.",
+    position:
+      "The Simplify & digitalise axis pairs operational simplification with disciplined communications. AI is positioned to simplify operations and improve customer experience [E1]. On the media side, only authorised spokespeople may speak on the record, and all press enquiries are routed through the Media Relations desk, which logs the enquiry and agrees attribution [E2]. This discipline protects the positions defended in [[Core revenue trajectory]].",
+    evidence: [
+      { marker: "E1", docId: "doc-mwc-2026-keynote", chunkId: "doc-mwc-2026-keynote#2", note: "AI to simplify operations" },
+      { marker: "E2", docId: "doc-media-relations", chunkId: "doc-media-relations#1", note: "Spokesperson and attribution discipline" },
+    ],
+    resolvedFacts: [],
+    openItems: [
+      { id: "oi-auto", kind: "watch", text: "Track cost-to-serve reduction from operational automation.", owner: "Transformation Office" },
+    ],
+    relatedPageIds: ["page-core-revenue"],
+    changeLog: [
+      { id: "cl-1", at: "2026-03-10", by: "Internal Communications", summary: "Compiled from keynote and media-relations guidance." },
+    ],
+    owners: ["Internal Communications", "Transformation Office"],
+    sourceDocIds: ["doc-mwc-2026-keynote", "doc-media-relations"],
+    lastRefinedBy: "Internal Communications",
+    lastRefinedAt: "2026-03-10",
+    refined: false,
+    keywords: ["simplify", "digitalise", "ai", "automation", "media", "spokesperson", "cost"],
+  },
+  {
+    id: "page-netzero",
+    nodeId: "page-netzero",
+    title: "Responsible growth & net zero",
+    axisId: "ax-sustainability",
+    confidentiality: "public",
+    validity: "approved",
+    summary: "Profitable growth within a firm net-zero-by-2040 and digital-inclusion commitment.",
+    position:
+      "Telefónica commits to profitable growth within firm sustainability boundaries. The company reaffirms its commitment to reach net-zero emissions by 2040 across its main markets, having cut Scope 1 and 2 emissions materially since the 2015 baseline [E1]. Digital inclusion programmes extended connectivity and skills to rural communities across Spain, Germany, Brazil and the United Kingdom [E2]. Brand voice principles — clear, human and confident, never using emoji — govern how this is communicated.",
+    evidence: [
+      { marker: "E1", docId: "doc-sustainability-2025", chunkId: "doc-sustainability-2025#1", note: "Net-zero 2040 commitment" },
+      { marker: "E2", docId: "doc-sustainability-2025", chunkId: "doc-sustainability-2025#2", note: "Digital inclusion programmes" },
+    ],
+    resolvedFacts: [],
+    openItems: [
+      { id: "oi-scope3", kind: "open", text: "Add Scope 3 pathway detail once the supplier data is validated.", owner: "Sustainability Office" },
+    ],
+    relatedPageIds: [],
+    changeLog: [
+      { id: "cl-1", at: "2026-01-30", by: "Sustainability Office", summary: "Compiled from the 2025 sustainability report." },
+    ],
+    owners: ["Sustainability Office", "Global Brand Office"],
+    sourceDocIds: ["doc-sustainability-2025", "doc-brand-guidelines-2026"],
+    lastRefinedBy: "Sustainability Office",
+    lastRefinedAt: "2026-01-30",
+    refined: false,
+    keywords: ["net zero", "sustainability", "emissions", "climate", "inclusion", "responsible", "brand", "voice"],
+  },
+];
+
+export const DOC_LINEAGE: DocLineage[] = [
+  {
+    docId: "doc-q1-2026-results",
+    sourceFile: "Q1-2026-Results-Financial-Highlights.pdf",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Ingested from Investor Relations SharePoint (12 slides, PDF).", at: "2026-04-24T07:10:00Z", actor: "ingest-service" },
+      { stage: "Extraction", detail: "Text and figures extracted per slide; 3 chunks created with breadcrumbs.", at: "2026-04-24T07:11:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Classified under Grow the core and Scale B2B & Tech; language en.", at: "2026-04-24T07:12:00Z", actor: "auto-classifier" },
+    ],
+    validation: [
+      { field: "confidentiality", proposed: "internal", approved: "public", by: "Investor Relations", at: "2026-04-24", status: "corrected" },
+      { field: "validity", proposed: "approved", approved: "approved", by: "Investor Relations", at: "2026-04-24", status: "accepted" },
+      { field: "axisIds", proposed: "ax-core", approved: "ax-core, ax-b2b", by: "Group Communications", at: "2026-04-24", status: "corrected" },
+    ],
+  },
+  {
+    docId: "doc-q4-2025-results",
+    sourceFile: "Q4-2025-Results-Financial-Highlights.pdf",
+    taxonomyVersion: "tax-2025.4",
+    ingestion: [
+      { stage: "Source file", detail: "Ingested from Investor Relations SharePoint (PDF).", at: "2026-02-20T08:00:00Z", actor: "ingest-service" },
+      { stage: "Extraction", detail: "Single revenue chunk extracted.", at: "2026-02-20T08:01:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Superseded by Q1 2026 release; retained as historic.", at: "2026-04-24T07:12:00Z", actor: "Investor Relations" },
+    ],
+    validation: [
+      { field: "validity", proposed: "approved", approved: "superseded", by: "Investor Relations", at: "2026-04-24", status: "corrected" },
+    ],
+  },
+  {
+    docId: "doc-brand-guidelines-2026",
+    sourceFile: "Telefonica-Brand-Guidelines-2026.pdf",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Ingested from the Global Brand Office (PDF).", at: "2026-01-15T09:00:00Z", actor: "ingest-service" },
+      { stage: "Extraction", detail: "Colour, logo and voice sections extracted as 3 chunks.", at: "2026-01-15T09:02:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Classified under Responsible growth; marked internal.", at: "2026-01-15T09:03:00Z", actor: "auto-classifier" },
+    ],
+    validation: [
+      { field: "confidentiality", proposed: "public", approved: "internal", by: "Global Brand Office", at: "2026-01-16", status: "corrected" },
+      { field: "topics", proposed: "brand, logo", approved: "brand, logo, colour, identity, typography, tone", by: "Global Brand Office", at: "2026-01-16", status: "corrected" },
+    ],
+  },
+  {
+    docId: "doc-mwc-2026-keynote",
+    sourceFile: "MWC-2026-CEO-Keynote-transcript.docx",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Ingested from Executive Communications (transcript).", at: "2026-03-04T18:30:00Z", actor: "ingest-service" },
+      { stage: "Extraction", detail: "Networks and AI sections extracted as 2 chunks.", at: "2026-03-04T18:31:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Classified under Build the best networks and Simplify & digitalise.", at: "2026-03-04T18:32:00Z", actor: "auto-classifier" },
+    ],
+    validation: [
+      { field: "confidentiality", proposed: "public", approved: "public", by: "Executive Communications", at: "2026-03-05", status: "accepted" },
+    ],
+  },
+  {
+    docId: "doc-tech-b2b-strategy",
+    sourceFile: "Telefonica-Tech-B2B-Growth-Strategy.pptx",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Ingested from B2B Strategy (restricted share).", at: "2026-03-18T10:00:00Z", actor: "ingest-service" },
+      { stage: "Extraction", detail: "Priorities and economics extracted as 2 chunks.", at: "2026-03-18T10:02:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Classified under Scale B2B & Tech; marked confidential.", at: "2026-03-18T10:03:00Z", actor: "auto-classifier" },
+    ],
+    validation: [
+      { field: "confidentiality", proposed: "internal", approved: "confidential", by: "B2B Strategy", at: "2026-03-19", status: "corrected" },
+    ],
+  },
+  {
+    docId: "doc-sustainability-2025",
+    sourceFile: "Sustainability-Report-2025.pdf",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Ingested from the Sustainability Office (PDF).", at: "2026-01-30T11:00:00Z", actor: "ingest-service" },
+      { stage: "Extraction", detail: "Net-zero and inclusion sections extracted as 2 chunks.", at: "2026-01-30T11:02:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Classified under Responsible growth; language en.", at: "2026-01-30T11:03:00Z", actor: "auto-classifier" },
+    ],
+    validation: [
+      { field: "confidentiality", proposed: "public", approved: "public", by: "Sustainability Office", at: "2026-01-31", status: "accepted" },
+    ],
+  },
+  {
+    docId: "doc-media-relations",
+    sourceFile: "Media-Relations-Guidelines.docx",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Ingested from Media Relations.", at: "2026-02-02T09:00:00Z", actor: "ingest-service" },
+      { stage: "Extraction", detail: "Spokespeople section extracted as 1 chunk.", at: "2026-02-02T09:01:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Classified under Simplify & digitalise; marked internal.", at: "2026-02-02T09:02:00Z", actor: "auto-classifier" },
+    ],
+    validation: [
+      { field: "confidentiality", proposed: "internal", approved: "internal", by: "Media Relations", at: "2026-02-03", status: "accepted" },
+    ],
+  },
+];
+
+export const WIKI_STATS = {
+  factsResolved: 3,
+  conflictsSettled: 2,
+  pagesRefined: 4,
+  windowLabel: "This week",
+};
 
 export const SUGGESTIONS = [
   { id: "sug-revenue", text: "What was Telefónica's group revenue in Q1 2026?", kind: "cited" },

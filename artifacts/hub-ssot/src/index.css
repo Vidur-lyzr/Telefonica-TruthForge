@@ -418,3 +418,24 @@
     margin: 20mm;
   }
 }
+
+@keyframes tf-graph-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.6;
+  }
+  70% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+.tf-graph-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tf-graph-pulse 2.4s ease-out infinite;
+}

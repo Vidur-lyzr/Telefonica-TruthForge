@@ -6,8 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PlanningAskInput {
+export interface WikiSearchInput {
+  /** @minLength 1 */
   question: string;
-  area: string;
   roleId: string;
 }

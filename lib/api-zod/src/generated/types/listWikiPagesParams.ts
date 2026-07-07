@@ -6,8 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface PlanningAskInput {
-  question: string;
-  area: string;
-  roleId: string;
-}
+export type ListWikiPagesParams = {
+roleId: string;
+};

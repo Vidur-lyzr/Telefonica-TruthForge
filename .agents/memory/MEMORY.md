@@ -8,3 +8,5 @@
 - [api-server restart for new routes](api-server-restart-required.md) — new backend routes 404 until you restart `artifacts/api-server: API Server`; dev is build&&start, not watch.
 - [Generate confidentiality gate](generate-confidentiality-gate.md) — external audience must cap ALL retrieval (body AND guidance) to public before the model, not just body sources.
 - [Generate scheduled approval gate](generate-scheduled-approval-gate.md) — scheduled gate must be SERVER-authoritative: index review item by draft id AND content hash; bind save/export to approved content hash; never trust client origin/approved/id.
+- [Orval hooks require queryKey](orval-querykey-required.md) — passing `enabled` (or any query option) to a generated useXxx hook needs an explicit `queryKey` array or it fails TS2741.
+- [Wiki graph encoding](graph-encoding-fill-vs-outline.md) — Map nodes must encode color=axis and fill=layer (compiled solid, raw entities outline); never color-by-kind.

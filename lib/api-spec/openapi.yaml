@@ -18,6 +18,8 @@ tags:
     description: Administration backend — profiles, users, schedules, audit
   - name: kpis
     description: Governed KPI / objective tracking
+  - name: wiki
+    description: Wiki / Knowledge surface — map, compiled pages, sources, compiled-layer ask
 paths:
   /healthz:
     get:
@@ -861,7 +863,139 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /wiki/graph:
+    get:
+      operationId: getWikiGraph
+      tags: [wiki]
+      summary: Permission-filtered knowledge map (nodes and edges)
+      description: >
+        Returns the knowledge graph shaped for the Map view — axes, compiled
+        pages, documents, figures and entities with citation/relationship edges.
+        Nodes above the active persona's clearance are surfaced as existence-only
+        (locked, contents hidden). Figures fail closed on their source document.
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: The active permission scope / persona id
+      responses:
+        "200":
+          description: Wiki graph
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WikiGraph"
 
+  /wiki/pages:
+    get:
+      operationId: listWikiPages
+      tags: [wiki]
+      summary: Compiled corporate-memory pages (permission-filtered summaries)
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Compiled page summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WikiPageSummary"
+
+  /wiki/page:
+    get:
+      operationId: getWikiPage
+      tags: [wiki]
+      summary: A single compiled page with its defended position and evidence
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Compiled page detail (locked when above clearance)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WikiPageDetail"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /wiki/lineage:
+    get:
+      operationId: listWikiLineage
+      tags: [wiki]
+      summary: Source inspector — ingestion lineage and validation trail per document
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Document lineage entries (locked when above clearance)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WikiLineage"
+
+  /wiki/stats:
+    get:
+      operationId: getWikiStats
+      tags: [wiki]
+      summary: Compounding-memory counter (facts resolved, conflicts settled, pages refined)
+      responses:
+        "200":
+          description: Wiki stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WikiStats"
+
+  /wiki/search:
+    post:
+      operationId: searchWiki
+      tags: [wiki]
+      summary: Ask the compiled layer a question and get a cited answer
+      description: >
+        Reasons over the compiled corporate-memory pages the persona may access.
+        Returns a synthesised answer with evidence chips and wiki-links to lit-up
+        pages/nodes — or an honest no-evidence / permission-blocked result. Pages
+        above the persona's clearance never reach the model.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WikiSearchInput"
+      responses:
+        "200":
+          description: Compiled-layer answer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WikiSearchResult"
 
 components:
   schemas:
@@ -1675,6 +1809,75 @@ components:
         description:
           type: string
 
+    WikiFigureSource:
+      type: object
+      required: [docId, docTitle, confidence, locked]
+      properties:
+        docId:
+          type: string
+        docTitle:
+          type: string
+        confidence:
+          type: number
+        locked:
+          type: boolean
+
+    WikiFigure:
+      type: object
+      required: [value, unit, period, sources]
+      properties:
+        value:
+          type: string
+        unit:
+          type: string
+        period:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiFigureSource"
+
+    WikiNode:
+      type: object
+      required: [id, name, kind, locked, refined]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          description: axis | compiled_page | document | figure | market | brand | product | executive
+        axisId:
+          type: ["string", "null"]
+        market:
+          type: ["string", "null"]
+        brand:
+          type: ["string", "null"]
+        language:
+          type: ["string", "null"]
+        confidentiality:
+          type: ["string", "null"]
+        validity:
+          type: ["string", "null"]
+        locked:
+          type: boolean
+        refined:
+          type: boolean
+        pageId:
+          type: ["string", "null"]
+        docId:
+          type: ["string", "null"]
+        figure:
+          oneOf:
+            - $ref: "#/components/schemas/WikiFigure"
+            - type: "null"
+        status:
+          type: string
+          description: connected | read_only
+        description:
+          type: string
+
     PlanningOverview:
       type: object
       required: [today, sources]
@@ -1937,9 +2140,317 @@ components:
       properties:
         question:
           type: string
-          minLength: 1
         area:
           type: string
+        roleId:
+          type: string
+
+    WikiEdge:
+      type: object
+      required: [from, to, type, relation]
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        type:
+          type: string
+          description: citation | relationship
+        relation:
+          type: string
+        confidence:
+          type: ["number", "null"]
+
+    WikiGraph:
+      type: object
+      required: [nodes, edges]
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiNode"
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiEdge"
+
+    WikiPageSummary:
+      type: object
+      required: [id, nodeId, title, axisId, summary, confidentiality, validity, sourceCount, owners, lastRefinedBy, lastRefinedAt, refined, locked]
+      properties:
+        id:
+          type: string
+        nodeId:
+          type: string
+        title:
+          type: string
+        axisId:
+          type: string
+        summary:
+          type: string
+        confidentiality:
+          type: string
+        validity:
+          type: string
+        sourceCount:
+          type: integer
+        owners:
+          type: array
+          items:
+            type: string
+        lastRefinedBy:
+          type: string
+        lastRefinedAt:
+          type: string
+        refined:
+          type: boolean
+        locked:
+          type: boolean
+
+    WikiEvidenceRef:
+      type: object
+      required: [marker, docId, docTitle, sourceLoc, snippet, confidentiality, validity, note]
+      properties:
+        marker:
+          type: string
+        docId:
+          type: string
+        docTitle:
+          type: string
+        sourceLoc:
+          type: string
+        snippet:
+          type: string
+        confidentiality:
+          type: string
+        validity:
+          type: string
+        note:
+          type: string
+
+    WikiResolvedFact:
+      type: object
+      required: [id, claim, resolvedValue, supersededValue, resolution, currentDocId, currentDocTitle, historicDocId, historicDocTitle, resolvedBy, resolvedAt]
+      properties:
+        id:
+          type: string
+        claim:
+          type: string
+        resolvedValue:
+          type: string
+        supersededValue:
+          type: string
+        resolution:
+          type: string
+        currentDocId:
+          type: string
+        currentDocTitle:
+          type: string
+        historicDocId:
+          type: string
+        historicDocTitle:
+          type: string
+        resolvedBy:
+          type: string
+        resolvedAt:
+          type: string
+
+    WikiOpenItem:
+      type: object
+      required: [id, kind, text, owner]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          description: open | watch
+        text:
+          type: string
+        owner:
+          type: string
+
+    WikiChangeLogEntry:
+      type: object
+      required: [id, at, by, summary]
+      properties:
+        id:
+          type: string
+        at:
+          type: string
+        by:
+          type: string
+        summary:
+          type: string
+
+    WikiRelatedPage:
+      type: object
+      required: [id, nodeId, title, locked]
+      properties:
+        id:
+          type: string
+        nodeId:
+          type: string
+        title:
+          type: string
+        locked:
+          type: boolean
+
+    WikiPageContent:
+      type: object
+      required: [id, nodeId, title, axisId, confidentiality, validity, summary, position, evidence, resolvedFacts, openItems, relatedPages, changeLog, owners, sourceDocIds, lastRefinedBy, lastRefinedAt, refined]
+      properties:
+        id:
+          type: string
+        nodeId:
+          type: string
+        title:
+          type: string
+        axisId:
+          type: string
+        confidentiality:
+          type: string
+        validity:
+          type: string
+        summary:
+          type: string
+        position:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiEvidenceRef"
+        resolvedFacts:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiResolvedFact"
+        openItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiOpenItem"
+        relatedPages:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiRelatedPage"
+        changeLog:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiChangeLogEntry"
+        owners:
+          type: array
+          items:
+            type: string
+        sourceDocIds:
+          type: array
+          items:
+            type: string
+        lastRefinedBy:
+          type: string
+        lastRefinedAt:
+          type: string
+        refined:
+          type: boolean
+
+    WikiPageDetail:
+      type: object
+      required: [locked]
+      properties:
+        locked:
+          type: boolean
+        requiredClearance:
+          type: ["string", "null"]
+        title:
+          type: ["string", "null"]
+        page:
+          oneOf:
+            - $ref: "#/components/schemas/WikiPageContent"
+            - type: "null"
+
+    WikiLineageStep:
+      type: object
+      required: [stage, detail, at, actor]
+      properties:
+        stage:
+          type: string
+        detail:
+          type: string
+        at:
+          type: string
+        actor:
+          type: string
+
+    WikiValidationEntry:
+      type: object
+      required: [field, proposed, approved, by, at, status]
+      properties:
+        field:
+          type: string
+        proposed:
+          type: string
+        approved:
+          type: string
+        by:
+          type: string
+        at:
+          type: string
+        status:
+          type: string
+          description: accepted | corrected
+
+    WikiLineage:
+      type: object
+      required: [docId, title, confidentiality, validity, axisIds, owner, locked]
+      properties:
+        docId:
+          type: string
+        title:
+          type: string
+        confidentiality:
+          type: string
+        validity:
+          type: string
+        axisIds:
+          type: array
+          items:
+            type: string
+        owner:
+          type: string
+        locked:
+          type: boolean
+        sourceFile:
+          type: ["string", "null"]
+        taxonomyVersion:
+          type: ["string", "null"]
+        chunkCount:
+          type: ["integer", "null"]
+        ingestion:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiLineageStep"
+        validation:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiValidationEntry"
+
+    WikiStats:
+      type: object
+      required: [factsResolved, conflictsSettled, pagesRefined, windowLabel]
+      properties:
+        factsResolved:
+          type: integer
+        conflictsSettled:
+          type: integer
+        pagesRefined:
+          type: integer
+        windowLabel:
+          type: string
+
+    WikiSearchInput:
+      type: object
+      required: [question, roleId]
+      properties:
+        question:
+          type: string
+          minLength: 1
         roleId:
           type: string
 
@@ -2596,3 +3107,24 @@ components:
           $ref: "#/components/schemas/VersionGovernance"
         draft:
           $ref: "#/components/schemas/GeneratedDraft"
+    WikiSearchResult:
+      type: object
+      required: [status, answer, evidence, wikiLinks, historic]
+      properties:
+        status:
+          type: string
+          description: answered | no_evidence | permission_blocked
+        answer:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiEvidenceRef"
+        wikiLinks:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiRelatedPage"
+        historic:
+          type: boolean
+        permissionNote:
+          type: ["string", "null"]

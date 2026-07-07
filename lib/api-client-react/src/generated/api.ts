@@ -41,6 +41,8 @@ import type {
   GetPlanningEventParams,
   GetPlanningInsightsParams,
   GetPlanningOverviewParams,
+  GetWikiGraphParams,
+  GetWikiPageParams,
   GuardianResult,
   HealthStatus,
   HomeSummary,
@@ -51,6 +53,8 @@ import type {
   KpiQueryResult,
   ListPlanningEventsParams,
   ListRadarParams,
+  ListWikiLineageParams,
+  ListWikiPagesParams,
   PlanningAskInput,
   PlanningAskResult,
   PlanningEvent,
@@ -69,7 +73,14 @@ import type {
   Schedule,
   ScheduledDocument,
   StrategicAxis,
-  SuggestedQuery
+  SuggestedQuery,
+  WikiGraph,
+  WikiLineage,
+  WikiPageDetail,
+  WikiPageSummary,
+  WikiSearchInput,
+  WikiSearchResult,
+  WikiStats
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -2981,4 +2992,489 @@ export function useGetGenerationJob<TData = Awaited<ReturnType<typeof getGenerat
 
 
 
+
+export const getGetWikiGraphUrl = (params: GetWikiGraphParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/wiki/graph?${stringifiedParams}` : `/api/wiki/graph`
+}
+
+/**
+ * Returns the knowledge graph shaped for the Map view — axes, compiled pages, documents, figures and entities with citation/relationship edges. Nodes above the active persona's clearance are surfaced as existence-only (locked, contents hidden). Figures fail closed on their source document.
+ * @summary Permission-filtered knowledge map (nodes and edges)
+ */
+export const getWikiGraph = async (params: GetWikiGraphParams, options?: RequestInit): Promise<WikiGraph> => {
+
+  return customFetch<WikiGraph>(getGetWikiGraphUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWikiGraphQueryKey = (params?: GetWikiGraphParams,) => {
+    return [
+    `/api/wiki/graph`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetWikiGraphQueryOptions = <TData = Awaited<ReturnType<typeof getWikiGraph>>, TError = ErrorType<unknown>>(params: GetWikiGraphParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWikiGraph>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWikiGraphQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWikiGraph>>> = ({ signal }) => getWikiGraph(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWikiGraph>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWikiGraphQueryResult = NonNullable<Awaited<ReturnType<typeof getWikiGraph>>>
+export type GetWikiGraphQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Permission-filtered knowledge map (nodes and edges)
+ */
+
+export function useGetWikiGraph<TData = Awaited<ReturnType<typeof getWikiGraph>>, TError = ErrorType<unknown>>(
+ params: GetWikiGraphParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWikiGraph>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWikiGraphQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListWikiPagesUrl = (params: ListWikiPagesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/wiki/pages?${stringifiedParams}` : `/api/wiki/pages`
+}
+
+/**
+ * @summary Compiled corporate-memory pages (permission-filtered summaries)
+ */
+export const listWikiPages = async (params: ListWikiPagesParams, options?: RequestInit): Promise<WikiPageSummary[]> => {
+
+  return customFetch<WikiPageSummary[]>(getListWikiPagesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWikiPagesQueryKey = (params?: ListWikiPagesParams,) => {
+    return [
+    `/api/wiki/pages`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListWikiPagesQueryOptions = <TData = Awaited<ReturnType<typeof listWikiPages>>, TError = ErrorType<unknown>>(params: ListWikiPagesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWikiPages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWikiPagesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWikiPages>>> = ({ signal }) => listWikiPages(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWikiPages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWikiPagesQueryResult = NonNullable<Awaited<ReturnType<typeof listWikiPages>>>
+export type ListWikiPagesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Compiled corporate-memory pages (permission-filtered summaries)
+ */
+
+export function useListWikiPages<TData = Awaited<ReturnType<typeof listWikiPages>>, TError = ErrorType<unknown>>(
+ params: ListWikiPagesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWikiPages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWikiPagesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetWikiPageUrl = (params: GetWikiPageParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/wiki/page?${stringifiedParams}` : `/api/wiki/page`
+}
+
+/**
+ * @summary A single compiled page with its defended position and evidence
+ */
+export const getWikiPage = async (params: GetWikiPageParams, options?: RequestInit): Promise<WikiPageDetail> => {
+
+  return customFetch<WikiPageDetail>(getGetWikiPageUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWikiPageQueryKey = (params?: GetWikiPageParams,) => {
+    return [
+    `/api/wiki/page`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetWikiPageQueryOptions = <TData = Awaited<ReturnType<typeof getWikiPage>>, TError = ErrorType<ErrorResponse>>(params: GetWikiPageParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWikiPage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWikiPageQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWikiPage>>> = ({ signal }) => getWikiPage(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWikiPage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWikiPageQueryResult = NonNullable<Awaited<ReturnType<typeof getWikiPage>>>
+export type GetWikiPageQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary A single compiled page with its defended position and evidence
+ */
+
+export function useGetWikiPage<TData = Awaited<ReturnType<typeof getWikiPage>>, TError = ErrorType<ErrorResponse>>(
+ params: GetWikiPageParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWikiPage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWikiPageQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListWikiLineageUrl = (params: ListWikiLineageParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/wiki/lineage?${stringifiedParams}` : `/api/wiki/lineage`
+}
+
+/**
+ * @summary Source inspector — ingestion lineage and validation trail per document
+ */
+export const listWikiLineage = async (params: ListWikiLineageParams, options?: RequestInit): Promise<WikiLineage[]> => {
+
+  return customFetch<WikiLineage[]>(getListWikiLineageUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListWikiLineageQueryKey = (params?: ListWikiLineageParams,) => {
+    return [
+    `/api/wiki/lineage`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListWikiLineageQueryOptions = <TData = Awaited<ReturnType<typeof listWikiLineage>>, TError = ErrorType<unknown>>(params: ListWikiLineageParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWikiLineage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListWikiLineageQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listWikiLineage>>> = ({ signal }) => listWikiLineage(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listWikiLineage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListWikiLineageQueryResult = NonNullable<Awaited<ReturnType<typeof listWikiLineage>>>
+export type ListWikiLineageQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Source inspector — ingestion lineage and validation trail per document
+ */
+
+export function useListWikiLineage<TData = Awaited<ReturnType<typeof listWikiLineage>>, TError = ErrorType<unknown>>(
+ params: ListWikiLineageParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listWikiLineage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListWikiLineageQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetWikiStatsUrl = () => {
+
+
+
+
+  return `/api/wiki/stats`
+}
+
+/**
+ * @summary Compounding-memory counter (facts resolved, conflicts settled, pages refined)
+ */
+export const getWikiStats = async ( options?: RequestInit): Promise<WikiStats> => {
+
+  return customFetch<WikiStats>(getGetWikiStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWikiStatsQueryKey = () => {
+    return [
+    `/api/wiki/stats`
+    ] as const;
+    }
+
+
+export const getGetWikiStatsQueryOptions = <TData = Awaited<ReturnType<typeof getWikiStats>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWikiStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWikiStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWikiStats>>> = ({ signal }) => getWikiStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWikiStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWikiStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getWikiStats>>>
+export type GetWikiStatsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Compounding-memory counter (facts resolved, conflicts settled, pages refined)
+ */
+
+export function useGetWikiStats<TData = Awaited<ReturnType<typeof getWikiStats>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWikiStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWikiStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSearchWikiUrl = () => {
+
+
+
+
+  return `/api/wiki/search`
+}
+
+/**
+ * Reasons over the compiled corporate-memory pages the persona may access. Returns a synthesised answer with evidence chips and wiki-links to lit-up pages/nodes — or an honest no-evidence / permission-blocked result. Pages above the persona's clearance never reach the model.
+ * @summary Ask the compiled layer a question and get a cited answer
+ */
+export const searchWiki = async (wikiSearchInput: WikiSearchInput, options?: RequestInit): Promise<WikiSearchResult> => {
+
+  return customFetch<WikiSearchResult>(getSearchWikiUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(wikiSearchInput)
+  }
+);}
+
+
+
+
+export const getSearchWikiMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchWiki>>, TError,{data: BodyType<WikiSearchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof searchWiki>>, TError,{data: BodyType<WikiSearchInput>}, TContext> => {
+
+const mutationKey = ['searchWiki'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof searchWiki>>, {data: BodyType<WikiSearchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  searchWiki(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SearchWikiMutationResult = NonNullable<Awaited<ReturnType<typeof searchWiki>>>
+    export type SearchWikiMutationBody = BodyType<WikiSearchInput>
+    export type SearchWikiMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Ask the compiled layer a question and get a cited answer
+ */
+export const useSearchWiki = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchWiki>>, TError,{data: BodyType<WikiSearchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof searchWiki>>,
+        TError,
+        {data: BodyType<WikiSearchInput>},
+        TContext
+      > => {
+      return useMutation(getSearchWikiMutationOptions(options));
+    }
 
