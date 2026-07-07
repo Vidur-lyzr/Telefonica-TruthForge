@@ -981,7 +981,11 @@ export const GenerateResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -1084,7 +1088,11 @@ export const RefineDocumentBody = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -1182,7 +1190,11 @@ export const RefineDocumentResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -1282,7 +1294,11 @@ export const CheckDocumentBody = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -1313,7 +1329,11 @@ export const CheckDocumentResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 })
 
@@ -1527,7 +1547,11 @@ export const RunScheduleResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -1637,7 +1661,11 @@ export const ListReviewItemsResponseItem = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -1743,7 +1771,11 @@ export const ApproveReviewItemBody = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -1849,7 +1881,11 @@ export const ApproveReviewItemResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -1964,7 +2000,11 @@ export const ListVersionsResponseItem = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -2066,7 +2106,11 @@ export const SaveVersionBody = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -2178,7 +2222,11 @@ export const SaveVersionResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -2298,7 +2346,11 @@ export const StartGenerateJobResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -2404,7 +2456,11 @@ export const StartRefineJobBody = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -2507,7 +2563,11 @@ export const StartRefineJobResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -2618,7 +2678,11 @@ export const GetGenerationJobResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 }),
   "historic": zod.boolean(),
@@ -2981,6 +3045,39 @@ export const GetBrandTemplatesResponse = zod.object({
   "shape": zod.string(),
   "name": zod.string(),
   "description": zod.string(),
+  "purpose": zod.string(),
+  "format": zod.string(),
+  "owner": zod.string(),
+  "version": zod.string(),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "clearance": zod.string(),
+  "sectionCount": zod.number()
+}))
+})
+
+
+/**
+ * The full section blueprint and required disclaimers for a single template. Fails closed: an existing but above-clearance template is reported as blocked with no content; an unknown id returns 404.
+ * @summary One governed template's full structure, permission-filtered
+ */
+export const GetBrandTemplateQueryParams = zod.object({
+  "templateId": zod.coerce.string().describe('Template id to expand'),
+  "roleId": zod.coerce.string().optional().describe('Active persona id (permission scope)')
+})
+
+export const GetBrandTemplateResponse = zod.object({
+  "personaClearance": zod.string(),
+  "blocked": zod.boolean(),
+  "template": zod.union([zod.object({
+  "id": zod.string(),
+  "shape": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "purpose": zod.string(),
+  "format": zod.string(),
+  "owner": zod.string(),
+  "version": zod.string(),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
   "clearance": zod.string(),
   "sections": zod.array(zod.object({
   "key": zod.string(),
@@ -2993,7 +3090,7 @@ export const GetBrandTemplatesResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 }))
-}))
+}),zod.null()])
 })
 
 
@@ -3066,7 +3163,11 @@ export const CheckBrandTextResponse = zod.object({
   "severity": zod.string().describe('error | warning'),
   "rule": zod.string(),
   "message": zod.string(),
-  "suggestion": zod.string().nullish()
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
 })
 

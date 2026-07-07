@@ -5,6 +5,7 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { GuardianFindingLocation } from './guardianFindingLocation';
 
 export interface GuardianFinding {
   /** error | warning */
@@ -13,4 +14,6 @@ export interface GuardianFinding {
   message: string;
   /** @nullable */
   suggestion?: string | null;
+  /** Character span in the checked text (live checker only) */
+  location?: GuardianFindingLocation;
 }

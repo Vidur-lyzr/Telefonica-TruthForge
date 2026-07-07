@@ -27,6 +27,7 @@ import type {
   AuditEntry,
   BrandCheckInput,
   BrandResourcesView,
+  BrandTemplateDetailView,
   BrandTemplatesView,
   BrandToneView,
   CheckInput,
@@ -43,6 +44,8 @@ import type {
   GeneratedDraft,
   GenerationJob,
   GetBrandResourcesParams,
+  GetBrandTemplate404,
+  GetBrandTemplateParams,
   GetBrandTemplatesParams,
   GetCorpusStatsParams,
   GetHomeSummaryParams,
@@ -3869,6 +3872,91 @@ export function useGetBrandTemplates<TData = Awaited<ReturnType<typeof getBrandT
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetBrandTemplatesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBrandTemplateUrl = (params: GetBrandTemplateParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/brand/template?${stringifiedParams}` : `/api/brand/template`
+}
+
+/**
+ * The full section blueprint and required disclaimers for a single template. Fails closed: an existing but above-clearance template is reported as blocked with no content; an unknown id returns 404.
+ * @summary One governed template's full structure, permission-filtered
+ */
+export const getBrandTemplate = async (params: GetBrandTemplateParams, options?: RequestInit): Promise<BrandTemplateDetailView> => {
+
+  return customFetch<BrandTemplateDetailView>(getGetBrandTemplateUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrandTemplateQueryKey = (params?: GetBrandTemplateParams,) => {
+    return [
+    `/api/brand/template`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBrandTemplateQueryOptions = <TData = Awaited<ReturnType<typeof getBrandTemplate>>, TError = ErrorType<GetBrandTemplate404>>(params: GetBrandTemplateParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrandTemplateQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrandTemplate>>> = ({ signal }) => getBrandTemplate(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBrandTemplate>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBrandTemplateQueryResult = NonNullable<Awaited<ReturnType<typeof getBrandTemplate>>>
+export type GetBrandTemplateQueryError = ErrorType<GetBrandTemplate404>
+
+
+/**
+ * @summary One governed template's full structure, permission-filtered
+ */
+
+export function useGetBrandTemplate<TData = Awaited<ReturnType<typeof getBrandTemplate>>, TError = ErrorType<GetBrandTemplate404>>(
+ params: GetBrandTemplateParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandTemplate>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBrandTemplateQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

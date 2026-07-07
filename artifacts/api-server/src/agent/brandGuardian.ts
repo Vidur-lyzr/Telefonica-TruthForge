@@ -26,6 +26,10 @@ const AMERICAN_SPELLINGS: { find: RegExp; prefer: string }[] = SPELLING_PREFEREN
   (s) => ({ find: new RegExp(s.pattern, "i"), prefer: s.european }),
 );
 
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function runBrandGuardian(draft: GeneratedDraft): GuardianResult {
   const findings: GuardianFinding[] = [];
 
@@ -170,64 +174,95 @@ export function checkBrandText(text: string): GuardianResult {
     };
   }
 
+  // Each rule emits one finding PER occurrence with the exact character span it
+  // matched, so the Brand Room can highlight every violation inline in the
+  // checked text rather than listing rules abstractly.
+
   // 1. Emoji — hard brand rule.
-  if (EMOJI_RE.test(text)) {
-    findings.push({
-      severity: "error",
-      rule: "tone-emoji",
-      message: "Emoji are not permitted in Telefónica communications.",
-      suggestion: "Remove all emoji.",
-    });
+  {
+    const re = new RegExp(EMOJI_RE.source, "gu");
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      findings.push({
+        severity: "error",
+        rule: "tone-emoji",
+        message: "Emoji are not permitted in Telefónica communications.",
+        suggestion: "Remove the emoji.",
+        location: { start: m.index, end: m.index + m[0].length },
+      });
+    }
   }
 
   // 2. Unapproved / superlative claims.
-  const lower = text.toLowerCase();
   for (const p of UNAPPROVED_CLAIM_PATTERNS) {
-    if (lower.includes(p.pattern.toLowerCase())) {
+    const re = new RegExp(escapeRegExp(p.pattern), "gi");
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
       findings.push({
         severity: "error",
         rule: "unapproved-claim",
         message: `Unapproved claim detected: "${p.pattern}". ${p.reason}`,
         suggestion: `Replace with: ${p.rewrite}`,
+        location: { start: m.index, end: m.index + m[0].length },
       });
+      if (m.index === re.lastIndex) re.lastIndex++;
     }
   }
 
   // 3. Shouted lines — headings or sentences in all caps.
-  for (const line of text.split(/\r?\n/)) {
-    const letters = line.replace(/[^A-Za-zÀ-ÿ]/g, "");
-    if (letters.length >= 6 && line === line.toUpperCase()) {
-      findings.push({
-        severity: "warning",
-        rule: "tone-caps",
-        message: `Line "${truncateLine(line)}" is in all caps.`,
-        suggestion: "Use sentence case; reserve caps for short tracked eyebrows.",
-      });
+  {
+    let offset = 0;
+    for (const line of text.split("\n")) {
+      const letters = line.replace(/[^A-Za-zÀ-ÿ]/g, "");
+      if (letters.length >= 6 && line === line.toUpperCase()) {
+        const leading = line.length - line.trimStart().length;
+        findings.push({
+          severity: "warning",
+          rule: "tone-caps",
+          message: `Line "${truncateLine(line)}" is in all caps.`,
+          suggestion: "Use sentence case; reserve caps for short tracked eyebrows.",
+          location: { start: offset + leading, end: offset + line.trimEnd().length },
+        });
+      }
+      offset += line.length + 1; // +1 for the "\n" removed by split
     }
   }
 
   // 4. European-English spelling.
   for (const rule of AMERICAN_SPELLINGS) {
-    if (rule.find.test(text)) {
+    const re = new RegExp(rule.find.source, "gi");
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
       findings.push({
         severity: "warning",
         rule: "spelling",
         message: "American spelling detected; Telefónica uses European English.",
         suggestion: `Prefer "${rule.prefer}".`,
+        location: { start: m.index, end: m.index + m[0].length },
       });
+      if (m.index === re.lastIndex) re.lastIndex++;
     }
   }
 
   // 5. Uncited figures — a number that should carry a governed source.
-  if (FIGURE_RE.test(text) && !/\[S\s*\d+/i.test(text)) {
-    findings.push({
-      severity: "warning",
-      rule: "citations",
-      message: "A figure appears without a source citation.",
-      suggestion:
-        "Attach an [S#] marker from a governed source so the number can be defended.",
-    });
+  if (!/\[S\s*\d+/i.test(text)) {
+    const re = new RegExp(FIGURE_RE.source, "gi");
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      findings.push({
+        severity: "warning",
+        rule: "citations",
+        message: "A figure appears without a source citation.",
+        suggestion:
+          "Attach an [S#] marker from a governed source so the number can be defended.",
+        location: { start: m.index, end: m.index + m[0].length },
+      });
+      if (m.index === re.lastIndex) re.lastIndex++;
+    }
   }
+
+  // Present in document order so inline highlighting reads top-to-bottom.
+  findings.sort((a, b) => (a.location?.start ?? 0) - (b.location?.start ?? 0));
 
   const errorCount = findings.filter((f) => f.severity === "error").length;
   const warnCount = findings.filter((f) => f.severity === "warning").length;

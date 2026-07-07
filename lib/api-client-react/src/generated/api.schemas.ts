@@ -23,15 +23,42 @@ export interface BrandTemplate {
   shape: string;
   name: string;
   description: string;
+  purpose: string;
+  format: string;
+  owner: string;
+  version: string;
+  /** approved | historic | review | superseded */
+  validity: string;
   clearance: string;
   sections: BrandTemplateSection[];
   disclaimers: BrandTemplateDisclaimer[];
 }
 
+export interface BrandTemplateSummary {
+  id: string;
+  shape: string;
+  name: string;
+  description: string;
+  purpose: string;
+  format: string;
+  owner: string;
+  version: string;
+  /** approved | historic | review | superseded */
+  validity: string;
+  clearance: string;
+  sectionCount: number;
+}
+
 export interface BrandTemplatesView {
   personaClearance: string;
   blockedCount: number;
-  templates: BrandTemplate[];
+  templates: BrandTemplateSummary[];
+}
+
+export interface BrandTemplateDetailView {
+  personaClearance: string;
+  blocked: boolean;
+  template: BrandTemplate | null;
 }
 
 export interface TonePrinciple {
@@ -175,6 +202,14 @@ export interface DraftDisclaimer {
   text: string;
 }
 
+/**
+ * Character span in the checked text (live checker only)
+ */
+export type GuardianFindingLocation = {
+  start: number;
+  end: number;
+} | null;
+
 export interface GuardianFinding {
   /** error | warning */
   severity: string;
@@ -182,6 +217,8 @@ export interface GuardianFinding {
   message: string;
   /** @nullable */
   suggestion?: string | null;
+  /** Character span in the checked text (live checker only) */
+  location?: GuardianFindingLocation;
 }
 
 export interface GuardianResult {
@@ -1425,6 +1462,21 @@ export type GetBrandTemplatesParams = {
  * Active persona id (permission scope)
  */
 roleId?: string;
+};
+
+export type GetBrandTemplateParams = {
+/**
+ * Template id to expand
+ */
+templateId: string;
+/**
+ * Active persona id (permission scope)
+ */
+roleId?: string;
+};
+
+export type GetBrandTemplate404 = {
+  error: string;
 };
 
 export type GetBrandResourcesParams = {

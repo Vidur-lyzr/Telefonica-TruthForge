@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import {
   GetBrandTemplatesResponse,
+  GetBrandTemplateResponse,
   GetBrandToneResponse,
   GetBrandResourcesResponse,
   CheckBrandTextBody,
@@ -8,6 +9,7 @@ import {
 } from "@workspace/api-zod";
 import {
   accessibleTemplates,
+  accessibleTemplate,
   accessibleResources,
   brandTone,
 } from "../data/brandRoom";
@@ -22,6 +24,17 @@ function roleIdParam(value: unknown): string | undefined {
 router.get("/brand/templates", (req, res) => {
   const view = accessibleTemplates(roleIdParam(req.query.roleId));
   res.json(GetBrandTemplatesResponse.parse(view));
+});
+
+router.get("/brand/template", (req, res) => {
+  const templateId = typeof req.query.templateId === "string" ? req.query.templateId : "";
+  const view = accessibleTemplate(templateId, roleIdParam(req.query.roleId));
+  // Unknown id (exists nowhere, not merely blocked) is a genuine 404.
+  if (!view.blocked && view.template === null) {
+    res.status(404).json({ error: "Unknown template" });
+    return;
+  }
+  res.json(GetBrandTemplateResponse.parse(view));
 });
 
 router.get("/brand/tone", (_req, res) => {

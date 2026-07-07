@@ -93,11 +93,19 @@ export interface DraftDisclaimer {
   text: string;
 }
 
+export interface GuardianLocation {
+  start: number;
+  end: number;
+}
+
 export interface GuardianFinding {
   severity: "error" | "warning";
   rule: string;
   message: string;
   suggestion?: string | null;
+  // Character span in the checked text (live Brand Room checker). The export
+  // gate operates on a composed draft rather than raw prose and omits it.
+  location?: GuardianLocation | null;
 }
 
 export interface GuardianResult {

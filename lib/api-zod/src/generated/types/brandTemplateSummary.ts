@@ -5,10 +5,8 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
-import type { BrandTemplateDisclaimer } from './brandTemplateDisclaimer';
-import type { BrandTemplateSection } from './brandTemplateSection';
 
-export interface BrandTemplate {
+export interface BrandTemplateSummary {
   id: string;
   shape: string;
   name: string;
@@ -20,6 +18,5 @@ export interface BrandTemplate {
   /** approved | historic | review | superseded */
   validity: string;
   clearance: string;
-  sections: BrandTemplateSection[];
-  disclaimers: BrandTemplateDisclaimer[];
+  sectionCount: number;
 }

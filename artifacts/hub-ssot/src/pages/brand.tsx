@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import {
   useGetBrandTemplates,
+  useGetBrandTemplate,
   useGetBrandTone,
   useGetBrandResources,
   useCheckBrandText,
-  type BrandTemplate,
+  type BrandTemplateSummary,
   type TonePrinciple,
   type BrandRule,
   type ProhibitedPhrase,
   type SpellingPref,
   type BrandResource,
   type GuardianResult,
+  type GuardianFinding,
 } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/components/app-provider";
@@ -118,13 +120,25 @@ function PermissionBlocked({ count, noun }: { count: number; noun: string }) {
 
 // ---- Templates --------------------------------------------------------------
 
-function TemplateCard({ t }: { t: BrandTemplate }) {
+function TemplateMeta({ label, value }: { label: string; value: string; }) {
   return (
-    <div className="rounded-2xl border border-border p-6 space-y-4 bg-white">
+    <div className="min-w-0">
+      <dt className="text-[10px] uppercase tracking-eyebrow text-muted-foreground">{label}</dt>
+      <dd className="text-sm text-foreground font-medium truncate">{value}</dd>
+    </div>
+  );
+}
+
+function TemplateCard({ t, onOpen }: { t: BrandTemplateSummary; onOpen: () => void }) {
+  return (
+    <button
+      onClick={onOpen}
+      className="text-left w-full rounded-2xl border border-border p-6 space-y-4 bg-white hover:border-tf-blue/40 hover:shadow-sm transition-all"
+    >
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-tf-navy text-lg">{t.name}</h3>
-          <p className="text-sm text-muted-foreground mt-1">{t.description}</p>
+          <p className="text-sm text-muted-foreground mt-1">{t.purpose}</p>
         </div>
         <Badge
           variant="outline"
@@ -133,55 +147,143 @@ function TemplateCard({ t }: { t: BrandTemplate }) {
           {t.shape}
         </Badge>
       </div>
-      <div>
-        <p className="text-xs font-bold uppercase tracking-eyebrow text-muted-foreground mb-2">
-          Sections
-        </p>
-        <ul className="space-y-1.5">
-          {t.sections.map((s) => (
-            <li key={s.key} className="flex items-center gap-2 text-sm flex-wrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-tf-blue shrink-0" />
-              <span className="text-foreground">{s.label}</span>
-              <span className="text-xs text-muted-foreground">· {s.kind}</span>
-              {s.perAxis && (
-                <Badge
-                  variant="outline"
-                  className="uppercase tracking-eyebrow text-[9px] border-border text-muted-foreground"
-                >
-                  per axis
-                </Badge>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-      {t.disclaimers.length > 0 && (
-        <div className="rounded-xl bg-muted/50 p-3">
-          <p className="text-xs font-bold uppercase tracking-eyebrow text-muted-foreground mb-1.5">
-            Required disclaimers
-          </p>
-          <ul className="space-y-1.5">
-            {t.disclaimers.map((d) => (
-              <li key={d.id} className="text-xs text-foreground/80 leading-snug">
-                <span className="font-semibold text-tf-navy">{d.name}.</span> {d.text}
-              </li>
-            ))}
-          </ul>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <TemplateMeta label="Owner" value={t.owner} />
+        <TemplateMeta label="Format" value={t.format} />
+        <div>
+          <dt className="text-[10px] uppercase tracking-eyebrow text-muted-foreground">Version</dt>
+          <dd className="text-sm text-foreground font-medium tabular-nums">{t.version}</dd>
         </div>
-      )}
-    </div>
+        <div>
+          <dt className="text-[10px] uppercase tracking-eyebrow text-muted-foreground">Sections</dt>
+          <dd className="text-sm text-foreground font-medium tabular-nums">{t.sectionCount}</dd>
+        </div>
+      </dl>
+      <div className="flex items-center justify-between gap-2 pt-3 border-t border-border/60">
+        <div className="flex items-center gap-2">
+          <ClearanceBadge clearance={t.clearance} />
+          <ValidityBadge validity={t.validity} />
+        </div>
+        <span className="inline-flex items-center gap-1 text-sm text-tf-blue font-medium">
+          View structure
+          <ArrowRight className="w-3.5 h-3.5" />
+        </span>
+      </div>
+    </button>
+  );
+}
+
+function TemplateDetail({ templateId, roleId }: { templateId: string; roleId?: string }) {
+  const { data, isLoading } = useGetBrandTemplate(
+    roleId ? { templateId, roleId } : { templateId },
+  );
+  if (isLoading) return <Loading />;
+  if (!data) return null;
+  if (data.blocked || !data.template) {
+    return (
+      <>
+        <SheetHeader>
+          <SheetTitle className="text-tf-navy">Template</SheetTitle>
+          <SheetDescription>Governed brand template</SheetDescription>
+        </SheetHeader>
+        <div className="mt-6">
+          <PermissionBlocked count={1} noun="template" />
+        </div>
+      </>
+    );
+  }
+  const t = data.template;
+  return (
+    <>
+      <SheetHeader>
+        <SheetTitle className="text-tf-navy">{t.name}</SheetTitle>
+        <SheetDescription>{t.purpose}</SheetDescription>
+      </SheetHeader>
+      <div className="flex items-center gap-2 mt-3 flex-wrap">
+        <Badge
+          variant="outline"
+          className="uppercase tracking-eyebrow text-[9px] border-tf-blue/30 text-tf-blue"
+        >
+          {t.shape}
+        </Badge>
+        <ClearanceBadge clearance={t.clearance} />
+        <ValidityBadge validity={t.validity} />
+      </div>
+      <ScrollArea className="flex-1 -mx-6 px-6 mt-4">
+        <div className="space-y-5 pb-6">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+            <TemplateMeta label="Owner" value={t.owner} />
+            <TemplateMeta label="Format" value={t.format} />
+            <div>
+              <dt className="text-[10px] uppercase tracking-eyebrow text-muted-foreground">
+                Version
+              </dt>
+              <dd className="text-sm text-foreground font-medium tabular-nums">{t.version}</dd>
+            </div>
+          </dl>
+          <p className="text-sm text-muted-foreground">{t.description}</p>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-eyebrow text-muted-foreground mb-2">
+              Section structure
+            </p>
+            <ol className="space-y-2">
+              {t.sections.map((s, i) => (
+                <li
+                  key={s.key}
+                  className="flex items-start gap-3 rounded-xl border border-border p-3"
+                >
+                  <span className="text-xs font-bold text-tf-blue tabular-nums mt-0.5">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-foreground text-sm">{s.label}</span>
+                      <span className="text-xs text-muted-foreground">· {s.kind}</span>
+                      {s.perAxis && (
+                        <Badge
+                          variant="outline"
+                          className="uppercase tracking-eyebrow text-[9px] border-border text-muted-foreground"
+                        >
+                          per axis
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+          {t.disclaimers.length > 0 && (
+            <div className="rounded-xl bg-muted/50 p-4">
+              <p className="text-xs font-bold uppercase tracking-eyebrow text-muted-foreground mb-2">
+                Required disclaimers
+              </p>
+              <ul className="space-y-2">
+                {t.disclaimers.map((d) => (
+                  <li key={d.id} className="text-xs text-foreground/80 leading-snug">
+                    <span className="font-semibold text-tf-navy">{d.name}.</span> {d.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </>
   );
 }
 
 function TemplatesArea({ roleId }: { roleId?: string }) {
   const { data, isLoading } = useGetBrandTemplates(roleId ? { roleId } : undefined);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   if (isLoading) return <Loading />;
   if (!data) return null;
   return (
     <div className="space-y-5">
       <IntroLine>
-        Governed document blueprints — the sections, per-axis fields and required disclaimers every
-        published document must follow.
+        Governed document blueprints — each with its owner, format, version and validity. Select a
+        template to see the section structure and required disclaimers every published document must
+        follow.
       </IntroLine>
       {data.templates.length === 0 ? (
         <PermissionBlocked count={data.blockedCount} noun="template" />
@@ -190,11 +292,16 @@ function TemplatesArea({ roleId }: { roleId?: string }) {
           {data.blockedCount > 0 && <BlockedNote count={data.blockedCount} noun="template" />}
           <div className="grid gap-5 md:grid-cols-2">
             {data.templates.map((t) => (
-              <TemplateCard key={t.id} t={t} />
+              <TemplateCard key={t.id} t={t} onOpen={() => setSelectedId(t.id)} />
             ))}
           </div>
         </>
       )}
+      <Sheet open={!!selectedId} onOpenChange={(o) => !o && setSelectedId(null)}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col">
+          {selectedId && <TemplateDetail templateId={selectedId} roleId={roleId} />}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
@@ -477,18 +584,68 @@ function GuardianVerdict({ result }: { result: GuardianResult }) {
   );
 }
 
+function HighlightedText({ text, findings }: { text: string; findings: GuardianFinding[] }) {
+  // Per-character severity so overlapping/nested spans never drop text; error (2)
+  // always wins over warning (1) where highlights overlap.
+  const severity = new Array<0 | 1 | 2>(text.length).fill(0);
+  findings.forEach((f) => {
+    if (!f.location) return;
+    const rank = f.severity === "error" ? 2 : 1;
+    const from = Math.max(0, f.location.start);
+    const to = Math.min(text.length, f.location.end);
+    for (let i = from; i < to; i++) {
+      if (rank > severity[i]) severity[i] = rank as 1 | 2;
+    }
+  });
+
+  const nodes: React.ReactNode[] = [];
+  let i = 0;
+  let key = 0;
+  while (i < text.length) {
+    const cur = severity[i];
+    let j = i + 1;
+    while (j < text.length && severity[j] === cur) j++;
+    const chunk = text.slice(i, j);
+    if (cur === 0) {
+      nodes.push(<span key={key++}>{chunk}</span>);
+    } else {
+      nodes.push(
+        <mark
+          key={key++}
+          className={cn(
+            "rounded px-0.5 underline decoration-2 underline-offset-2",
+            cur === 2
+              ? "bg-tf-error-bg text-tf-error decoration-tf-error/50"
+              : "bg-tf-warning-bg text-tf-warning decoration-tf-warning/50",
+          )}
+        >
+          {chunk}
+        </mark>,
+      );
+    }
+    i = j;
+  }
+  return <p className="text-sm text-foreground/90 whitespace-pre-wrap leading-relaxed">{nodes}</p>;
+}
+
 function GuardianArea() {
   const [text, setText] = useState("");
-  const [result, setResult] = useState<GuardianResult | null>(null);
+  const [checked, setChecked] = useState<{ text: string; result: GuardianResult } | null>(null);
   const check = useCheckBrandText();
   const run = () => {
-    check.mutate({ data: { text } }, { onSuccess: (g) => setResult(g) });
+    const snapshot = text;
+    check.mutate(
+      { data: { text: snapshot } },
+      { onSuccess: (g) => setChecked({ text: snapshot, result: g }) },
+    );
   };
+  const hasHighlights = !!checked && checked.result.findings.some((f) => f.location);
   return (
     <div className="space-y-5 max-w-3xl">
       <IntroLine>
         Paste any copy — a caption, an intro, a tweet — and the Brand Guardian checks it against the
-        same rules that gate document export. Deterministic, and no text leaves the governed core.
+        same rules that gate document export. Every violation is flagged inline. Deterministic, and
+        no text leaves the governed core.
       </IntroLine>
       <div className="rounded-2xl border border-border p-6 bg-white space-y-4">
         <Textarea
@@ -510,18 +667,18 @@ function GuardianArea() {
             type="button"
             onClick={() => {
               setText(GUARDIAN_SAMPLE);
-              setResult(null);
+              setChecked(null);
             }}
             className="text-sm text-tf-blue font-medium hover:underline"
           >
             Load a sample
           </button>
-          {(text || result) && (
+          {(text || checked) && (
             <button
               type="button"
               onClick={() => {
                 setText("");
-                setResult(null);
+                setChecked(null);
               }}
               className="text-sm text-muted-foreground hover:underline"
             >
@@ -530,7 +687,27 @@ function GuardianArea() {
           )}
         </div>
       </div>
-      {result && <GuardianVerdict result={result} />}
+      {hasHighlights && (
+        <div className="rounded-2xl border border-border p-5 bg-white space-y-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-xs font-bold uppercase tracking-eyebrow text-muted-foreground">
+              Checked text
+            </p>
+            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-sm bg-tf-error-bg border border-tf-error/40" />
+                Blocks
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-sm bg-tf-warning-bg border border-tf-warning/40" />
+                Advises
+              </span>
+            </div>
+          </div>
+          <HighlightedText text={checked.text} findings={checked.result.findings} />
+        </div>
+      )}
+      {checked && <GuardianVerdict result={checked.result} />}
     </div>
   );
 }

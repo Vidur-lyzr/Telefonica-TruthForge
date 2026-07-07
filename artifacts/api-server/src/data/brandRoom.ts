@@ -154,16 +154,75 @@ export interface BrandTemplate {
   shape: DocShape;
   name: string;
   description: string;
+  purpose: string;
+  format: string;
+  owner: string;
+  version: string;
+  validity: Validity;
   clearance: Clearance;
   sections: BrandTemplateSection[];
   disclaimers: BrandTemplateDisclaimer[];
 }
+
+// The gallery card shape: governance metadata without the full section
+// blueprint, which is fetched on selection via the template detail endpoint.
+export interface BrandTemplateSummary {
+  id: string;
+  shape: DocShape;
+  name: string;
+  description: string;
+  purpose: string;
+  format: string;
+  owner: string;
+  version: string;
+  validity: Validity;
+  clearance: Clearance;
+  sectionCount: number;
+}
+
+interface TemplateMeta {
+  purpose: string;
+  format: string;
+  owner: string;
+  version: string;
+  validity: Validity;
+}
+
+// Governance metadata seeded per shape, reusing the corpus owner strings and
+// validity states so templates read like the rest of the governed corpus.
+const TEMPLATE_META: Record<DocShape, TemplateMeta> = {
+  messaging: {
+    purpose:
+      "Align every spokesperson on one governed message per strategic axis, each backed by a cited figure.",
+    format: "Word document (.docx)",
+    owner: "Global Brand Office",
+    version: "v3.1",
+    validity: "approved",
+  },
+  press: {
+    purpose:
+      "Announce news externally with an approved headline, cited body, an executive quote and a prepared Q&A.",
+    format: "Press release (.docx)",
+    owner: "Group Communications",
+    version: "v4.0",
+    validity: "approved",
+  },
+  multiformat: {
+    purpose:
+      "Assemble a flexible on-brand document — executive summary, themed sections with charts, and a close — for mixed audiences.",
+    format: "Slides or document (.pptx / .docx)",
+    owner: "Executive Communications",
+    version: "v2.2",
+    validity: "review",
+  },
+};
 
 const BRAND_TEMPLATES: BrandTemplate[] = TEMPLATES.map((t) => ({
   id: t.id,
   shape: t.shape,
   name: t.name,
   description: t.description,
+  ...TEMPLATE_META[t.shape],
   clearance: TEMPLATE_CLEARANCE,
   sections: t.sections.map((s) => ({
     key: s.key,
@@ -176,6 +235,22 @@ const BRAND_TEMPLATES: BrandTemplate[] = TEMPLATES.map((t) => ({
     .filter((d): d is NonNullable<typeof d> => Boolean(d))
     .map((d) => ({ id: d.id, name: d.name, text: d.text })),
 }));
+
+function toSummary(t: BrandTemplate): BrandTemplateSummary {
+  return {
+    id: t.id,
+    shape: t.shape,
+    name: t.name,
+    description: t.description,
+    purpose: t.purpose,
+    format: t.format,
+    owner: t.owner,
+    version: t.version,
+    validity: t.validity,
+    clearance: t.clearance,
+    sectionCount: t.sections.length,
+  };
+}
 
 // ---- Resources --------------------------------------------------------------
 
@@ -333,17 +408,41 @@ function canSee(clearance: Clearance, persona: Clearance): boolean {
 export interface BrandTemplatesView {
   personaClearance: Clearance;
   blockedCount: number;
-  templates: BrandTemplate[];
+  templates: BrandTemplateSummary[];
 }
 
 export function accessibleTemplates(roleId?: string): BrandTemplatesView {
   const persona = personaClearance(roleId);
-  const templates = BRAND_TEMPLATES.filter((t) => canSee(t.clearance, persona));
+  const visible = BRAND_TEMPLATES.filter((t) => canSee(t.clearance, persona));
   return {
     personaClearance: persona,
-    blockedCount: BRAND_TEMPLATES.length - templates.length,
-    templates,
+    blockedCount: BRAND_TEMPLATES.length - visible.length,
+    templates: visible.map(toSummary),
   };
+}
+
+export interface BrandTemplateDetailView {
+  personaClearance: Clearance;
+  blocked: boolean;
+  template: BrandTemplate | null;
+}
+
+// Fail-closed template detail: an existing but above-clearance template is
+// reported as blocked with no content, never leaked. A truly unknown id
+// resolves to a not-blocked null so the route can answer 404.
+export function accessibleTemplate(
+  id: string,
+  roleId?: string,
+): BrandTemplateDetailView {
+  const persona = personaClearance(roleId);
+  const template = BRAND_TEMPLATES.find((t) => t.id === id) ?? null;
+  if (!template) {
+    return { personaClearance: persona, blocked: false, template: null };
+  }
+  if (!canSee(template.clearance, persona)) {
+    return { personaClearance: persona, blocked: true, template: null };
+  }
+  return { personaClearance: persona, blocked: false, template };
 }
 
 export interface BrandResourcesView {
