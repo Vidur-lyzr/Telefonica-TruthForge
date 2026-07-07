@@ -20,6 +20,8 @@ tags:
     description: Governed KPI / objective tracking
   - name: wiki
     description: Wiki / Knowledge surface — map, compiled pages, sources, compiled-layer ask
+  - name: data
+    description: Data Center — sources, ingestion pipeline, validation queue, freshness
 paths:
   /healthz:
     get:
@@ -997,6 +999,64 @@ paths:
               schema:
                 $ref: "#/components/schemas/WikiSearchResult"
 
+  /data/sources:
+    get:
+      operationId: listDataSources
+      tags: [data]
+      summary: Connected sources and connectors with status, cadence and doc count
+      responses:
+        "200":
+          description: Data sources
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataSource"
+
+  /data/ingestion:
+    get:
+      operationId: getIngestionSnapshot
+      tags: [data]
+      summary: The 7-stage ingestion pipeline snapshot with quarantine
+      responses:
+        "200":
+          description: Ingestion snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestionSnapshot"
+
+  /data/validation:
+    get:
+      operationId: listValidationItems
+      tags: [data]
+      summary: The validation queue with proposed three-layer classification
+      responses:
+        "200":
+          description: Validation items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ValidationItem"
+
+  /data/freshness:
+    get:
+      operationId: listDocumentFreshness
+      tags: [data]
+      summary: Per-document SLA and freshness with review-overdue nudges
+      responses:
+        "200":
+          description: Document freshness
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocFreshness"
+
 components:
   schemas:
     GenerationJob:
@@ -1485,6 +1545,182 @@ components:
           type: string
         count:
           type: integer
+
+    DataSource:
+      type: object
+      required: [id, name, type, status, cadence, docCount, externalFilter, description]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+          description: live | filtered | manual | to_configure
+        cadence:
+          type: string
+        docCount:
+          type: integer
+        lastSync:
+          type: ["string", "null"]
+        externalFilter:
+          type: boolean
+        filterNote:
+          type: ["string", "null"]
+        description:
+          type: string
+
+    PipelineStage:
+      type: object
+      required: [id, name, count, description]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        count:
+          type: integer
+        description:
+          type: string
+
+    QuarantineDoc:
+      type: object
+      required: [id, title, source, stage, taxonomyVersion, missingFields, receivedAt, confidentiality]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        source:
+          type: string
+        stage:
+          type: string
+        taxonomyVersion:
+          type: string
+        missingFields:
+          type: array
+          items:
+            type: string
+        receivedAt:
+          type: string
+        confidentiality:
+          type: string
+          description: public | internal | confidential | restricted
+
+    IngestionSnapshot:
+      type: object
+      required: [stages, quarantine, validatedPct, taxonomyVersion]
+      properties:
+        stages:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineStage"
+        quarantine:
+          type: array
+          items:
+            $ref: "#/components/schemas/QuarantineDoc"
+        validatedPct:
+          type: integer
+        taxonomyVersion:
+          type: string
+
+    ProposedClassification:
+      type: object
+      required: [deterministic, semantic, strategicAxisId]
+      properties:
+        deterministic:
+          type: string
+        semantic:
+          type: array
+          items:
+            type: string
+        strategicAxisId:
+          type: string
+
+    ProposedMetadata:
+      type: object
+      required: [confidentiality, owner, country, brand]
+      properties:
+        confidentiality:
+          type: string
+          description: public | internal | confidential | restricted
+        owner:
+          type: string
+        country:
+          type: string
+        brand:
+          type: string
+        validUntil:
+          type: ["string", "null"]
+
+    ConflictDetail:
+      type: object
+      required: [metric, oldValue, oldSource, oldDate, freshValue, freshSource, freshDate]
+      properties:
+        metric:
+          type: string
+        oldValue:
+          type: string
+        oldSource:
+          type: string
+        oldDate:
+          type: string
+        freshValue:
+          type: string
+        freshSource:
+          type: string
+        freshDate:
+          type: string
+
+    ValidationItem:
+      type: object
+      required: [id, title, source, kind, confidence, confidenceScore, classification, metadata, refinedNote]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        source:
+          type: string
+        kind:
+          type: string
+          description: standard | conflict
+        confidence:
+          type: string
+          description: high | medium | low
+        confidenceScore:
+          type: number
+        classification:
+          $ref: "#/components/schemas/ProposedClassification"
+        metadata:
+          $ref: "#/components/schemas/ProposedMetadata"
+        refinedNote:
+          type: string
+        conflict:
+          oneOf:
+            - $ref: "#/components/schemas/ConflictDetail"
+            - type: "null"
+
+    DocFreshness:
+      type: object
+      required: [docId, title, owner, lastReviewed, slaMonths, monthsSinceReview, overdue]
+      properties:
+        docId:
+          type: string
+        title:
+          type: string
+        owner:
+          type: string
+        lastReviewed:
+          type: string
+        slaMonths:
+          type: integer
+        monthsSinceReview:
+          type: integer
+        overdue:
+          type: boolean
 
     CorpusStats:
       type: object

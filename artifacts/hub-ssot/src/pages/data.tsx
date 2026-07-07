@@ -1,200 +1,256 @@
-import React, { useState } from "react";
-import { useListDocuments, useGetCorpusStats, useGetDocument, CorpusDocument } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Database, Shield, Globe, FileText, CheckCircle2, ChevronRight, XCircle } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import {
+  useGetIngestionSnapshot,
+  useListValidationItems,
+  useListDocumentFreshness,
+} from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
+import {
+  ShieldCheck,
+  Server,
+  Boxes,
+  Compass,
+  Library,
+  CheckCircle2,
+  AlertTriangle,
+  Activity,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { DataCenterProvider, useDataCenter } from "@/components/data-center/state";
+import { formatTimestamp } from "@/components/data-center/helpers";
+import ValidationArea from "@/components/data-center/validation";
+import SourcesArea from "@/components/data-center/sources";
+import IngestionArea from "@/components/data-center/ingestion";
+import GovernanceArea from "@/components/data-center/governance";
+import CorpusArea from "@/components/data-center/corpus";
 
-export default function DataPage() {
-  const { data: stats } = useGetCorpusStats();
-  const { data: documents } = useListDocuments();
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
+type AreaId = "validation" | "sources" | "ingestion" | "governance" | "corpus";
 
-  const { data: docDetail, isLoading: isLoadingDetail } = useGetDocument(selectedDocId || "", {
-    query: { enabled: !!selectedDocId, queryKey: ['document', selectedDocId] }
-  });
+const AREAS: {
+  id: AreaId;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  { id: "validation", label: "Validation queue", icon: ShieldCheck },
+  { id: "sources", label: "Sources", icon: Server },
+  { id: "ingestion", label: "Ingestion", icon: Boxes },
+  { id: "governance", label: "Governance", icon: Compass },
+  { id: "corpus", label: "Corpus", icon: Library },
+];
+
+function ActivityDrawer() {
+  const { activity } = useDataCenter();
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button
+          variant="outline"
+          className="rounded-pill font-semibold border-border relative"
+        >
+          <Activity className="w-4 h-4 mr-2" /> Session activity
+          {activity.length > 0 && (
+            <span className="ml-2 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-tf-blue text-white text-[11px] font-bold">
+              {activity.length}
+            </span>
+          )}
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full sm:max-w-md flex flex-col">
+        <SheetHeader>
+          <SheetTitle className="text-tf-navy">Session activity</SheetTitle>
+          <SheetDescription>
+            Every documentalist decision made here feeds the platform audit trail. This session is
+            in-memory only for the demo.
+          </SheetDescription>
+        </SheetHeader>
+        <ScrollArea className="flex-1 -mx-6 px-6 mt-4">
+          {activity.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
+              <Activity className="w-8 h-8 mb-3 opacity-50" />
+              <p className="text-sm">No actions yet this session.</p>
+            </div>
+          ) : (
+            <div className="space-y-3 pb-6">
+              {activity.map((a) => (
+                <div key={a.id} className="rounded-xl border border-border p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-bold text-tf-navy">{a.action}</p>
+                    <span className="text-[11px] text-muted-foreground shrink-0">
+                      {formatTimestamp(a.timestamp)}
+                    </span>
+                  </div>
+                  <p className="text-xs font-medium text-tf-blue mt-0.5">{a.target}</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-snug">{a.detail}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function DataCenterShell() {
+  const [area, setArea] = useState<AreaId>("validation");
+
+  const { data: snapshot } = useGetIngestionSnapshot();
+  const { data: validationItems } = useListValidationItems();
+  const { data: freshness } = useListDocumentFreshness();
+  const { resolvedValidations, releasedQuarantine } = useDataCenter();
+
+  const openQuarantine = useMemo(
+    () => (snapshot?.quarantine ?? []).filter((q) => !releasedQuarantine[q.id]).length,
+    [snapshot, releasedQuarantine],
+  );
+  const openValidations = useMemo(
+    () => (validationItems ?? []).filter((it) => !resolvedValidations[it.id]).length,
+    [validationItems, resolvedValidations],
+  );
+  const overdue = useMemo(
+    () => (freshness ?? []).filter((f) => f.overdue).length,
+    [freshness],
+  );
+
+  const totalBacklog = openQuarantine + openValidations;
+  const allClear = totalBacklog === 0 && overdue === 0;
+
+  const badgeFor = (id: AreaId) => {
+    if (id === "validation" && openValidations > 0) return openValidations;
+    if (id === "ingestion" && openQuarantine > 0) return openQuarantine;
+    if (id === "governance" && overdue > 0) return overdue;
+    return null;
+  };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
-      <div className="space-y-2">
-        <h1 className="text-title-lg text-tf-navy">Data Governance</h1>
-        <p className="text-muted-foreground text-lg">Manage the governed corpus and metadata contracts backing Hub SSoT.</p>
+    <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500 pb-20">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-2">
+          <h1 className="text-title-lg text-tf-navy">Data Center</h1>
+          <p className="text-muted-foreground text-lg max-w-2xl">
+            The documentalist's desk — where sources, ingestion, validation and taxonomy are
+            governed so every answer rests on trusted ground.
+          </p>
+        </div>
+        <ActivityDrawer />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-tf-blue-tint rounded-full text-tf-blue">
-              <Database className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">Total Documents</p>
-              <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.totalDocuments || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-tf-success-bg rounded-full text-tf-success">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">Total Chunks</p>
-              <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.totalChunks || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-tf-warning-bg rounded-full text-tf-warning">
-              <Globe className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">Countries</p>
-              <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.byCountry?.length || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6 flex items-center space-x-4">
-            <div className="p-3 bg-tf-error-bg rounded-full text-tf-error">
-              <Shield className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-sm font-bold uppercase tracking-eyebrow text-muted-foreground">Quarantined</p>
-              <h3 className="text-3xl font-bold text-tf-navy mt-1">{stats?.quarantined || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
+      <div
+        className={cn(
+          "rounded-2xl border p-5 flex items-start gap-4",
+          allClear ? "bg-tf-success-bg border-tf-success/30" : "bg-tf-blue-tint border-tf-blue/20",
+        )}
+      >
+        <div
+          className={cn(
+            "p-2.5 rounded-full shrink-0",
+            allClear ? "bg-tf-success text-white" : "bg-tf-blue text-white",
+          )}
+        >
+          {allClear ? (
+            <CheckCircle2 className="w-5 h-5" />
+          ) : (
+            <AlertTriangle className="w-5 h-5" />
+          )}
+        </div>
+        <div className="min-w-0">
+          {allClear ? (
+            <>
+              <p className="font-bold text-tf-navy">Everything is caught up</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Nothing in quarantine, no classifications awaiting a human, and every document within
+                its review SLA.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-bold text-tf-navy">
+                {totalBacklog > 0
+                  ? `${totalBacklog} ${totalBacklog === 1 ? "item needs" : "items need"} a documentalist`
+                  : "Corpus needs attention"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-0.5 flex flex-wrap gap-x-4 gap-y-1">
+                {openValidations > 0 && (
+                  <span>
+                    <span className="font-semibold text-tf-navy">{openValidations}</span> in the
+                    validation queue
+                  </span>
+                )}
+                {openQuarantine > 0 && (
+                  <span>
+                    <span className="font-semibold text-tf-navy">{openQuarantine}</span> held in
+                    quarantine
+                  </span>
+                )}
+                {overdue > 0 && (
+                  <span>
+                    <span className="font-semibold text-tf-navy">{overdue}</span> past review SLA
+                  </span>
+                )}
+              </p>
+            </>
+          )}
+        </div>
       </div>
 
-      <Card className="shadow-sm border-border overflow-hidden">
-        <CardHeader className="bg-muted/30 border-b border-border">
-          <CardTitle className="flex items-center space-x-2 text-tf-navy text-lg">
-            <FileText className="w-5 h-5 text-tf-blue" />
-            <span>Governed Corpus</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Title</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Brand</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Confidentiality</TableHead>
-                <TableHead className="font-bold text-xs uppercase tracking-eyebrow">Validity</TableHead>
-                <TableHead className="text-right font-bold text-xs uppercase tracking-eyebrow">Chunks</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {documents?.map((doc) => (
-                <TableRow 
-                  key={doc.id} 
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => setSelectedDocId(doc.id)}
+      <div className="flex items-center gap-2 flex-wrap border-b border-border pb-1">
+        {AREAS.map((a) => {
+          const Icon = a.icon;
+          const badge = badgeFor(a.id);
+          const active = area === a.id;
+          return (
+            <button
+              key={a.id}
+              onClick={() => setArea(a.id)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold transition-colors",
+                active
+                  ? "bg-tf-navy text-white"
+                  : "text-muted-foreground hover:text-tf-navy hover:bg-muted",
+              )}
+            >
+              <Icon className="w-4 h-4" />
+              {a.label}
+              {badge !== null && (
+                <span
+                  className={cn(
+                    "inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[11px] font-bold",
+                    active ? "bg-white/20 text-white" : "bg-tf-blue text-white",
+                  )}
                 >
-                  <TableCell className="font-semibold text-tf-navy max-w-[300px] truncate">{doc.title}</TableCell>
-                  <TableCell className="text-muted-foreground font-medium">{doc.brand}</TableCell>
-                  <TableCell>
-                    <Badge variant={doc.confidentiality === 'public' ? 'secondary' : 'destructive'} className="uppercase text-[10px] tracking-eyebrow rounded-full font-bold">
-                      {doc.confidentiality}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={doc.validity === 'approved' ? 'default' : 'secondary'} className={cn(
-                      "uppercase text-[10px] tracking-eyebrow rounded-full font-bold",
-                      doc.validity === 'approved' ? "bg-tf-success hover:bg-tf-success text-white" : ""
-                    )}>
-                      {doc.validity}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">{doc.chunkCount}</TableCell>
-                  <TableCell>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  {badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-      <Drawer open={!!selectedDocId} onOpenChange={(open) => !open && setSelectedDocId(null)}>
-        <DrawerContent className="max-h-[90vh]">
-          <div className="mx-auto w-full max-w-4xl px-6 pb-8 pt-4 flex flex-col h-full overflow-hidden">
-            {isLoadingDetail ? (
-              <div className="py-20 flex justify-center items-center">
-                <div className="w-8 h-8 rounded-full border-2 border-tf-blue border-t-transparent animate-spin" />
-              </div>
-            ) : docDetail ? (
-              <>
-                <DrawerHeader className="px-0 pb-4 shrink-0 border-b border-border mb-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <Badge className="bg-tf-blue-tint text-tf-blue hover:bg-tf-blue-tint text-xs uppercase tracking-eyebrow font-bold">
-                      {docDetail.document.type}
-                    </Badge>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant={docDetail.document.validity === 'approved' ? 'default' : 'secondary'} className={cn(
-                        "uppercase tracking-eyebrow text-[10px] font-bold",
-                        docDetail.document.validity === 'approved' ? "bg-tf-success text-white" : ""
-                      )}>
-                        {docDetail.document.validity}
-                      </Badge>
-                      <Badge variant={docDetail.document.confidentiality === 'public' ? 'secondary' : 'destructive'} className="uppercase tracking-eyebrow text-[10px] font-bold">
-                        {docDetail.document.confidentiality}
-                      </Badge>
-                    </div>
-                  </div>
-                  <DrawerTitle className="text-3xl font-bold text-tf-navy">{docDetail.document.title}</DrawerTitle>
-                  <DrawerDescription className="text-base mt-2 flex items-center space-x-4">
-                    <span>{docDetail.document.country} • {docDetail.document.brand}</span>
-                    <span className="text-muted-foreground">Owner: {docDetail.document.owner}</span>
-                  </DrawerDescription>
-                </DrawerHeader>
-
-                <ScrollArea className="flex-1 -mx-6 px-6">
-                  <div className="space-y-6">
-                    <div className="bg-muted p-5 rounded-xl text-sm leading-relaxed text-foreground font-medium">
-                      {docDetail.document.summary}
-                    </div>
-
-                    <div className="space-y-4">
-                      <h4 className="text-xs uppercase tracking-eyebrow font-bold text-muted-foreground">
-                        Document Chunks ({docDetail.chunks.length})
-                      </h4>
-                      <div className="space-y-3">
-                        {docDetail.chunks.map((chunk) => (
-                          <div key={chunk.id} className="border border-border rounded-xl p-4 hover:shadow-sm transition-shadow bg-card">
-                            <div className="text-[10px] uppercase tracking-eyebrow text-muted-foreground font-bold mb-1">
-                              {chunk.breadcrumb}
-                            </div>
-                            <h5 className="font-bold text-tf-navy mb-2">{chunk.heading}</h5>
-                            <p className="text-sm text-foreground/80 leading-relaxed font-serif">
-                              "{chunk.text}"
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </ScrollArea>
-              </>
-            ) : (
-              <div className="py-20 flex flex-col justify-center items-center text-tf-error">
-                <XCircle className="w-12 h-12 mb-4" />
-                <h3 className="font-bold text-xl">Failed to load document</h3>
-              </div>
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
+      <div>
+        {area === "validation" && <ValidationArea />}
+        {area === "sources" && <SourcesArea />}
+        {area === "ingestion" && <IngestionArea />}
+        {area === "governance" && <GovernanceArea />}
+        {area === "corpus" && <CorpusArea />}
+      </div>
     </div>
+  );
+}
+
+export default function DataPage() {
+  return (
+    <DataCenterProvider>
+      <DataCenterShell />
+    </DataCenterProvider>
   );
 }

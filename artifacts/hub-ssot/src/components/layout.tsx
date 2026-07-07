@@ -37,7 +37,7 @@ const navGroups = [
   {
     label: "Backend",
     items: [
-      { name: "Data", path: "/data", icon: Database },
+      { name: "Data Center", path: "/data", icon: Database },
       { name: "Admin", path: "/admin", icon: Settings },
       { name: "Brand", path: "/brand", icon: ShieldCheck },
     ]

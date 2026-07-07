@@ -2871,3 +2871,97 @@ export const SearchWikiResponse = zod.object({
 })
 
 
+/**
+ * @summary Connected sources and connectors with status, cadence and doc count
+ */
+export const ListDataSourcesResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "status": zod.string().describe('live | filtered | manual | to_configure'),
+  "cadence": zod.string(),
+  "docCount": zod.number(),
+  "lastSync": zod.string().nullish(),
+  "externalFilter": zod.boolean(),
+  "filterNote": zod.string().nullish(),
+  "description": zod.string()
+})
+export const ListDataSourcesResponse = zod.array(ListDataSourcesResponseItem)
+
+
+/**
+ * @summary The 7-stage ingestion pipeline snapshot with quarantine
+ */
+export const GetIngestionSnapshotResponse = zod.object({
+  "stages": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "count": zod.number(),
+  "description": zod.string()
+})),
+  "quarantine": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "source": zod.string(),
+  "stage": zod.string(),
+  "taxonomyVersion": zod.string(),
+  "missingFields": zod.array(zod.string()),
+  "receivedAt": zod.string(),
+  "confidentiality": zod.string().describe('public | internal | confidential | restricted')
+})),
+  "validatedPct": zod.number(),
+  "taxonomyVersion": zod.string()
+})
+
+
+/**
+ * @summary The validation queue with proposed three-layer classification
+ */
+export const ListValidationItemsResponseItem = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "source": zod.string(),
+  "kind": zod.string().describe('standard | conflict'),
+  "confidence": zod.string().describe('high | medium | low'),
+  "confidenceScore": zod.number(),
+  "classification": zod.object({
+  "deterministic": zod.string(),
+  "semantic": zod.array(zod.string()),
+  "strategicAxisId": zod.string()
+}),
+  "metadata": zod.object({
+  "confidentiality": zod.string().describe('public | internal | confidential | restricted'),
+  "owner": zod.string(),
+  "country": zod.string(),
+  "brand": zod.string(),
+  "validUntil": zod.string().nullish()
+}),
+  "refinedNote": zod.string(),
+  "conflict": zod.union([zod.object({
+  "metric": zod.string(),
+  "oldValue": zod.string(),
+  "oldSource": zod.string(),
+  "oldDate": zod.string(),
+  "freshValue": zod.string(),
+  "freshSource": zod.string(),
+  "freshDate": zod.string()
+}),zod.null()]).optional()
+})
+export const ListValidationItemsResponse = zod.array(ListValidationItemsResponseItem)
+
+
+/**
+ * @summary Per-document SLA and freshness with review-overdue nudges
+ */
+export const ListDocumentFreshnessResponseItem = zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "owner": zod.string(),
+  "lastReviewed": zod.string(),
+  "slaMonths": zod.number(),
+  "monthsSinceReview": zod.number(),
+  "overdue": zod.boolean()
+})
+export const ListDocumentFreshnessResponse = zod.array(ListDocumentFreshnessResponseItem)
+
+

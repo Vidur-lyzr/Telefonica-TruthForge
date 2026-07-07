@@ -7,6 +7,7 @@ import kpisRouter from "./kpis";
 import planningRouter from "./planning";
 import generateRouter from "./generate";
 import wikiRouter from "./wiki";
+import dataRouter from "./data";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(kpisRouter);
 router.use(planningRouter);
 router.use(generateRouter);
 router.use(wikiRouter);
+router.use(dataRouter);
 
 export default router;

@@ -30,6 +30,8 @@ import type {
   CorpusDocumentDetail,
   CorpusStats,
   CreateScheduleInput,
+  DataSource,
+  DocFreshness,
   DocumentShape,
   ErrorResponse,
   GenerateInput,
@@ -46,6 +48,7 @@ import type {
   GuardianResult,
   HealthStatus,
   HomeSummary,
+  IngestionSnapshot,
   KpiAskInput,
   KpiDetail,
   KpiDetailInput,
@@ -74,6 +77,7 @@ import type {
   ScheduledDocument,
   StrategicAxis,
   SuggestedQuery,
+  ValidationItem,
   WikiGraph,
   WikiLineage,
   WikiPageDetail,
@@ -3477,4 +3481,312 @@ export const useSearchWiki = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getSearchWikiMutationOptions(options));
     }
+
+export const getListDataSourcesUrl = () => {
+
+
+
+
+  return `/api/data/sources`
+}
+
+/**
+ * @summary Connected sources and connectors with status, cadence and doc count
+ */
+export const listDataSources = async ( options?: RequestInit): Promise<DataSource[]> => {
+
+  return customFetch<DataSource[]>(getListDataSourcesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDataSourcesQueryKey = () => {
+    return [
+    `/api/data/sources`
+    ] as const;
+    }
+
+
+export const getListDataSourcesQueryOptions = <TData = Awaited<ReturnType<typeof listDataSources>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDataSources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDataSourcesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDataSources>>> = ({ signal }) => listDataSources({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDataSources>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDataSourcesQueryResult = NonNullable<Awaited<ReturnType<typeof listDataSources>>>
+export type ListDataSourcesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Connected sources and connectors with status, cadence and doc count
+ */
+
+export function useListDataSources<TData = Awaited<ReturnType<typeof listDataSources>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDataSources>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDataSourcesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetIngestionSnapshotUrl = () => {
+
+
+
+
+  return `/api/data/ingestion`
+}
+
+/**
+ * @summary The 7-stage ingestion pipeline snapshot with quarantine
+ */
+export const getIngestionSnapshot = async ( options?: RequestInit): Promise<IngestionSnapshot> => {
+
+  return customFetch<IngestionSnapshot>(getGetIngestionSnapshotUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIngestionSnapshotQueryKey = () => {
+    return [
+    `/api/data/ingestion`
+    ] as const;
+    }
+
+
+export const getGetIngestionSnapshotQueryOptions = <TData = Awaited<ReturnType<typeof getIngestionSnapshot>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIngestionSnapshot>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIngestionSnapshotQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIngestionSnapshot>>> = ({ signal }) => getIngestionSnapshot({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIngestionSnapshot>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetIngestionSnapshotQueryResult = NonNullable<Awaited<ReturnType<typeof getIngestionSnapshot>>>
+export type GetIngestionSnapshotQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The 7-stage ingestion pipeline snapshot with quarantine
+ */
+
+export function useGetIngestionSnapshot<TData = Awaited<ReturnType<typeof getIngestionSnapshot>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getIngestionSnapshot>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetIngestionSnapshotQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListValidationItemsUrl = () => {
+
+
+
+
+  return `/api/data/validation`
+}
+
+/**
+ * @summary The validation queue with proposed three-layer classification
+ */
+export const listValidationItems = async ( options?: RequestInit): Promise<ValidationItem[]> => {
+
+  return customFetch<ValidationItem[]>(getListValidationItemsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListValidationItemsQueryKey = () => {
+    return [
+    `/api/data/validation`
+    ] as const;
+    }
+
+
+export const getListValidationItemsQueryOptions = <TData = Awaited<ReturnType<typeof listValidationItems>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listValidationItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListValidationItemsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listValidationItems>>> = ({ signal }) => listValidationItems({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listValidationItems>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListValidationItemsQueryResult = NonNullable<Awaited<ReturnType<typeof listValidationItems>>>
+export type ListValidationItemsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The validation queue with proposed three-layer classification
+ */
+
+export function useListValidationItems<TData = Awaited<ReturnType<typeof listValidationItems>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listValidationItems>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListValidationItemsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListDocumentFreshnessUrl = () => {
+
+
+
+
+  return `/api/data/freshness`
+}
+
+/**
+ * @summary Per-document SLA and freshness with review-overdue nudges
+ */
+export const listDocumentFreshness = async ( options?: RequestInit): Promise<DocFreshness[]> => {
+
+  return customFetch<DocFreshness[]>(getListDocumentFreshnessUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDocumentFreshnessQueryKey = () => {
+    return [
+    `/api/data/freshness`
+    ] as const;
+    }
+
+
+export const getListDocumentFreshnessQueryOptions = <TData = Awaited<ReturnType<typeof listDocumentFreshness>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentFreshness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDocumentFreshnessQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDocumentFreshness>>> = ({ signal }) => listDocumentFreshness({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDocumentFreshness>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDocumentFreshnessQueryResult = NonNullable<Awaited<ReturnType<typeof listDocumentFreshness>>>
+export type ListDocumentFreshnessQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Per-document SLA and freshness with review-overdue nudges
+ */
+
+export function useListDocumentFreshness<TData = Awaited<ReturnType<typeof listDocumentFreshness>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDocumentFreshness>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDocumentFreshnessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

@@ -405,6 +405,99 @@ export interface AxisCount {
   count: number;
 }
 
+export interface DataSource {
+  id: string;
+  name: string;
+  type: string;
+  /** live | filtered | manual | to_configure */
+  status: string;
+  cadence: string;
+  docCount: number;
+  /** @nullable */
+  lastSync?: string | null;
+  externalFilter: boolean;
+  /** @nullable */
+  filterNote?: string | null;
+  description: string;
+}
+
+export interface PipelineStage {
+  id: string;
+  name: string;
+  count: number;
+  description: string;
+}
+
+export interface QuarantineDoc {
+  id: string;
+  title: string;
+  source: string;
+  stage: string;
+  taxonomyVersion: string;
+  missingFields: string[];
+  receivedAt: string;
+  /** public | internal | confidential | restricted */
+  confidentiality: string;
+}
+
+export interface IngestionSnapshot {
+  stages: PipelineStage[];
+  quarantine: QuarantineDoc[];
+  validatedPct: number;
+  taxonomyVersion: string;
+}
+
+export interface ProposedClassification {
+  deterministic: string;
+  semantic: string[];
+  strategicAxisId: string;
+}
+
+export interface ProposedMetadata {
+  /** public | internal | confidential | restricted */
+  confidentiality: string;
+  owner: string;
+  country: string;
+  brand: string;
+  /** @nullable */
+  validUntil?: string | null;
+}
+
+export interface ConflictDetail {
+  metric: string;
+  oldValue: string;
+  oldSource: string;
+  oldDate: string;
+  freshValue: string;
+  freshSource: string;
+  freshDate: string;
+}
+
+export interface ValidationItem {
+  id: string;
+  title: string;
+  source: string;
+  /** standard | conflict */
+  kind: string;
+  /** high | medium | low */
+  confidence: string;
+  confidenceScore: number;
+  classification: ProposedClassification;
+  metadata: ProposedMetadata;
+  refinedNote: string;
+  conflict?: ConflictDetail | null;
+}
+
+export interface DocFreshness {
+  docId: string;
+  title: string;
+  owner: string;
+  lastReviewed: string;
+  slaMonths: number;
+  monthsSinceReview: number;
+  overdue: boolean;
+}
+
 export interface CorpusStats {
   totalDocuments: number;
   totalChunks: number;
