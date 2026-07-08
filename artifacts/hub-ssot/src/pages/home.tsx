@@ -12,6 +12,7 @@ import {
   SuggestedQuery,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import telefonicaLogo from "@/assets/telefonica-logo.png";
 import {
   Box,
   Stack,
@@ -642,9 +643,14 @@ export default function Home() {
           <div style={{ maxWidth: 640, margin: "0 auto", width: "100%" }}>
             <Stack space={24}>
               <Stack space={12}>
-                <Text6 textAlign="center">
-                  {activeRole ? `Welcome back, ${activeRole.label}` : "Welcome to Hub SSoT"}
-                </Text6>
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <img
+                    src={telefonicaLogo}
+                    alt="Telefónica"
+                    style={{ height: 32, width: "auto" }}
+                  />
+                </div>
+                <Text6 textAlign="center">Welcome back</Text6>
                 <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
                   {COPY[lang].subtitle}
                 </Text2>
@@ -682,6 +688,9 @@ export default function Home() {
             </Boxed>
           ) : (
             <>
+              {/* Radar + health */}
+              <GridLayout template="8+4" left={radarPanel} right={healthPanel} />
+
               {/* Compact metric cards — wraps to fewer columns on narrow screens */}
               <div
                 style={{
@@ -702,9 +711,6 @@ export default function Home() {
                   );
                 })}
               </div>
-
-              {/* Radar + health */}
-              <GridLayout template="8+4" left={radarPanel} right={healthPanel} />
             </>
           )}
         </Stack>

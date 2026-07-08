@@ -18,3 +18,4 @@
 - [Export governance gates](export-governance.md) — export gates re-derive citation confidentiality from the server corpus and key scheduled lineage on multiple server-known ids; never trust client draft labels.
 - [Refusal error codes](refusal-error-codes.md) — governance refusal responses must return a machine-readable `code` alongside the message; frontends key remediation UX on the code with a message fallback.
 - [GitAgent brain-file YAML pitfalls](gitagent-brain-files.md) — one bad SKILL.md frontmatter silently drops every run to the non-streaming fallback; check server log before debugging SSE.
+- [Streamdown in a no-Tailwind Mística app](streamdown-mistica.md) — rehype-harden blocks custom link protocols; use #hash hrefs for citation chips and own wrapper CSS.

@@ -390,17 +390,44 @@ export async function runAskAgent(
   });
 
   // Expand short follow-ups with the last user turn so retrieval keeps context.
+  // A short turn after an assistant question (e.g. answering "internal" to a
+  // clarification) is a continuation of the conversation, never a fresh corpus
+  // question — so retrieval falls back through progressively wider context
+  // instead of judging the bare reply on its own and returning "no evidence".
   const lastUser = [...history].reverse().find((t) => t.role === "user");
+  const lastAssistant = [...history].reverse().find((t) => t.role === "assistant");
   const qTokens = tokenize(input.question);
-  const retrievalQuery =
-    qTokens.length <= 4 && lastUser
-      ? `${lastUser.content} ${input.question}`
-      : input.question;
+  const shortTurn = qTokens.length <= 4;
+  const clarificationReply =
+    qTokens.length <= 8 &&
+    Boolean(lastAssistant && /\?\s*$/.test(lastAssistant.content.trim()));
+  const recentUserTurns = history
+    .filter((t) => t.role === "user")
+    .slice(-2)
+    .map((t) => t.content);
 
-  const { chunks: retrieved, engineDetail } =
-    await retrieveGoverned(
+  const candidateQueries: string[] = [];
+  if (shortTurn && lastUser) {
+    candidateQueries.push(`${lastUser.content} ${input.question}`);
+  } else {
+    candidateQueries.push(input.question);
+  }
+  if (clarificationReply) {
+    // Reach further back: the substance of the conversation usually lives in
+    // an earlier user turn, not in the one-word reply.
+    if (recentUserTurns.length > 0)
+      candidateQueries.push(`${recentUserTurns.join(" ")} ${input.question}`);
+    for (const t of [...recentUserTurns].reverse()) candidateQueries.push(t);
+  }
+
+  let retrievalQuery = candidateQueries[0];
+  let retrieved: Awaited<ReturnType<typeof retrieveGoverned>>["chunks"] = [];
+  let engineDetail = "";
+  let relevant: typeof retrieved = [];
+  for (const candidate of candidateQueries) {
+    const res = await retrieveGoverned(
       {
-        question: retrievalQuery,
+        question: candidate,
         clearance,
         area: role.area,
         topK: 8,
@@ -408,7 +435,12 @@ export async function runAskAgent(
       },
       log,
     );
-  const relevant = retrieved.filter((c) => c.coverage >= COVERAGE_MIN);
+    retrievalQuery = candidate;
+    retrieved = res.chunks;
+    engineDetail = res.engineDetail;
+    relevant = retrieved.filter((c) => c.coverage >= COVERAGE_MIN);
+    if (relevant.length > 0) break;
+  }
   const permitted = relevant.filter((c) => c.accessible);
   const blocked = relevant.filter((c) => !c.accessible);
 

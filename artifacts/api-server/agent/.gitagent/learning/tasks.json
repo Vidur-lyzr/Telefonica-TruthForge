@@ -41,6 +41,30 @@
       "outcome": "success",
       "ended_at": "2026-07-08T03:13:35.535Z",
       "skill_used": "answer-cited"
+    },
+    {
+      "id": "a675e96e-e869-40d6-a905-e64e49c02b77",
+      "objective": "Generate a report on Telefónica's Q1 2026 group revenue",
+      "steps": [
+        {
+          "description": "Loaded generate-document skill. Resolving Superflow parameters from context.",
+          "timestamp": "2026-07-08T07:32:32.535Z"
+        }
+      ],
+      "attempts": 1,
+      "status": "active",
+      "started_at": "2026-07-08T07:32:20.888Z"
+    },
+    {
+      "id": "45ca101a-b6ce-4bcc-8c6a-a97c805316a9",
+      "objective": "Answer user question about Telefónica group revenue Q1 2026 internal breakdown",
+      "steps": [],
+      "attempts": 1,
+      "status": "succeeded",
+      "started_at": "2026-07-08T07:43:56.957Z",
+      "outcome": "success",
+      "ended_at": "2026-07-08T07:44:06.393Z",
+      "skill_used": "answer-cited"
     }
   ]
 }
