@@ -6,12 +6,14 @@ import {
   useListAuditEntries,
   useGetUserVisibilityMatrix,
   useListKpiDefinitions,
+  useListKpiDefinitionOptions,
   useUpsertKpiDefinition,
   PlatformUser,
   ScheduledDocument,
   AuditEntry,
   KpiDefinitionRecord,
   KpiDefinitionVersion,
+  KpiSourceConfig,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
 import {
@@ -28,6 +30,7 @@ import {
   Circle,
   TextField,
   Select,
+  Checkbox,
   ButtonPrimary,
   ButtonSecondary,
   ButtonLink,
@@ -335,6 +338,11 @@ export default function AdminPage() {
   const latestOf = (r: KpiDefinitionRecord): KpiDefinitionVersion =>
     r.versions.find((v) => v.version === r.latestVersion) ?? r.versions[r.versions.length - 1];
 
+  const { data: kpiOptions } = useListKpiDefinitionOptions({
+    query: { queryKey: ["kpi-definition-options"] },
+  });
+
+  // kpiEditId: null = closed, "__new__" = create mode, otherwise the KPI id being edited.
   const [kpiEditId, setKpiEditId] = React.useState<string | null>(null);
   const [kpiHistoryId, setKpiHistoryId] = React.useState<string | null>(null);
   const emptyKpiDraft = {
@@ -346,11 +354,23 @@ export default function AdminPage() {
     amberPct: "100",
     criticalPct: "92",
     confidentiality: "internal",
+    objectiveId: "",
+    axisId: "",
+    market: "",
+    brand: "",
+    initiativeType: "",
+    direction: "higher-better",
+    areas: [] as string[],
+    sources: [] as KpiSourceConfig[],
     changeNote: "",
   };
   const [kpiDraft, setKpiDraft] = React.useState({ ...emptyKpiDraft });
 
-  const kpiEditRecord = (kpiDefs ?? []).find((r) => r.id === kpiEditId) ?? null;
+  const kpiCreateMode = kpiEditId === "__new__";
+  const kpiEditRecord = kpiCreateMode
+    ? null
+    : ((kpiDefs ?? []).find((r) => r.id === kpiEditId) ?? null);
+  const kpiSheetOpen = kpiCreateMode || kpiEditRecord !== null;
   const kpiHistoryRecord = (kpiDefs ?? []).find((r) => r.id === kpiHistoryId) ?? null;
 
   function openKpiEdit(r: KpiDefinitionRecord) {
@@ -364,14 +384,84 @@ export default function AdminPage() {
       amberPct: String(Math.round(v.thresholds.amberBelow * 100)),
       criticalPct: String(Math.round(v.thresholds.criticalBelow * 100)),
       confidentiality: v.confidentiality,
+      objectiveId: v.objectiveId,
+      axisId: v.axisId,
+      market: v.market,
+      brand: v.brand,
+      initiativeType: v.initiativeType,
+      direction: v.direction,
+      areas: [...v.areas],
+      sources: v.sources.map((s) => ({ ...s })),
       changeNote: "",
     });
     setKpiEditId(r.id);
   }
 
+  function openKpiCreate() {
+    setKpiDraft({
+      ...emptyKpiDraft,
+      objectiveId: kpiOptions?.objectives[0]?.id ?? "",
+      axisId: kpiOptions?.axes[0]?.id ?? "",
+      market: kpiOptions?.markets[0] ?? "",
+      brand: kpiOptions?.brands[0] ?? "",
+      initiativeType: kpiOptions?.initiativeTypes[0] ?? "",
+      direction: kpiOptions?.directions[0] ?? "higher-better",
+      areas: kpiOptions?.areas ? [kpiOptions.areas[0]] : [],
+      sources: [
+        {
+          id: `src-custom-${Date.now()}`,
+          label: "",
+          kind: "external",
+          weight: 1,
+          docId: null,
+          note: null,
+          conflict: false,
+        },
+      ],
+    });
+    setKpiEditId("__new__");
+  }
+
+  const toggleKpiArea = (area: string) =>
+    setKpiDraft((d) => ({
+      ...d,
+      areas: d.areas.includes(area) ? d.areas.filter((a) => a !== area) : [...d.areas, area],
+    }));
+
+  const updateKpiSource = (idx: number, patch: Partial<KpiSourceConfig>) =>
+    setKpiDraft((d) => ({
+      ...d,
+      sources: d.sources.map((s, i) => (i === idx ? { ...s, ...patch } : s)),
+    }));
+
+  const removeKpiSource = (idx: number) =>
+    setKpiDraft((d) => ({ ...d, sources: d.sources.filter((_, i) => i !== idx) }));
+
+  const addKpiSource = () =>
+    setKpiDraft((d) => ({
+      ...d,
+      sources: [
+        ...d.sources,
+        {
+          id: `src-custom-${Date.now()}`,
+          label: "",
+          kind: "external",
+          weight: 0.5,
+          docId: null,
+          note: null,
+          conflict: false,
+        },
+      ],
+    }));
+
   const kpiTarget = Number(kpiDraft.target);
   const kpiAmber = Number(kpiDraft.amberPct);
   const kpiCritical = Number(kpiDraft.criticalPct);
+  const kpiSourcesValid =
+    kpiDraft.sources.length > 0 &&
+    kpiDraft.sources.every(
+      (s) => s.label.trim().length > 0 && Number.isFinite(s.weight) && s.weight > 0 && s.weight <= 1,
+    );
   const kpiDraftValid =
     kpiDraft.name.trim().length > 0 &&
     Number.isFinite(kpiTarget) &&
@@ -381,33 +471,42 @@ export default function AdminPage() {
     kpiCritical > 0 &&
     kpiCritical <= kpiAmber &&
     kpiDraft.owner.trim().length > 0 &&
+    kpiDraft.objectiveId.length > 0 &&
+    kpiDraft.axisId.length > 0 &&
+    kpiDraft.market.trim().length > 0 &&
+    kpiDraft.brand.trim().length > 0 &&
+    kpiDraft.areas.length > 0 &&
+    kpiSourcesValid &&
     kpiDraft.changeNote.trim().length > 0;
 
   function commitKpiDefinition() {
-    if (!kpiEditRecord || !kpiDraftValid) return;
-    const v = latestOf(kpiEditRecord);
+    if (!kpiDraftValid || (!kpiCreateMode && !kpiEditRecord)) return;
     upsertKpi.mutate(
       {
         data: {
-          id: kpiEditRecord.id,
+          id: kpiCreateMode ? null : kpiEditRecord!.id,
           name: kpiDraft.name.trim(),
           description: kpiDraft.description.trim(),
           unit: kpiDraft.unit.trim(),
-          objectiveId: v.objectiveId,
-          axisId: v.axisId,
-          market: v.market,
-          brand: v.brand,
-          initiativeType: v.initiativeType,
+          objectiveId: kpiDraft.objectiveId,
+          axisId: kpiDraft.axisId,
+          market: kpiDraft.market.trim(),
+          brand: kpiDraft.brand.trim(),
+          initiativeType: kpiDraft.initiativeType,
           confidentiality: kpiDraft.confidentiality,
-          areas: v.areas,
-          direction: v.direction,
+          areas: kpiDraft.areas,
+          direction: kpiDraft.direction,
           target: kpiTarget,
           thresholds: {
             amberBelow: kpiAmber / 100,
             criticalBelow: kpiCritical / 100,
           },
           owner: kpiDraft.owner.trim(),
-          sources: v.sources,
+          sources: kpiDraft.sources.map((s) => ({
+            ...s,
+            label: s.label.trim(),
+            note: s.note?.trim() || null,
+          })),
           editedBy: "You (session)",
           changeNote: kpiDraft.changeNote.trim(),
         },
@@ -416,7 +515,7 @@ export default function AdminPage() {
         onSuccess: (updated) => {
           pushAudit({
             actor: "You (session)",
-            action: "KPI definition updated",
+            action: kpiCreateMode ? "KPI definition created" : "KPI definition updated",
             target: kpiDraft.name.trim(),
             kind: "permission",
             detail: `Version ${updated.latestVersion}: target ${kpiTarget}${kpiDraft.unit}, amber below ${kpiAmber}%, critical below ${kpiCritical}%, owner ${kpiDraft.owner.trim()}. ${kpiDraft.changeNote.trim()}`,
@@ -744,6 +843,9 @@ export default function AdminPage() {
               <IconTargetRegular size={20} color={skinVars.colors.brand} />
               <Title3>KPI definitions</Title3>
             </Inline>
+            <ButtonPrimary small onPress={openKpiCreate} StartIcon={IconTargetRegular}>
+              New KPI
+            </ButtonPrimary>
           </Inline>
           <Text2 regular color={skinVars.colors.textSecondary}>
             The governed KPI catalogue behind the KPIs page. Every edit appends a new version —
@@ -957,17 +1059,18 @@ export default function AdminPage() {
         </Sheet>
       )}
 
-      {/* KPI definition edit dialog (appends a new version) */}
-      {kpiEditRecord && (
+      {/* KPI definition create/edit dialog (appends a new version) */}
+      {kpiSheetOpen && (
         <Sheet onClose={() => setKpiEditId(null)}>
           {({ closeModal }) => (
             <Box paddingBottom={24}>
               <Stack space={16}>
                 <Stack space={4}>
-                  <Title2>Edit KPI definition</Title2>
+                  <Title2>{kpiCreateMode ? "New KPI definition" : "Edit KPI definition"}</Title2>
                   <Text2 regular color={skinVars.colors.textSecondary}>
-                    Saving appends version {kpiEditRecord.latestVersion + 1}. Earlier versions stay
-                    in the history and the calculation engine uses the latest definition.
+                    {kpiCreateMode
+                      ? "Creates version 1 of a new governed KPI. The calculation engine starts tracking it immediately."
+                      : `Saving appends version ${(kpiEditRecord?.latestVersion ?? 0) + 1}. Earlier versions stay in the history and the calculation engine uses the latest definition.`}
                   </Text2>
                 </Stack>
                 <TextField
@@ -1033,6 +1136,161 @@ export default function AdminPage() {
                     fullWidth
                   />
                 </Grid>
+                <Grid columns={2} gap={16}>
+                  <Select
+                    name="kpi-objective"
+                    label="Objective"
+                    value={kpiDraft.objectiveId}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, objectiveId: v })}
+                    options={(kpiOptions?.objectives ?? []).map((o) => ({
+                      value: o.id,
+                      text: `${o.name} (${o.area})`,
+                    }))}
+                    fullWidth
+                  />
+                  <Select
+                    name="kpi-axis"
+                    label="Strategic axis"
+                    value={kpiDraft.axisId}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, axisId: v })}
+                    options={(kpiOptions?.axes ?? []).map((a) => ({ value: a.id, text: a.name }))}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid columns={2} gap={16}>
+                  <Select
+                    name="kpi-market"
+                    label="Market"
+                    value={kpiDraft.market}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, market: v })}
+                    options={(kpiOptions?.markets ?? []).map((m) => ({ value: m, text: m }))}
+                    fullWidth
+                  />
+                  <Select
+                    name="kpi-brand"
+                    label="Brand"
+                    value={kpiDraft.brand}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, brand: v })}
+                    options={(kpiOptions?.brands ?? []).map((b) => ({ value: b, text: b }))}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid columns={2} gap={16}>
+                  <Select
+                    name="kpi-initiative-type"
+                    label="Initiative type"
+                    value={kpiDraft.initiativeType}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, initiativeType: v })}
+                    options={(kpiOptions?.initiativeTypes ?? []).map((t) => ({ value: t, text: t }))}
+                    fullWidth
+                  />
+                  <Select
+                    name="kpi-direction"
+                    label="Direction"
+                    value={kpiDraft.direction}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, direction: v })}
+                    options={(kpiOptions?.directions ?? ["higher-better", "lower-better"]).map(
+                      (dir) => ({
+                        value: dir,
+                        text: dir === "higher-better" ? "Higher is better" : "Lower is better",
+                      }),
+                    )}
+                    fullWidth
+                  />
+                </Grid>
+                <Stack space={8}>
+                  <Text2 medium color={skinVars.colors.textPrimary}>
+                    Visible to areas
+                  </Text2>
+                  <Inline space={16} alignItems="center">
+                    {(kpiOptions?.areas ?? []).map((area) => (
+                      <Checkbox
+                        key={area}
+                        name={`kpi-area-${area}`}
+                        checked={kpiDraft.areas.includes(area)}
+                        onChange={() => toggleKpiArea(area)}
+                      >
+                        <Text2 regular color={skinVars.colors.textPrimary}>
+                          {area}
+                        </Text2>
+                      </Checkbox>
+                    ))}
+                  </Inline>
+                  {kpiDraft.areas.length === 0 && (
+                    <Text1 regular color={skinVars.colors.error}>
+                      Select at least one area.
+                    </Text1>
+                  )}
+                </Stack>
+                <Stack space={8}>
+                  <Inline space="between" alignItems="center">
+                    <Text2 medium color={skinVars.colors.textPrimary}>
+                      Sources and weights
+                    </Text2>
+                    <ButtonLink small onPress={addKpiSource}>
+                      Add source
+                    </ButtonLink>
+                  </Inline>
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    Weights (0–1) set how much each source contributes to the blended figure.
+                    Sources linked to a governed document keep their document link.
+                  </Text1>
+                  {kpiDraft.sources.map((s, idx) => (
+                    <Boxed key={s.id}>
+                      <Box padding={12}>
+                        <Stack space={12}>
+                          <Inline space="between" alignItems="center">
+                            <Inline space={8} alignItems="center">
+                              <Tag type={s.kind === "internal" ? "info" : "inactive"}>{s.kind}</Tag>
+                              {s.docId && (
+                                <Text1 regular color={skinVars.colors.textSecondary}>
+                                  Linked document: {s.docId}
+                                </Text1>
+                              )}
+                            </Inline>
+                            {kpiDraft.sources.length > 1 && (
+                              <ButtonLink small onPress={() => removeKpiSource(idx)}>
+                                Remove
+                              </ButtonLink>
+                            )}
+                          </Inline>
+                          <Grid columns={2} gap={16}>
+                            <TextField
+                              name={`kpi-source-label-${idx}`}
+                              label="Label"
+                              value={s.label}
+                              onChangeValue={(v) => updateKpiSource(idx, { label: v })}
+                              fullWidth
+                            />
+                            <TextField
+                              name={`kpi-source-weight-${idx}`}
+                              label="Weight (0–1)"
+                              value={String(s.weight)}
+                              onChangeValue={(v) =>
+                                updateKpiSource(idx, { weight: Number(v) })
+                              }
+                              fullWidth
+                            />
+                          </Grid>
+                          {!s.docId && (
+                            <TextField
+                              name={`kpi-source-note-${idx}`}
+                              label="Note (optional)"
+                              value={s.note ?? ""}
+                              onChangeValue={(v) => updateKpiSource(idx, { note: v || null })}
+                              fullWidth
+                            />
+                          )}
+                        </Stack>
+                      </Box>
+                    </Boxed>
+                  ))}
+                  {!kpiSourcesValid && (
+                    <Text1 regular color={skinVars.colors.error}>
+                      Each source needs a label and a weight between 0 and 1.
+                    </Text1>
+                  )}
+                </Stack>
                 <TextField
                   name="kpi-change-note"
                   label="Change note (required)"
@@ -1045,7 +1303,9 @@ export default function AdminPage() {
                     disabled={!kpiDraftValid || upsertKpi.isPending}
                     onPress={commitKpiDefinition}
                   >
-                    {`Save as v${kpiEditRecord.latestVersion + 1}`}
+                    {kpiCreateMode
+                      ? "Create KPI"
+                      : `Save as v${(kpiEditRecord?.latestVersion ?? 0) + 1}`}
                   </ButtonPrimary>
                   <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
                 </Inline>

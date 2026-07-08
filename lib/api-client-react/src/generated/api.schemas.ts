@@ -840,6 +840,28 @@ export interface KpiDefinitionInput {
   changeNote: string;
 }
 
+export type KpiDefinitionOptionsObjectivesItem = {
+  id: string;
+  name: string;
+  area: string;
+};
+
+export type KpiDefinitionOptionsAxesItem = {
+  id: string;
+  name: string;
+};
+
+export interface KpiDefinitionOptions {
+  objectives: KpiDefinitionOptionsObjectivesItem[];
+  axes: KpiDefinitionOptionsAxesItem[];
+  markets: string[];
+  brands: string[];
+  initiativeTypes: string[];
+  areas: string[];
+  directions: string[];
+  confidentialities: string[];
+}
+
 export interface KpiAlert {
   id: string;
   kpiId: string;
@@ -1367,6 +1389,24 @@ export interface RadarItem {
   tone?: string | null;
 }
 
+export interface KpiReportContext {
+  /** week | month | quarter */
+  period: string;
+  area: string;
+  /** @nullable */
+  axisId?: string | null;
+  /** @nullable */
+  market?: string | null;
+  /** @nullable */
+  brand?: string | null;
+  /** @nullable */
+  source?: string | null;
+  /** @nullable */
+  initiativeType?: string | null;
+  /** @nullable */
+  objectiveId?: string | null;
+}
+
 export interface GenerateInput {
   /** messaging | press | multiformat */
   shape: string;
@@ -1393,6 +1433,8 @@ export interface GenerateInput {
      * @nullable
      */
   eventDate?: string | null;
+  /** Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona's clearance (fail closed) before any of it reaches the composer. */
+  kpiContext?: null | KpiReportContext;
 }
 
 export interface EditorialReviewInput {

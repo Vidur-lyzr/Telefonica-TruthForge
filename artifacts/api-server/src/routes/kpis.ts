@@ -7,6 +7,7 @@ import {
   GetKpiDetailBody,
   GetKpiDetailResponse,
   ListKpiDefinitionsResponse,
+  ListKpiDefinitionOptionsResponse,
   UpsertKpiDefinitionBody,
   UpsertKpiDefinitionResponse,
   ListKpiAlertsBody,
@@ -20,6 +21,7 @@ import {
   ROLES,
   OBJECTIVES,
   AXES,
+  KPIS,
   CLEARANCE_RANK,
   type Clearance,
   type Area,
@@ -123,6 +125,30 @@ router.get("/kpis/definitions", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "kpis/definitions route failed");
     res.status(500).json({ error: "The Hub could not load the KPI definitions." });
+    return;
+  }
+});
+
+router.get("/kpis/options", async (req, res) => {
+  try {
+    const markets = [...new Set(KPIS.map((k) => k.market))].sort();
+    const brands = [...new Set(KPIS.map((k) => k.brand))].sort();
+    res.json(
+      ListKpiDefinitionOptionsResponse.parse({
+        objectives: OBJECTIVES.map((o) => ({ id: o.id, name: o.name, area: o.area })),
+        axes: AXES.map((a) => ({ id: a.id, name: a.name })),
+        markets: markets.includes("Group") ? markets : ["Group", ...markets],
+        brands,
+        initiativeTypes: VALID_INITIATIVE_TYPES,
+        areas: VALID_AREAS,
+        directions: VALID_DIRECTIONS,
+        confidentialities: Object.keys(CLEARANCE_RANK),
+      }),
+    );
+    return;
+  } catch (err) {
+    req.log.error({ err }, "kpis/options route failed");
+    res.status(500).json({ error: "The Hub could not load the definition options." });
     return;
   }
 });

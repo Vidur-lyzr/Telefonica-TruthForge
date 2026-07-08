@@ -5,6 +5,7 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { KpiReportContext } from './kpiReportContext';
 
 export interface GenerateInput {
   /** messaging | press | multiformat */
@@ -32,4 +33,6 @@ export interface GenerateInput {
      * @nullable
      */
   eventDate?: string | null;
+  /** Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona's clearance (fail closed) before any of it reaches the composer. */
+  kpiContext?: null | KpiReportContext;
 }

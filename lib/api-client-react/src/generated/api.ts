@@ -69,6 +69,7 @@ import type {
   KpiAlertListInput,
   KpiAskInput,
   KpiDefinitionInput,
+  KpiDefinitionOptions,
   KpiDefinitionRecord,
   KpiDetail,
   KpiDetailInput,
@@ -1900,6 +1901,84 @@ export const useUpsertKpiDefinition = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getUpsertKpiDefinitionMutationOptions(options));
     }
+
+export const getListKpiDefinitionOptionsUrl = () => {
+
+
+
+
+  return `/api/kpis/options`
+}
+
+/**
+ * The governed vocabularies an administrator can compose a KPI from: objectives, strategic axes, markets, brands, initiative types, areas, directions and confidentiality levels.
+ * @summary Valid values for the KPI definition editor
+ */
+export const listKpiDefinitionOptions = async ( options?: RequestInit): Promise<KpiDefinitionOptions> => {
+
+  return customFetch<KpiDefinitionOptions>(getListKpiDefinitionOptionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListKpiDefinitionOptionsQueryKey = () => {
+    return [
+    `/api/kpis/options`
+    ] as const;
+    }
+
+
+export const getListKpiDefinitionOptionsQueryOptions = <TData = Awaited<ReturnType<typeof listKpiDefinitionOptions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listKpiDefinitionOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListKpiDefinitionOptionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listKpiDefinitionOptions>>> = ({ signal }) => listKpiDefinitionOptions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listKpiDefinitionOptions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListKpiDefinitionOptionsQueryResult = NonNullable<Awaited<ReturnType<typeof listKpiDefinitionOptions>>>
+export type ListKpiDefinitionOptionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Valid values for the KPI definition editor
+ */
+
+export function useListKpiDefinitionOptions<TData = Awaited<ReturnType<typeof listKpiDefinitionOptions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listKpiDefinitionOptions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListKpiDefinitionOptionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListKpiAlertsUrl = () => {
 

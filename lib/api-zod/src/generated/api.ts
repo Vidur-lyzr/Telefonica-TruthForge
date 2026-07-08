@@ -888,6 +888,29 @@ export const UpsertKpiDefinitionResponse = zod.object({
 
 
 /**
+ * The governed vocabularies an administrator can compose a KPI from: objectives, strategic axes, markets, brands, initiative types, areas, directions and confidentiality levels.
+ * @summary Valid values for the KPI definition editor
+ */
+export const ListKpiDefinitionOptionsResponse = zod.object({
+  "objectives": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "area": zod.string()
+})),
+  "axes": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+})),
+  "markets": zod.array(zod.string()),
+  "brands": zod.array(zod.string()),
+  "initiativeTypes": zod.array(zod.string()),
+  "areas": zod.array(zod.string()),
+  "directions": zod.array(zod.string()),
+  "confidentialities": zod.array(zod.string())
+})
+
+
+/**
  * Deterministically recomputed threshold-breach and forecast-deviation alerts, recorded per KPI owner with a simulated Teams/email delivery channel. Fail closed — a persona only sees alerts for KPIs it could open itself.
  * @summary Threshold and deviation alerts for the persona's visible KPIs
  */
@@ -1216,7 +1239,17 @@ export const GenerateBody = zod.object({
   "format": zod.string().optional().describe('Output format hint, e.g. document, email, note'),
   "axisIds": zod.array(zod.string()).optional(),
   "spokesperson": zod.string().nullish().describe('Named spokesperson for quotes and spokesperson notes'),
-  "eventDate": zod.string().nullish().describe('Event or publication date framing the document')
+  "eventDate": zod.string().nullish().describe('Event or publication date framing the document'),
+  "kpiContext": zod.union([zod.null(),zod.object({
+  "period": zod.string().describe('week | month | quarter'),
+  "area": zod.string(),
+  "axisId": zod.string().nullish(),
+  "market": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "initiativeType": zod.string().nullish(),
+  "objectiveId": zod.string().nullish()
+})]).optional().describe('Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona\'s clearance (fail closed) before any of it reaches the composer.\n')
 })
 
 export const GenerateResponse = zod.object({
@@ -3004,7 +3037,17 @@ export const StartGenerateJobBody = zod.object({
   "format": zod.string().optional().describe('Output format hint, e.g. document, email, note'),
   "axisIds": zod.array(zod.string()).optional(),
   "spokesperson": zod.string().nullish().describe('Named spokesperson for quotes and spokesperson notes'),
-  "eventDate": zod.string().nullish().describe('Event or publication date framing the document')
+  "eventDate": zod.string().nullish().describe('Event or publication date framing the document'),
+  "kpiContext": zod.union([zod.null(),zod.object({
+  "period": zod.string().describe('week | month | quarter'),
+  "area": zod.string(),
+  "axisId": zod.string().nullish(),
+  "market": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "initiativeType": zod.string().nullish(),
+  "objectiveId": zod.string().nullish()
+})]).optional().describe('Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona\'s clearance (fail closed) before any of it reaches the composer.\n')
 })
 
 export const StartGenerateJobResponse = zod.object({

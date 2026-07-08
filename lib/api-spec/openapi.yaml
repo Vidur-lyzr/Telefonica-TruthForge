@@ -516,6 +516,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /kpis/options:
+    get:
+      operationId: listKpiDefinitionOptions
+      tags: [kpis]
+      summary: Valid values for the KPI definition editor
+      description: >
+        The governed vocabularies an administrator can compose a KPI from:
+        objectives, strategic axes, markets, brands, initiative types, areas,
+        directions and confidentiality levels.
+      responses:
+        "200":
+          description: Definition editor options
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KpiDefinitionOptions"
+
   /kpis/alerts:
     post:
       operationId: listKpiAlerts
@@ -2810,6 +2827,58 @@ components:
         changeNote:
           type: string
 
+    KpiDefinitionOptions:
+      type: object
+      required:
+        [objectives, axes, markets, brands, initiativeTypes, areas, directions, confidentialities]
+      properties:
+        objectives:
+          type: array
+          items:
+            type: object
+            required: [id, name, area]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              area:
+                type: string
+        axes:
+          type: array
+          items:
+            type: object
+            required: [id, name]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+        markets:
+          type: array
+          items:
+            type: string
+        brands:
+          type: array
+          items:
+            type: string
+        initiativeTypes:
+          type: array
+          items:
+            type: string
+        areas:
+          type: array
+          items:
+            type: string
+        directions:
+          type: array
+          items:
+            type: string
+        confidentialities:
+          type: array
+          items:
+            type: string
+
     KpiAlert:
       type: object
       required:
@@ -3835,6 +3904,37 @@ components:
         eventDate:
           type: ["string", "null"]
           description: Event or publication date framing the document
+        kpiContext:
+          description: >
+            Structured KPI panel context handed over from the KPIs page.
+            Carries the active filters only — the engine recomputes every
+            figure server-side under the persona's clearance (fail closed)
+            before any of it reaches the composer.
+          anyOf:
+            - type: "null"
+            - $ref: "#/components/schemas/KpiReportContext"
+
+    KpiReportContext:
+      type: object
+      required: [period, area]
+      properties:
+        period:
+          type: string
+          description: week | month | quarter
+        area:
+          type: string
+        axisId:
+          type: ["string", "null"]
+        market:
+          type: ["string", "null"]
+        brand:
+          type: ["string", "null"]
+        source:
+          type: ["string", "null"]
+        initiativeType:
+          type: ["string", "null"]
+        objectiveId:
+          type: ["string", "null"]
 
     DraftParams:
       type: object

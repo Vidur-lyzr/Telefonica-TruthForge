@@ -1291,7 +1291,21 @@ export default function KpisPage() {
                   const topic = `${PERIOD_LABELS[period]} KPI report for ${area}: ${summary.total} tracked objectives, ${summary.onTrack} on track, ${summary.atRisk} at risk, ${summary.offTrack} off track. Covering ${names}${kpis.length > 6 ? " and others" : ""}.${offTrack.length > 0 ? ` Focus on deviations: ${offTrack.map((k) => k.name).join(", ")}.` : ""}`;
                   sessionStorage.setItem(
                     "hub-kpi-report-prefill",
-                    JSON.stringify({ topic, audience: "internal", confidentiality: "internal" }),
+                    JSON.stringify({
+                      topic,
+                      audience: "internal",
+                      confidentiality: "internal",
+                      kpiContext: {
+                        period,
+                        area,
+                        axisId: axisId === "__all__" ? null : axisId,
+                        market: market === "__all__" ? null : market,
+                        brand: brand === "__all__" ? null : brand,
+                        source: source === "__all__" ? null : source,
+                        initiativeType: initiativeType === "__all__" ? null : initiativeType,
+                        objectiveId: objectiveId === "__all__" ? null : objectiveId,
+                      },
+                    }),
                   );
                   navigate("/generate");
                 }}

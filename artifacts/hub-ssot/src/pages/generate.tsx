@@ -35,6 +35,7 @@ import {
   type Schedule,
   type ReviewItem,
   type SavedVersion,
+  type KpiReportContext,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
 import {
@@ -167,6 +168,7 @@ type BriefValues = {
   format: string;
   spokesperson: string | null;
   eventDate: string | null;
+  kpiContext: KpiReportContext | null;
 };
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -509,6 +511,7 @@ function BriefForm({
   const [eventDate, setEventDate] = React.useState("");
   const formatOptions = FORMAT_OPTIONS[shape];
   const [format, setFormat] = React.useState(formatOptions[0].value);
+  const [kpiContext, setKpiContext] = React.useState<KpiReportContext | null>(null);
 
   const changeAudience = (a: Audience) => {
     setAudience(a);
@@ -529,12 +532,16 @@ function BriefForm({
         topic?: string;
         audience?: string;
         confidentiality?: string;
+        kpiContext?: KpiReportContext | null;
       };
       if (prefill.topic) setTopic(prefill.topic);
       if (prefill.audience === "internal" || prefill.audience === "external") {
         setAudience(prefill.audience);
       }
       if (prefill.confidentiality) setConfidentiality(prefill.confidentiality);
+      if (prefill.kpiContext && typeof prefill.kpiContext === "object") {
+        setKpiContext(prefill.kpiContext);
+      }
     } catch {
       // Malformed handoff payloads are ignored; the form simply starts empty.
     }
@@ -603,6 +610,7 @@ function BriefForm({
     format,
     spokesperson: spokesperson.trim() || null,
     eventDate: eventDate.trim() || null,
+    kpiContext,
   });
 
   const submitBrief = () => {
@@ -773,6 +781,16 @@ function BriefForm({
             multiline
             fullWidth
           />
+          {kpiContext && (
+            <Inline space={8} alignItems="center">
+              <Chip onClose={() => setKpiContext(null)}>
+                {`KPI panel attached: ${kpiContext.area}, ${kpiContext.period}${kpiContext.market ? `, ${kpiContext.market}` : ""}`}
+              </Chip>
+              <Text1 regular color={c.textSecondary}>
+                Governed KPI figures for this selection will be recomputed and injected into the report.
+              </Text1>
+            </Inline>
+          )}
         </Stack>
 
         <div
@@ -1286,6 +1304,7 @@ export default function Generate() {
           format: v.format,
           spokesperson: v.spokesperson,
           eventDate: v.eventDate,
+          kpiContext: v.kpiContext,
         },
       },
       { onSuccess: (job) => setJobId(job.id) },

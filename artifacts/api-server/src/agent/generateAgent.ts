@@ -14,6 +14,7 @@
 
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { retrieve, resolveDoc } from "../adapters/kb";
+import { listKpis, type KpiCard } from "../adapters/kpi";
 import { queryAll as numericQueryAll, querySeries } from "../adapters/numeric";
 import {
   CLEARANCE_RANK,
@@ -193,6 +194,21 @@ export interface GenerateInput {
   // same governed material, not just the free-text topic. They never bypass the
   // permission filter — retrieved chunks are still clearance-gated.
   sourceQueries?: string[];
+  // Structured KPI panel handoff from the KPIs page. Only the FILTERS travel:
+  // every figure is recomputed server-side under the persona's clearance
+  // (fail closed), so a tampered client payload can never smuggle numbers in.
+  kpiContext?: KpiReportContext | null;
+}
+
+export interface KpiReportContext {
+  period: string;
+  area: string;
+  axisId?: string | null;
+  market?: string | null;
+  brand?: string | null;
+  source?: string | null;
+  initiativeType?: string | null;
+  objectiveId?: string | null;
 }
 
 export interface RefineInput {
@@ -282,7 +298,37 @@ async function compose(
     .filter(Boolean)
     .join(" ");
   const sourceQueryText = (input.sourceQueries ?? []).filter(Boolean).join(" ");
-  const retrievalQuery = [input.topic, sourceQueryText, axisNames, instruction ?? ""]
+
+  // ---- Structured KPI panel context (recomputed server-side, fail closed) ----
+  // The client hands over FILTERS only. Figures are recomputed here under the
+  // DUAL-FILTERED clearance (persona AND destination/audience gate) via the
+  // same visibility rules as the KPIs page, so the draft can only ever carry
+  // KPI numbers that both the persona may see and the destination may carry.
+  let kpiCards: KpiCard[] = [];
+  const kc = input.kpiContext ?? null;
+  if (kc) {
+    try {
+      kpiCards = listKpis({
+        clearance: bodyClearance,
+        area: kc.area as Parameters<typeof listKpis>[0]["area"],
+        period: (["week", "month", "quarter"].includes(kc.period)
+          ? kc.period
+          : "month") as Parameters<typeof listKpis>[0]["period"],
+        axisId: kc.axisId ?? undefined,
+        market: kc.market ?? undefined,
+        brand: kc.brand ?? undefined,
+        source: kc.source ?? undefined,
+        initiativeType: kc.initiativeType ?? undefined,
+        objectiveId: kc.objectiveId ?? undefined,
+      }).kpis;
+    } catch (err) {
+      log.warn({ err }, "generate: kpi context could not be recomputed; ignoring");
+      kpiCards = [];
+    }
+  }
+  const kpiQueryText = kpiCards.map((k) => k.name).join(" ");
+
+  const retrievalQuery = [input.topic, sourceQueryText, kpiQueryText, axisNames, instruction ?? ""]
     .filter(Boolean)
     .join(" ");
 
@@ -518,6 +564,30 @@ async function compose(
 
   const boiler = BOILERPLATES.find((b) => CLEARANCE_RANK[b.confidentiality] <= bodyRank);
 
+  // Governed KPI panel block: figures recomputed server-side above. Where a
+  // KPI's source document is among the numbered body sources, the model is
+  // told which [S#] to cite; KPI lines without a permitted body source are
+  // marked as panel-only so the model does not invent a citation for them.
+  const kpiBlock = kpiCards.length
+    ? kpiCards
+        .map((k) => {
+          const markers = [
+            ...new Set(
+              k.sources
+                .map((s) => (s.docId && docIndexByDoc.has(s.docId) ? `S${docIndexByDoc.get(s.docId)}` : null))
+                .filter((m): m is string => m !== null),
+            ),
+          ];
+          const fc = k.forecast?.note ? ` Forecast: ${k.forecast.note}` : "";
+          return `- ${k.name} (${k.objectiveName}, ${k.market}, owner: ${k.owner}, definition v${k.definitionVersion}): current ${k.current}${k.unit} against a ${k.target}${k.unit} target — ${k.status === "on-track" ? "on track" : k.status === "amber" ? "at risk" : "off track"}.${fc}${
+            markers.length > 0
+              ? ` Cite ${markers.map((m) => `[${m}]`).join(" or ")} for this figure.`
+              : " Panel-only figure: reference it as coming from the governed KPI panel, without a source marker."
+          }`;
+        })
+        .join("\n")
+    : null;
+
   const sectionBlueprint = (template?.sections ?? [])
     .map(
       (s) =>
@@ -590,7 +660,11 @@ Approved quotes you may use verbatim (already cited):
 ${quoteBlock}
 
 Approved boilerplate (use verbatim for the 'boilerplate' section if present):
-${boiler ? boiler.text : "None available."}
+${boiler ? boiler.text : "None available."}${
+    kpiBlock
+      ? `\n\nGoverned KPI panel (figures recomputed by the calculation engine for this persona and destination — use these exact numbers, never adjust them):\n${kpiBlock}`
+      : ""
+  }
 
 Internal guidance for spokesperson notes only (do NOT place in the published body):
 ${guidanceBlock}
