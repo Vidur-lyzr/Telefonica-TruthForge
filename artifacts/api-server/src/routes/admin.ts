@@ -5,7 +5,9 @@ import {
   ListScheduledDocumentsResponse,
   ListAuditEntriesResponse,
   GetUserVisibilityMatrixResponse,
+  GetUsageMeterResponse,
 } from "@workspace/api-zod";
+import { getUsage } from "../data/usageMeter";
 import {
   ADMIN_PROFILES,
   PLATFORM_USERS,
@@ -74,6 +76,21 @@ router.get("/admin/visibility/:userId", (req, res) => {
       rows,
     }),
   );
+});
+
+// Real usage counters of the platform's own agent calls — the cost model's
+// usage block is grounded in these, not in invented consumption figures.
+router.get("/admin/usage", (_req, res) => {
+  const usage = getUsage();
+  const totals = usage.modules.reduce(
+    (acc, m) => ({
+      calls: acc.calls + m.calls,
+      inputTokens: acc.inputTokens + m.inputTokens,
+      outputTokens: acc.outputTokens + m.outputTokens,
+    }),
+    { calls: 0, inputTokens: 0, outputTokens: 0 },
+  );
+  res.json(GetUsageMeterResponse.parse({ ...usage, totals }));
 });
 
 router.get("/admin/audit", (_req, res) => {

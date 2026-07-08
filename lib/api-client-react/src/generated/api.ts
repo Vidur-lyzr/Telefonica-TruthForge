@@ -118,6 +118,7 @@ import type {
   SuggestedQuery,
   TaxonomyState,
   TemplateSuggestion,
+  UsageMeter,
   ValidationItem,
   VisibilityMatrix,
   WikiGraph,
@@ -1320,6 +1321,83 @@ export function useGetUserVisibilityMatrix<TData = Awaited<ReturnType<typeof get
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetUserVisibilityMatrixQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetUsageMeterUrl = () => {
+
+
+
+
+  return `/api/admin/usage`
+}
+
+/**
+ * @summary Per-module counters of the platform's own agent calls and tokens
+ */
+export const getUsageMeter = async ( options?: RequestInit): Promise<UsageMeter> => {
+
+  return customFetch<UsageMeter>(getGetUsageMeterUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUsageMeterQueryKey = () => {
+    return [
+    `/api/admin/usage`
+    ] as const;
+    }
+
+
+export const getGetUsageMeterQueryOptions = <TData = Awaited<ReturnType<typeof getUsageMeter>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUsageMeter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUsageMeterQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsageMeter>>> = ({ signal }) => getUsageMeter({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUsageMeter>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUsageMeterQueryResult = NonNullable<Awaited<ReturnType<typeof getUsageMeter>>>
+export type GetUsageMeterQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Per-module counters of the platform's own agent calls and tokens
+ */
+
+export function useGetUsageMeter<TData = Awaited<ReturnType<typeof getUsageMeter>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUsageMeter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUsageMeterQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

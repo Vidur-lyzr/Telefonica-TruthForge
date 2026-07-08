@@ -324,6 +324,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/usage:
+    get:
+      operationId: getUsageMeter
+      tags: [admin]
+      summary: Per-module counters of the platform's own agent calls and tokens
+      responses:
+        "200":
+          description: Usage counters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageMeter"
+
   /governance/taxonomy:
     get:
       operationId: getTaxonomyState
@@ -2226,6 +2239,45 @@ components:
           type: string
         source:
           type: string
+
+    ModuleUsage:
+      type: object
+      required: [module, calls, inputTokens, outputTokens]
+      properties:
+        module:
+          type: string
+          description: ask | generate | kpis | planning | wiki | data
+        calls:
+          type: integer
+        inputTokens:
+          type: integer
+        outputTokens:
+          type: integer
+        lastCallAt:
+          type: string
+          nullable: true
+
+    UsageMeter:
+      type: object
+      required: [since, modules, totals]
+      properties:
+        since:
+          type: string
+          description: When metering started (first boot of the counter store)
+        modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModuleUsage"
+        totals:
+          type: object
+          required: [calls, inputTokens, outputTokens]
+          properties:
+            calls:
+              type: integer
+            inputTokens:
+              type: integer
+            outputTokens:
+              type: integer
 
     AdminProfile:
       type: object

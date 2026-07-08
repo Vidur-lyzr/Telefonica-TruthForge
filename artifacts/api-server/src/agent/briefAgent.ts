@@ -9,7 +9,7 @@
 //     ONE next question for the most important missing field. Capture is
 //     conversation-only: it never retrieves evidence and never composes.
 
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { meteredCreate } from "./metering";
 import { TEMPLATES, type DocShape } from "../data/assets";
 import { AXES } from "../data/corpus";
 
@@ -112,7 +112,7 @@ Pick the best shape and pre-fill the brief. Return ONLY JSON:
 
   let parsed: Record<string, unknown> | null = null;
   try {
-    const message = await anthropic.messages.create({
+    const message = await meteredCreate("generate", {
       model: MODEL,
       max_tokens: 1024,
       messages: [{ role: "user", content: prompt }],
@@ -186,7 +186,7 @@ Return ONLY JSON:
 
   let parsed: Record<string, unknown> | null = null;
   try {
-    const message = await anthropic.messages.create({
+    const message = await meteredCreate("generate", {
       model: MODEL,
       max_tokens: 1024,
       messages: [{ role: "user", content: prompt }],

@@ -14,7 +14,8 @@
 //    follow-ups are expanded with the last user turn for retrieval. Permission is
 //    re-resolved every turn against the current persona.
 
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { meteredCreate } from "./metering";
+import { recordUsage, estimateTokens } from "../data/usageMeter";
 import {
   retrieve,
   retrieveGoverned,
@@ -399,12 +400,18 @@ export async function runAskAgent(
       log,
     });
     answer = run.text.trim();
+    // The gitagent runtime does not expose token usage, so meter an estimate.
+    recordUsage(
+      "ask",
+      estimateTokens(systemPrompt + userPrompt),
+      estimateTokens(answer),
+    );
   } catch (err) {
     // Explicit degradation path: fall back to a direct model call, then to
     // extractive text — each step is logged, never silent.
     log.error({ err }, "ask: gitagent run failed, using direct model fallback");
     try {
-      const message = await anthropic.messages.create({
+      const message = await meteredCreate("ask", {
         model: MODEL,
         max_tokens: 8192,
         system: systemPrompt,

@@ -5,7 +5,7 @@
 // falls back to a deterministic keep-mapping — always labelled, never silent.
 // Proposals are NEVER applied here: a human validates each one first.
 
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { meteredCreate } from "./metering";
 import { AXES } from "../data/corpus";
 import { retagCandidatesForAxis, type RetagCandidate } from "../data/governance";
 
@@ -102,7 +102,7 @@ export async function proposeRetag(
   ].join("\n");
 
   try {
-    const message = await anthropic.messages.create({
+    const message = await meteredCreate("data", {
       model: MODEL,
       max_tokens: 4096,
       messages: [{ role: "user", content: prompt }],

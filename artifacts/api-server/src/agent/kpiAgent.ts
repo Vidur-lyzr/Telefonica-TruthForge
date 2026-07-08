@@ -7,7 +7,7 @@
 // return permission_blocked without a model call; if nothing is relevant we return
 // no_evidence. We never fabricate.
 
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { meteredCreate } from "./metering";
 import { tokenize } from "../adapters/text";
 import {
   getKpiChatEvidence,
@@ -188,7 +188,7 @@ export async function runKpiAgent(
 
   let answer = "";
   try {
-    const message = await anthropic.messages.create({
+    const message = await meteredCreate("kpis", {
       model: MODEL,
       max_tokens: 8192,
       system: systemPrompt,

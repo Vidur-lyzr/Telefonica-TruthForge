@@ -435,6 +435,28 @@ export interface AskResult {
   attachmentAck?: string | null;
 }
 
+export interface ModuleUsage {
+  /** ask | generate | kpis | planning | wiki | data */
+  module: string;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  lastCallAt?: string | null;
+}
+
+export type UsageMeterTotals = {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+};
+
+export interface UsageMeter {
+  /** When metering started (first boot of the counter store) */
+  since: string;
+  modules: ModuleUsage[];
+  totals: UsageMeterTotals;
+}
+
 export interface AdminProfile {
   /** superadmin | admin | editor | audit */
   id: string;

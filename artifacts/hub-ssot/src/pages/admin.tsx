@@ -16,6 +16,7 @@ import {
   KpiSourceConfig,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import CostModelSection from "@/components/admin/cost-model";
 import {
   Box,
   Boxed,
@@ -896,6 +897,9 @@ export default function AdminPage() {
             })}
           />
         </Stack>
+
+        {/* Cost model */}
+        <CostModelSection />
 
         {/* Audit trail */}
         <Stack space={16}>

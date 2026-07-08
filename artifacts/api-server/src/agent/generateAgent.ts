@@ -12,7 +12,7 @@
 //  - If nothing relevant is permitted we return an honest no_evidence /
 //    permission_blocked state WITHOUT calling the model. We never fabricate.
 
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { meteredCreate } from "./metering";
 import { retrieve, resolveDoc } from "../adapters/kb";
 import { listKpis, type KpiCard } from "../adapters/kpi";
 import { queryAll as numericQueryAll, querySeries } from "../adapters/numeric";
@@ -675,7 +675,7 @@ ${jsonShape}${refineBlock}`;
   let raw = "";
   try {
     onStage?.("composing");
-    const message = await anthropic.messages.create({
+    const message = await meteredCreate("generate", {
       model: MODEL,
       max_tokens: 8192,
       system: systemPrompt,

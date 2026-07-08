@@ -7,7 +7,7 @@
 //  - If only blocked pages match → permission_blocked, no model call.
 //  - If nothing relevant matches → no_evidence, no model call. Never fabricate.
 
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { meteredCreate } from "./metering";
 import {
   COMPILED_PAGES,
   AXES,
@@ -209,7 +209,7 @@ export async function runWikiSearch(
 
   let answer = "";
   try {
-    const message = await anthropic.messages.create({
+    const message = await meteredCreate("wiki", {
       model: MODEL,
       max_tokens: 4096,
       system: systemPrompt,

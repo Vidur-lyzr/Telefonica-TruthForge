@@ -415,6 +415,26 @@ export const GetUserVisibilityMatrixResponse = zod.object({
 
 
 /**
+ * @summary Per-module counters of the platform's own agent calls and tokens
+ */
+export const GetUsageMeterResponse = zod.object({
+  "since": zod.string().describe('When metering started (first boot of the counter store)'),
+  "modules": zod.array(zod.object({
+  "module": zod.string().describe('ask | generate | kpis | planning | wiki | data'),
+  "calls": zod.number(),
+  "inputTokens": zod.number(),
+  "outputTokens": zod.number(),
+  "lastCallAt": zod.string().nullish()
+})),
+  "totals": zod.object({
+  "calls": zod.number(),
+  "inputTokens": zod.number(),
+  "outputTokens": zod.number()
+})
+})
+
+
+/**
  * @summary Current taxonomy configuration version and applied version history
  */
 export const GetTaxonomyStateResponse = zod.object({

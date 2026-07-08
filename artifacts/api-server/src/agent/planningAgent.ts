@@ -4,7 +4,7 @@
 // blocked states return without a model call, and every claim is cited to a
 // governed event. The model only ever provides language, never facts.
 
-import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { meteredCreate } from "./metering";
 import { CLEARANCE_RANK, ROLES } from "../data/corpus";
 import type { GeneratedDraft } from "./generateAgent";
 import type { PlanningEvent } from "../data/planning";
@@ -213,7 +213,7 @@ export async function runPlanningAsk(
 
   let answer = "";
   try {
-    const message = await anthropic.messages.create({
+    const message = await meteredCreate("planning", {
       model: MODEL,
       max_tokens: 4096,
       system: ASK_SYSTEM,
@@ -291,7 +291,7 @@ export async function runPlanningForecast(
 
   let summary = "";
   try {
-    const message = await anthropic.messages.create({
+    const message = await meteredCreate("planning", {
       model: MODEL,
       max_tokens: 4096,
       system: FORECAST_SYSTEM,
