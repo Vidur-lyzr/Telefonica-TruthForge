@@ -1,0 +1,133 @@
+PC3 · SSoT Data Tree (Detail)
+Data universe extracted from the RFP. It is used so that suppliers can size connectors and parsers and generate
+representative synthetic data by category (we do not expose real Telefónica data in the proposal — closed circuit).
+
+Accenture Song · Confidencial · Telefónica — Single Source of Truth (RFP) · Julio 2026
+
+SSoT — Data universe
+│
+├── A · INTERNAL DATA (corporate sources)
+│ ├── Calendar and milestones (Asana, Office docs)
+│ ├── Results (corporate / financial / activity)
+│ ├── People / HR data
+│ ├── Customer data
+│ ├── Research and positioning
+│ ├── New USP (new company positioning)
+│ ├── Communication talking points (key messages)
+│ └── Brand guidelines and templates (guidelines, tone, resources, templates → Brand Room)
+│
+├── B · EXTERNAL DATA (market sources)
+│ ├── Social media / Social listening (mentions; filter relevant +/–)
+│ ├── SIC* (*confirm acronym with Telefónica)
+│ ├── Key media / press
+│ ├── Competitor studies
+│ ├── Sector data / reports
+│ └── Legislation / regulations
+│
+├── C · FORMATS AND MEDIA (how the data arrives — cross-cutting)
+│ ├── Structured Word (title, body, notes for agent, version/status, sources, date)
+│ ├── Excel / numerical data (tables · ranges · sheets · cells; structured extraction + version)
+│ ├── PDF (sector reports, legislation, news)
+│ ├── Self-explanatory PPT (notes for agent, last validated version, sources/owner)
+│ ├── API connections (Asana, social media, social listening, SIC...)
+│ ├── Manual news ingestion (PDF / URL)
+│ └── Initial dump of current SharePoint SSoT (no maximum number of documents)
+│
+├── D · MANDATORY METADATA (deterministic layer → PC2)
+│ ├── Country / market
+│ ├── Brand
+│ ├── Legal entity
+│ ├── Year / quarter
+│ ├── Document type (deck · note · Q&A · report...)
+│ ├── Confidentiality level (public · private · confidential)
+│ ├── Owner
+│ └── Validity / expiry (+ status / version)
+│
+├── E · DATA GENERATED AND MANAGED BY THE SSoT (versioned outputs)
+│ ├── Talking points · press releases · Q&A · dossiers · reports (Word/PPT/charts, on-brand)
+│ ├── KPIs / objective tracking
+│ └── Calendars / planning (incl. 10-day forecasts)
+│
+└── CROSS-CUTTING
+
+Accenture Song · Confidencial · Telefónica — Single Source of Truth (RFP) · Julio 2026
+
+├── Languages: ES · EN · DE · PT-Brazil
+└── Confidentiality: public / private / confidential (+ off-the-record)
+Detail — A · Internal data
+Data type Typical format Source /
+connector
+
+Frequency Typical confid.
+
+Calendar and
+milestones
+
+structured Asana (API) ·
+Office/Excel
+
+continuous/scheduled private
+
+Results Excel · PPT · PDF SharePoint /
+closings
+
+after closing
+(quarterly)
+
+confidential
+People / HR data Excel · structured internal systems periodic confidential
+Customer data Excel · structured CRM / internal periodic confidential
+Research and
+positioning
+
+Word · PPT · PDF SharePoint ad hoc private
+
+New USP Word · PPT SharePoint ad hoc private/confidential
+Communication talking
+points
+
+Word · PPT SharePoint key messages ~48h private
+
+Brand guidelines and
+templates
+
+PPT · Word · PDF
+· assets
+
+Brand Room /
+SharePoint
+
+ad hoc private
+
+Detail — B · External data
+Data type Typical
+format
+
+Source / connector Frequency Typical
+confid.
+
+Social media / Social
+listening
+
+API / stream social listening (Talkwalker?) ·
+
+social media
+
+near-real-time public
+SIC* feed / doc SIC (to confirm) continuous public
+Key media / press feed · PDF ·
+URL
+
+news APIs · manual ingestion continuous/ad
+hoc
+
+public
+Competitor studies PDF · PPT manual / external ingestion ad hoc public/private
+Sector data / reports PDF manual / external ingestion ad hoc public
+Legislation / regulations PDF manual ingestion / sources ad hoc public
+RFP rule for external sources (social media): filter only what is relevant BEFORE ingesting
+(keywords/competitors/executives/topics; flag mentions +/-), not dump everything.
+Synthetic data: suppliers generate representative synthetic datasets by category, multi-language (ES/EN/DE/PT)
+and multi-format (Word/Excel/PPT/PDF), respecting the metadata schema (D) and the confidentiality levels. Reuse
+the RFI PoC outputs as a template (marketing report, compliance check). Optional: Telefónica provides anonymised
+samples.
