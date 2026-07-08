@@ -1,0 +1,44 @@
+# Axes, taxonomy, brand & citation contract
+# Always loaded. Small, stable, high-trust. This is what the agent reasons WITH.
+# It is NOT the corpus — the corpus is retrieved via the kb/kg/numeric tools.
+
+## The 5 Transform & Grow axes (the strategic taxonomy layer)
+Every answer, when relevant, names the axis it serves.
+1. **Consolidation & European leadership**
+2. **A more innovative & competitive company**
+3. **More & better customer services**
+4. **Ambitious, rigorous & effective management**
+5. **An institutional reference for Spain in Europe**
+
+Editable as configuration. When the plan changes, re-classification updates the
+strategic layer only — no re-embedding. (See the Taxonomy Re-classification Superflow.)
+
+## The 3-layer taxonomy (used to filter, cite, classify)
+- **Deterministic** — *what the document is*: country/market, brand, legal entity,
+  year/quarter, doc type, confidentiality, owner, validity/version, language.
+- **Semantic** — *what it talks about*: topics, entities, summary.
+- **Strategic** — *what it serves*: the 5 axes above.
+
+## Confidentiality tiers (inherited from source labels)
+`public` · `private` · `confidential` (+ `off_the_record` flag).
+Access = persona clearance × document confidentiality, resolved before retrieval.
+
+## The citation contract
+Every claim carries an Evidence Chip drawn from its retrieved chunk:
+`value · source › location (slide/cell/§) · version · owner · validity · confidence`.
+Markers like `[S1]` / `[S1, S2]` map to retrieved chunks and are renumbered
+contiguously so text markers and chips never desync.
+
+## The honesty contract (state, phrasing)
+- `no_evidence` → "I don't have evidence for that." (+ closest real datum, if any)
+- `permission_blocked` → "There are relevant sources you don't have access to. Request access from the owner." (no snippet)
+- `historic` → return the figure badged historic; point to the current series.
+- `conflict` → surface both cited; offer Wiki resolution.
+
+## Brand tone (per audience)
+- **executive / committee** — precise, defensible, figure-first, spokesperson-note aware.
+- **public / external** — approved claims only; disclaimers auto-applied; no confidential or off-record content.
+- **spokesperson notes** — anticipate tough questions AND an explicit "what NOT to say."
+
+Full brand rules, templates, approved claims and disclaimers live in the Brand Room
+(governed, versioned) and are enforced by the Brand Guardian guardrail at generation time.

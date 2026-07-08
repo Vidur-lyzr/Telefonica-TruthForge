@@ -78,6 +78,14 @@ export interface AgentRunResult {
   model: string;
 }
 
+// Live events surfaced while the agent runs, so callers can stream real
+// progress (tool calls, text deltas) instead of simulating it.
+export type AgentEvent =
+  | { type: "tool_use"; toolName: string; args: Record<string, unknown> }
+  | { type: "tool_result"; toolName: string; isError: boolean }
+  | { type: "text_delta"; content: string }
+  | { type: "turn"; turn: number };
+
 interface Logger {
   info: (obj: unknown, msg?: string) => void;
   warn: (obj: unknown, msg?: string) => void;
@@ -90,6 +98,7 @@ export interface AgentRunInput {
   tools?: GCToolDefinition[];
   maxTurns?: number;
   log: Logger;
+  onEvent?: (event: AgentEvent) => void;
 }
 
 // Run one governed answering pass through the GAP agent repo. Returns the
@@ -121,15 +130,31 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
           errorMessage = msg.errorMessage ?? "model returned an error";
         }
         if (msg.content?.trim()) finalText = msg.content.trim();
+        input.onEvent?.({ type: "turn", turn: turns });
+        break;
+      case "delta":
+        if (msg.deltaType === "text" && msg.content) {
+          input.onEvent?.({ type: "text_delta", content: msg.content });
+        }
         break;
       case "tool_use":
         toolCalls.push({ name: msg.toolName, args: msg.args });
+        input.onEvent?.({
+          type: "tool_use",
+          toolName: msg.toolName,
+          args: msg.args,
+        });
         break;
       case "tool_result":
         if (msg.isError) {
           const last = toolCalls[toolCalls.length - 1];
           if (last && last.name === msg.toolName) last.isError = true;
         }
+        input.onEvent?.({
+          type: "tool_result",
+          toolName: msg.toolName,
+          isError: msg.isError,
+        });
         break;
       case "system":
         if (msg.subtype === "error") {

@@ -22,7 +22,7 @@ import {
   resolveDoc,
   type RetrieveFilters,
 } from "../adapters/kb";
-import { runAgent, tool } from "./gitagentRuntime";
+import { runAgent, tool, type AgentEvent } from "./gitagentRuntime";
 import { query as numericQuery } from "../adapters/numeric";
 import { traverse } from "../adapters/kg";
 import { tokenize } from "../adapters/text";
@@ -75,6 +75,30 @@ interface Logger {
   warn: (obj: unknown, msg?: string) => void;
   error: (obj: unknown, msg?: string) => void;
 }
+
+// Streamed progress the Ask UI can render live. Steps are real milestones of
+// the run (never simulated); tokens are the model's own text deltas; the
+// result — citations included — always lands last.
+export type AskStreamEvent =
+  | {
+      type: "step";
+      id: string;
+      label: string;
+      state: "active" | "done";
+      detail?: string | null;
+    }
+  | { type: "token"; content: string };
+
+type AskEmit = (event: AskStreamEvent) => void;
+
+const TOOL_STEP_LABELS: Record<string, string> = {
+  read: "Loading skill instructions",
+  retrieve: "Searching further governed sources",
+  graph: "Traversing the knowledge graph",
+  numeric: "Checking the governed numeric zone",
+  tokenize: "Analysing query terms",
+  invoke_superflow: "Handing off to a Superflow",
+};
 
 interface Citation {
   id: string;
@@ -182,7 +206,19 @@ function entitiesInText(text: string): string[] {
 export async function runAskAgent(
   input: AskAgentInput,
   log: Logger,
+  emit?: AskEmit,
+  signal?: AbortSignal,
 ): Promise<AskAgentResult> {
+  // Cooperative cancellation: if the client disconnects, stop before the next
+  // expensive phase rather than paying for a model run nobody will see.
+  const throwIfAborted = () => {
+    if (signal?.aborted) {
+      const err = new Error("ask run cancelled: client disconnected");
+      err.name = "AbortError";
+      throw err;
+    }
+  };
+  throwIfAborted();
   const role = ROLES.find((r) => r.id === input.roleId) ?? ROLES[0];
   const clearance: Clearance = role.clearance;
   const roleRank = CLEARANCE_RANK[clearance];
@@ -193,6 +229,20 @@ export async function runAskAgent(
   const filters = input.filters ?? null;
   const history = input.history ?? [];
   const attachment = input.attachment ?? null;
+
+  emit?.({
+    type: "step",
+    id: "resolve",
+    label: "Resolving permission scope",
+    state: "done",
+    detail: `${role.label} — ${role.area} / ${clearance}`,
+  });
+  emit?.({
+    type: "step",
+    id: "retrieve",
+    label: "Searching governed sources",
+    state: "active",
+  });
 
   // Expand short follow-ups with the last user turn so retrieval keeps context.
   const lastUser = [...history].reverse().find((t) => t.role === "user");
@@ -217,6 +267,25 @@ export async function runAskAgent(
   const permitted = relevant.filter((c) => c.accessible);
   const blocked = relevant.filter((c) => !c.accessible);
 
+  emit?.({
+    type: "step",
+    id: "retrieve",
+    label: "Searching governed sources",
+    state: "done",
+    detail:
+      relevant.length === 0
+        ? "no relevant passages"
+        : `${permitted.length} permitted passage${permitted.length === 1 ? "" : "s"}${
+            blocked.length > 0 ? `, ${blocked.length} withheld` : ""
+          }`,
+  });
+  emit?.({
+    type: "step",
+    id: "decide",
+    label: "Checking permissions, conflicts and validity",
+    state: "active",
+  });
+
   const relatedEntities = traverse(retrievalQuery).map((e) => ({
     id: e.id,
     name: e.name,
@@ -236,6 +305,13 @@ export async function runAskAgent(
     const nearDoc = near ? resolveDoc(near.docId) : undefined;
     const nearAccessible = Boolean(near && nearDoc && canReadDoc(nearDoc));
     log.info({ q: input.question, roleId: role.id }, "ask: no_evidence");
+    emit?.({
+      type: "step",
+      id: "decide",
+      label: "Checking permissions, conflicts and validity",
+      state: "done",
+      detail: "no evidence — answering honestly, no model call",
+    });
     return {
       status: "no_evidence",
       answer:
@@ -275,6 +351,13 @@ export async function runAskAgent(
       { q: input.question, roleId: role.id, pair: conflict.pair },
       "ask: conflict",
     );
+    emit?.({
+      type: "step",
+      id: "decide",
+      label: "Checking permissions, conflicts and validity",
+      state: "done",
+      detail: "conflict — two permitted sources disagree; surfacing both",
+    });
     return conflict.result(relatedEntities, attachmentAck);
   }
 
@@ -314,6 +397,13 @@ export async function runAskAgent(
       { q: input.question, roleId: role.id, need, areaBlocked: areaBlocked.length },
       "ask: permission_blocked",
     );
+    emit?.({
+      type: "step",
+      id: "decide",
+      label: "Checking permissions, conflicts and validity",
+      state: "done",
+      detail: "permission blocked — nothing revealed, no model call",
+    });
     return {
       status: "permission_blocked",
       answer:
@@ -339,6 +429,13 @@ export async function runAskAgent(
   }
 
   // We have permitted evidence → compose a cited answer with Claude.
+  emit?.({
+    type: "step",
+    id: "decide",
+    label: "Checking permissions, conflicts and validity",
+    state: "done",
+    detail: "cleared to answer with cited evidence",
+  });
   const sources = permitted.slice(0, MAX_SOURCES);
   const topScore = sources[0]?.score ?? 1;
   const numericFact = numericQuery(input.question);
@@ -391,6 +488,63 @@ export async function runAskAgent(
   // can never see past the persona's clearance.
   const agentTools = buildGovernedTools(clearance, filters, role.area);
 
+  throwIfAborted();
+
+  emit?.({
+    type: "step",
+    id: "compose",
+    label: "Composing the cited answer",
+    state: "active",
+    detail: `${sources.length} source${sources.length === 1 ? "" : "s"} in scope`,
+  });
+
+  // Map live agent events to real streamed steps: every tool the agent calls
+  // (skill reads, governed lookups) surfaces as its own step; text deltas
+  // stream as tokens.
+  let toolStepSeq = 0;
+  const activeToolSteps = new Map<string, string>();
+  const onAgentEvent = (ev: AgentEvent) => {
+    if (!emit) return;
+    if (ev.type === "text_delta") {
+      emit({ type: "token", content: ev.content });
+      return;
+    }
+    if (ev.type === "tool_use") {
+      toolStepSeq += 1;
+      const stepId = `tool-${toolStepSeq}`;
+      activeToolSteps.set(ev.toolName, stepId);
+      const isSkillRead =
+        ev.toolName === "read" &&
+        String(ev.args?.path ?? ev.args?.file_path ?? "").includes("skills/");
+      const skillName = isSkillRead
+        ? String(ev.args?.path ?? ev.args?.file_path ?? "")
+            .split("skills/")[1]
+            ?.split("/")[0]
+        : null;
+      emit({
+        type: "step",
+        id: stepId,
+        label: TOOL_STEP_LABELS[ev.toolName] ?? `Using ${ev.toolName}`,
+        state: "active",
+        detail: skillName ?? summariseToolArgs(ev.args),
+      });
+      return;
+    }
+    if (ev.type === "tool_result") {
+      const stepId = activeToolSteps.get(ev.toolName);
+      if (stepId) {
+        activeToolSteps.delete(ev.toolName);
+        emit({
+          type: "step",
+          id: stepId,
+          label: TOOL_STEP_LABELS[ev.toolName] ?? `Using ${ev.toolName}`,
+          state: "done",
+          detail: ev.isError ? "failed" : null,
+        });
+      }
+    }
+  };
+
   let answer = "";
   try {
     const run = await runAgent({
@@ -398,6 +552,7 @@ export async function runAskAgent(
       systemPromptSuffix: systemPrompt,
       tools: agentTools,
       log,
+      onEvent: onAgentEvent,
     });
     answer = run.text.trim();
     // The gitagent runtime does not expose token usage, so meter an estimate.
@@ -559,6 +714,14 @@ export async function runAskAgent(
     "ask: answered",
   );
 
+  emit?.({
+    type: "step",
+    id: "compose",
+    label: "Composing the cited answer",
+    state: "done",
+    detail: `${citations.length} citation${citations.length === 1 ? "" : "s"} bound`,
+  });
+
   return {
     status: "answered",
     answer: finalAnswer,
@@ -599,6 +762,12 @@ export async function runAskAgent(
 // Governed tools handed to the GitAgent run. Every result is filtered by the
 // persona's clearance BEFORE it is serialised for the model — the agent can
 // look further into the corpus mid-answer, but never past its clearance.
+function summariseToolArgs(args: Record<string, unknown>): string | null {
+  const v = args?.query ?? args?.topic ?? args?.question ?? args?.text ?? null;
+  if (typeof v !== "string" || !v.trim()) return null;
+  return v.length > 80 ? `${v.slice(0, 77)}…` : v;
+}
+
 function buildGovernedTools(
   clearance: Clearance,
   filters: RetrieveFilters | null | undefined,
@@ -606,7 +775,7 @@ function buildGovernedTools(
 ) {
   return [
     tool(
-      "kb_lookup",
+      "retrieve",
       "Search the governed knowledge base for additional evidence. Returns only passages the current persona is cleared to see. Use sparingly, only when the provided sources are insufficient for a follow-up detail.",
       {
         type: "object",
@@ -638,7 +807,7 @@ function buildGovernedTools(
       },
     ),
     tool(
-      "kg_traverse",
+      "graph",
       "Traverse the governed knowledge graph for entities related to a topic (people, teams, documents, strategic axes).",
       {
         type: "object",
@@ -656,7 +825,7 @@ function buildGovernedTools(
       },
     ),
     tool(
-      "numeric_query",
+      "numeric",
       "Look up a governed numeric fact (KPIs, scores, budget figures). Returns value, unit, period and source — or nothing if no permitted fact matches.",
       {
         type: "object",
@@ -675,6 +844,52 @@ function buildGovernedTools(
           return "A matching figure exists but is outside the current permission scope; it cannot be shown.";
         }
         return `${fact.label}: ${fact.value} ${fact.unit} (${fact.period}) — source: ${fact.source}`;
+      },
+    ),
+    tool(
+      "tokenize",
+      "Tokenize a phrase the way the governed retrieval engine does (lowercased, stemmed, stopwords removed). Use to check whether an exact acronym, name or figure would match by keyword.",
+      {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "Phrase to tokenize" },
+        },
+        required: ["text"],
+      },
+      async (args: { text: string }) => {
+        const tokens = tokenize(String(args.text ?? ""));
+        return tokens.length > 0
+          ? tokens.join(" ")
+          : "No indexable tokens (all stopwords).";
+      },
+    ),
+    tool(
+      "invoke_superflow",
+      "Hand off to a deterministic backend Superflow (e.g. document-generation). Returns a queued run reference; the Superflow performs its own governed retrieval and routes any publishable output through the human approval gate. Never compose the document yourself when this applies.",
+      {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "Superflow name, e.g. document-generation",
+          },
+          input: {
+            type: "object",
+            description: "Resolved Superflow input parameters",
+          },
+        },
+        required: ["name"],
+      },
+      async (args: { name: string; input?: Record<string, unknown> }) => {
+        const name = String(args.name ?? "").trim();
+        if (name !== "document-generation") {
+          return `No Superflow named "${name}" is registered. Available: document-generation.`;
+        }
+        const runId = `sf-${Date.now().toString(36)}`;
+        return {
+          text: `Superflow "document-generation" queued (run ${runId}). The draft will land in the review folder behind the approval gate — tell the user it is queued for review; do not compose the document here.`,
+          details: { runId, name, input: args.input ?? {} },
+        };
       },
     ),
   ];

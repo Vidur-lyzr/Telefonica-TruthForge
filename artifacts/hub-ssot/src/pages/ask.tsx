@@ -12,6 +12,7 @@ import {
   Citation,
 } from "@workspace/api-client-react";
 import { useApp, type Lang } from "@/components/app-provider";
+import { streamAsk, type AskStep } from "@/hooks/ask-stream";
 import {
   Box,
   Stack,
@@ -86,6 +87,9 @@ interface Turn {
   result: AskResult | null;
   pending: boolean;
   error?: boolean;
+  // Live run progress, streamed from the agent as it genuinely happens.
+  steps?: AskStep[];
+  streamText?: string | null;
 }
 
 interface Conversation {
@@ -179,6 +183,15 @@ export default function Ask() {
   const fileRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const autoRanRef = React.useRef<string | null>(null);
+  const askAbortRef = React.useRef<AbortController | null>(null);
+
+  // Cancel any in-flight streamed run when the page unmounts.
+  React.useEffect(
+    () => () => {
+      askAbortRef.current?.abort();
+    },
+    [],
+  );
 
   const search = useSearch();
 
@@ -331,20 +344,54 @@ export default function Ask() {
         ),
       );
 
+    const body = {
+      question: q,
+      area,
+      roleId,
+      history,
+      filters: activeFilters,
+      attachment: sentAttachment,
+    };
+
+    // Stream the run: real step events and token deltas as they happen, then
+    // the full result (citations land last). Falls back to the plain request
+    // if streaming is unavailable.
+    const steps: AskStep[] = [];
+    let streamText = "";
+    // Cancel any in-flight run before starting a new one, and never fall back
+    // to a duplicate non-stream request when a run was intentionally aborted.
+    askAbortRef.current?.abort();
+    const abort = new AbortController();
+    askAbortRef.current = abort;
     try {
-      const result = await askQuery({
-        data: {
-          question: q,
-          area,
-          roleId,
-          history,
-          filters: activeFilters,
-          attachment: sentAttachment,
+      const result = await streamAsk(
+        body,
+        {
+          onStep: (step) => {
+            const i = steps.findIndex((s) => s.id === step.id);
+            if (i === -1) steps.push(step);
+            else steps[i] = step;
+            patchTurn({ steps: [...steps] });
+          },
+          onToken: (content) => {
+            streamText += content;
+            patchTurn({ streamText });
+          },
         },
-      });
-      patchTurn({ result, pending: false });
-    } catch {
-      patchTurn({ pending: false, error: true });
+        abort.signal,
+      );
+      patchTurn({ result, pending: false, streamText: null });
+    } catch (err) {
+      if (abort.signal.aborted) return;
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      try {
+        const result = await askQuery({ data: body });
+        patchTurn({ result, pending: false, streamText: null });
+      } catch {
+        patchTurn({ pending: false, error: true, streamText: null });
+      }
+    } finally {
+      if (askAbortRef.current === abort) askAbortRef.current = null;
     }
   };
 
@@ -966,7 +1013,13 @@ function TurnBlock({
         </div>
       </div>
 
-      {turn.pending && <Thinking />}
+      {turn.pending && (
+        <RunProgress steps={turn.steps ?? []} streamText={turn.streamText} />
+      )}
+
+      {!turn.pending && turn.result && (turn.steps?.length ?? 0) > 0 && (
+        <RunStepsSummary steps={turn.steps!} />
+      )}
 
       {turn.error && (
         <div
@@ -1001,14 +1054,84 @@ function TurnBlock({
   );
 }
 
-function Thinking() {
+// Live step list while the agent runs. Every row is a real milestone streamed
+// from the backend — nothing here is simulated.
+function RunProgress({
+  steps,
+  streamText,
+}: {
+  steps: AskStep[];
+  streamText?: string | null;
+}) {
   return (
-    <Inline space={12} alignItems="center">
-      <Spinner size={32} />
-      <Text2 medium color={skinVars.colors.brand}>
-        Retrieving governed evidence…
-      </Text2>
-    </Inline>
+    <Stack space={12}>
+      {steps.length === 0 ? (
+        <Inline space={12} alignItems="center">
+          <Spinner size={24} />
+          <Text2 medium color={skinVars.colors.brand}>
+            Contacting the governed agent…
+          </Text2>
+        </Inline>
+      ) : (
+        <Stack space={8}>
+          {steps.map((s) => (
+            <Inline space={8} alignItems="center" key={s.id}>
+              {s.state === "done" ? (
+                <IconCheckedRegular
+                  size={16}
+                  color={skinVars.colors.success}
+                />
+              ) : (
+                <Spinner size={16} />
+              )}
+              <Text2
+                regular
+                color={
+                  s.state === "done"
+                    ? skinVars.colors.textSecondary
+                    : skinVars.colors.textPrimary
+                }
+              >
+                {s.label}
+                {s.detail ? ` — ${s.detail}` : ""}
+              </Text2>
+            </Inline>
+          ))}
+        </Stack>
+      )}
+      {streamText ? (
+        <Text3 regular color={skinVars.colors.textSecondary}>
+          {streamText.replace(/\[[^\]]*$/, "")}
+        </Text3>
+      ) : null}
+    </Stack>
+  );
+}
+
+// After the answer lands, the step trail collapses to a single quiet line.
+function RunStepsSummary({ steps }: { steps: AskStep[] }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <Stack space={8}>
+      <Touchable onPress={() => setOpen((v) => !v)}>
+        <Inline space={8} alignItems="center">
+          <IconCheckedRegular size={14} color={skinVars.colors.textSecondary} />
+          <Text1 regular color={skinVars.colors.textSecondary}>
+            Done · {steps.length} step{steps.length === 1 ? "" : "s"}
+          </Text1>
+        </Inline>
+      </Touchable>
+      {open && (
+        <Stack space={4}>
+          {steps.map((s) => (
+            <Text1 regular color={skinVars.colors.textSecondary} key={s.id}>
+              {s.label}
+              {s.detail ? ` — ${s.detail}` : ""}
+            </Text1>
+          ))}
+        </Stack>
+      )}
+    </Stack>
   );
 }
 

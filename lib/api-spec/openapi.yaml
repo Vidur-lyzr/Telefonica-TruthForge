@@ -428,6 +428,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/KpiQueryResult"
 
+  /ask/stream:
+    post:
+      operationId: askStream
+      tags: [ask]
+      summary: Ask with live progress streaming (Server-Sent Events)
+      description: >
+        Same governed run as /ask, streamed. Emits SSE events as they genuinely
+        happen: `step` (real run milestones — scope resolution, retrieval,
+        permission/conflict checks, tool calls, composition), `token` (the
+        model's own text deltas), then a terminal `result` event carrying the
+        full AskResult (citations always land last), then `done`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskInput"
+      responses:
+        "200":
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
   /kpis/ask:
     post:
       operationId: askKpis

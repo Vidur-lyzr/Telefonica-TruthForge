@@ -1,7 +1,7 @@
 spec_version: "0.1.0"
-name: hub-ssot-answering-agent
-version: 1.0.0
-description: Governed answering agent for Telefonica's Hub SSoT. Composes cited answers strictly from pre-cleared evidence supplied by the Hub's governance layer, with governed retrieval tools for follow-up lookups.
+name: hub-ssot
+version: 2.0.0
+description: Hub SSoT — the governed agent for Telefonica's Communication & Brand teams. One agent, many skills; cited answers, honest states, early-binding permissions. Binds to the repo's existing kb/kg/numeric/text adapters.
 
 model:
   preferred: "anthropic:claude-sonnet-4-6"
@@ -10,8 +10,23 @@ model:
     temperature: 0.2
     max_tokens: 8192
 
+# read = lazy-load skill bodies. Governed tools (retrieve/graph/numeric/tokenize/
+# invoke_superflow) are injected per-run by the runtime with the resolved scope
+# already bound — no tool can widen access.
 tools: [read]
 
+skills:
+  - answer-cited
+  - generate-document
+  - track-goal
+  - plan-calendar
+
 runtime:
-  max_turns: 6
+  max_turns: 8
   timeout: 120
+
+metadata:
+  permission_binding: early
+  citation_required: true
+  honest_states: "no_evidence,permission_blocked,historic,conflict"
+  trace: native_plus_git_sha

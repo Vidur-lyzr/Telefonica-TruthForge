@@ -1,4 +1,8 @@
 entries:
+  - path: axes-brand-glossary.md
+    tags: [axes, taxonomy, brand, citations, honesty]
+    priority: high
+    always_load: true
   - path: governance.md
     tags: [governance, citations]
     priority: high

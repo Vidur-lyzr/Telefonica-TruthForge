@@ -19,6 +19,28 @@
       "started_at": "2026-07-08T00:43:10.953Z",
       "outcome": "success",
       "ended_at": "2026-07-08T00:43:17.084Z"
+    },
+    {
+      "id": "a89d854b-bb68-40a7-9bf9-bae29702ef71",
+      "objective": "Answer question about Telefónica's brand consideration score this quarter",
+      "steps": [],
+      "attempts": 2,
+      "status": "succeeded",
+      "started_at": "2026-07-08T03:08:46.763Z",
+      "outcome": "success",
+      "ended_at": "2026-07-08T03:13:14.940Z",
+      "skill_used": "answer-cited"
+    },
+    {
+      "id": "6e356333-8466-40d4-9406-add1077b35f1",
+      "objective": "Answer question about Telefónica's brand consideration score this quarter",
+      "steps": [],
+      "attempts": 1,
+      "status": "succeeded",
+      "started_at": "2026-07-08T03:13:25.250Z",
+      "outcome": "success",
+      "ended_at": "2026-07-08T03:13:35.535Z",
+      "skill_used": "answer-cited"
     }
   ]
 }

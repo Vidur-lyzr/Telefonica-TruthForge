@@ -1,0 +1,333 @@
+# GITAGENT-SPEC.md
+### The complete build specification — Hub SSoT agent runtime, streaming, skills, prompts
+
+> This is the definitive artifact for building the GitAgent layer of Telefónica TruthForge. It covers what GitAgent is, how the `query()` runtime works, **how action streaming must feel**, the **full skill roster**, and **all the prompts** — written so Replit can build the runtime end to end. It binds to the repo's existing `kb/kg/numeric/text` adapters; it does not replace them.
+
+---
+
+## PART 1 — What GitAgent is
+
+GitAgent is **not** a chatbot wrapper and **not** a hosted API. It is a *filesystem-native agent runtime* where **the agent is a repository**. Its identity, rules, skills, and compiled knowledge are files on disk. The runtime loads those files into a system prompt, exposes a small set of tools, and runs a reasoning loop that discovers and executes skills on demand, streaming its work as it goes.
+
+Three properties define it, and each maps to a product requirement:
+
+1. **One agent, many skills.** There is a single agent. Capabilities are *skills* — lean markdown runbooks discovered at runtime. This is why one conversational front door can reach every capability without prompt bloat.
+2. **The brain is versioned.** `SOUL/RULES/skills/knowledge/wiki` are git-tracked. This gives criteria-as-configuration, the documentalist-as-editor loop, and agent-version traceability (the git SHA stamped into every trace).
+3. **Knowledge that compiles.** Beyond retrieval, the agent maintains an **LLM Wiki** — cross-referenced pages it writes as documentalists validate. This is the compounding memory that a plain RAG system (or Copilot) cannot have.
+
+What GitAgent owns here: the **conversational agent** (Chat + embedded module chats), **skill orchestration**, the **honest states**, the **`invoke_superflow` bridge** to the deterministic pipelines, and the **compiled Wiki**. What it does *not* own: retrieval/corpus (the KB/KG adapters) and the five Superflows.
+
+---
+
+## PART 2 — The runtime: `query()` in depth
+
+### 2.1 The repository
+```
+SOUL.md               identity (always injected)
+RULES.md              hard invariants (always injected, highest priority)
+knowledge/
+  index.yaml          always_load list
+  axes-brand-glossary.md
+skills/
+  SKILLS.md           the catalog (names + triggers only)
+  *.md                skill bodies (loaded on demand)
+memory/
+  wiki/               compiled knowledge pages + index.md + log.md
+```
+
+### 2.2 System-prompt assembly (fixed order, every turn)
+```
+[1] SOUL.md
+[2] RULES.md
+[3] knowledge.always_load (concatenated)
+[4] SKILLS.md catalog          ← names + one-line triggers ONLY, never bodies
+[5] systemPromptSuffix         ← page context + resolved permission scope
+```
+Skill bodies are **not** in the base prompt. The model sees a menu; it opens only what the task needs. This is the lazy-discovery mechanic and it is load-bearing — it keeps the prompt small and the agent fast.
+
+### 2.3 The loop
+```
+query(message, context):
+  scope   = resolve_permissions(context.persona)     # EARLY — before anything
+  prompt  = assemble_system_prompt(scope, context.page)
+  emit STEP "understand"                              # see Part 3
+  loop:
+    turn = model.step(prompt, history, tools)
+    if turn.wants_skill:                              # model asks to read a skill
+        body = read(skill)                            # lazy-load
+        history += body
+        emit STEP <skill.first_status>
+        continue
+    if turn.wants_tool:
+        emit STEP <tool.status>
+        result = call_tool(turn.tool, turn.args, scope)   # scope re-applied
+        history += result
+        continue
+    if turn.final:
+        stream_answer(turn)                           # token stream
+        emit CITATIONS turn.citations                 # chips land last
+        break
+  write_trace(scope, tools_used, model, git_sha)
+```
+
+Key invariants: **permissions are resolved once, up front, and re-applied on every tool call** — no tool can widen scope. The loop terminates on a final answer or a returned honest state (Part 5). Every run writes a trace (Lyzr-native + git SHA).
+
+---
+
+## PART 3 — Action streaming: how it must *feel*
+
+This is the part that sells a trust product. In a governance product, **showing the diligence IS the pitch** — the user should feel a careful analyst working on their behalf, never a spinner. Two layers stream over the same SSE channel the repo already has:
+
+- **Step events** — the agentic work *before* the answer (resolving, searching, checking).
+- **Token stream** — the answer forming, word by word.
+- **Citations event** — the Evidence Chips, landing **last** (a citation must never appear before the claim it supports).
+
+### 3.1 The event schema
+```json
+{ "type": "step",
+  "id": "retrieve",
+  "label": "Searching sources",          // human, present-continuous, user's language
+  "detail": "1,240 sources in scope",    // optional, quiet, reassuring
+  "status": "running|done|skipped|blocked",
+  "ts": 1720000000 }
+```
+Then `{ "type":"token", "text":"…" }` for the answer, and finally
+`{ "type":"citations", "items":[ {id, source, location, version, owner, validity, confidence} ] }`.
+
+### 3.2 The three feelings we're engineering
+Each step should make the user *feel* a specific guarantee:
+
+| Step | What the user feels |
+|---|---|
+| "Resolving your access…" | sovereignty — it knows who I am and what I may see |
+| "Searching 1,240 sources…" | breadth — it looked everywhere, not one folder |
+| "3 sources agree — checking…" | rigor — it corroborated before answering |
+| "Making sure nothing confidential is used…" | safety — it protects me by default |
+
+### 3.3 The status vocabulary (real strings, per skill)
+Plain, human, never technical. "Searching sources", **not** "executing hybrid retrieval". In the user's language.
+
+**answer_cited (Ask):**
+```
+Resolving your access…
+Searching sources…                    detail: "1,240 in scope · ES·EN·DE·PT"
+Found 3 sources — checking they agree…
+Composing a cited answer…
+```
+**answer_cited → no evidence:**
+```
+Resolving your access…
+Searching sources…                    detail: "1,240 in scope"
+No permitted source supports this — checking for anything adjacent…
+→ honest answer streams ("I don't have evidence for that…")
+```
+The honesty state must feel like **diligence, not failure** — the steps show it *worked hard* and is being straight. Same for a block: "Resolving your access… → this touches Finance-DE confidential → you're not cleared" reads as *protection*, not obstruction.
+
+**generate_document (the ~90s hero):** here step-streaming becomes the star — the Superflow's nodes emit steps in real time:
+```
+Resolving your access & audience…
+Gathering evidence…                   detail: "Q1 results · T&G plan"
+Generating charts from the data…
+Composing on brand…                   detail: "committee template · executive tone"
+Brand Guardian: checking every claim is cited…
+2 claims need a source — revising…    (the real retry loop, shown honestly)
+Ready for your review.
+```
+
+### 3.4 Pacing & honesty rules
+- **Every step maps to a real tool call or Superflow node.** Never fake a step; never fake a delay. If something is instant, don't invent a pause.
+- Steps appear as they *start* (`running`), flip to `done` (a check) when complete. Typical step 0.3–1.5s; the whole Ask pre-answer phase ~1–3s.
+- The **answer streams after** the steps; **chips settle last**.
+- On error, the failing step goes `blocked`/`status:error` with a plain reason — the stream never dies silently.
+- Keep it to ~4 steps for Ask (more feels busy); Generate can show more because the pipeline genuinely has more.
+
+### 3.5 UI rendering guidance
+A compact vertical step list above the answer: present-continuous label, a quiet gray detail, a spinner→check state. When the answer starts streaming, the step list collapses to a single "Done · 4 steps" line the user can expand (keeps the transcript clean, keeps the audit legible). Evidence dots on figures fade in once, after the token they annotate. No decorative motion beyond this.
+
+---
+
+## PART 4 — The tool interface (full contracts)
+
+All tools receive the resolved `scope` implicitly and must honor it. Names bind to the repo's adapters (see `agent.yaml`).
+
+```
+retrieve(query, scope, k?, modes?) -> {
+  chunks: [{ id, text, source, location, version, owner, validity,
+             confidentiality, axes[], score }],
+  coverage: float }                 # idf/coverage — repo's COVERAGE_MIN gate
+graph(entity|query, scope) -> { nodes[], edges[], axes[] }
+numeric(nl_query, scope) -> { rows[], sources[] }   # FAIL-CLOSED on inaccessible source doc
+tokenize(text) -> { terms[], idf{} }                # relevance support
+invoke_superflow(name, input, mode) -> { run_id, stream?|queued }
+memory(op, key?, value?, scope) -> {...}            # per-user; never widens access
+wiki(op:"query"|"read"|"compile", args) -> {...}    # the LLM Wiki
+read(path) -> string                                # lazy-load a skill body
+```
+
+Contract rules: `retrieve`/`numeric`/`graph` apply the scope filter **before** returning; a chunk the persona can't see is never in the result. `numeric` returns nothing (not zero) when the backing document is inaccessible — fail-closed, matching the repo.
+
+---
+
+## PART 5 — The complete skill roster
+
+One agent, these skills. Each is a runbook: trigger, procedure, tools, output contract, failure rule, and its streaming steps. `answer_cited` and `generate_document` are speced in full in the repo's `skills/`; here is the complete set with the deltas that matter.
+
+### 5.1 `answer_cited` — the core (Ask)
+*(full body in skills/answer_cited.md)* Cited Q&A with the five honest states. Steps: resolve → search → corroborate → compose. **The default skill; most turns are this.**
+
+### 5.2 `generate_document` — bridge to the doc-gen Superflow
+*(full body in skills/generate_document.md)* Resolve params → validate → `invoke_superflow("document-generation")` → stream node steps → return to Canvas. Never composes the final doc itself; never bypasses the approval gate.
+
+### 5.3 `track_goal` — KPIs & "why is X moving?"
+- **Trigger:** a KPI/objective/target question, or the embedded KPI-panel chat.
+- **Procedure:** resolve scope → `numeric` for the metric + target + trend → `graph`/`retrieve` for the *drivers* (the mentions/events behind a move) → compose a cited explanation → offer "generate KPI report" (→ `generate_document`, one-off).
+- **Output:** `{ metric, value, target, status, trend, drivers:[cited], axis }`.
+- **Failure rule:** if the metric's source is inaccessible, `permission_blocked` — never estimate a KPI.
+- **Steps:** "Reading the metric…" → "Finding what's driving it…" → "Composing a cited explanation…".
+
+### 5.4 `plan_calendar` — Planning & conflicts
+- **Trigger:** "what's scheduled / any conflicts / forecast the next N days".
+- **Procedure:** resolve scope → `graph` over the unified calendar (events + dependencies) → deterministic conflict/gap check → `retrieve` external signals for timing risk → compose; a *forecast document* hands to `generate_document`.
+- **Output:** `{ events[], conflicts[], suggestions[], forecast? }`.
+- **Steps:** "Reading the calendar…" → "Checking for conflicts…" → "Cross-referencing market signals…".
+
+### 5.5 `wiki_query` — reason over the compiled memory
+- **Trigger:** "what do we know / what's our position on X", or any question better served by compiled truth than raw retrieval.
+- **Procedure:** `wiki("query", topic)` → return the compiled page's cited position, resolved facts, and `[[links]]`; if the wiki is thin, fall back to `answer_cited`.
+- **Why separate:** the wiki is *crystallized* knowledge — faster, synthesized, relationship-aware. It is the differentiator surface.
+- **Failure rule:** the wiki is never the load-bearing path for the hero citation demo — if a page is stale/absent, defer to `answer_cited` on the live corpus.
+
+### 5.6 `wiki_compile` — make corrections compound
+- **Trigger:** a documentalist validates a fact or resolves a conflict (from the Data Center), OR `resolve_conflict` completes.
+- **Procedure:** `wiki("compile", {topic, resolved_fact, sources, decided_by})` → update/create the page, add to the change-log, link entities. Emits the subtle "page refined" event the Wiki UI shows.
+- **Output:** `{ page, version, log_entry }`.
+- **This is the moat, operationalized** — every human correction makes tomorrow's answer better.
+
+### 5.7 `resolve_conflict` — the conflict → resolution loop
+- **Trigger:** `answer_cited`/`track_goal` returned `conflict`, and the user (documentalist) chooses to resolve.
+- **Procedure:** present both cited sources → capture the human decision (which is truth, which becomes historic) → `wiki_compile` the resolution → mark the loser `historic`.
+- **Output:** `{ resolved_fact, historic_ref, wiki_page }`.
+
+### 5.8 `recall_history` — resume prior work
+- **Trigger:** "continue yesterday / what were we doing".
+- **Procedure:** `memory("recall", user)` → restore thread + filters; re-resolve permissions; re-cite. Never grants access a fresh query wouldn't.
+
+---
+
+## PART 6 — All the prompts
+
+Real, usable prompt text. Slots in `{{ }}`.
+
+### 6.1 System-prompt template (assembled every turn)
+```
+{{SOUL.md}}
+
+# Operating rules (non-negotiable)
+{{RULES.md}}
+
+# What you know (stable)
+{{knowledge.always_load}}
+
+# Skills available — read a skill's body before using it
+{{SKILLS.md catalog}}
+
+# This turn
+You are in: {{page}}.
+The person's access scope: area={{scope.area}}, clearance={{scope.clearance}}.
+Only evidence within this scope has been or will be retrieved for you.
+Respond in {{language}}. Follow the citation and honesty contract exactly.
+```
+
+### 6.2 Retrieval-planning prompt (fragment, inside answer_cited)
+```
+Decide which sources to consult for the question below. Choose any of:
+- documents (semantic search)     → for "what did we say / find / summarize"
+- graph (entities & relationships)→ for "who owns / which axis / how related"
+- numbers (curated figures)       → for "how much / the figure / vs target"
+Return a compact plan: {tools:[...], why:"one line"}. Do not answer yet.
+Question: {{message}}
+```
+
+### 6.3 State-decision (deterministic-first; LLM only adjudicates conflict)
+State is decided in **code** wherever possible (matches the repo):
+```
+if retrieved.coverage < COVERAGE_MIN and no adjacent: state = no_evidence
+elif question answerable only from a chunk above clearance: state = permission_blocked
+elif best source.validity == historic and no current series: state = historic
+elif two permitted chunks assert different values for the same fact: state = conflict
+else: state = answer
+```
+Only the conflict test may call the model, with this prompt:
+```
+Do these two sources state DIFFERENT values for the SAME fact, or are they about
+different things? Answer strictly: {"conflict": true|false, "fact": "..."}.
+A: {{chunkA}}
+B: {{chunkB}}
+```
+
+### 6.4 Compose-cited-answer prompt (answer state)
+```
+Write the answer to the question using ONLY the sources below. Rules:
+- One or two sentences. No preamble, no restating the question.
+- Attach a marker [S1], [S2]… to every figure and factual claim, mapping to the
+  sources used. Never state a figure without a marker.
+- If a claim isn't supported by a listed source, do not make it.
+- End by naming the single most relevant Transform & Grow axis.
+- Plain, active, calm. No emojis. Language: {{language}}.
+
+Question: {{message}}
+Sources:
+{{#each chunks}}[S{{i}}] {{text}}  (source: {{source}} · {{location}} · v{{version}} · {{owner}} · valid {{validity}}){{/each}}
+```
+Post-process (code): renumber `[Sn]` contiguously, drop any marker with no matching chunk, attach chips from chunk metadata.
+
+### 6.5 No-evidence / block phrasings (templated, not model-freeformed)
+```
+no_evidence:        "I don't have evidence for that.{{#if adjacent}} The closest I have is {{adjacent.summary}} [S1].{{/if}}"
+permission_blocked: "There are relevant sources you don't have access to ({{owner_area}} · {{level}}). Request access from the owner."
+historic:           "{{value}} [S1] — but this is {{year}} (historic).{{#if current}} A current series is available — want that?{{/if}}"
+```
+
+### 6.6 Classification prompt (ingestion — semantic + strategic layers)
+```
+Classify this passage. Return strict JSON:
+{ "topics": [..], "entities": [..],
+  "axes": [ from: {{the 5 axes}} ],   // multi-label; [] if none clearly apply
+  "confidence": 0..1 }
+Do not invent axes. If unsure, lower the confidence — it will route to human review.
+Passage: {{chunk}}
+```
+
+### 6.7 On-brand composition prompt (used INSIDE the doc-gen Superflow Composer node)
+```
+Compose the {{doc_type}} for a {{audience}} audience in {{language}}, using the
+corporate template structure provided and ONLY the cited evidence provided.
+- Fill each template slot. Do NOT invent figures — every number comes from the evidence, with its marker.
+- Tone: {{tone_for_audience}}.
+- For internal messaging docs, include spokesperson notes: likely tough questions AND an explicit "what not to say".
+- If audience=external, use only public/approved evidence (already filtered upstream).
+Template: {{template}}
+Evidence: {{evidence_with_markers}}
+```
+
+---
+
+## PART 7 — A worked example (assembled prompt + stream)
+
+**User (Comms, cleared to `private`, page=Ask, ES):** "¿Qué ingresos defendemos para el Q1 2026?"
+
+Stream:
+```
+step  Resolviendo tu acceso…                         done
+step  Buscando en las fuentes…   "1.240 en alcance"  done
+step  3 fuentes coinciden — comprobando…             done
+step  Redactando respuesta citada…                   running
+token Defendemos 8.127 M€ de ingresos en el Q1 2026…
+citations  [{ "€8.127M", "Results_Q1_2026 › s4", "vFinal", "IR", "14 May", 0.94 }]
+```
+Behind it: scope resolved → `retrieve` (filter applied) returned 3 corroborating chunks, coverage above bar → state=answer → compose prompt (6.4) → renumber → chips → trace written.
+
+---
+
+## PART 8 — Repo wiring (summary)
+Implement Part 2's loop in TS (Option B) inside `agent/askAgent.ts`: load the files, assemble Part 6.1, expose Part 4 tools = existing adapters, stream Part 3 events over the existing SSE. `answer_cited` *is* today's Ask flow, formalized. Everything else is additive. Nothing about the adapters or the working retrieval changes.
