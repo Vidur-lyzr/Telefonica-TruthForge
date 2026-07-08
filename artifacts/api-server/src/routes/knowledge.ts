@@ -21,6 +21,12 @@ function roleIdParam(value: unknown): string | undefined {
 
 const AREAS: readonly Area[] = ["Comunicación", "Marca", "Gabinete"];
 
+// Reverse index of version lineage: docId -> id of the newer doc that replaces it.
+const SUPERSEDED_BY = new Map<string, string>();
+for (const d of DOCS) {
+  if (d.supersedes) SUPERSEDED_BY.set(d.supersedes, d.id);
+}
+
 function areaParam(value: unknown): Area | undefined {
   return typeof value === "string" && (AREAS as readonly string[]).includes(value)
     ? (value as Area)
@@ -62,6 +68,9 @@ router.get("/documents", (_req, res) => {
     frequency: d.frequency ?? null,
     version: d.version ?? null,
     ingestFilter: d.ingestFilter ?? null,
+    supersedes: d.supersedes ?? null,
+    supersededBy: SUPERSEDED_BY.get(d.id) ?? null,
+    lineageSourceDocIds: d.lineageSourceDocIds ?? [],
   }));
   res.json(ListDocumentsResponse.parse(items));
 });
@@ -118,6 +127,9 @@ router.get("/documents/:id", (req, res) => {
       frequency: doc.frequency ?? null,
       version: doc.version ?? null,
       ingestFilter: doc.ingestFilter ?? null,
+      supersedes: doc.supersedes ?? null,
+      supersededBy: SUPERSEDED_BY.get(doc.id) ?? null,
+      lineageSourceDocIds: doc.lineageSourceDocIds ?? [],
     },
     chunks: doc.chunks.map((c) => ({
       id: c.id,

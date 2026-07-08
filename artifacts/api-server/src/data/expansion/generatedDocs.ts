@@ -27,6 +27,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "~48h",
     version: "v2 · 2026-06-30",
+    lineageSourceDocIds: ["doc-mwc-2026-keynote", "doc-a-talking-points-network-es-2026", "doc-b-sector-es-fibra"],
     summary:
       "Versión anterior de los puntos de discurso sobre liderazgo en redes. Sustituida por la v3: la cifra de cobertura de fibra ha quedado desactualizada.",
     assertions: [{ metric: "fibre-coverage-spain", period: "Q2 2026", value: "29,4M hogares" }],
@@ -59,6 +60,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "~48h",
     version: "v3 · 2026-07-06",
+    supersedes: "doc-e-tp-networks-v2",
+    lineageSourceDocIds: ["doc-mwc-2026-keynote", "doc-a-talking-points-network-es-2026", "doc-b-sector-es-fibra"],
     summary:
       "Puntos de discurso vigentes sobre liderazgo en redes. Actualizan la cifra de cobertura de fibra y añaden el argumentario de 5G standalone.",
     assertions: [{ metric: "fibre-coverage-spain", period: "Q3 2026", value: "29,8M hogares" }],
@@ -98,6 +101,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "~48h",
     version: "v2 · 2026-06-29",
+    lineageSourceDocIds: ["doc-a-research-b2b-tech-2026", "doc-b-sector-en-b2b-tech", "doc-q1-2026-results"],
     summary:
       "Previous B2B talking points. Superseded by v3 after the enterprise growth figure was restated in the current reporting cycle.",
     assertions: [{ metric: "tech-revenue-growth", period: "Q2 2026", value: "11% YoY" }],
@@ -130,6 +134,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "~48h",
     version: "v3 · 2026-07-06",
+    supersedes: "doc-e-tp-b2b-v2",
+    lineageSourceDocIds: ["doc-a-research-b2b-tech-2026", "doc-b-sector-en-b2b-tech", "doc-q1-2026-results"],
     summary:
       "Current, approved B2B talking points. Restate the double-digit Telefónica Tech growth line and add the cloud and IoT proof points.",
     assertions: [{ metric: "tech-revenue-growth", period: "Q3 2026", value: "12% YoY" }],
@@ -168,6 +174,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "~48h",
     version: "v3 · 2026-07-06",
+    lineageSourceDocIds: ["doc-sustainability-2025", "doc-a-talking-points-sustainability-2026", "doc-b-social-de-campaign-positive"],
     summary:
       "Aktuelle Sprechpunkte zu verantwortungsvollem Wachstum für O2 Deutschland, inklusive Netto-Null-Fahrplan und Kreislaufwirtschaft.",
     chunks: [
@@ -201,6 +208,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "ad hoc",
     version: "v1 · 2026-07-08",
+    lineageSourceDocIds: ["doc-a-talking-points-network-es-2026", "doc-b-sector-es-fibra", "doc-a-asana-milestones-q3-2026"],
     summary:
       "Borrador de nota de prensa en revisión editorial sobre la ampliación de fibra en zonas rurales. Pendiente de aprobación por Media Relations.",
     chunks: [
@@ -238,6 +246,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "ad hoc",
     version: "v2 · 2026-07-07",
+    lineageSourceDocIds: ["doc-a-research-b2b-tech-2026", "doc-b-sector-en-b2b-tech", "doc-q1-2026-results"],
     summary:
       "Approved press release announcing a multi-cloud managed services alliance under Telefónica Tech to serve European enterprise customers.",
     chunks: [
@@ -275,6 +284,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "ad hoc",
     version: "v1 · 2026-07-09",
+    lineageSourceDocIds: ["doc-a-milestones-vivo-br-q3-2026", "doc-a-results-brazil-q1-2026", "doc-b-press-pt-anatel"],
     summary:
       "Rascunho de comunicado à imprensa em revisão sobre a expansão da rede 5G da Vivo para novas capitais brasileiras.",
     chunks: [
@@ -306,6 +316,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "ad hoc",
     version: "v2 · 2026-07-05",
+    lineageSourceDocIds: ["doc-a-milestones-o2-de-q3-2026", "doc-b-press-en-de-market", "doc-a-talking-points-sprechzettel-de-2026"],
     summary:
       "Freigegebene Pressemitteilung zum O2-Netzausbau 2026 mit erreichter 5G-Bevölkerungsabdeckung in Deutschland.",
     chunks: [
@@ -327,7 +338,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   // ── Q&A packs (4) ───────────────────────────────────────────────────
   {
     id: "doc-e-qa-results-day",
-    title: "Q&A Pack — Results Day (Confidential)",
+    lineageSourceDocIds: ["doc-q1-2026-results", "doc-q1-2026-ir-factsheet", "doc-b-press-es-resultados"],
+    title: "Pack de preguntas y respuestas — Día de resultados (confidencial)",
     country: "Group",
     brand: "Telefónica",
     entity: "Telefónica, S.A.",
@@ -337,8 +349,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Comms Hub / SSoT",
     validity: "approved",
     validUntil: "2026-07-28",
-    language: "en",
-    topics: ["results", "q&a", "hard questions", "analysts", "dividend", "guidance", "preguntas"],
+    language: "es",
+    topics: ["resultados", "results", "preguntas y respuestas", "q&a", "preguntas difíciles", "hard questions", "analistas", "analysts", "dividendo", "dividend", "guidance"],
     axisIds: ["ax-core"],
     areas: ["Comunicación", "Gabinete"],
     sourceFormat: "SSoT generated",
@@ -346,20 +358,20 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     frequency: "ad hoc",
     version: "v3 · 2026-07-06",
     summary:
-      "Confidential results-day Q&A pack: anticipated hard analyst questions with approved holding answers. Not for distribution before the results call.",
+      "Pack confidencial de preguntas y respuestas para el día de resultados: preguntas difíciles previstas de analistas con respuestas aprobadas de contención. No difundir antes de la llamada de resultados.",
     assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€8,127M" }],
     chunks: [
       {
         id: "doc-e-qa-results-day#1",
-        heading: "Hard question — margin",
-        breadcrumb: "Results Day Q&A › Hard questions › margin",
-        text: "Q: Is margin pressure sustainable given competition? Approved answer: reaffirm the stable adjusted EBITDA margin trajectory and the €8,127M Q1 2026 revenue reference, and decline to comment on unpublished quarterly detail. This pack is confidential and embargoed until the results call.",
+        heading: "Pregunta difícil — margen",
+        breadcrumb: "Q&A Día de resultados › Preguntas difíciles › margen",
+        text: "P: ¿Es sostenible la presión sobre el margen dada la competencia? Respuesta aprobada: reafirmar la trayectoria estable del margen de EBITDA ajustado y la referencia de ingresos de 8.127 M€ del primer trimestre de 2026, y no comentar el detalle trimestral no publicado. Este pack es confidencial y está embargado hasta la llamada de resultados.",
       },
       {
         id: "doc-e-qa-results-day#2",
-        heading: "Hard question — dividend",
-        breadcrumb: "Results Day Q&A › Hard questions › dividend",
-        text: "Q: Will the dividend be maintained? Approved answer: point to the Board's stated commitment supported by free cash flow generation, without pre-announcing any decision. Escalate any probing on future policy to Investor Relations.",
+        heading: "Pregunta difícil — dividendo",
+        breadcrumb: "Q&A Día de resultados › Preguntas difíciles › dividendo",
+        text: "P: ¿Se mantendrá el dividendo? Respuesta aprobada: remitir al compromiso declarado por el Consejo, respaldado por la generación de flujo de caja libre, sin anticipar ninguna decisión. Escalar a Relación con Inversores cualquier pregunta sobre la política futura.",
       },
     ],
   },
@@ -383,6 +395,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "ad hoc",
     version: "v2 · 2026-07-04",
+    lineageSourceDocIds: ["doc-hispam-exit", "doc-b-press-en-ma-rumour"],
     summary:
       "Pack de preguntas difíciles y respuestas aprobadas sobre la reducción de la huella en Hispanoamérica, con la aclaración de que Brasil no está afectado.",
     chunks: [
@@ -414,6 +427,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "ad hoc",
     version: "v1 · 2026-07-08",
+    lineageSourceDocIds: ["doc-b-legis-eu-ai-act", "doc-mwc-2026-keynote"],
     summary:
       "Draft Q&A pack in review covering hard questions on AI ethics, automation and jobs, aligned with the digital-rights commitments.",
     chunks: [
@@ -445,6 +459,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "ad hoc",
     version: "v2 · 2026-07-05",
+    lineageSourceDocIds: ["doc-q1-2026-results", "doc-q1-2026-ir-factsheet", "doc-b-press-es-resultados"],
     summary:
       "Pack de preguntas y respuestas aprobado sobre la política de dividendo, con respuestas defensivas basadas en la generación de flujo de caja libre.",
     chunks: [
@@ -478,6 +493,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "quarterly",
     version: "v3 · 2026-07-06",
+    lineageSourceDocIds: ["doc-b-social-es-campaign-praise", "doc-a-research-market-spain-2026", "doc-b-sic-es-tendencias"],
     summary:
       "Informe de rendimiento de marketing generado por el SSoT (salida de la PoC RFI): consolida métricas de campañas, ROI y notoriedad de marca del segundo trimestre.",
     assertions: [{ metric: "brand-awareness-spain", period: "Q2 2026", value: "78%" }],
@@ -498,7 +514,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-report-compliance-check",
-    title: "Compliance Check Report — Communications Governance Q2 2026",
+    lineageSourceDocIds: ["doc-b-legis-eu-ai-act", "doc-sic-regulatorio-q2", "doc-q1-2026-results"],
+    title: "Informe de verificación de cumplimiento — Gobernanza de comunicación Q2 2026",
     country: "Group",
     brand: "Telefónica",
     entity: "Telefónica, S.A.",
@@ -508,8 +525,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Comms Hub / SSoT",
     validity: "approved",
     validUntil: "2026-10-31",
-    language: "en",
-    topics: ["compliance", "governance", "audit", "disclaimers", "regulatory", "report", "cumplimiento"],
+    language: "es",
+    topics: ["cumplimiento", "compliance", "gobernanza", "governance", "auditoría", "audit", "avisos legales", "disclaimers", "regulatorio", "regulatory", "informe", "report"],
     axisIds: ["ax-sustainability", "ax-core"],
     areas: ["Comunicación", "Gabinete"],
     sourceFormat: "SSoT generated",
@@ -517,19 +534,19 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     frequency: "quarterly",
     version: "v3 · 2026-07-06",
     summary:
-      "SSoT-generated compliance check report (RFI PoC output) reviewing outbound communications for disclaimers, claim substantiation and confidentiality handling.",
+      "Informe de verificación de cumplimiento generado por el SSoT (salida de la PoC RFI) que revisa las comunicaciones externas en materia de avisos legales, sustanciación de afirmaciones y tratamiento de la confidencialidad.",
     chunks: [
       {
         id: "doc-e-report-compliance-check#1",
-        heading: "Findings",
-        breadcrumb: "Compliance Check Report › Findings › summary",
-        text: "Of 214 outbound communications reviewed in the second quarter of 2026, 97% carried the required disclaimers and 100% of financial claims traced to an approved source. Three drafts were held for missing substantiation and returned to editorial review.",
+        heading: "Hallazgos",
+        breadcrumb: "Informe de verificación de cumplimiento › Hallazgos › resumen",
+        text: "De las 214 comunicaciones externas revisadas en el segundo trimestre de 2026, el 97% incluía los avisos legales requeridos y el 100% de las afirmaciones financieras remitía a una fuente aprobada. Se retuvieron tres borradores por falta de sustanciación y se devolvieron a revisión editorial.",
       },
       {
         id: "doc-e-report-compliance-check#2",
-        heading: "Recommendations",
-        breadcrumb: "Compliance Check Report › Recommendations",
-        text: "Reinforce the pre-publication check for competitor comparisons and ensure superseded talking points are withdrawn within 48 hours. Regulatory Affairs should sign off on the updated disclaimer library before the next results cycle.",
+        heading: "Recomendaciones",
+        breadcrumb: "Informe de verificación de cumplimiento › Recomendaciones",
+        text: "Reforzar la verificación previa a la publicación de las comparaciones con la competencia y asegurar que los puntos de discurso sustituidos se retiran en un plazo de 48 horas. Regulatory Affairs debe validar la biblioteca de avisos legales actualizada antes del próximo ciclo de resultados.",
       },
     ],
   },
@@ -553,6 +570,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "periodic",
     version: "v2 · 2026-07-07",
+    lineageSourceDocIds: ["doc-b-social-group-neutral", "doc-b-sic-en-brand-index", "doc-b-press-en-results-clipping"],
     summary:
       "Dossier ejecutivo de medios para la alta dirección: síntesis de cobertura, sentimiento y temas emergentes del trimestre, con recomendaciones de portavocía.",
     chunks: [
@@ -590,6 +608,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "quarterly",
     version: "v1 · 2026-07-08",
+    lineageSourceDocIds: ["doc-b-comp-deutsche-telekom", "doc-b-sector-de-mobilfunk", "doc-b-social-de-o2-mixed"],
     summary:
       "SSoT-generierter Wettbewerbsbericht zum deutschen Markt (in Prüfung): Marktanteile, Netzvergleiche und Positionierung von O2 gegenüber Deutsche Telekom und Vodafone.",
     chunks: [
@@ -621,6 +640,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "quarterly",
     version: "v2 · 2026-07-06",
+    lineageSourceDocIds: ["doc-a-research-pesquisa-br-2026", "doc-b-social-br-vivo-negative", "doc-a-cx-complaints-q1-2026"],
     summary:
       "Dossiê de saúde da marca gerado pelo SSoT para a Vivo: indicadores de reputação, consideração e recomendação no segundo trimestre.",
     assertions: [{ metric: "group-nps", period: "Q2 2026", value: "42" }],
@@ -655,6 +675,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "weekly",
     version: "v3 · 2026-07-06",
+    lineageSourceDocIds: ["doc-a-cx-nps-q1-2026", "doc-b-social-group-neutral"],
     summary:
       "Resumen semanal de KPIs de la semana 27: evolución de NPS de grupo, cuota de voz en medios y avance de objetivos estratégicos.",
     assertions: [{ metric: "group-nps", period: "Q2 2026", value: "42" }],
@@ -669,7 +690,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-kpi-digest-w28",
-    title: "Weekly KPI Digest — Week 28 (2026)",
+    lineageSourceDocIds: ["doc-a-cx-nps-q1-2026", "doc-b-sic-en-brand-index", "doc-b-social-group-neutral"],
+    title: "Resumen semanal de KPIs — Semana 28 (2026)",
     country: "Group",
     brand: "Telefónica",
     entity: "Telefónica, S.A.",
@@ -679,8 +701,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Comms Hub / SSoT",
     validity: "approved",
     validUntil: "2026-07-27",
-    language: "en",
-    topics: ["kpi", "metrics", "nps", "share of voice", "weekly", "objectives", "tracking"],
+    language: "es",
+    topics: ["kpi", "métricas", "metrics", "nps", "cuota de voz", "share of voice", "semanal", "weekly", "objetivos", "objectives", "seguimiento", "tracking"],
     axisIds: ["ax-core", "ax-digital"],
     areas: ["Comunicación", "Gabinete"],
     sourceFormat: "SSoT generated",
@@ -688,14 +710,14 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     frequency: "weekly",
     version: "v3 · 2026-07-13",
     summary:
-      "Weekly KPI digest for week 28, corroborating the group NPS reading and tracking share of voice and objective progress.",
+      "Resumen semanal de KPIs de la semana 28, que corrobora la lectura del NPS de grupo y hace seguimiento de la cuota de voz y del avance de objetivos.",
     assertions: [{ metric: "group-nps", period: "Q2 2026", value: "42" }],
     chunks: [
       {
         id: "doc-e-kpi-digest-w28#1",
-        heading: "Group NPS",
-        breadcrumb: "Weekly KPI Digest W28 › Group NPS",
-        text: "Group NPS held at 42 points for the second quarter of 2026, confirming the prior week's reading. Share of voice in media eased slightly to 30% as the news cycle normalised after the network announcements.",
+        heading: "NPS de grupo",
+        breadcrumb: "Resumen KPIs S28 › NPS de grupo",
+        text: "El NPS de grupo se mantuvo en 42 puntos en el segundo trimestre de 2026, confirmando la lectura de la semana anterior. La cuota de voz en medios bajó ligeramente al 30% a medida que el ciclo informativo se normalizó tras los anuncios de red.",
       },
     ],
   },
@@ -719,6 +741,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "weekly",
     version: "v3 · 2026-07-13",
+    lineageSourceDocIds: ["doc-a-research-b2b-tech-2026", "doc-b-sector-en-b2b-tech"],
     summary:
       "Seguimiento semanal del objetivo de crecimiento B2B, con el avance de Telefónica Tech frente a la meta anual del axis Escalar B2B y Tech.",
     assertions: [{ metric: "tech-revenue-growth", period: "Q3 2026", value: "12% YoY" }],
@@ -751,6 +774,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "weekly",
     version: "v3 · 2026-07-13",
+    lineageSourceDocIds: ["doc-a-cx-nps-q1-2026", "doc-b-social-group-neutral"],
     summary:
       "Objective tracker for the customer experience NPS goal, reusing the group NPS metric to show cross-source corroboration.",
     assertions: [{ metric: "group-nps", period: "Q2 2026", value: "42" }],
@@ -785,6 +809,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "daily",
     version: "v3 · 2026-07-08",
+    lineageSourceDocIds: ["doc-a-asana-milestones-q3-2026", "doc-a-milestones-group-2026"],
     summary:
       "Previsión de comunicación a 10 días con los próximos hitos, ventanas de publicación y notas de riesgo para la coordinación editorial.",
     chunks: [
@@ -804,7 +829,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-cal-editorial-q3",
-    title: "Editorial Calendar — Q3 2026 Communications Plan",
+    lineageSourceDocIds: ["doc-a-asana-milestones-q3-2026", "doc-a-milestones-group-2026", "doc-b-social-es-campaign-praise"],
+    title: "Calendario editorial — Plan de comunicación Q3 2026",
     country: "Group",
     brand: "Telefónica",
     entity: "Telefónica, S.A.",
@@ -814,8 +840,8 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Comms Hub / SSoT",
     validity: "approved",
     validUntil: "2026-09-30",
-    language: "en",
-    topics: ["calendar", "editorial", "planning", "content", "campaigns", "milestones", "schedule"],
+    language: "es",
+    topics: ["calendario", "calendar", "editorial", "planificación", "planning", "contenidos", "content", "campañas", "campaigns", "hitos", "milestones", "cronograma", "schedule"],
     axisIds: ["ax-core", "ax-digital"],
     areas: ["Comunicación", "Marca"],
     sourceFormat: "SSoT generated",
@@ -823,13 +849,13 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     frequency: "weekly",
     version: "v2 · 2026-07-05",
     summary:
-      "Editorial calendar for the third quarter, mapping content themes, publication windows and owners across markets.",
+      "Calendario editorial del tercer trimestre, que ordena los ejes de contenido, las ventanas de publicación y los responsables en los distintos mercados.",
     chunks: [
       {
         id: "doc-e-cal-editorial-q3#1",
-        heading: "Theme cadence",
-        breadcrumb: "Editorial Calendar Q3 › Theme cadence",
-        text: "The quarter opens with network leadership content in July, moves to B2B and cloud proof points in August, and closes with sustainability storytelling in September. Each theme has a designated owner and an approved talking points version.",
+        heading: "Cadencia de ejes",
+        breadcrumb: "Calendario editorial Q3 › Cadencia de ejes",
+        text: "El trimestre arranca en julio con contenidos de liderazgo en redes, avanza en agosto hacia pruebas de valor de B2B y cloud, y cierra en septiembre con el relato de sostenibilidad. Cada eje tiene un responsable designado y una versión aprobada de puntos de discurso.",
       },
     ],
   },
@@ -853,6 +879,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
     connector: "SSoT generator",
     frequency: "periodic",
     version: "v1 · 2026-07-09",
+    lineageSourceDocIds: ["doc-a-asana-milestones-q3-2026", "doc-b-social-es-campaign-praise"],
     summary:
       "Plan de campañas en revisión para la convergencia de Movistar en el tercer trimestre, con fases, canales y ventanas de emisión.",
     chunks: [

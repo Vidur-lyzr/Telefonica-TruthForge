@@ -581,6 +581,18 @@ export interface CorpusDocument {
   version?: string | null;
   /** Present only on external docs — what the pre-ingest filter matched */
   ingestFilter?: IngestFilter | null;
+  /**
+     * Id of the older document this version replaces (version lineage)
+     * @nullable
+     */
+  supersedes?: string | null;
+  /**
+     * Id of the newer document that replaces this one (derived)
+     * @nullable
+     */
+  supersededBy?: string | null;
+  /** For SSoT-generated docs — the governed source docs this output was generated from */
+  lineageSourceDocIds?: string[];
 }
 
 export interface DocumentChunk {

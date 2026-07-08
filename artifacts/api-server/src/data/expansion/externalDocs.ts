@@ -242,7 +242,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-social-group-neutral",
-    title: "Social listening Group — Cross-market mention digest",
+    title: "Escucha social de grupo — Resumen de menciones entre mercados",
     country: "Group",
     brand: "Telefónica",
     entity: "Telefónica, S.A.",
@@ -252,15 +252,15 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Social Media Team",
     validity: "approved",
     validUntil: "2026-04-30",
-    language: "en",
-    topics: ["social listening", "mentions", "group", "share of voice", "sentiment", "reputation"],
+    language: "es",
+    topics: ["escucha social", "social listening", "menciones", "mentions", "grupo", "group", "cuota de voz", "share of voice", "sentimiento", "sentiment", "reputación", "reputation"],
     axisIds: ["ax-core"],
     areas: ["Comunicación"],
     sourceFormat: "API feed",
     connector: "Social listening stream (simulated)",
     frequency: "near-real-time",
     summary:
-      "Cross-market group digest aggregating mention volume and share of voice across Spain, Germany, UK and Brazil with broadly neutral sentiment.",
+      "Resumen de grupo entre mercados que agrega el volumen de menciones y la cuota de voz en España, Alemania, Reino Unido y Brasil, con un sentimiento en conjunto neutral.",
     ingestFilter: {
       keywords: ["Telefónica", "Movistar", "O2", "Vivo"],
       competitors: ["Vodafone", "Orange", "Deutsche Telekom", "Claro"],
@@ -271,9 +271,9 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     chunks: [
       {
         id: "doc-b-social-group-neutral#1",
-        heading: "Share of voice",
-        breadcrumb: "Social listening Group › Week 2-8 Mar 2026 › Overview",
-        text: "Across the four core markets Telefónica brands captured 61,200 mentions in the week of 2-8 March 2026, giving a 27% share of voice against Vodafone, Orange, Deutsche Telekom and Claro. Aggregate sentiment was neutral at 51% neutral, 26% positive and 23% negative.",
+        heading: "Cuota de voz",
+        breadcrumb: "Escucha social de grupo › Semana 2-8 mar 2026 › Panorama",
+        text: "En los cuatro mercados principales, las marcas de Telefónica reunieron 61.200 menciones en la semana del 2 al 8 de marzo de 2026, lo que supone una cuota de voz del 27% frente a Vodafone, Orange, Deutsche Telekom y Claro. El sentimiento agregado fue neutral: 51% neutral, 26% positivo y 23% negativo.",
       },
     ],
   },
@@ -431,7 +431,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ─── Key media / press (8) — manual/API, public (one restricted) ───
   {
     id: "doc-b-press-en-results-clipping",
-    title: "Press clipping — 'Telefónica edges up on convergence' (EN)",
+    title: "Recorte de prensa — 'Telefónica avanza gracias a la convergencia' (ES)",
     country: "Group",
     brand: "Telefónica",
     entity: "Telefónica, S.A.",
@@ -441,15 +441,15 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Media Relations",
     validity: "approved",
     validUntil: "2026-12-31",
-    language: "en",
-    topics: ["press clipping", "results", "revenue", "convergence", "analyst", "coverage"],
+    language: "es",
+    topics: ["recorte de prensa", "press clipping", "resultados", "results", "ingresos", "revenue", "convergencia", "convergence", "analistas", "analyst", "cobertura", "coverage"],
     axisIds: ["ax-core", "ax-b2b"],
     areas: ["Comunicación"],
     sourceFormat: "API feed",
     connector: "News API (simulated)",
     frequency: "continuous",
     summary:
-      "Simulated press clipping summarising trade-press reaction to the Q1 2026 results, quoting the €8,127M group revenue figure favourably.",
+      "Recorte de prensa simulado que resume la reacción de la prensa especializada a los resultados del Q1 2026, citando favorablemente la cifra de ingresos de grupo de 8.127 M€.",
     ingestFilter: {
       keywords: ["Telefónica", "results", "revenue", "Q1"],
       competitors: [],
@@ -460,9 +460,9 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     chunks: [
       {
         id: "doc-b-press-en-results-clipping#1",
-        heading: "Trade press reaction",
-        breadcrumb: "Press clipping › EuroTelco Daily › 24 Apr 2026",
-        text: "The fictional EuroTelco Daily reported on 24 April 2026 that Telefónica 'edged up on convergence', citing the reported group revenue of €8,127M for Q1 2026 as evidence that bundled fibre-mobile plans are holding value in the core markets. The piece quoted CFO Andreas Weller on disciplined cost control.",
+        heading: "Reacción de la prensa especializada",
+        breadcrumb: "Recorte de prensa › EuroTelco Daily › 24 abr 2026",
+        text: "El diario ficticio EuroTelco Daily publicó el 24 de abril de 2026 que Telefónica 'avanza gracias a la convergencia', citando los ingresos de grupo declarados de 8.127 M€ del primer trimestre de 2026 como prueba de que los paquetes de fibra y móvil mantienen su valor en los mercados principales. El artículo recogía declaraciones del director financiero Andreas Weller sobre una disciplina de costes rigurosa.",
       },
     ],
     assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€8,127M" }],
@@ -506,7 +506,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-press-en-ma-rumour",
-    title: "Press clipping — M&A rumour: Hispam consolidation talk (EN)",
+    title: "Recorte de prensa — Rumor de M&A: consolidación en Hispam (ES)",
     country: "Hispam",
     brand: "Telefónica",
     entity: "Telefónica, S.A.",
@@ -516,15 +516,15 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Corporate Development",
     validity: "review",
     validUntil: "2026-09-30",
-    language: "en",
-    topics: ["press clipping", "m&a", "merger", "rumour", "hispam", "consolidation", "divestment"],
+    language: "es",
+    topics: ["recorte de prensa", "press clipping", "m&a", "fusión", "merger", "rumor", "rumour", "hispam", "consolidación", "consolidation", "desinversión", "divestment"],
     axisIds: ["ax-core"],
     areas: ["Comunicación", "Gabinete"],
     sourceFormat: "API feed",
     connector: "News API (simulated)",
     frequency: "continuous",
     summary:
-      "Simulated clipping reporting unconfirmed market rumours of further Hispam consolidation. Flagged for review; treat as rumour, not company position.",
+      "Recorte simulado que recoge rumores de mercado no confirmados sobre una mayor consolidación en Hispam. Marcado para revisión; tratar como rumor, no como posición de la compañía.",
     ingestFilter: {
       keywords: ["Telefónica", "Hispam", "merger", "sale"],
       competitors: ["Claro"],
@@ -535,15 +535,15 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     chunks: [
       {
         id: "doc-b-press-en-ma-rumour#1",
-        heading: "Unconfirmed rumour",
-        breadcrumb: "Press clipping › Wire Markets (fictional) › 3 Jun 2026",
-        text: "The fictional Wire Markets service reported on 3 June 2026 that unnamed bankers were speculating about further Telefónica divestments in Spanish America, potentially involving a regional buyer. The company declined to comment and this remains an unconfirmed market rumour, not a stated position.",
+        heading: "Rumor no confirmado",
+        breadcrumb: "Recorte de prensa › Wire Markets (ficticio) › 3 jun 2026",
+        text: "El servicio ficticio Wire Markets informó el 3 de junio de 2026 de que banqueros no identificados especulaban con nuevas desinversiones de Telefónica en Hispanoamérica, que podrían implicar a un comprador regional. La compañía declinó hacer comentarios y esto sigue siendo un rumor de mercado no confirmado, no una posición declarada.",
       },
     ],
   },
   {
     id: "doc-b-press-en-de-market",
-    title: "Press clipping — German market: O2 network investment (EN)",
+    title: "Pressespiegel — Deutscher Markt: O2-Netzinvestition (DE)",
     country: "Germany",
     brand: "O2",
     entity: "Telefónica Germany GmbH & Co. OHG",
@@ -553,15 +553,15 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Media Relations",
     validity: "approved",
     validUntil: "2026-12-31",
-    language: "en",
-    topics: ["press clipping", "germany", "network", "investment", "5g", "coverage"],
+    language: "de",
+    topics: ["pressespiegel", "press clipping", "deutschland", "germany", "netz", "network", "investition", "investment", "5g", "abdeckung", "coverage"],
     axisIds: ["ax-networks"],
     areas: ["Comunicación"],
     sourceFormat: "API feed",
     connector: "News API (simulated)",
     frequency: "continuous",
     summary:
-      "English-language clipping covering O2 Germany's announced network investment plan and rural 5G expansion for 2026.",
+      "Deutschsprachiger Pressespiegel zum angekündigten Netzinvestitionsplan von O2 Deutschland und zum Ausbau von 5G in ländlichen Regionen für 2026.",
     ingestFilter: {
       keywords: ["O2", "Germany", "network investment", "5G"],
       competitors: ["Deutsche Telekom"],
@@ -572,9 +572,9 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     chunks: [
       {
         id: "doc-b-press-en-de-market#1",
-        heading: "Investment plan",
-        breadcrumb: "Press clipping › Continental Telecoms (fictional) › 6 Feb 2026",
-        text: "Fictional outlet Continental Telecoms reported on 6 February 2026 that O2 Germany, led by CEO Jonas Brandt, would add 1,600 new 5G sites in 2026 with a focus on rural coverage. Analysts framed the move as a direct response to Deutsche Telekom's coverage lead.",
+        heading: "Investitionsplan",
+        breadcrumb: "Pressespiegel › Continental Telecoms (fiktiv) › 6. Feb. 2026",
+        text: "Das fiktive Medium Continental Telecoms berichtete am 6. Februar 2026, dass O2 Deutschland unter CEO Jonas Brandt im Jahr 2026 1.600 neue 5G-Standorte errichten will, mit Schwerpunkt auf der Versorgung ländlicher Gebiete. Analysten werteten den Schritt als direkte Antwort auf den Abdeckungsvorsprung der Deutschen Telekom.",
       },
     ],
   },
@@ -731,7 +731,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ─── Competitor studies (5) — PDF/PPT, manual, ad hoc ───
   {
     id: "doc-b-comp-vodafone",
-    title: "Competitor study — Vodafone convergence positioning (EN)",
+    title: "Wettbewerbsanalyse — Konvergenzpositionierung von Vodafone (DE)",
     country: "Group",
     brand: "Telefónica",
     entity: "Telefónica, S.A.",
@@ -741,15 +741,15 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Corporate Development",
     validity: "approved",
     validUntil: "2026-12-31",
-    language: "en",
-    topics: ["competitor study", "vodafone", "convergence", "benchmark", "pricing", "market share"],
+    language: "de",
+    topics: ["wettbewerbsanalyse", "competitor study", "vodafone", "konvergenz", "convergence", "benchmark", "preisgestaltung", "pricing", "marktanteil", "market share"],
     axisIds: ["ax-core", "ax-b2b"],
     areas: ["Comunicación", "Gabinete"],
     sourceFormat: "PDF",
     connector: "Manual upload",
     frequency: "ad hoc",
     summary:
-      "Internal competitor study benchmarking Vodafone's convergence and B2B positioning across shared markets.",
+      "Interne Wettbewerbsanalyse zum Benchmarking der Konvergenz- und B2B-Positionierung von Vodafone in den gemeinsamen Märkten.",
     ingestFilter: {
       keywords: ["convergence", "B2B", "bundles", "market share"],
       competitors: ["Vodafone"],
@@ -760,15 +760,15 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     chunks: [
       {
         id: "doc-b-comp-vodafone#1",
-        heading: "Positioning",
-        breadcrumb: "Competitor study › Vodafone › Positioning",
-        text: "This internal study estimates Vodafone held roughly 19% convergent-bundle share across the markets analysed in Q1 2026, with a stronger B2B pipeline in enterprise connectivity than in cyber. The analysis is based on public filings and fictional modelling for illustration.",
+        heading: "Positionierung",
+        breadcrumb: "Wettbewerbsanalyse › Vodafone › Positionierung",
+        text: "Diese interne Analyse schätzt, dass Vodafone im ersten Quartal 2026 in den untersuchten Märkten rund 19% Anteil an Konvergenzbündeln hielt, mit einer stärkeren B2B-Pipeline in der Unternehmenskonnektivität als im Cyber-Bereich. Die Analyse beruht auf öffentlichen Unterlagen und fiktiver Modellierung zu Illustrationszwecken.",
       },
       {
         id: "doc-b-comp-vodafone#2",
-        heading: "Implications",
-        breadcrumb: "Competitor study › Vodafone › Implications",
-        text: "The study recommends defending convergence value in the core through loyalty rather than price, noting Vodafone's promotional intensity narrowed in the quarter.",
+        heading: "Implikationen",
+        breadcrumb: "Wettbewerbsanalyse › Vodafone › Implikationen",
+        text: "Die Analyse empfiehlt, den Konvergenzwert im Kerngeschäft über Kundenbindung statt über den Preis zu verteidigen, und stellt fest, dass die Aktionsintensität von Vodafone im Quartal nachließ.",
       },
     ],
   },
@@ -998,7 +998,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-sector-en-b2b-tech",
-    title: "Sector report — B2B and enterprise tech spend 2026 (EN)",
+    title: "Informe sectorial — Gasto en tecnología B2B y empresas 2026 (ES)",
     country: "Group",
     brand: "Telefónica",
     entity: "Telefónica, S.A.",
@@ -1008,15 +1008,15 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     owner: "Corporate Development",
     validity: "approved",
     validUntil: "2026-12-31",
-    language: "en",
-    topics: ["sector report", "b2b", "enterprise", "cloud", "cyber", "iot", "tech spend"],
+    language: "es",
+    topics: ["informe sectorial", "sector report", "b2b", "empresas", "enterprise", "cloud", "ciber", "cyber", "iot", "gasto en tecnología", "tech spend"],
     axisIds: ["ax-b2b", "ax-digital"],
     areas: ["Comunicación"],
     sourceFormat: "PDF",
     connector: "Manual upload",
     frequency: "ad hoc",
     summary:
-      "Sector report from fictional house Northgate Advisory forecasting enterprise ICT spend growth in cyber and cloud for 2026.",
+      "Informe sectorial de la casa ficticia Northgate Advisory que prevé el crecimiento del gasto empresarial en TIC en ciberseguridad y cloud para 2026.",
     ingestFilter: {
       keywords: ["enterprise", "cloud", "cyber", "IoT", "tech spend"],
       competitors: ["Deutsche Telekom", "Orange"],
@@ -1027,9 +1027,9 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
     chunks: [
       {
         id: "doc-b-sector-en-b2b-tech#1",
-        heading: "Enterprise spend",
-        breadcrumb: "Sector report › Northgate Advisory › Enterprise",
-        text: "Fictional advisory house Northgate Advisory forecasts European enterprise ICT spend to grow 6% in 2026, led by cybersecurity and hybrid cloud. The report highlights Telefónica Tech, Deutsche Telekom's T-Systems and Orange Business as the main integrated challengers.",
+        heading: "Gasto empresarial",
+        breadcrumb: "Informe sectorial › Northgate Advisory › Empresas",
+        text: "La casa de asesoramiento ficticia Northgate Advisory prevé que el gasto empresarial europeo en TIC crezca un 6% en 2026, impulsado por la ciberseguridad y el cloud híbrido. El informe destaca a Telefónica Tech, T-Systems de Deutsche Telekom y Orange Business como los principales retadores integrados.",
       },
     ],
   },

@@ -185,7 +185,10 @@ export const ListDocumentsResponseItem = zod.object({
   "executives": zod.array(zod.string()),
   "topics": zod.array(zod.string()),
   "sentiment": zod.enum(['positive', 'negative', 'mixed', 'neutral'])
-}).describe('Filter-before-ingest provenance for external sources (keywords \/ competitors \/ executives \/ topics, with a +\/- mention flag)'),zod.null()]).optional().describe('Present only on external docs — what the pre-ingest filter matched')
+}).describe('Filter-before-ingest provenance for external sources (keywords \/ competitors \/ executives \/ topics, with a +\/- mention flag)'),zod.null()]).optional().describe('Present only on external docs — what the pre-ingest filter matched'),
+  "supersedes": zod.string().nullish().describe('Id of the older document this version replaces (version lineage)'),
+  "supersededBy": zod.string().nullish().describe('Id of the newer document that replaces this one (derived)'),
+  "lineageSourceDocIds": zod.array(zod.string()).optional().describe('For SSoT-generated docs — the governed source docs this output was generated from')
 })
 export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
 
@@ -331,7 +334,10 @@ export const GetDocumentResponse = zod.object({
   "executives": zod.array(zod.string()),
   "topics": zod.array(zod.string()),
   "sentiment": zod.enum(['positive', 'negative', 'mixed', 'neutral'])
-}).describe('Filter-before-ingest provenance for external sources (keywords \/ competitors \/ executives \/ topics, with a +\/- mention flag)'),zod.null()]).optional().describe('Present only on external docs — what the pre-ingest filter matched')
+}).describe('Filter-before-ingest provenance for external sources (keywords \/ competitors \/ executives \/ topics, with a +\/- mention flag)'),zod.null()]).optional().describe('Present only on external docs — what the pre-ingest filter matched'),
+  "supersedes": zod.string().nullish().describe('Id of the older document this version replaces (version lineage)'),
+  "supersededBy": zod.string().nullish().describe('Id of the newer document that replaces this one (derived)'),
+  "lineageSourceDocIds": zod.array(zod.string()).optional().describe('For SSoT-generated docs — the governed source docs this output was generated from')
 }),
   "chunks": zod.array(zod.object({
   "id": zod.string(),

@@ -89,6 +89,46 @@
       "outcome": "success",
       "ended_at": "2026-07-08T16:46:09.755Z",
       "skill_used": "answer-cited"
+    },
+    {
+      "id": "fa017a1b-07dc-4367-bb17-e8380f5d06f0",
+      "objective": "Answer question about Spain revenue in Q1 2026 using provided sources",
+      "steps": [
+        {
+          "description": "Loaded answer-cited skill. Evaluating sources for Spain-specific revenue in Q1 2026.",
+          "timestamp": "2026-07-08T17:06:09.263Z"
+        }
+      ],
+      "attempts": 1,
+      "status": "succeeded",
+      "started_at": "2026-07-08T17:06:04.486Z",
+      "outcome": "success",
+      "ended_at": "2026-07-08T17:06:15.950Z",
+      "skill_used": "answer-cited"
+    },
+    {
+      "id": "d5966902-31f7-45da-8794-6506bf229171",
+      "objective": "Answer question about Telefónica group revenues in Q1 2026 using cited sources",
+      "steps": [
+        {
+          "description": "Skill loaded. Evaluating sources and deciding answer state. S4 provides audited group-level revenue for Q1 2026; governed metric corroborates. No conflict detected.",
+          "timestamp": "2026-07-08T17:06:26.726Z"
+        }
+      ],
+      "attempts": 1,
+      "status": "active",
+      "started_at": "2026-07-08T17:06:20.396Z"
+    },
+    {
+      "id": "51d69c95-959b-4a60-beaf-4871c0c6f240",
+      "objective": "Answer question about Spain revenue in Q1 2026 using governed sources",
+      "steps": [],
+      "attempts": 1,
+      "status": "succeeded",
+      "started_at": "2026-07-08T17:06:45.881Z",
+      "outcome": "success",
+      "ended_at": "2026-07-08T17:06:57.770Z",
+      "skill_used": "answer-cited"
     }
   ]
 }

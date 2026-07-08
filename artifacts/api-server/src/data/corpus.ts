@@ -90,6 +90,10 @@ export interface CorpusDoc {
   version?: string;
   /** Present only on external (B) docs: what the pre-ingest filter matched. */
   ingestFilter?: IngestFilter;
+  /** Id of the older document this version replaces (version lineage). */
+  supersedes?: string;
+  /** For SSoT-generated (E) docs: the governed source docs this output was generated from. */
+  lineageSourceDocIds?: string[];
   chunks: Chunk[];
   assertions?: Assertion[];
   // Ids of documents this document materially contradicts. Drives the conflict flag.

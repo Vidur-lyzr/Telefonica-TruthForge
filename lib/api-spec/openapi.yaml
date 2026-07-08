@@ -2496,6 +2496,17 @@ components:
             - $ref: "#/components/schemas/IngestFilter"
             - type: "null"
           description: Present only on external docs — what the pre-ingest filter matched
+        supersedes:
+          type: ["string", "null"]
+          description: Id of the older document this version replaces (version lineage)
+        supersededBy:
+          type: ["string", "null"]
+          description: Id of the newer document that replaces this one (derived)
+        lineageSourceDocIds:
+          type: array
+          items:
+            type: string
+          description: For SSoT-generated docs — the governed source docs this output was generated from
 
     IngestFilter:
       type: object

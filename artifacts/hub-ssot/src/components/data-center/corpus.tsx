@@ -24,6 +24,7 @@ import {
   Title2,
   Title3,
   Spinner,
+  Touchable,
   skinVars,
   IconDatabaseRegular,
   IconWorldDeviceRegular,
@@ -73,6 +74,11 @@ export default function CorpusArea() {
   const { data: docDetail, isLoading: isLoadingDetail } = useGetDocument(selectedDocId || "", {
     query: { enabled: !!selectedDocId, queryKey: ["document", selectedDocId] },
   });
+
+  const titleOf = React.useCallback(
+    (docId: string) => documents?.find((d) => d.id === docId)?.title ?? docId,
+    [documents],
+  );
 
   return (
     <Stack space={24}>
@@ -203,6 +209,53 @@ export default function CorpusArea() {
                   </Text2>
                 )}
               </Inline>
+              {(docDetail.document.supersedes ||
+                docDetail.document.supersededBy ||
+                (docDetail.document.lineageSourceDocIds ?? []).length > 0) && (
+                <Boxed>
+                  <Box padding={16}>
+                    <Stack space={8}>
+                      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                        Version lineage
+                      </Text1>
+                      {docDetail.document.supersededBy && (
+                        <Inline space={8} alignItems="center" wrap>
+                          <Tag type="warning">superseded by</Tag>
+                          <Touchable onPress={() => setSelectedDocId(docDetail.document.supersededBy!)}>
+                            <Text2 medium color={skinVars.colors.textLink}>
+                              {titleOf(docDetail.document.supersededBy)}
+                            </Text2>
+                          </Touchable>
+                        </Inline>
+                      )}
+                      {docDetail.document.supersedes && (
+                        <Inline space={8} alignItems="center" wrap>
+                          <Tag type="success">replaces</Tag>
+                          <Touchable onPress={() => setSelectedDocId(docDetail.document.supersedes!)}>
+                            <Text2 medium color={skinVars.colors.textLink}>
+                              {titleOf(docDetail.document.supersedes)}
+                            </Text2>
+                          </Touchable>
+                        </Inline>
+                      )}
+                      {(docDetail.document.lineageSourceDocIds ?? []).length > 0 && (
+                        <Stack space={4}>
+                          <Text1 regular color={skinVars.colors.textSecondary}>
+                            Generated from governed sources:
+                          </Text1>
+                          {(docDetail.document.lineageSourceDocIds ?? []).map((srcId) => (
+                            <Touchable key={srcId} onPress={() => setSelectedDocId(srcId)}>
+                              <Text2 medium color={skinVars.colors.textLink}>
+                                {titleOf(srcId)}
+                              </Text2>
+                            </Touchable>
+                          ))}
+                        </Stack>
+                      )}
+                    </Stack>
+                  </Box>
+                </Boxed>
+              )}
               {docDetail.document.ingestFilter && (
                 <Boxed>
                   <Box padding={16}>
