@@ -77,7 +77,7 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     owner: "Group Communications",
     version: "v4.1",
     shapes: ["press"],
-    formats: ["docx", "pdf"],
+    formats: ["docx", "pptx", "pdf"],
     blocks: [
       { kind: "cover", label: "Masthead" },
       { kind: "sections", label: "Headline, lead and body" },
@@ -102,7 +102,7 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     owner: "Group Communications",
     version: "v3.0",
     shapes: ["press", "messaging"],
-    formats: ["docx", "pdf"],
+    formats: ["docx", "pptx", "pdf"],
     blocks: [
       { kind: "cover", label: "Cover" },
       { kind: "qa", label: "Questions and approved answers" },
@@ -178,7 +178,7 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     owner: "Planning & Newsroom",
     version: "v1.2",
     shapes: [],
-    formats: ["docx", "pdf"],
+    formats: ["docx", "pptx", "pdf"],
     blocks: [
       { kind: "cover", label: "Cover" },
       { kind: "summary", label: "Outlook summary" },

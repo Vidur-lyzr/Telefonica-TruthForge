@@ -10,4 +10,4 @@ Rules for the document export pipeline (drafts arrive as client JSON, so labels 
 
 **Why:** an architect review found the client could downgrade confidentiality labels or mutate ids to bypass gates; the fix is to trust only server-side sources.
 
-**How to apply:** any new export/share/send path must call buildExportModel (artifacts/api-server/src/export/exportService.ts) or replicate all three gates; never gate on client-supplied labels alone. Full fix would be server-owned draft references (drafts stored server-side, export by id) — acceptable gap for this demo tier.
+**How to apply:** any new export/share/send path must call buildExportModel (artifacts/api-server/src/export/exportService.ts) or replicate all three gates; never gate on client-supplied labels alone. Full fix would be server-owned draft references (drafts stored server-side, export by id) — acceptable gap for this demo tier and noted as future work.
