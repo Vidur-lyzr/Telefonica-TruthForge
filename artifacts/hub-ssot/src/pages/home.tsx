@@ -20,8 +20,6 @@ import {
   Divider,
   ResponsiveLayout,
   GridLayout,
-  Grid,
-  GridItem,
   Circle,
   Touchable,
   TextField,
@@ -31,7 +29,6 @@ import {
   Text2,
   Text3,
   Text6,
-  Text8,
   Title2,
   SkeletonLine,
   ProgressBar,
@@ -215,12 +212,14 @@ function HeroAskBar({
           type="brand"
         />
       </div>
-      <Inline space={8} alignItems="center">
-        <IconShieldCheckedOkRegular size={16} color={skinVars.colors.brand} />
-        <Text2 regular color={skinVars.colors.textSecondary}>
-          {COPY[lang].honesty}
-        </Text2>
-      </Inline>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <Inline space={8} alignItems="center">
+          <IconShieldCheckedOkRegular size={16} color={skinVars.colors.brand} />
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            {COPY[lang].honesty}
+          </Text2>
+        </Inline>
+      </div>
     </Stack>
   );
 }
@@ -243,38 +242,41 @@ function AppCard({
   return (
     <Touchable onPress={() => navigate(meta.path)} aria-label={meta.title}>
       <Boxed>
-        <Box padding={24}>
-          <Stack space={24}>
-            <Inline space="between" alignItems="center">
-              <Circle
-                size={44}
-                backgroundColor={warning ? skinVars.colors.warningLow : skinVars.colors.brandLow}
-              >
-                <Icon size={20} color={warning ? skinVars.colors.warning : skinVars.colors.brand} />
-              </Circle>
-              <IconArrowLineUpRegular size={20} color={skinVars.colors.textSecondary} />
-            </Inline>
-
-            <Stack space={4}>
-              <Title2>{meta.title}</Title2>
-              <Text2 regular color={skinVars.colors.textSecondary}>
-                {meta.blurb}
-              </Text2>
-            </Stack>
-
-            {loading || !stat ? (
-              <SkeletonLine width="40%" />
-            ) : (
-              <Inline space={8} alignItems="baseline">
-                <Text6 color={warning ? skinVars.colors.warning : axisColor || skinVars.colors.textPrimary}>
-                  {stat.value}
-                </Text6>
-                <Text2 medium color={skinVars.colors.textSecondary}>
-                  {stat.caption}
-                </Text2>
-              </Inline>
-            )}
-          </Stack>
+        <Box padding={16}>
+          <Inline space={12} alignItems="center">
+            <Circle
+              size={32}
+              backgroundColor={warning ? skinVars.colors.warningLow : skinVars.colors.brandLow}
+            >
+              <Icon size={16} color={warning ? skinVars.colors.warning : skinVars.colors.brand} />
+            </Circle>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Stack space={2}>
+                <Text1
+                  medium
+                  color={skinVars.colors.textSecondary}
+                  transform="uppercase"
+                >
+                  {meta.title}
+                </Text1>
+                {loading || !stat ? (
+                  <SkeletonLine width="60%" />
+                ) : (
+                  <Inline space={4} alignItems="baseline">
+                    <Text3
+                      medium
+                      color={warning ? skinVars.colors.warning : axisColor || skinVars.colors.textPrimary}
+                    >
+                      {stat.value}
+                    </Text3>
+                    <Text1 regular color={skinVars.colors.textSecondary}>
+                      {stat.caption}
+                    </Text1>
+                  </Inline>
+                )}
+              </Stack>
+            </div>
+          </Inline>
         </Box>
       </Boxed>
     </Touchable>
@@ -634,23 +636,22 @@ export default function Home() {
 
   return (
     <ResponsiveLayout>
-      <Box paddingY={40}>
+      <Box paddingY={64}>
         <Stack space={48}>
-          {/* Front door */}
-          <Stack space={24}>
-            <Stack space={12}>
-              <Text1 medium color={skinVars.colors.brand} textAlign="center" transform="uppercase">
-                Single source of truth
-              </Text1>
-              <Text8 textAlign="center">
-                {activeRole ? `Welcome, ${activeRole.label}` : "Welcome to Hub SSoT"}
-              </Text8>
-              <Text3 regular color={skinVars.colors.textSecondary} textAlign="center">
-                {COPY[lang].subtitle}
-              </Text3>
+          {/* Front door — centred, contained column */}
+          <div style={{ maxWidth: 640, margin: "0 auto", width: "100%" }}>
+            <Stack space={24}>
+              <Stack space={12}>
+                <Text6 textAlign="center">
+                  {activeRole ? `Welcome back, ${activeRole.label}` : "Welcome to Hub SSoT"}
+                </Text6>
+                <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
+                  {COPY[lang].subtitle}
+                </Text2>
+              </Stack>
+              <HeroAskBar lang={lang} suggestions={suggestions ?? []} />
             </Stack>
-            <HeroAskBar lang={lang} suggestions={suggestions ?? []} />
-          </Stack>
+          </div>
 
           {corpusEmpty ? (
             <Boxed>
@@ -681,21 +682,26 @@ export default function Home() {
             </Boxed>
           ) : (
             <>
-              {/* App cards */}
-              <Grid columns={2} gap={24}>
+              {/* Compact metric cards — wraps to fewer columns on narrow screens */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+                  gap: 16,
+                }}
+              >
                 {cardOrder.map((key) => {
                   const stat = summary?.[key];
                   return (
-                    <GridItem key={key}>
-                      <AppCard
-                        stat={stat}
-                        loading={summaryLoad}
-                        axisColor={axisColor(stat?.axisId)}
-                      />
-                    </GridItem>
+                    <AppCard
+                      key={key}
+                      stat={stat}
+                      loading={summaryLoad}
+                      axisColor={axisColor(stat?.axisId)}
+                    />
                   );
                 })}
-              </Grid>
+              </div>
 
               {/* Radar + health */}
               <GridLayout template="8+4" left={radarPanel} right={healthPanel} />
