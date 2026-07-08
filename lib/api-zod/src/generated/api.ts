@@ -176,7 +176,16 @@ export const ListDocumentsResponseItem = zod.object({
   "summary": zod.string(),
   "chunkCount": zod.number(),
   "sourceFormat": zod.string().describe('Simulated source format (structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump)'),
-  "connector": zod.string().describe('Simulated connector \/ provenance the document arrived through')
+  "connector": zod.string().describe('Simulated connector \/ provenance the document arrived through'),
+  "frequency": zod.string().nullish().describe('Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)'),
+  "version": zod.string().nullish().describe('Version label for versioned material (mostly SSoT-generated outputs)'),
+  "ingestFilter": zod.union([zod.object({
+  "keywords": zod.array(zod.string()),
+  "competitors": zod.array(zod.string()),
+  "executives": zod.array(zod.string()),
+  "topics": zod.array(zod.string()),
+  "sentiment": zod.enum(['positive', 'negative', 'mixed', 'neutral'])
+}).describe('Filter-before-ingest provenance for external sources (keywords \/ competitors \/ executives \/ topics, with a +\/- mention flag)'),zod.null()]).optional().describe('Present only on external docs — what the pre-ingest filter matched')
 })
 export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
 
@@ -313,7 +322,16 @@ export const GetDocumentResponse = zod.object({
   "summary": zod.string(),
   "chunkCount": zod.number(),
   "sourceFormat": zod.string().describe('Simulated source format (structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump)'),
-  "connector": zod.string().describe('Simulated connector \/ provenance the document arrived through')
+  "connector": zod.string().describe('Simulated connector \/ provenance the document arrived through'),
+  "frequency": zod.string().nullish().describe('Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)'),
+  "version": zod.string().nullish().describe('Version label for versioned material (mostly SSoT-generated outputs)'),
+  "ingestFilter": zod.union([zod.object({
+  "keywords": zod.array(zod.string()),
+  "competitors": zod.array(zod.string()),
+  "executives": zod.array(zod.string()),
+  "topics": zod.array(zod.string()),
+  "sentiment": zod.enum(['positive', 'negative', 'mixed', 'neutral'])
+}).describe('Filter-before-ingest provenance for external sources (keywords \/ competitors \/ executives \/ topics, with a +\/- mention flag)'),zod.null()]).optional().describe('Present only on external docs — what the pre-ingest filter matched')
 }),
   "chunks": zod.array(zod.object({
   "id": zod.string(),

@@ -5,6 +5,7 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { IngestFilter } from './ingestFilter';
 
 export interface CorpusDocument {
   id: string;
@@ -28,4 +29,16 @@ export interface CorpusDocument {
   sourceFormat: string;
   /** Simulated connector / provenance the document arrived through */
   connector: string;
+  /**
+     * Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)
+     * @nullable
+     */
+  frequency?: string | null;
+  /**
+     * Version label for versioned material (mostly SSoT-generated outputs)
+     * @nullable
+     */
+  version?: string | null;
+  /** Present only on external docs — what the pre-ingest filter matched */
+  ingestFilter?: IngestFilter | null;
 }

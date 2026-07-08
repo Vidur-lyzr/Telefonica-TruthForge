@@ -65,6 +65,30 @@
       "outcome": "success",
       "ended_at": "2026-07-08T07:44:06.393Z",
       "skill_used": "answer-cited"
+    },
+    {
+      "id": "65754010-e3bd-4106-a6e8-7f1f928a4d94",
+      "objective": "Answer question about Movistar revenue in Spain in Q1 2026 using provided sources",
+      "steps": [],
+      "attempts": 1,
+      "status": "active",
+      "started_at": "2026-07-08T16:44:25.932Z"
+    },
+    {
+      "id": "1675f3ed-e24f-466e-be63-f570b4b65edf",
+      "objective": "Answer question about social listening findings on fibre outages in Spain",
+      "steps": [
+        {
+          "description": "Loaded answer-cited skill. Sources S1 and S2 directly address the Spain fibre outage; S3 is tangentially related but concerns a different theme. Composing cited answer.",
+          "timestamp": "2026-07-08T16:46:00.795Z"
+        }
+      ],
+      "attempts": 1,
+      "status": "succeeded",
+      "started_at": "2026-07-08T16:45:53.766Z",
+      "outcome": "success",
+      "ended_at": "2026-07-08T16:46:09.755Z",
+      "skill_used": "answer-cited"
     }
   ]
 }

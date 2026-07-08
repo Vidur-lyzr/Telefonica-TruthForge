@@ -2,6 +2,10 @@
 // All content here is fictional / illustrative — it is NOT real Telefónica data.
 // It exists so the governed retrieval + citation flow has something honest to cite.
 
+import { INTERNAL_EXPANSION_DOCS } from "./expansion/internalDocs";
+import { EXTERNAL_EXPANSION_DOCS } from "./expansion/externalDocs";
+import { GENERATED_EXPANSION_DOCS } from "./expansion/generatedDocs";
+
 export type Clearance = "public" | "internal" | "confidential" | "restricted";
 export type Validity = "approved" | "historic" | "review" | "superseded";
 export type Area = "Comunicación" | "Marca" | "Gabinete";
@@ -44,6 +48,21 @@ export interface Assertion {
   value: string;
 }
 
+export type IngestSentiment = "positive" | "negative" | "mixed" | "neutral";
+
+/**
+ * Filter-before-ingest provenance for external (B) sources.
+ * The RFP rule: only what matched a keyword / competitor / executive / topic
+ * filter is ingested, with +/- mention flags — never a raw dump.
+ */
+export interface IngestFilter {
+  keywords: string[];
+  competitors: string[];
+  executives: string[];
+  topics: string[];
+  sentiment: IngestSentiment;
+}
+
 export interface CorpusDoc {
   id: string;
   title: string;
@@ -65,6 +84,12 @@ export interface CorpusDoc {
   sourceFormat: string;
   /** Simulated connector / provenance the document arrived through (honestly labelled — no real connector). */
   connector: string;
+  /** Refresh cadence of the source (e.g. "quarterly", "~48h", "near-real-time", "ad hoc"). */
+  frequency?: string;
+  /** Version label for versioned material (mostly SSoT-generated E outputs). */
+  version?: string;
+  /** Present only on external (B) docs: what the pre-ingest filter matched. */
+  ingestFilter?: IngestFilter;
   chunks: Chunk[];
   assertions?: Assertion[];
   // Ids of documents this document materially contradicts. Drives the conflict flag.
@@ -1625,6 +1650,9 @@ export const DOCS: CorpusDoc[] = [
       },
     ],
   },
+  ...INTERNAL_EXPANSION_DOCS,
+  ...EXTERNAL_EXPANSION_DOCS,
+  ...GENERATED_EXPANSION_DOCS,
 ];
 
 export const NUMERIC_FACTS: NumericFact[] = [
@@ -1728,6 +1756,106 @@ export const NUMERIC_FACTS: NumericFact[] = [
     docId: "doc-transform-grow-plan",
     keywords: ["synergies", "run-rate synergies", "efficiency savings", "transform and grow"],
   },
+  {
+    id: "num-spain-revenue-q1-2026",
+    label: "Spain market revenue",
+    value: "3,180",
+    unit: "€M",
+    period: "Q1 2026",
+    source: "Resultados por mercado — España Q1 2026",
+    docId: "doc-a-results-spain-q1-2026",
+    keywords: ["spain revenue", "ingresos españa", "españa", "spain", "market revenue", "movistar"],
+  },
+  {
+    id: "num-germany-revenue-q4-2025",
+    label: "Germany market revenue",
+    value: "2,210",
+    unit: "€M",
+    period: "Q4 2025",
+    source: "Marktergebnisse — Deutschland Q4 2025",
+    docId: "doc-a-results-germany-q4-2025",
+    keywords: ["germany revenue", "umsatz deutschland", "deutschland", "germany", "market revenue", "o2"],
+  },
+  {
+    id: "num-brazil-revenue-q1-2026",
+    label: "Brazil market revenue",
+    value: "14,320",
+    unit: "R$M",
+    period: "Q1 2026",
+    source: "Resultados por mercado — Brasil Q1 2026",
+    docId: "doc-a-results-brazil-q1-2026",
+    keywords: ["brazil revenue", "receita brasil", "brasil", "brazil", "market revenue", "vivo"],
+  },
+  {
+    id: "num-uk-revenue-q3-2025",
+    label: "United Kingdom market revenue",
+    value: "1,540",
+    unit: "£M",
+    period: "Q3 2025",
+    source: "Market Results — United Kingdom Q3 2025",
+    docId: "doc-a-results-uk-q3-2025",
+    keywords: ["uk revenue", "united kingdom", "reino unido", "market revenue", "o2"],
+  },
+  {
+    id: "num-group-nps-q2-2026",
+    label: "Group NPS",
+    value: "42",
+    unit: "points",
+    period: "Q2 2026",
+    source: "Resumen semanal de KPIs — Semana 27 (2026)",
+    docId: "doc-e-kpi-digest-w27",
+    keywords: ["nps", "net promoter", "customer satisfaction", "satisfacción", "kundenzufriedenheit", "satisfação"],
+  },
+  {
+    id: "num-spain-churn-q1-2026",
+    label: "Movistar churn (Spain)",
+    value: "1.1",
+    unit: "%",
+    period: "Q1 2026",
+    source: "Cuadro de mando de bajas (churn) — España Q1 2026",
+    docId: "doc-a-cx-churn-q1-2026",
+    keywords: ["churn", "bajas", "retention", "fidelización", "customer loss", "movistar"],
+  },
+  {
+    id: "num-fibre-coverage-spain-q3-2026",
+    label: "Fibre premises passed (Spain)",
+    value: "29.8",
+    unit: "M homes",
+    period: "Q3 2026",
+    source: "Puntos de discurso — Liderazgo en redes (v3)",
+    docId: "doc-e-tp-networks-v3",
+    keywords: ["fibre", "fibra", "coverage", "cobertura", "premises passed", "hogares", "networks"],
+  },
+  {
+    id: "num-group-fibre-premises-q1-2026",
+    label: "Group fibre premises passed",
+    value: "68.4",
+    unit: "M",
+    period: "Q1 2026",
+    source: "Group Activity Results — Operational KPIs Q1 2026",
+    docId: "doc-a-results-group-activity-q1-2026",
+    keywords: ["fibre premises", "fibra", "premises passed", "coverage", "networks", "accesses"],
+  },
+  {
+    id: "num-group-headcount-q1-2026",
+    label: "Group headcount",
+    value: "101,240",
+    unit: "FTE",
+    period: "Q1 2026",
+    source: "People Dashboard — Headcount & Attrition Q1 2026",
+    docId: "doc-a-hr-headcount-q1-2026",
+    keywords: ["headcount", "plantilla", "belegschaft", "workforce", "fte", "people"],
+  },
+  {
+    id: "num-brand-awareness-spain-q2-2026",
+    label: "Brand awareness (Spain)",
+    value: "78",
+    unit: "%",
+    period: "Q2 2026",
+    source: "Informe de rendimiento de marketing — Q2 2026",
+    docId: "doc-e-report-marketing-performance",
+    keywords: ["brand awareness", "notoriedad", "marca", "brand", "awareness", "movistar"],
+  },
 ];
 
 // Time-series numeric data for chart-from-data. Each series fails closed the
@@ -1780,6 +1908,35 @@ export const NUMERIC_SERIES: NumericSeries[] = [
       { label: "Q1 2026", value: 8127 },
     ],
   },
+  {
+    id: "series-nps-by-market",
+    label: "NPS by core market",
+    unit: "points",
+    period: "Q1 2026",
+    source: "Customer Experience — NPS Scorecard Q1 2026",
+    docId: "doc-a-cx-nps-q1-2026",
+    keywords: ["nps", "net promoter", "by market", "satisfacción", "satisfação", "kundenzufriedenheit"],
+    points: [
+      { label: "Spain", value: 41 },
+      { label: "Brazil", value: 36 },
+      { label: "Germany", value: 28 },
+      { label: "United Kingdom", value: 25 },
+    ],
+  },
+  {
+    id: "series-group-sentiment",
+    label: "Group social sentiment split",
+    unit: "%",
+    period: "Week 2-8 Mar 2026",
+    source: "Social listening Group — Cross-market mention digest",
+    docId: "doc-b-social-group-neutral",
+    keywords: ["sentiment", "social listening", "share of voice", "reputation", "mentions", "sentimiento"],
+    points: [
+      { label: "Neutral", value: 51 },
+      { label: "Positive", value: 26 },
+      { label: "Negative", value: 23 },
+    ],
+  },
 ];
 
 // Entity nodes (markets, brands, products, executives, figures). Axes come from
@@ -1828,6 +1985,28 @@ export const GRAPH_NODES: GraphNode[] = [
     figure: { value: "2040", unit: "", period: "Group", docId: "doc-sustainability-2025" },
     keywords: ["net zero", "net-zero", "2040", "emissions"],
   },
+  { id: "exec-comms-director", name: "Comms Director", kind: "executive", axisId: "ax-core", keywords: ["comms director", "carmen ortiz", "communications director", "directora de comunicación"] },
+  { id: "exec-o2-de-ceo", name: "O2 Germany CEO", kind: "executive", axisId: "ax-networks", keywords: ["o2 germany ceo", "jonas brandt", "o2-deutschland-chef"] },
+  { id: "exec-brazil-coo", name: "Brazil COO", kind: "executive", axisId: "ax-core", keywords: ["brazil coo", "rafael moreira", "vivo", "coo brasil"] },
+  { id: "prod-usp-conexion", name: "Conexión que entiende", kind: "product", axisId: "ax-core", keywords: ["usp", "conexión que entiende", "value proposition", "propuesta de valor", "positioning"] },
+  {
+    id: "fig-spain-revenue-q1", name: "Spain revenue Q1 2026", kind: "figure", axisId: "ax-core",
+    confidentiality: "confidential", validity: "approved",
+    figure: { value: "3,180", unit: "€M", period: "Q1 2026", docId: "doc-a-results-spain-q1-2026" },
+    keywords: ["spain revenue", "ingresos españa", "3180", "market revenue"],
+  },
+  {
+    id: "fig-group-nps-q2", name: "Group NPS Q2 2026", kind: "figure", axisId: "ax-core",
+    confidentiality: "internal", validity: "approved",
+    figure: { value: "42", unit: "points", period: "Q2 2026", docId: "doc-e-kpi-digest-w27" },
+    keywords: ["nps", "group nps", "42", "net promoter"],
+  },
+  {
+    id: "fig-fibre-spain-q3", name: "Fibre premises passed Spain Q3 2026", kind: "figure", axisId: "ax-networks",
+    confidentiality: "internal", validity: "approved",
+    figure: { value: "29.8", unit: "M homes", period: "Q3 2026", docId: "doc-e-tp-networks-v3" },
+    keywords: ["fibre", "fibra", "coverage", "cobertura", "29.8", "premises passed"],
+  },
 ];
 
 // Entity ↔ entity / entity → axis relationships (all dashed on the map).
@@ -1845,6 +2024,17 @@ export const GRAPH_EDGES: GraphEdge[] = [
   { from: "prod-tech-cyber", to: "brand-tech", relation: "offered by", type: "relationship" },
   { from: "exec-ceo", to: "ax-networks", relation: "champions", type: "relationship", confidence: 0.7 },
   { from: "exec-cfo", to: "ax-core", relation: "reports on", type: "relationship", confidence: 0.75 },
+  { from: "exec-comms-director", to: "ax-core", relation: "advises on", type: "relationship", confidence: 0.7 },
+  { from: "exec-comms-director", to: "prod-usp-conexion", relation: "coordinates", type: "relationship", confidence: 0.8 },
+  { from: "exec-o2-de-ceo", to: "mkt-germany", relation: "leads", type: "relationship", confidence: 0.85 },
+  { from: "exec-o2-de-ceo", to: "ax-networks", relation: "champions", type: "relationship", confidence: 0.75 },
+  { from: "exec-brazil-coo", to: "mkt-brazil", relation: "leads", type: "relationship", confidence: 0.85 },
+  { from: "prod-usp-conexion", to: "ax-core", relation: "contributes to", type: "relationship", confidence: 0.8 },
+  { from: "prod-usp-conexion", to: "mkt-spain", relation: "launches first in", type: "relationship", confidence: 0.7 },
+  { from: "exec-ceo", to: "prod-usp-conexion", relation: "endorses", type: "relationship", confidence: 0.65 },
+  { from: "fig-spain-revenue-q1", to: "mkt-spain", relation: "measured for", type: "relationship" },
+  { from: "fig-group-nps-q2", to: "ax-core", relation: "tracks", type: "relationship" },
+  { from: "fig-fibre-spain-q3", to: "ax-networks", relation: "evidences", type: "relationship" },
 ];
 
 export const COMPILED_PAGES: CompiledPage[] = [
@@ -2105,6 +2295,62 @@ export const DOC_LINEAGE: DocLineage[] = [
       { field: "confidentiality", proposed: "internal", approved: "internal", by: "Media Relations", at: "2026-02-03", status: "accepted" },
     ],
   },
+  {
+    docId: "doc-a-results-spain-q1-2026",
+    sourceFile: "Resultados-Espana-Q1-2026.xlsx",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Ingested from the Group Finance restricted SharePoint library (Excel).", at: "2026-04-18T07:00:00Z", actor: "ingest-service" },
+      { stage: "Extraction", detail: "Revenue and margin figures extracted as 1 chunk with breadcrumb.", at: "2026-04-18T07:01:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Classified under Grow the core; language es; market Spain.", at: "2026-04-18T07:02:00Z", actor: "auto-classifier" },
+    ],
+    validation: [
+      { field: "confidentiality", proposed: "internal", approved: "confidential", by: "Group Finance", at: "2026-04-19", status: "corrected" },
+      { field: "validity", proposed: "approved", approved: "approved", by: "Group Finance", at: "2026-04-19", status: "accepted" },
+    ],
+  },
+  {
+    docId: "doc-b-social-es-fibre-outage",
+    sourceFile: "social-listening-es-2026-06-08.json",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Streamed from the social listening feed (API). Only items matching the pre-ingest filter were retained.", at: "2026-06-14T22:00:00Z", actor: "ingest-service" },
+      { stage: "Pre-ingest filter", detail: "Filter-before-ingest matched keywords 'Movistar', 'fibra', 'avería', 'sin internet' on topics fibre outage / network reliability / customer complaints; sentiment flagged negative.", at: "2026-06-14T22:00:30Z", actor: "relevance-filter" },
+      { stage: "Extraction", detail: "Mention-volume digest extracted as 2 chunks with breadcrumbs.", at: "2026-06-14T22:01:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Classified under Build the best networks and Simplify & digitalise; language es.", at: "2026-06-14T22:02:00Z", actor: "auto-classifier" },
+    ],
+    validation: [
+      { field: "confidentiality", proposed: "public", approved: "public", by: "Social Media Team", at: "2026-06-15", status: "accepted" },
+      { field: "sentiment", proposed: "negative", approved: "negative", by: "Social Media Team", at: "2026-06-15", status: "accepted" },
+    ],
+  },
+  {
+    docId: "doc-e-tp-networks-v3",
+    sourceFile: "SSoT-generated (talking-points-networks-v3)",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Generated by the SSoT generator from governed source docs doc-e-tp-networks-v2 and doc-a-results-group-activity-q1-2026.", at: "2026-07-06T09:00:00Z", actor: "ssot-generator" },
+      { stage: "Extraction", detail: "Two talking-point chunks compiled with cited coverage figure.", at: "2026-07-06T09:00:30Z", actor: "ssot-generator" },
+      { stage: "Classification", detail: "Classified under Build the best networks; version v3 · 2026-07-06; supersedes v2.", at: "2026-07-06T09:01:00Z", actor: "auto-classifier" },
+    ],
+    validation: [
+      { field: "version", proposed: "v3 · 2026-07-06", approved: "v3 · 2026-07-06", by: "Comms Hub / SSoT", at: "2026-07-06", status: "accepted" },
+      { field: "validity", proposed: "review", approved: "approved", by: "Media Relations", at: "2026-07-06", status: "corrected" },
+    ],
+  },
+  {
+    docId: "doc-a-talking-points-results-q2-2026-old",
+    sourceFile: "Talking-Points-Q2-2026-Results-draft.docx",
+    taxonomyVersion: "tax-2026.1",
+    ingestion: [
+      { stage: "Source file", detail: "Ingested from Media Relations SharePoint (draft Word).", at: "2026-07-01T08:00:00Z", actor: "ingest-service" },
+      { stage: "Extraction", detail: "Draft lines extracted as 1 chunk.", at: "2026-07-01T08:01:00Z", actor: "ingest-service" },
+      { stage: "Classification", detail: "Superseded by the approved Q2 2026 talking points; retained for audit.", at: "2026-07-20T10:00:00Z", actor: "Media Relations" },
+    ],
+    validation: [
+      { field: "validity", proposed: "approved", approved: "superseded", by: "Media Relations", at: "2026-07-20", status: "corrected" },
+    ],
+  },
 ];
 
 export const WIKI_STATS = {
@@ -2126,6 +2372,14 @@ export const SUGGESTIONS = [
   { id: "sug-quantum", text: "What is Telefónica's strategy for consumer quantum computing devices?", kind: "no_evidence" },
   { id: "sug-oldrev", text: "What was group revenue in Q4 2025?", kind: "historic" },
   { id: "sug-copper", text: "What is the plan for copper network retirement in Spain?", kind: "low_confidence" },
+  { id: "sug-nps-q2", text: "What is the group NPS for Q2 2026?", kind: "cited" },
+  { id: "sug-usp-conexion", text: "What is the 'Conexión que entiende' value proposition?", kind: "cited" },
+  { id: "sug-de-5g", text: "How is O2 Germany expanding its 5G network in 2026?", kind: "cited" },
+  { id: "sug-fibre-coverage", text: "What is the fibre coverage figure we defend for networks leadership?", kind: "cited" },
+  { id: "sug-es-fibre-sentiment", text: "How did social sentiment react to the Movistar fibre outage in Spain?", kind: "cited" },
+  { id: "sug-spain-revenue", text: "What was Spain's market revenue in Q1 2026?", kind: "permission" },
+  { id: "sug-q2-talking-points", text: "What are our approved Q2 2026 results talking points?", kind: "conflict" },
+  { id: "sug-uk-revenue", text: "What was UK market revenue in Q3 2025?", kind: "historic" },
 ];
 
 export const ADMIN_PROFILES: AdminProfile[] = [
@@ -2825,6 +3079,76 @@ export const KPI_MENTIONS: KpiMention[] = [
     text: "Telefónica Tech thought-leadership posts lifted enterprise awareness among IT decision-makers.",
     confidentiality: "confidential",
   },
+  {
+    id: "mention-es-fibre-outage",
+    kpiIds: ["kpi-sov"],
+    source: "Talkwalker",
+    market: "Spain",
+    sentiment: "negative",
+    date: "2026-06-12",
+    text: "Movistar mentions in Spain spiked 38% above the weekly average during a fibre outage in Valencia and Castellón, with 71% negative sentiment (doc-b-social-es-fibre-outage#1).",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-de-o2-mixed",
+    kpiIds: ["kpi-sov", "kpi-brand-consistency"],
+    source: "Talkwalker",
+    market: "Germany",
+    sentiment: "neutral",
+    date: "2026-06-07",
+    text: "O2 Germany mentions ran mixed at 44% positive and 39% negative, with rural network coverage the main negative driver against Deutsche Telekom (doc-b-social-de-o2-mixed#1).",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-br-vivo-billing",
+    kpiIds: ["kpi-sentiment-brazil"],
+    source: "Talkwalker",
+    market: "Brazil",
+    sentiment: "negative",
+    date: "2026-05-17",
+    text: "Vivo mentions in Brazil turned 62% negative over billing complaints on the May invoice, with Claro and TIM cited as alternatives (doc-b-social-br-vivo-negative#1).",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-uk-priority",
+    kpiIds: ["kpi-campaign-recall", "kpi-brand-consideration"],
+    source: "Nielsen",
+    market: "UK",
+    sentiment: "positive",
+    date: "2026-02-23",
+    text: "The O2 Priority rewards refresh drove 68% positive sentiment in its opening week, with early-access concert tickets the most shared benefit (doc-b-social-uk-o2-positive#1).",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-group-sov",
+    kpiIds: ["kpi-sov"],
+    source: "Meltwater",
+    market: "Group",
+    sentiment: "neutral",
+    date: "2026-03-08",
+    text: "Telefónica brands captured a 27% share of voice across the four core markets with broadly neutral aggregate sentiment (doc-b-social-group-neutral#1).",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-de-campaign",
+    kpiIds: ["kpi-brand-consistency", "kpi-media-coverage"],
+    source: "Meltwater",
+    market: "Germany",
+    sentiment: "positive",
+    date: "2026-02-16",
+    text: "The O2 'Grün verbunden' sustainability campaign opened with 66% positive sentiment and a widely shared statement from the O2 Germany CEO (doc-b-social-de-campaign-positive#1).",
+    confidentiality: "public",
+  },
+  {
+    id: "mention-tech-alliance",
+    kpiIds: ["kpi-tech-awareness"],
+    source: "LinkedIn",
+    market: "Group",
+    sentiment: "positive",
+    date: "2026-07-07",
+    text: "The Telefónica Tech multi-cloud managed services alliance drew positive enterprise engagement following its approved announcement (doc-e-pr-tech-partnership#1).",
+    confidentiality: "public",
+  },
 ];
 
 const objectiveById = new Map(OBJECTIVES.map((o) => [o.id, o]));
@@ -2989,6 +3313,71 @@ export const RADAR_EVENTS: RadarEvent[] = [
     tone: "warning",
     clearance: "restricted",
     areas: ["Gabinete"],
+  },
+  {
+    id: "radar-es-spectrum-auction",
+    kind: "external_signal",
+    title: "Spectrum auction in the 700 MHz band flagged in Spanish press",
+    detail: "Aggregate starting value of €1,100M reported; Movistar, MasOrange and Vodafone expected to bid.",
+    hoursAgo: 8,
+    href: "/data",
+    evidenceDocId: "doc-b-press-es-espectro",
+    axisId: "ax-networks",
+    tone: "warning",
+    clearance: "public",
+    areas: ["Comunicación", "Gabinete"],
+  },
+  {
+    id: "radar-de-competitor-move",
+    kind: "external_signal",
+    title: "O2 Germany 5G site expansion picked up by trade press",
+    detail: "Analysts frame 1,600 new rural 5G sites as a response to Deutsche Telekom's coverage lead.",
+    hoursAgo: 14,
+    href: "/data",
+    evidenceDocId: "doc-b-press-en-de-market",
+    axisId: "ax-networks",
+    tone: "default",
+    clearance: "public",
+    areas: ["Comunicación"],
+  },
+  {
+    id: "radar-es-fibre-sentiment",
+    kind: "external_signal",
+    title: "Negative social sentiment spike on the Valencia fibre outage",
+    detail: "Movistar mentions up 38% with 71% negative during the Levante outage week.",
+    hoursAgo: 18,
+    href: "/data",
+    evidenceDocId: "doc-b-social-es-fibre-outage",
+    axisId: "ax-networks",
+    tone: "warning",
+    clearance: "public",
+    areas: ["Comunicación"],
+  },
+  {
+    id: "radar-br-billing-sentiment",
+    kind: "external_signal",
+    title: "Vivo billing complaints trending on Brazilian social",
+    detail: "62% negative sentiment on the May invoice, with Claro and TIM cited as alternatives.",
+    hoursAgo: 24,
+    href: "/data",
+    evidenceDocId: "doc-b-social-br-vivo-negative",
+    axisId: "ax-digital",
+    tone: "warning",
+    clearance: "public",
+    areas: ["Comunicación"],
+  },
+  {
+    id: "radar-br-anatel",
+    kind: "external_signal",
+    title: "ANATEL network-quality decision affecting Vivo in the press",
+    detail: "New quality targets will require quarterly operator reports; Vivo, Claro and TIM cited.",
+    hoursAgo: 30,
+    href: "/data",
+    evidenceDocId: "doc-b-press-pt-anatel",
+    axisId: "ax-networks",
+    tone: "default",
+    clearance: "public",
+    areas: ["Comunicación", "Gabinete"],
   },
 ];
 

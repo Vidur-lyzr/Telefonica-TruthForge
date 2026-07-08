@@ -2485,6 +2485,42 @@ components:
         connector:
           type: string
           description: Simulated connector / provenance the document arrived through
+        frequency:
+          type: ["string", "null"]
+          description: Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)
+        version:
+          type: ["string", "null"]
+          description: Version label for versioned material (mostly SSoT-generated outputs)
+        ingestFilter:
+          oneOf:
+            - $ref: "#/components/schemas/IngestFilter"
+            - type: "null"
+          description: Present only on external docs — what the pre-ingest filter matched
+
+    IngestFilter:
+      type: object
+      description: Filter-before-ingest provenance for external sources (keywords / competitors / executives / topics, with a +/- mention flag)
+      required: [keywords, competitors, executives, topics, sentiment]
+      properties:
+        keywords:
+          type: array
+          items:
+            type: string
+        competitors:
+          type: array
+          items:
+            type: string
+        executives:
+          type: array
+          items:
+            type: string
+        topics:
+          type: array
+          items:
+            type: string
+        sentiment:
+          type: string
+          enum: [positive, negative, mixed, neutral]
 
     CorpusDocumentDetail:
       type: object

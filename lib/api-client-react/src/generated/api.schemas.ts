@@ -526,6 +526,27 @@ export interface Role {
   description: string;
 }
 
+export type IngestFilterSentiment = typeof IngestFilterSentiment[keyof typeof IngestFilterSentiment];
+
+
+export const IngestFilterSentiment = {
+  positive: 'positive',
+  negative: 'negative',
+  mixed: 'mixed',
+  neutral: 'neutral',
+} as const;
+
+/**
+ * Filter-before-ingest provenance for external sources (keywords / competitors / executives / topics, with a +/- mention flag)
+ */
+export interface IngestFilter {
+  keywords: string[];
+  competitors: string[];
+  executives: string[];
+  topics: string[];
+  sentiment: IngestFilterSentiment;
+}
+
 export interface CorpusDocument {
   id: string;
   title: string;
@@ -548,6 +569,18 @@ export interface CorpusDocument {
   sourceFormat: string;
   /** Simulated connector / provenance the document arrived through */
   connector: string;
+  /**
+     * Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)
+     * @nullable
+     */
+  frequency?: string | null;
+  /**
+     * Version label for versioned material (mostly SSoT-generated outputs)
+     * @nullable
+     */
+  version?: string | null;
+  /** Present only on external docs — what the pre-ingest filter matched */
+  ingestFilter?: IngestFilter | null;
 }
 
 export interface DocumentChunk {

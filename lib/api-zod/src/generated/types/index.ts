@@ -91,6 +91,8 @@ export * from './guardianResult';
 export * from './healthStatus';
 export * from './homeCardStat';
 export * from './homeSummary';
+export * from './ingestFilter';
+export * from './ingestFilterSentiment';
 export * from './ingestionSnapshot';
 export * from './kpiAlert';
 export * from './kpiAlertAckInput';

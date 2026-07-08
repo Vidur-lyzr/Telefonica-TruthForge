@@ -21,3 +21,4 @@
 - [Streamdown in a no-Tailwind Mística app](streamdown-mistica.md) — rehype-harden blocks custom link protocols; use #hash hrefs for citation chips and own wrapper CSS.
 - [Coverage-ratio query dilution](coverage-ratio-dilution.md) — never fold non-topical text (refine instructions, chat wording) into a coverage-gated retrieval query; give it its own gated pass.
 - [Live-editor async merges](live-editor-async-merges.md) — async verdicts must merge into current state via functional set + body-signature guard, never replace state with a captured snapshot.
+- [Corpus parallel authoring](corpus-parallel-authoring.md) — unique id prefixes + shared brief let parallel authors scale the corpus collision-free; .gitagent state self-mutates.

@@ -2,8 +2,8 @@
 name: answer-cited
 description: The default skill. Any natural-language question over the governed knowledge — answer with cited evidence and the honest states (no_evidence, permission_blocked, historic, conflict).
 confidence: 1
-usage_count: 3
-success_count: 3
+usage_count: 4
+success_count: 4
 failure_count: 0
 negative_examples: []
 ---

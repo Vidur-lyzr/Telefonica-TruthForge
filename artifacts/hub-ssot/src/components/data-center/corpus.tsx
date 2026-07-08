@@ -130,6 +130,12 @@ export default function CorpusArea() {
               onPress={() => setSelectedDocId(doc.id)}
               right={
                 <Inline space={8} alignItems="center">
+                  {doc.ingestFilter && (
+                    <Tag type={doc.ingestFilter.sentiment === "negative" ? "warning" : "info"}>
+                      {`filtered · ${doc.ingestFilter.sentiment}`}
+                    </Tag>
+                  )}
+                  {doc.version && <Tag type="info">{doc.version}</Tag>}
                   <Tag type={doc.confidentiality === "public" ? "inactive" : "error"}>
                     {doc.confidentiality}
                   </Tag>
@@ -186,7 +192,46 @@ export default function CorpusArea() {
                 <Text2 regular color={skinVars.colors.textSecondary}>
                   Language: {docDetail.document.language.toUpperCase()}
                 </Text2>
+                {docDetail.document.frequency && (
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    Refresh: {docDetail.document.frequency}
+                  </Text2>
+                )}
+                {docDetail.document.version && (
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    Version: {docDetail.document.version}
+                  </Text2>
+                )}
               </Inline>
+              {docDetail.document.ingestFilter && (
+                <Boxed>
+                  <Box padding={16}>
+                    <Stack space={8}>
+                      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                        Pre-ingest filter match · {docDetail.document.ingestFilter.sentiment} mentions
+                      </Text1>
+                      <Inline space={8} alignItems="center" wrap>
+                        {docDetail.document.ingestFilter.keywords.map((k) => (
+                          <Tag key={`kw-${k}`} type="info">{`keyword: ${k}`}</Tag>
+                        ))}
+                        {docDetail.document.ingestFilter.competitors.map((k) => (
+                          <Tag key={`co-${k}`} type="warning">{`competitor: ${k}`}</Tag>
+                        ))}
+                        {docDetail.document.ingestFilter.executives.map((k) => (
+                          <Tag key={`ex-${k}`} type="active">{`executive: ${k}`}</Tag>
+                        ))}
+                        {docDetail.document.ingestFilter.topics.map((k) => (
+                          <Tag key={`to-${k}`} type="inactive">{`topic: ${k}`}</Tag>
+                        ))}
+                      </Inline>
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        Only material matching the configured keyword, competitor, executive and
+                        topic filters was ingested — never a raw dump.
+                      </Text1>
+                    </Stack>
+                  </Box>
+                </Boxed>
+              )}
             </Stack>
 
             <Divider />

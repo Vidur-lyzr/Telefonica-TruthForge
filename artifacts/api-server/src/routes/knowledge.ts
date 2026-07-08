@@ -59,6 +59,9 @@ router.get("/documents", (_req, res) => {
     chunkCount: d.chunks.length,
     sourceFormat: d.sourceFormat,
     connector: d.connector,
+    frequency: d.frequency ?? null,
+    version: d.version ?? null,
+    ingestFilter: d.ingestFilter ?? null,
   }));
   res.json(ListDocumentsResponse.parse(items));
 });
@@ -112,6 +115,9 @@ router.get("/documents/:id", (req, res) => {
       chunkCount: doc.chunks.length,
       sourceFormat: doc.sourceFormat,
       connector: doc.connector,
+      frequency: doc.frequency ?? null,
+      version: doc.version ?? null,
+      ingestFilter: doc.ingestFilter ?? null,
     },
     chunks: doc.chunks.map((c) => ({
       id: c.id,
