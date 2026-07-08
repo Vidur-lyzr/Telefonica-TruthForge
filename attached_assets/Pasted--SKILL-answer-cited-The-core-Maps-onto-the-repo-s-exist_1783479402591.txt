@@ -1,0 +1,62 @@
+# SKILL: answer_cited
+# The core. Maps onto the repo's existing agent/askAgent.ts flow, formalized as a
+# GitAgent skill. This is the hero behavior — cited, honest, permission-safe.
+
+## Trigger
+Any natural-language question over the governed knowledge. The default skill.
+
+## Procedure (deterministic order — do not reorder)
+
+1. **Resolve scope.** Read the persona's clearance + area. Build the retrieval
+   filter `area × confidentiality`. (Repo: this is the pre-model clearance filter.)
+
+2. **Plan retrieval.** Decide which tools the question needs:
+   - "what did we say / find / summarize" → `retrieve` (KB)
+   - "who owns / which axis / how related" → `graph` (KG)
+   - "the number / how much / vs target" → `numeric`
+   - exact acronym/name/figure → keyword (via `tokenize` coverage)
+   Most questions use `retrieve` + possibly `numeric`.
+
+3. **Retrieve WITH the filter applied first.** The model must never receive an
+   out-of-scope chunk. `numeric` fails closed: a metric whose source doc is
+   inaccessible is treated as inaccessible.
+
+4. **Decide the state BEFORE composing** (return early, no Claude call, for the
+   non-answer states — this matches the repo):
+   - No permitted chunk clears the relevance coverage bar → **`no_evidence`**.
+   - The question is answerable only from a chunk above clearance → **`permission_blocked`** (no snippet).
+   - Only source is outdated → **`historic`**.
+   - Two permitted chunks disagree on the fact → **`conflict`** (both cited).
+   - Otherwise → **answer**.
+
+5. **Compose (answer state only).** One or two sentences, no preamble. Bind every
+   figure/claim to its retrieved chunk as an Evidence Chip. Name the axis. Add one
+   line of context only if it adds defensibility.
+
+6. **Renumber citations** contiguously so text markers and chips never desync.
+   Strip any marker the model emitted that doesn't map to a retrieved chunk.
+
+7. **Actions** to offer (as quiet chips): `sources (n)` · `export to report`
+   (one-off → `generate_document`) · `save as insight` · `drill-in`.
+
+## Attachments
+If the user attached a document, pass it as working context only. It may be used to
+contrast/complete against SSoT knowledge, but it does NOT enter the corpus unless the
+user explicitly chooses to ingest it (→ ingestion Superflow).
+
+## Memory
+Chained follow-ups keep thread + filters. A resumed session re-resolves permissions
+and re-cites every turn — memory never grants access a fresh query wouldn't.
+
+## Output contract
+```
+{ state: answer|no_evidence|permission_blocked|historic|conflict,
+  answer?: string,
+  citations: [{ id, source, location, version, owner, validity, confidence }],
+  axis?: string,
+  actions: string[] }
+```
+
+## Failure rule
+If step 4 is ambiguous, prefer the more conservative state (no_evidence over a weak
+answer). Never upgrade a guess into an answer.

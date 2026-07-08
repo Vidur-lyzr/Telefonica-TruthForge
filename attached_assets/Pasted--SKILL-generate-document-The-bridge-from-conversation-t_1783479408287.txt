@@ -1,0 +1,59 @@
+# SKILL: generate_document
+# The bridge from conversation to the deterministic doc-gen Superflow.
+# The agent does NOT compose the document itself — it resolves parameters and hands
+# off to the Superflow, then streams progress and returns the draft to Canvas.
+
+## Trigger
+"Write / draft / make a talking-points doc, press release, Q&A, deck, or report."
+Also reached when `answer_cited` offers "export to report".
+
+## Procedure
+
+1. **Resolve scope** (as always).
+
+2. **Extract the Superflow input** from natural language. Required fields:
+   ```
+   { doc_type:  talking_points | press_release | qa | multiformat,
+     audience:  internal | external,
+     topic:     string,
+     axes:      string[],            // from the 5 axes
+     language:  es | en | de | pt,
+     confidentiality: public | private | confidential,   // destination
+     format:    ["docx"|"pptx"|"pdf"],
+     user_scope: {...} }
+   ```
+   If a REQUIRED field is missing and not inferable, ask exactly ONE clarifying
+   question (audience and language are the usual gaps). Do not present a form wall.
+
+3. **Enforce the audience rule at handoff.** If `audience = external`, set the
+   destination filter to public/approved — the Superflow's confidentiality gate will
+   strip anything else, but flag it here too.
+
+4. **Invoke** `invoke_superflow(name="document-generation", input=<above>)`.
+   - **On-demand:** subscribe to node-progress; stream step-events to the UI
+     (retrieving → charts → composing → Brand Guardian → ready). Return the draft
+     into the Canvas for chat + inline edit.
+   - **Scheduled/sensitive:** do NOT block. The Superflow routes to Wait-for-Approval;
+     report back "queued → review folder" and stop.
+
+5. **Never bypass the approval gate.** If the user says "publish", route into the
+   approval-gated path; publication happens only post-approval.
+
+## What the agent must NOT do
+- Do not compose the final document token-by-token itself and skip the Superflow —
+  that loses determinism, Brand Guardian, and exactly-once.
+- Do not set up recurring schedules from chat — that's backend config (Case 4).
+- Do not invent figures; the Superflow's retrieval supplies them, cited.
+
+## Output contract
+```
+{ mode: streamed|queued,
+  superflow_run_id: string,
+  draft?: <canvas doc ref>,     // on-demand
+  review_folder?: string }      // scheduled
+```
+
+## Note
+The document-generation Superflow is defined in the architecture set
+(superflow-document-generation.svg). Until it is built in Studio, this skill's
+`invoke_superflow` is the seam — wire it to the Superflow's webhook/typed input.

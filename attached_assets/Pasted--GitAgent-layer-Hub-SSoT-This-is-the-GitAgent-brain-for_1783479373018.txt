@@ -1,0 +1,60 @@
+# GitAgent layer — Hub SSoT
+
+This is the **GitAgent brain** for Telefonica-TruthForge. The repo today has a native
+TypeScript orchestrator (`agent/askAgent.ts`) and Lyzr-named adapters (`kb/kg/numeric/text`)
+backed by a local engine. This layer establishes the GitAgent architecture on top of
+that — **reusing the adapters that already work.**
+
+## Files
+```
+agent.yaml                        model routing, tool bindings → existing adapters, SSE, governance
+SOUL.md                           identity: evidential, honest, on-brand, sovereign
+RULES.md                          hard invariants (citation, early-binding permissions, honest states)
+knowledge/axes-brand-glossary.md  always-loaded stable knowledge (5 axes, taxonomy, honesty+citation contract)
+skills/SKILLS.md                  lazy-discovery catalog (only this is in-prompt)
+skills/answer_cited.md            the core Ask runbook (maps onto askAgent.ts)
+skills/generate_document.md       binds NL intent → the doc-gen Superflow (invoke_superflow)
+tools.md                          tool → adapter binding manifest        (see agent.yaml)
+```
+Add next: `skills/track_goal.md`, `skills/plan_calendar.md`, `knowledge/brand-room.md`.
+
+## How it wires onto the repo — two options
+
+**Option B (recommended for the prototype): GitAgent pattern in TypeScript.**
+Refactor `askAgent.ts` into a small loader that:
+1. reads `SOUL.md` + `RULES.md` + `knowledge/always_load` into the system prompt,
+2. injects the `SKILLS.md` catalog (not bodies),
+3. when a skill triggers, reads its `.md` body and follows the procedure,
+4. calls tools = the existing `kb/kg/numeric/text` adapters (already built),
+5. streams step-events + tokens over the SSE the repo already has.
+No Python, no new backend. The adapter seam and the working Ask flow stay; they just
+become the `answer_cited` skill's execution.
+
+**Option A (faithful runtime): GitAgent Python sidecar.**
+Run the real GitAgent runtime as a service; the TS API proxies `query()` to it. Most
+faithful to GitAgent, adds a Python service to a TS monorepo. Same files, unchanged.
+
+The `SOUL/RULES/skills/knowledge` files are **identical either way** — they're the brain,
+runtime-agnostic. Pick the runtime; the brain doesn't change.
+
+## What this layer does and does NOT own
+- **Owns:** the conversational agent (Chat), skill orchestration, the honest states,
+  the invoke_superflow bridge, and (later) the compiled LLM Wiki.
+- **Does NOT own:** retrieval/corpus (KB/KG adapters), or the deterministic pipelines
+  (the five Superflows). Those are separate and already speced.
+
+## Build sequence from here (repo → full product)
+1. **This layer → wire Option B** onto `askAgent.ts`. Ask becomes a real GitAgent skill. ✅ artifacts ready
+2. **Upgrade the corpus** in `data/corpus.ts` to the real 2026 anchors + engineered traps
+   (File 00). — needs verification of current corpus, then regenerate.
+3. **Build the doc-gen Superflow in Lyzr Studio** (superflow-document-generation.svg) and
+   point `invoke_superflow` at it → `generate_document` goes live → Generate page ships.
+4. **Swap the KB/KG adapters to real Lyzr** (SDK + keys) → vector + Neo4j replace local
+   BM25 → RAG becomes real. Adapter change only; no skill/route touched.
+5. **Ingestion Superflow** → populate real Lyzr KB/KG from the corpus.
+6. **KPIs + Planning** journeys (track_goal / plan_calendar + compute) → un-stub those pages.
+7. **Remaining Superflows** (calendar-sync, taxonomy, external-signal) as production.
+
+## The honest status line
+Right now the repo is **1 of 6 journeys, native-not-Lyzr, no GitAgent, no Superflows,
+no Studio**. This layer + steps 2–4 above are what turn it into the real thing.

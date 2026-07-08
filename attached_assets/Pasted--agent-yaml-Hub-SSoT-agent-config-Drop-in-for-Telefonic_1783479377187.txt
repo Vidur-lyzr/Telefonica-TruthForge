@@ -1,0 +1,64 @@
+# agent.yaml — Hub SSoT agent config
+# Drop-in for Telefonica-TruthForge. Binds the GitAgent layer to the repo's
+# EXISTING adapters (lib/... kb/kg/numeric/text) — no new backend required.
+
+agent:
+  name: hub-ssot
+  soul: SOUL.md
+  rules: RULES.md
+
+model:
+  # Matches the repo: Claude via the Replit Anthropic integration.
+  primary: claude-sonnet-4-6
+  # Multi-LLM routing is config, not code. In production these route by task;
+  # in the prototype everything runs on primary.
+  routing:
+    compose: claude-sonnet-4-6
+    classify: claude-sonnet-4-6
+    plan: claude-sonnet-4-6
+  temperature:
+    compose: 0.3        # prose around facts; low so structure is stable
+    classify: 0.0       # deterministic tagging
+    answer: 0.2
+
+streaming:
+  mode: sse             # matches the repo's SSE answer streaming
+  emit_step_events: true  # resolving -> retrieving -> checking -> composing
+
+knowledge:
+  always_load:
+    - knowledge/axes-brand-glossary.md   # the 5 axes, brand rules, honesty + citation contract
+  # NOTE: the corpus itself is NOT loaded here. It lives in the KB adapter
+  # (data/corpus.ts today; real Lyzr KB later) and is RETRIEVED, never preloaded.
+
+skills:
+  dir: skills
+  catalog: skills/SKILLS.md   # lazy discovery — only the catalog is in-prompt; bodies load on demand
+
+tools:
+  # Bind to the repo's existing Lyzr-named adapters. These names are what the
+  # skills call. Swapping the native engine for real Lyzr = change the adapter,
+  # not these bindings or any skill.
+  - name: retrieve
+    binds: adapters.kb.retrieve         # permission-filtered hybrid retrieval + citations
+  - name: graph
+    binds: adapters.kg.traverse         # entity/axis/relationship traversal
+  - name: numeric
+    binds: adapters.numeric.query       # figures from the curated numeric zone (fail-closed)
+  - name: tokenize
+    binds: adapters.text.tokenize       # idf/coverage relevance (repo's COVERAGE_MIN logic)
+  - name: invoke_superflow
+    binds: superflow.invoke             # calls a Lyzr Superflow (doc-gen, etc.) — see skills/generate_document.md
+  - name: memory
+    binds: adapters.memory              # per-user history (Lyzr Agent Memory in prod)
+
+governance:
+  # These are enforced by tools/skills, never left to the model.
+  permission_binding: early            # filter BEFORE retrieval — the repo already does this
+  citation_required: true              # RULES.md forbids uncited claims
+  honest_states:                       # the repo's real states — keep them
+    - no_evidence
+    - permission_blocked
+    - historic
+    - conflict
+  trace: lyzr_native_plus_git_sha      # Lyzr trace + agent-brain git SHA
