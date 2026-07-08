@@ -725,6 +725,13 @@ export interface KpiForecast {
   confidence: number;
 }
 
+export interface KpiThresholds {
+  /** Attainment ratio below which the KPI turns amber */
+  amberBelow: number;
+  /** Attainment ratio below which the KPI turns critical / off-track */
+  criticalBelow: number;
+}
+
 export interface KpiCard {
   id: string;
   objectiveId: string;
@@ -759,6 +766,106 @@ export interface KpiCard {
   conflict: boolean;
   sources: KpiSource[];
   forecast: KpiForecast;
+  owner: string;
+  thresholds: KpiThresholds;
+  definitionVersion: number;
+}
+
+export interface KpiSourceConfig {
+  id: string;
+  label: string;
+  /** internal | external */
+  kind: string;
+  weight: number;
+  /** @nullable */
+  docId: string | null;
+  /** @nullable */
+  note: string | null;
+  conflict: boolean;
+}
+
+export interface KpiDefinitionVersion {
+  version: number;
+  editedBy: string;
+  editedAt: string;
+  changeNote: string;
+  name: string;
+  description: string;
+  unit: string;
+  objectiveId: string;
+  axisId: string;
+  market: string;
+  brand: string;
+  initiativeType: string;
+  confidentiality: string;
+  areas: string[];
+  /** higher-better | lower-better */
+  direction: string;
+  target: number;
+  thresholds: KpiThresholds;
+  owner: string;
+  sources: KpiSourceConfig[];
+}
+
+export interface KpiDefinitionRecord {
+  id: string;
+  seeded: boolean;
+  latestVersion: number;
+  versions: KpiDefinitionVersion[];
+}
+
+export interface KpiDefinitionInput {
+  /**
+     * Existing KPI id to append a new version; null creates a new KPI
+     * @nullable
+     */
+  id?: string | null;
+  /** @minLength 1 */
+  name: string;
+  description: string;
+  unit: string;
+  objectiveId: string;
+  axisId: string;
+  market: string;
+  brand: string;
+  initiativeType: string;
+  confidentiality: string;
+  areas: string[];
+  direction: string;
+  target: number;
+  thresholds: KpiThresholds;
+  owner: string;
+  sources: KpiSourceConfig[];
+  editedBy: string;
+  changeNote: string;
+}
+
+export interface KpiAlert {
+  id: string;
+  kpiId: string;
+  kpiName: string;
+  /** amber | critical | forecast */
+  severity: string;
+  owner: string;
+  channel: string;
+  message: string;
+  createdAt: string;
+  acknowledged: boolean;
+  /** @nullable */
+  acknowledgedBy: string | null;
+  /** @nullable */
+  acknowledgedAt: string | null;
+}
+
+export interface KpiAlertListInput {
+  roleId: string;
+  area: string;
+}
+
+export interface KpiAlertAckInput {
+  id: string;
+  roleId: string;
+  area: string;
 }
 
 export interface KpiTimePoint {
@@ -782,12 +889,18 @@ export type KpiFacetsAxesItem = {
   color: string;
 };
 
+export type KpiFacetsObjectivesItem = {
+  id: string;
+  name: string;
+};
+
 export interface KpiFacets {
   axes: KpiFacetsAxesItem[];
   markets: string[];
   brands: string[];
   sources: string[];
   initiativeTypes: string[];
+  objectives?: KpiFacetsObjectivesItem[];
 }
 
 export interface KpiQueryInput {
@@ -806,6 +919,8 @@ export interface KpiQueryInput {
   source?: string | null;
   /** @nullable */
   initiativeType?: string | null;
+  /** @nullable */
+  objectiveId?: string | null;
 }
 
 export interface KpiQueryResult {

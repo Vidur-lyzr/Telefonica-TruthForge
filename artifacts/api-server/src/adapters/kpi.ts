@@ -11,18 +11,23 @@
 
 import {
   AXES,
-  KPIS,
   KPI_MENTIONS,
   CLEARANCE_RANK,
   getDoc,
-  getKpiById,
   getObjective,
   type Clearance,
   type Area,
-  type KpiDefinition,
   type KpiPeriodType,
   type KpiDirection,
 } from "../data/corpus";
+import {
+  listEffectiveKpiDefinitions,
+  getEffectiveKpiDefinition,
+  syncAlerts,
+  type EffectiveKpiDefinition,
+  type KpiThresholds,
+  type KpiAlertRecord,
+} from "../data/kpiStore";
 
 export interface KpiSource {
   id: string;
@@ -81,6 +86,9 @@ export interface KpiCard {
   conflict: boolean;
   sources: KpiSource[];
   forecast: KpiForecast;
+  owner: string;
+  thresholds: KpiThresholds;
+  definitionVersion: number;
 }
 
 export interface KpiTimePoint {
@@ -105,6 +113,7 @@ export interface KpiFacets {
   brands: string[];
   sources: string[];
   initiativeTypes: string[];
+  objectives: { id: string; name: string }[];
 }
 
 export interface KpiQueryOptions {
@@ -116,6 +125,7 @@ export interface KpiQueryOptions {
   brand?: string;
   source?: string;
   initiativeType?: string;
+  objectiveId?: string;
 }
 
 export interface KpiQueryResult {
@@ -128,7 +138,7 @@ const axisById = new Map(AXES.map((a) => [a.id, a]));
 // Effective clearance a KPI requires: the stricter of its own confidentiality
 // and the confidentiality of any internal source document it blends. This is the
 // fail-closed rule — a KPI can never be softer than the evidence behind it.
-function requiredRank(kpi: KpiDefinition): number {
+function requiredRank(kpi: EffectiveKpiDefinition): number {
   let rank = CLEARANCE_RANK[kpi.confidentiality];
   for (const s of kpi.sources) {
     if (s.kind === "internal" && s.docId) {
@@ -139,7 +149,7 @@ function requiredRank(kpi: KpiDefinition): number {
   return rank;
 }
 
-function isVisible(kpi: KpiDefinition, clearance: Clearance, area: Area): boolean {
+function isVisible(kpi: EffectiveKpiDefinition, clearance: Clearance, area: Area): boolean {
   return requiredRank(kpi) <= CLEARANCE_RANK[clearance] && kpi.areas.includes(area);
 }
 
@@ -150,9 +160,11 @@ function attainment(current: number, target: number, direction: KpiDirection): n
   return target === 0 ? 0 : current / target;
 }
 
-function statusFor(att: number): "on-track" | "amber" | "off-track" {
-  if (att >= 1) return "on-track";
-  if (att >= 0.92) return "amber";
+// Status is driven by the definition's own configured thresholds — an admin
+// can tighten or relax them per KPI without touching the engine.
+function statusFor(att: number, thresholds: KpiThresholds): "on-track" | "amber" | "off-track" {
+  if (att >= thresholds.amberBelow) return "on-track";
+  if (att >= thresholds.criticalBelow) return "amber";
   return "off-track";
 }
 
@@ -161,7 +173,7 @@ function round(n: number, dp = 1): number {
   return Math.round(n * f) / f;
 }
 
-function buildSources(kpi: KpiDefinition, clearance: Clearance): KpiSource[] {
+function buildSources(kpi: EffectiveKpiDefinition, clearance: Clearance): KpiSource[] {
   const roleRank = CLEARANCE_RANK[clearance];
   return kpi.sources.map((s) => {
     if (s.kind === "internal" && s.docId) {
@@ -208,7 +220,7 @@ function buildSources(kpi: KpiDefinition, clearance: Clearance): KpiSource[] {
   });
 }
 
-function buildBlend(kpi: KpiDefinition): string {
+function buildBlend(kpi: EffectiveKpiDefinition): string {
   const parts: string[] = [];
   if (kpi.sources.some((s) => s.kind === "internal")) parts.push("internal");
   for (const s of kpi.sources) {
@@ -222,7 +234,7 @@ function periodWord(period: KpiPeriodType): string {
 }
 
 function buildForecast(
-  kpi: KpiDefinition,
+  kpi: EffectiveKpiDefinition,
   series: number[],
   period: KpiPeriodType,
 ): KpiForecast {
@@ -238,8 +250,8 @@ function buildForecast(
   const trend =
     slope > 0.05 ? "the current upward trend" : slope < -0.05 ? "the current decline" : "the current flat trend";
   const note = deviationRisk
-    ? `On ${trend}, this lands near ${projected}${unit} by ${periodWord(period)}-end — short of the ${kpi.target}${unit} target.`
-    : `On ${trend}, this holds around ${projected}${unit} by ${periodWord(period)}-end, at or above the ${kpi.target}${unit} target.`;
+    ? `At this rate you close ${periodWord(period)}-end at ${projected}${unit} vs the ${kpi.target}${unit} target — deviation risk on ${trend}.`
+    : `At this rate you close ${periodWord(period)}-end at ${projected}${unit} vs the ${kpi.target}${unit} target — on course given ${trend}.`;
   return {
     projected,
     target: kpi.target,
@@ -250,7 +262,7 @@ function buildForecast(
 }
 
 function computeCard(
-  kpi: KpiDefinition,
+  kpi: EffectiveKpiDefinition,
   period: KpiPeriodType,
   clearance: Clearance,
 ): KpiCard {
@@ -289,7 +301,7 @@ function computeCard(
     target: kpi.target,
     direction: kpi.direction,
     progress,
-    status: statusFor(att),
+    status: statusFor(att, kpi.thresholds),
     variation,
     variationPct,
     spark: series,
@@ -301,11 +313,16 @@ function computeCard(
     conflict: kpi.sources.some((s) => Boolean(s.conflict)),
     sources,
     forecast: buildForecast(kpi, series, period),
+    owner: kpi.owner,
+    thresholds: kpi.thresholds,
+    definitionVersion: kpi.definitionVersion,
   };
 }
 
 export function listKpis(opts: KpiQueryOptions): KpiQueryResult {
-  const visible = KPIS.filter((k) => isVisible(k, opts.clearance, opts.area));
+  const visible = listEffectiveKpiDefinitions().filter((k) =>
+    isVisible(k, opts.clearance, opts.area),
+  );
 
   const facets: KpiFacets = {
     axes: dedupeAxes(visible.map((k) => k.axisId)),
@@ -313,6 +330,7 @@ export function listKpis(opts: KpiQueryOptions): KpiQueryResult {
     brands: unique(visible.map((k) => k.brand)),
     sources: unique(visible.flatMap((k) => k.sources.map((s) => s.label))),
     initiativeTypes: unique(visible.map((k) => k.initiativeType)),
+    objectives: dedupeObjectives(visible.map((k) => k.objectiveId)),
   };
 
   const filtered = visible.filter((k) => {
@@ -321,6 +339,7 @@ export function listKpis(opts: KpiQueryOptions): KpiQueryResult {
     if (opts.brand && k.brand !== opts.brand) return false;
     if (opts.initiativeType && k.initiativeType !== opts.initiativeType) return false;
     if (opts.source && !k.sources.some((s) => s.label === opts.source)) return false;
+    if (opts.objectiveId && k.objectiveId !== opts.objectiveId) return false;
     return true;
   });
 
@@ -332,7 +351,7 @@ export function getKpiDetail(
   id: string,
   opts: { clearance: Clearance; area: Area; period: KpiPeriodType },
 ): KpiDetail | null {
-  const kpi = getKpiById(id);
+  const kpi = getEffectiveKpiDefinition(id);
   if (!kpi || !isVisible(kpi, opts.clearance, opts.area)) return null;
   const card = computeCard(kpi, opts.period, opts.clearance);
   const series: KpiTimePoint[] = kpi.series[opts.period].map((value, i) => ({
@@ -367,12 +386,15 @@ export function getKpiChatEvidence(
   area: Area,
 ): KpiEvidenceItem[] {
   const roleRank = CLEARANCE_RANK[clearance];
+  const all = listEffectiveKpiDefinitions();
   const requested = kpiIds
-    .map((id) => getKpiById(id))
-    .filter((k): k is KpiDefinition => Boolean(k) && isVisible(k as KpiDefinition, clearance, area));
+    .map((id) => all.find((k) => k.id === id))
+    .filter(
+      (k): k is EffectiveKpiDefinition => Boolean(k) && isVisible(k as EffectiveKpiDefinition, clearance, area),
+    );
   const scope = requested.length > 0
     ? requested
-    : KPIS.filter((k) => isVisible(k, clearance, area));
+    : all.filter((k) => isVisible(k, clearance, area));
   const scopeIds = new Set(scope.map((k) => k.id));
 
   const items: KpiEvidenceItem[] = [];
@@ -429,6 +451,44 @@ export function getKpiChatEvidence(
   return items;
 }
 
+// ---- Threshold / deviation alerts --------------------------------------------
+// Deterministic, non-LLM: recomputed from the effective definitions' latest
+// month attainment and forecast. Recorded per owner with a simulated
+// Teams/email delivery channel; acknowledgements persist in the kpi store.
+
+export function computeAndListAlerts(clearance: Clearance, area: Area): KpiAlertRecord[] {
+  const synced = syncAlerts((def) => {
+    const series = def.series.month;
+    const current = series[series.length - 1] ?? 0;
+    const att = attainment(current, def.target, def.direction);
+    const found: { severity: "amber" | "critical" | "forecast"; message: string }[] = [];
+    if (att < def.thresholds.criticalBelow) {
+      found.push({
+        severity: "critical",
+        message: `${def.name} is at ${round(current)}${def.unit} against a ${def.target}${def.unit} target — below the critical threshold (${Math.round(def.thresholds.criticalBelow * 100)}% attainment). Owner notified.`,
+      });
+    } else if (att < def.thresholds.amberBelow) {
+      found.push({
+        severity: "amber",
+        message: `${def.name} is at ${round(current)}${def.unit} against a ${def.target}${def.unit} target — below the amber threshold (${Math.round(def.thresholds.amberBelow * 100)}% attainment). Owner notified.`,
+      });
+    }
+    const forecast = buildForecast(def, series, "month");
+    if (forecast.deviationRisk && att >= def.thresholds.criticalBelow) {
+      found.push({ severity: "forecast", message: `${def.name}: ${forecast.note}` });
+    }
+    return found;
+  });
+
+  // Fail closed: a persona only sees alerts for KPIs it could open itself.
+  const visibleIds = new Set(
+    listEffectiveKpiDefinitions()
+      .filter((k) => isVisible(k, clearance, area))
+      .map((k) => k.id),
+  );
+  return synced.filter((a) => visibleIds.has(a.kpiId));
+}
+
 function unique(values: string[]): string[] {
   return Array.from(new Set(values)).sort();
 }
@@ -439,6 +499,11 @@ function dedupeAxes(axisIds: string[]): { id: string; name: string; color: strin
     .map((id) => axisById.get(id))
     .filter((a): a is (typeof AXES)[number] => Boolean(a))
     .map((a) => ({ id: a.id, name: a.name, color: a.color }));
+}
+
+function dedupeObjectives(objectiveIds: string[]): { id: string; name: string }[] {
+  const ids = Array.from(new Set(objectiveIds));
+  return ids.map((id) => ({ id, name: getObjective(id)?.name ?? id }));
 }
 
 function periodLabel(period: KpiPeriodType, index: number): string {

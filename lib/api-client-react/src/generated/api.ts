@@ -64,7 +64,12 @@ import type {
   HealthStatus,
   HomeSummary,
   IngestionSnapshot,
+  KpiAlert,
+  KpiAlertAckInput,
+  KpiAlertListInput,
   KpiAskInput,
+  KpiDefinitionInput,
+  KpiDefinitionRecord,
   KpiDetail,
   KpiDetailInput,
   KpiQueryInput,
@@ -1745,6 +1750,296 @@ export const useGetKpiDetail = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getGetKpiDetailMutationOptions(options));
+    }
+
+export const getListKpiDefinitionsUrl = () => {
+
+
+
+
+  return `/api/kpis/definitions`
+}
+
+/**
+ * The full versioned KPI definition registry the calculation engine runs on. Seed definitions come from the governed corpus (version 1); admin edits append immutable new versions. Intended for the administration backend.
+ * @summary Versioned KPI definitions (configuration-as-data)
+ */
+export const listKpiDefinitions = async ( options?: RequestInit): Promise<KpiDefinitionRecord[]> => {
+
+  return customFetch<KpiDefinitionRecord[]>(getListKpiDefinitionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListKpiDefinitionsQueryKey = () => {
+    return [
+    `/api/kpis/definitions`
+    ] as const;
+    }
+
+
+export const getListKpiDefinitionsQueryOptions = <TData = Awaited<ReturnType<typeof listKpiDefinitions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listKpiDefinitions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListKpiDefinitionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listKpiDefinitions>>> = ({ signal }) => listKpiDefinitions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listKpiDefinitions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListKpiDefinitionsQueryResult = NonNullable<Awaited<ReturnType<typeof listKpiDefinitions>>>
+export type ListKpiDefinitionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Versioned KPI definitions (configuration-as-data)
+ */
+
+export function useListKpiDefinitions<TData = Awaited<ReturnType<typeof listKpiDefinitions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listKpiDefinitions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListKpiDefinitionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpsertKpiDefinitionUrl = () => {
+
+
+
+
+  return `/api/kpis/definitions`
+}
+
+/**
+ * Saves an admin-edited KPI definition. When id is provided, a new immutable version is appended to that definition's history; when null, a new KPI is created with a deterministic synthetic series. The panel always renders the latest version.
+ * @summary Create a KPI or append a new version of an existing definition
+ */
+export const upsertKpiDefinition = async (kpiDefinitionInput: KpiDefinitionInput, options?: RequestInit): Promise<KpiDefinitionRecord> => {
+
+  return customFetch<KpiDefinitionRecord>(getUpsertKpiDefinitionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(kpiDefinitionInput)
+  }
+);}
+
+
+
+
+export const getUpsertKpiDefinitionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertKpiDefinition>>, TError,{data: BodyType<KpiDefinitionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof upsertKpiDefinition>>, TError,{data: BodyType<KpiDefinitionInput>}, TContext> => {
+
+const mutationKey = ['upsertKpiDefinition'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof upsertKpiDefinition>>, {data: BodyType<KpiDefinitionInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  upsertKpiDefinition(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpsertKpiDefinitionMutationResult = NonNullable<Awaited<ReturnType<typeof upsertKpiDefinition>>>
+    export type UpsertKpiDefinitionMutationBody = BodyType<KpiDefinitionInput>
+    export type UpsertKpiDefinitionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a KPI or append a new version of an existing definition
+ */
+export const useUpsertKpiDefinition = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof upsertKpiDefinition>>, TError,{data: BodyType<KpiDefinitionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof upsertKpiDefinition>>,
+        TError,
+        {data: BodyType<KpiDefinitionInput>},
+        TContext
+      > => {
+      return useMutation(getUpsertKpiDefinitionMutationOptions(options));
+    }
+
+export const getListKpiAlertsUrl = () => {
+
+
+
+
+  return `/api/kpis/alerts`
+}
+
+/**
+ * Deterministically recomputed threshold-breach and forecast-deviation alerts, recorded per KPI owner with a simulated Teams/email delivery channel. Fail closed — a persona only sees alerts for KPIs it could open itself.
+ * @summary Threshold and deviation alerts for the persona's visible KPIs
+ */
+export const listKpiAlerts = async (kpiAlertListInput: KpiAlertListInput, options?: RequestInit): Promise<KpiAlert[]> => {
+
+  return customFetch<KpiAlert[]>(getListKpiAlertsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(kpiAlertListInput)
+  }
+);}
+
+
+
+
+export const getListKpiAlertsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof listKpiAlerts>>, TError,{data: BodyType<KpiAlertListInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof listKpiAlerts>>, TError,{data: BodyType<KpiAlertListInput>}, TContext> => {
+
+const mutationKey = ['listKpiAlerts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof listKpiAlerts>>, {data: BodyType<KpiAlertListInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  listKpiAlerts(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ListKpiAlertsMutationResult = NonNullable<Awaited<ReturnType<typeof listKpiAlerts>>>
+    export type ListKpiAlertsMutationBody = BodyType<KpiAlertListInput>
+    export type ListKpiAlertsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Threshold and deviation alerts for the persona's visible KPIs
+ */
+export const useListKpiAlerts = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof listKpiAlerts>>, TError,{data: BodyType<KpiAlertListInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof listKpiAlerts>>,
+        TError,
+        {data: BodyType<KpiAlertListInput>},
+        TContext
+      > => {
+      return useMutation(getListKpiAlertsMutationOptions(options));
+    }
+
+export const getAcknowledgeKpiAlertUrl = () => {
+
+
+
+
+  return `/api/kpis/alerts/ack`
+}
+
+/**
+ * @summary Acknowledge an alert (records who and when in the trail)
+ */
+export const acknowledgeKpiAlert = async (kpiAlertAckInput: KpiAlertAckInput, options?: RequestInit): Promise<KpiAlert> => {
+
+  return customFetch<KpiAlert>(getAcknowledgeKpiAlertUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(kpiAlertAckInput)
+  }
+);}
+
+
+
+
+export const getAcknowledgeKpiAlertMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acknowledgeKpiAlert>>, TError,{data: BodyType<KpiAlertAckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acknowledgeKpiAlert>>, TError,{data: BodyType<KpiAlertAckInput>}, TContext> => {
+
+const mutationKey = ['acknowledgeKpiAlert'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acknowledgeKpiAlert>>, {data: BodyType<KpiAlertAckInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  acknowledgeKpiAlert(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcknowledgeKpiAlertMutationResult = NonNullable<Awaited<ReturnType<typeof acknowledgeKpiAlert>>>
+    export type AcknowledgeKpiAlertMutationBody = BodyType<KpiAlertAckInput>
+    export type AcknowledgeKpiAlertMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Acknowledge an alert (records who and when in the trail)
+ */
+export const useAcknowledgeKpiAlert = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acknowledgeKpiAlert>>, TError,{data: BodyType<KpiAlertAckInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof acknowledgeKpiAlert>>,
+        TError,
+        {data: BodyType<KpiAlertAckInput>},
+        TContext
+      > => {
+      return useMutation(getAcknowledgeKpiAlertMutationOptions(options));
     }
 
 export const getGetPlanningOverviewUrl = (params: GetPlanningOverviewParams,) => {

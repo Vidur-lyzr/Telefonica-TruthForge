@@ -468,6 +468,105 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /kpis/definitions:
+    get:
+      operationId: listKpiDefinitions
+      tags: [kpis]
+      summary: Versioned KPI definitions (configuration-as-data)
+      description: >
+        The full versioned KPI definition registry the calculation engine runs
+        on. Seed definitions come from the governed corpus (version 1); admin
+        edits append immutable new versions. Intended for the administration
+        backend.
+      responses:
+        "200":
+          description: KPI definition records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KpiDefinitionRecord"
+    post:
+      operationId: upsertKpiDefinition
+      tags: [kpis]
+      summary: Create a KPI or append a new version of an existing definition
+      description: >
+        Saves an admin-edited KPI definition. When id is provided, a new
+        immutable version is appended to that definition's history; when null,
+        a new KPI is created with a deterministic synthetic series. The panel
+        always renders the latest version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KpiDefinitionInput"
+      responses:
+        "200":
+          description: Updated definition record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KpiDefinitionRecord"
+        "400":
+          description: Invalid definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /kpis/alerts:
+    post:
+      operationId: listKpiAlerts
+      tags: [kpis]
+      summary: Threshold and deviation alerts for the persona's visible KPIs
+      description: >
+        Deterministically recomputed threshold-breach and forecast-deviation
+        alerts, recorded per KPI owner with a simulated Teams/email delivery
+        channel. Fail closed — a persona only sees alerts for KPIs it could
+        open itself.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KpiAlertListInput"
+      responses:
+        "200":
+          description: Alerts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/KpiAlert"
+
+  /kpis/alerts/ack:
+    post:
+      operationId: acknowledgeKpiAlert
+      tags: [kpis]
+      summary: Acknowledge an alert (records who and when in the trail)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KpiAlertAckInput"
+      responses:
+        "200":
+          description: Acknowledged alert
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KpiAlert"
+        "404":
+          description: Unknown alert or not visible to this persona
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /planning/overview:
     get:
       operationId: getPlanningOverview
@@ -2492,7 +2591,7 @@ components:
     KpiCard:
       type: object
       required:
-        [id, objectiveId, objectiveName, name, description, unit, axisId, axisName, axisColor, market, brand, initiativeType, confidentiality, periodType, current, target, direction, progress, status, variation, variationPct, spark, composite, blend, confidence, validity, historic, conflict, sources, forecast]
+        [id, objectiveId, objectiveName, name, description, unit, axisId, axisName, axisColor, market, brand, initiativeType, confidentiality, periodType, current, target, direction, progress, status, variation, variationPct, spark, composite, blend, confidence, validity, historic, conflict, sources, forecast, owner, thresholds, definitionVersion]
       properties:
         id:
           type: string
@@ -2561,6 +2660,204 @@ components:
             $ref: "#/components/schemas/KpiSource"
         forecast:
           $ref: "#/components/schemas/KpiForecast"
+        owner:
+          type: string
+        thresholds:
+          $ref: "#/components/schemas/KpiThresholds"
+        definitionVersion:
+          type: number
+
+    KpiThresholds:
+      type: object
+      required: [amberBelow, criticalBelow]
+      properties:
+        amberBelow:
+          type: number
+          description: Attainment ratio below which the KPI turns amber
+        criticalBelow:
+          type: number
+          description: Attainment ratio below which the KPI turns critical / off-track
+
+    KpiSourceConfig:
+      type: object
+      required: [id, label, kind, weight, docId, note, conflict]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        kind:
+          type: string
+          description: internal | external
+        weight:
+          type: number
+        docId:
+          type: ["string", "null"]
+        note:
+          type: ["string", "null"]
+        conflict:
+          type: boolean
+
+    KpiDefinitionVersion:
+      type: object
+      required:
+        [version, editedBy, editedAt, changeNote, name, description, unit, objectiveId, axisId, market, brand, initiativeType, confidentiality, areas, direction, target, thresholds, owner, sources]
+      properties:
+        version:
+          type: number
+        editedBy:
+          type: string
+        editedAt:
+          type: string
+        changeNote:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        unit:
+          type: string
+        objectiveId:
+          type: string
+        axisId:
+          type: string
+        market:
+          type: string
+        brand:
+          type: string
+        initiativeType:
+          type: string
+        confidentiality:
+          type: string
+        areas:
+          type: array
+          items:
+            type: string
+        direction:
+          type: string
+          description: higher-better | lower-better
+        target:
+          type: number
+        thresholds:
+          $ref: "#/components/schemas/KpiThresholds"
+        owner:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiSourceConfig"
+
+    KpiDefinitionRecord:
+      type: object
+      required: [id, seeded, latestVersion, versions]
+      properties:
+        id:
+          type: string
+        seeded:
+          type: boolean
+        latestVersion:
+          type: number
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiDefinitionVersion"
+
+    KpiDefinitionInput:
+      type: object
+      required:
+        [name, description, unit, objectiveId, axisId, market, brand, initiativeType, confidentiality, areas, direction, target, thresholds, owner, sources, editedBy, changeNote]
+      properties:
+        id:
+          type: ["string", "null"]
+          description: Existing KPI id to append a new version; null creates a new KPI
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        unit:
+          type: string
+        objectiveId:
+          type: string
+        axisId:
+          type: string
+        market:
+          type: string
+        brand:
+          type: string
+        initiativeType:
+          type: string
+        confidentiality:
+          type: string
+        areas:
+          type: array
+          items:
+            type: string
+        direction:
+          type: string
+        target:
+          type: number
+        thresholds:
+          $ref: "#/components/schemas/KpiThresholds"
+        owner:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/KpiSourceConfig"
+        editedBy:
+          type: string
+        changeNote:
+          type: string
+
+    KpiAlert:
+      type: object
+      required:
+        [id, kpiId, kpiName, severity, owner, channel, message, createdAt, acknowledged, acknowledgedBy, acknowledgedAt]
+      properties:
+        id:
+          type: string
+        kpiId:
+          type: string
+        kpiName:
+          type: string
+        severity:
+          type: string
+          description: amber | critical | forecast
+        owner:
+          type: string
+        channel:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+        acknowledged:
+          type: boolean
+        acknowledgedBy:
+          type: ["string", "null"]
+        acknowledgedAt:
+          type: ["string", "null"]
+
+    KpiAlertListInput:
+      type: object
+      required: [roleId, area]
+      properties:
+        roleId:
+          type: string
+        area:
+          type: string
+
+    KpiAlertAckInput:
+      type: object
+      required: [id, roleId, area]
+      properties:
+        id:
+          type: string
+        roleId:
+          type: string
+        area:
+          type: string
 
     KpiTimePoint:
       type: object
@@ -2623,6 +2920,16 @@ components:
           type: array
           items:
             type: string
+        objectives:
+          type: array
+          items:
+            type: object
+            required: [id, name]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
 
     KpiQueryInput:
       type: object
@@ -2645,6 +2952,8 @@ components:
         source:
           type: ["string", "null"]
         initiativeType:
+          type: ["string", "null"]
+        objectiveId:
           type: ["string", "null"]
 
     KpiQueryResult:

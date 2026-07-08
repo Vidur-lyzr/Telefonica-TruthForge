@@ -5,9 +5,13 @@ import {
   useListScheduledDocuments,
   useListAuditEntries,
   useGetUserVisibilityMatrix,
+  useListKpiDefinitions,
+  useUpsertKpiDefinition,
   PlatformUser,
   ScheduledDocument,
   AuditEntry,
+  KpiDefinitionRecord,
+  KpiDefinitionVersion,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
 import {
@@ -46,6 +50,8 @@ import {
   IconAlertRegular,
   IconArrowLineRightRegular,
   IconTrophyRegular,
+  IconTargetRegular,
+  IconTimeRegular,
 } from "@telefonica/mistica";
 
 type IconType = (props: { size?: number; color?: string }) => React.ReactElement;
@@ -319,6 +325,108 @@ export default function AdminPage() {
       },
     },
   );
+
+  // ---- KPI definitions (versioned, server-side store) ----
+  const { data: kpiDefs, refetch: refetchKpiDefs } = useListKpiDefinitions({
+    query: { queryKey: ["kpi-definitions"] },
+  });
+  const upsertKpi = useUpsertKpiDefinition();
+
+  const latestOf = (r: KpiDefinitionRecord): KpiDefinitionVersion =>
+    r.versions.find((v) => v.version === r.latestVersion) ?? r.versions[r.versions.length - 1];
+
+  const [kpiEditId, setKpiEditId] = React.useState<string | null>(null);
+  const [kpiHistoryId, setKpiHistoryId] = React.useState<string | null>(null);
+  const emptyKpiDraft = {
+    name: "",
+    description: "",
+    unit: "",
+    target: "",
+    owner: "",
+    amberPct: "100",
+    criticalPct: "92",
+    confidentiality: "internal",
+    changeNote: "",
+  };
+  const [kpiDraft, setKpiDraft] = React.useState({ ...emptyKpiDraft });
+
+  const kpiEditRecord = (kpiDefs ?? []).find((r) => r.id === kpiEditId) ?? null;
+  const kpiHistoryRecord = (kpiDefs ?? []).find((r) => r.id === kpiHistoryId) ?? null;
+
+  function openKpiEdit(r: KpiDefinitionRecord) {
+    const v = latestOf(r);
+    setKpiDraft({
+      name: v.name,
+      description: v.description,
+      unit: v.unit,
+      target: String(v.target),
+      owner: v.owner,
+      amberPct: String(Math.round(v.thresholds.amberBelow * 100)),
+      criticalPct: String(Math.round(v.thresholds.criticalBelow * 100)),
+      confidentiality: v.confidentiality,
+      changeNote: "",
+    });
+    setKpiEditId(r.id);
+  }
+
+  const kpiTarget = Number(kpiDraft.target);
+  const kpiAmber = Number(kpiDraft.amberPct);
+  const kpiCritical = Number(kpiDraft.criticalPct);
+  const kpiDraftValid =
+    kpiDraft.name.trim().length > 0 &&
+    Number.isFinite(kpiTarget) &&
+    kpiTarget > 0 &&
+    Number.isFinite(kpiAmber) &&
+    Number.isFinite(kpiCritical) &&
+    kpiCritical > 0 &&
+    kpiCritical <= kpiAmber &&
+    kpiDraft.owner.trim().length > 0 &&
+    kpiDraft.changeNote.trim().length > 0;
+
+  function commitKpiDefinition() {
+    if (!kpiEditRecord || !kpiDraftValid) return;
+    const v = latestOf(kpiEditRecord);
+    upsertKpi.mutate(
+      {
+        data: {
+          id: kpiEditRecord.id,
+          name: kpiDraft.name.trim(),
+          description: kpiDraft.description.trim(),
+          unit: kpiDraft.unit.trim(),
+          objectiveId: v.objectiveId,
+          axisId: v.axisId,
+          market: v.market,
+          brand: v.brand,
+          initiativeType: v.initiativeType,
+          confidentiality: kpiDraft.confidentiality,
+          areas: v.areas,
+          direction: v.direction,
+          target: kpiTarget,
+          thresholds: {
+            amberBelow: kpiAmber / 100,
+            criticalBelow: kpiCritical / 100,
+          },
+          owner: kpiDraft.owner.trim(),
+          sources: v.sources,
+          editedBy: "You (session)",
+          changeNote: kpiDraft.changeNote.trim(),
+        },
+      },
+      {
+        onSuccess: (updated) => {
+          pushAudit({
+            actor: "You (session)",
+            action: "KPI definition updated",
+            target: kpiDraft.name.trim(),
+            kind: "permission",
+            detail: `Version ${updated.latestVersion}: target ${kpiTarget}${kpiDraft.unit}, amber below ${kpiAmber}%, critical below ${kpiCritical}%, owner ${kpiDraft.owner.trim()}. ${kpiDraft.changeNote.trim()}`,
+          });
+          setKpiEditId(null);
+          refetchKpiDefs();
+        },
+      },
+    );
+  }
 
   return (
     <Box padding={24}>
@@ -629,6 +737,64 @@ export default function AdminPage() {
           />
         </Stack>
 
+        {/* KPI definitions */}
+        <Stack space={16}>
+          <Inline space="between" alignItems="center">
+            <Inline space={8} alignItems="center">
+              <IconTargetRegular size={20} color={skinVars.colors.brand} />
+              <Title3>KPI definitions</Title3>
+            </Inline>
+          </Inline>
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            The governed KPI catalogue behind the KPIs page. Every edit appends a new version —
+            nothing is overwritten — and the calculation engine picks up the latest definition on
+            the next query. Thresholds drive amber/critical status and the alert trail.
+          </Text2>
+          <Table
+            heading={["KPI", "Version", "Target", "Amber below", "Critical below", "Owner", "Confidentiality", ""]}
+            content={(kpiDefs ?? []).map((r) => {
+              const v = latestOf(r);
+              return [
+                <Stack space={2} key={`${r.id}-name`}>
+                  <Text2 medium color={skinVars.colors.textPrimary}>
+                    {v.name}
+                  </Text2>
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    {v.market} · {v.brand}
+                  </Text1>
+                </Stack>,
+                <Tag type={r.latestVersion > 1 ? "info" : "inactive"} key={`${r.id}-v`}>
+                  {`v${r.latestVersion}`}
+                </Tag>,
+                <Text2 medium color={skinVars.colors.textPrimary} key={`${r.id}-target`}>
+                  {v.target}
+                  {v.unit}
+                </Text2>,
+                <Text2 regular color={skinVars.colors.textSecondary} key={`${r.id}-amber`}>
+                  {Math.round(v.thresholds.amberBelow * 100)}%
+                </Text2>,
+                <Text2 regular color={skinVars.colors.textSecondary} key={`${r.id}-crit`}>
+                  {Math.round(v.thresholds.criticalBelow * 100)}%
+                </Text2>,
+                <Text2 regular color={skinVars.colors.textSecondary} key={`${r.id}-owner`}>
+                  {v.owner}
+                </Text2>,
+                <Tag type={clearanceTagType(v.confidentiality)} key={`${r.id}-conf`}>
+                  {v.confidentiality}
+                </Tag>,
+                <Inline space={8} alignItems="center" key={`${r.id}-actions`}>
+                  <ButtonLink small onPress={() => openKpiEdit(r)}>
+                    Edit
+                  </ButtonLink>
+                  <ButtonLink small onPress={() => setKpiHistoryId(r.id)}>
+                    History
+                  </ButtonLink>
+                </Inline>,
+              ];
+            })}
+          />
+        </Stack>
+
         {/* Audit trail */}
         <Stack space={16}>
           <Stack space={4}>
@@ -785,6 +951,171 @@ export default function AdminPage() {
                   <ButtonPrimary onPress={commitUser}>Grant access</ButtonPrimary>
                   <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
                 </Inline>
+              </Stack>
+            </Box>
+          )}
+        </Sheet>
+      )}
+
+      {/* KPI definition edit dialog (appends a new version) */}
+      {kpiEditRecord && (
+        <Sheet onClose={() => setKpiEditId(null)}>
+          {({ closeModal }) => (
+            <Box paddingBottom={24}>
+              <Stack space={16}>
+                <Stack space={4}>
+                  <Title2>Edit KPI definition</Title2>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    Saving appends version {kpiEditRecord.latestVersion + 1}. Earlier versions stay
+                    in the history and the calculation engine uses the latest definition.
+                  </Text2>
+                </Stack>
+                <TextField
+                  name="kpi-name"
+                  label="Name"
+                  value={kpiDraft.name}
+                  onChangeValue={(v) => setKpiDraft({ ...kpiDraft, name: v })}
+                  fullWidth
+                />
+                <TextField
+                  name="kpi-description"
+                  label="Description"
+                  value={kpiDraft.description}
+                  onChangeValue={(v) => setKpiDraft({ ...kpiDraft, description: v })}
+                  fullWidth
+                />
+                <Grid columns={2} gap={16}>
+                  <TextField
+                    name="kpi-target"
+                    label="Target"
+                    value={kpiDraft.target}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, target: v })}
+                    fullWidth
+                  />
+                  <TextField
+                    name="kpi-unit"
+                    label="Unit"
+                    value={kpiDraft.unit}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, unit: v })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid columns={2} gap={16}>
+                  <TextField
+                    name="kpi-amber"
+                    label="Amber below (% of target)"
+                    value={kpiDraft.amberPct}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, amberPct: v })}
+                    fullWidth
+                  />
+                  <TextField
+                    name="kpi-critical"
+                    label="Critical below (% of target)"
+                    value={kpiDraft.criticalPct}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, criticalPct: v })}
+                    fullWidth
+                  />
+                </Grid>
+                <Grid columns={2} gap={16}>
+                  <TextField
+                    name="kpi-owner"
+                    label="Owner (notified on threshold alerts)"
+                    value={kpiDraft.owner}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, owner: v })}
+                    fullWidth
+                  />
+                  <Select
+                    name="kpi-confidentiality"
+                    label="Confidentiality"
+                    value={kpiDraft.confidentiality}
+                    onChangeValue={(v) => setKpiDraft({ ...kpiDraft, confidentiality: v })}
+                    options={CLEARANCES.map((c) => ({ value: c, text: c }))}
+                    fullWidth
+                  />
+                </Grid>
+                <TextField
+                  name="kpi-change-note"
+                  label="Change note (required)"
+                  value={kpiDraft.changeNote}
+                  onChangeValue={(v) => setKpiDraft({ ...kpiDraft, changeNote: v })}
+                  fullWidth
+                />
+                <Inline space={16} alignItems="center">
+                  <ButtonPrimary
+                    disabled={!kpiDraftValid || upsertKpi.isPending}
+                    onPress={commitKpiDefinition}
+                  >
+                    {`Save as v${kpiEditRecord.latestVersion + 1}`}
+                  </ButtonPrimary>
+                  <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
+                </Inline>
+              </Stack>
+            </Box>
+          )}
+        </Sheet>
+      )}
+
+      {/* KPI definition version history */}
+      {kpiHistoryRecord && (
+        <Sheet onClose={() => setKpiHistoryId(null)}>
+          {() => (
+            <Box paddingBottom={24}>
+              <Stack space={16}>
+                <Stack space={4}>
+                  <Title2>Version history</Title2>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {latestOf(kpiHistoryRecord).name} — every definition change, newest first.
+                    Nothing is deleted.
+                  </Text2>
+                </Stack>
+                {[...kpiHistoryRecord.versions]
+                  .sort((a, b) => b.version - a.version)
+                  .map((v) => (
+                    <div
+                      key={v.version}
+                      style={{
+                        border: `1px solid ${skinVars.colors.divider}`,
+                        borderRadius: skinVars.borderRadii.container,
+                        backgroundColor:
+                          v.version === kpiHistoryRecord.latestVersion
+                            ? skinVars.colors.backgroundContainer
+                            : skinVars.colors.backgroundAlternative,
+                        padding: 16,
+                      }}
+                    >
+                      <Stack space={8}>
+                        <Inline space={8} alignItems="center" wrap>
+                          <Tag
+                            type={
+                              v.version === kpiHistoryRecord.latestVersion ? "success" : "inactive"
+                            }
+                          >
+                            {`v${v.version}${v.version === kpiHistoryRecord.latestVersion ? " · live" : ""}`}
+                          </Tag>
+                          <Text2 medium color={skinVars.colors.textPrimary}>
+                            {v.name}
+                          </Text2>
+                          <div style={{ marginLeft: "auto" }}>
+                            <Inline space={4} alignItems="center">
+                              <IconTimeRegular size={12} color={skinVars.colors.textSecondary} />
+                              <Text1 regular color={skinVars.colors.textSecondary}>
+                                {formatTimestamp(v.editedAt)}
+                              </Text1>
+                            </Inline>
+                          </div>
+                        </Inline>
+                        <Text2 regular color={skinVars.colors.textSecondary}>
+                          Target {v.target}
+                          {v.unit} · amber below {Math.round(v.thresholds.amberBelow * 100)}% ·
+                          critical below {Math.round(v.thresholds.criticalBelow * 100)}% · owner{" "}
+                          {v.owner} · {v.confidentiality}
+                        </Text2>
+                        <Text1 regular color={skinVars.colors.textSecondary}>
+                          {v.editedBy}: {v.changeNote}
+                        </Text1>
+                      </Stack>
+                    </div>
+                  ))}
               </Stack>
             </Box>
           )}

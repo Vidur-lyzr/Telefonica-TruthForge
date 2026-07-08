@@ -3,9 +3,12 @@ import {
   useQueryKpis,
   useGetKpiDetail,
   useAskKpis,
+  useListKpiAlerts,
+  useAcknowledgeKpiAlert,
   KpiCard as KpiCardType,
   KpiDetail,
   KpiSource,
+  KpiAlert,
   Citation,
   AskResult,
 } from "@workspace/api-client-react";
@@ -61,6 +64,8 @@ import {
   IconLayersRegular,
   IconCheckedRegular,
   IconShieldCheckedOkRegular,
+  IconBellRegular,
+  IconUserAccountRegular,
 } from "@telefonica/mistica";
 
 type PeriodType = "week" | "month" | "quarter";
@@ -870,6 +875,21 @@ function DetailDrawerBody({ detail }: { detail: KpiDetail }) {
             <Text2 regular color={skinVars.colors.textSecondary}>
               {kpi.objectiveName} · {kpi.market} · {kpi.brand}
             </Text2>
+            <Inline space={16} alignItems="center" wrap>
+              <Inline space={4} alignItems="center">
+                <IconUserAccountRegular size={14} color={skinVars.colors.textSecondary} />
+                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  Owner {kpi.owner}
+                </Text1>
+              </Inline>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                Definition v{kpi.definitionVersion}
+              </Text1>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                Amber below {Math.round(kpi.thresholds.amberBelow * 100)}% · Critical below{" "}
+                {Math.round(kpi.thresholds.criticalBelow * 100)}%
+              </Text1>
+            </Inline>
           </Stack>
 
           <Text2 regular color={skinVars.colors.textPrimary}>
@@ -1059,6 +1079,101 @@ function DetailDrawerBody({ detail }: { detail: KpiDetail }) {
   );
 }
 
+const SEVERITY_TAG: Record<string, "warning" | "error" | "info"> = {
+  amber: "warning",
+  critical: "error",
+  forecast: "info",
+};
+
+const SEVERITY_LABEL: Record<string, string> = {
+  amber: "At risk",
+  critical: "Critical",
+  forecast: "Forecast risk",
+};
+
+function AlertRow({
+  alert,
+  onAcknowledge,
+  acknowledging,
+}: {
+  alert: KpiAlert;
+  onAcknowledge: () => void;
+  acknowledging: boolean;
+}) {
+  return (
+    <div
+      style={{
+        border: `1px solid ${skinVars.colors.divider}`,
+        borderRadius: skinVars.borderRadii.container,
+        backgroundColor: alert.acknowledged
+          ? skinVars.colors.backgroundAlternative
+          : skinVars.colors.backgroundContainer,
+        padding: 16,
+      }}
+    >
+      <Stack space={8}>
+        <Inline space={8} alignItems="center" wrap>
+          <Tag type={SEVERITY_TAG[alert.severity] ?? "info"}>
+            {SEVERITY_LABEL[alert.severity] ?? alert.severity}
+          </Tag>
+          <Text2 medium color={skinVars.colors.textPrimary}>
+            {alert.kpiName}
+          </Text2>
+          <div style={{ marginLeft: "auto" }}>
+            {alert.acknowledged ? (
+              <Inline space={4} alignItems="center">
+                <IconCheckedRegular size={14} color={skinVars.colors.success} />
+                <Text1 medium color={skinVars.colors.success} transform="uppercase">
+                  Acknowledged
+                </Text1>
+              </Inline>
+            ) : (
+              <ButtonSecondary small onPress={onAcknowledge} disabled={acknowledging}>
+                Acknowledge
+              </ButtonSecondary>
+            )}
+          </div>
+        </Inline>
+        <Text2 regular color={skinVars.colors.textPrimary}>
+          {alert.message}
+        </Text2>
+        <Inline space={16} alignItems="center" wrap>
+          <Inline space={4} alignItems="center">
+            <IconUserAccountRegular size={12} color={skinVars.colors.textSecondary} />
+            <Text1 regular color={skinVars.colors.textSecondary}>
+              Notified {alert.owner}
+            </Text1>
+          </Inline>
+          <Text1 regular color={skinVars.colors.textSecondary}>
+            {alert.channel}
+          </Text1>
+          <Text1 regular color={skinVars.colors.textSecondary}>
+            {new Date(alert.createdAt).toLocaleString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </Text1>
+          {alert.acknowledged && alert.acknowledgedBy && (
+            <Text1 regular color={skinVars.colors.textSecondary}>
+              By {alert.acknowledgedBy}
+              {alert.acknowledgedAt
+                ? ` · ${new Date(alert.acknowledgedAt).toLocaleString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}`
+                : ""}
+            </Text1>
+          )}
+        </Inline>
+      </Stack>
+    </div>
+  );
+}
+
 export default function KpisPage() {
   const { area, roleId } = useApp();
   const [, navigate] = useLocation();
@@ -1068,7 +1183,9 @@ export default function KpisPage() {
   const [brand, setBrand] = React.useState("__all__");
   const [source, setSource] = React.useState("__all__");
   const [initiativeType, setInitiativeType] = React.useState("__all__");
+  const [objectiveId, setObjectiveId] = React.useState("__all__");
   const [openId, setOpenId] = React.useState<string | null>(null);
+  const [alertsOpen, setAlertsOpen] = React.useState(false);
 
   const { mutate: runQuery, data: queryData, isPending } = useQueryKpis();
 
@@ -1086,10 +1203,35 @@ export default function KpisPage() {
         brand: val(brand),
         source: val(source),
         initiativeType: val(initiativeType),
+        objectiveId: val(objectiveId),
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [area, roleId, period, axisId, market, brand, source, initiativeType]);
+  }, [area, roleId, period, axisId, market, brand, source, initiativeType, objectiveId]);
+
+  const {
+    mutate: fetchAlerts,
+    data: alertsData,
+    isPending: alertsLoading,
+  } = useListKpiAlerts();
+  const ackAlert = useAcknowledgeKpiAlert();
+
+  React.useEffect(() => {
+    if (!roleId) return;
+    fetchAlerts({ data: { roleId, area } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roleId, area]);
+
+  const alerts = alertsData ?? [];
+  const unacknowledged = alerts.filter((a) => !a.acknowledged).length;
+
+  const handleAcknowledge = (alertId: string) => {
+    if (!roleId) return;
+    ackAlert.mutate(
+      { data: { id: alertId, roleId, area } },
+      { onSuccess: () => fetchAlerts({ data: { roleId, area } }) },
+    );
+  };
 
   const {
     mutate: fetchDetail,
@@ -1135,8 +1277,24 @@ export default function KpisPage() {
             <Inline space={12} alignItems="center" wrap>
               <ButtonSecondary
                 small
+                StartIcon={IconBellRegular}
+                onPress={() => setAlertsOpen(true)}
+              >
+                {unacknowledged > 0 ? `Alerts (${unacknowledged})` : "Alerts"}
+              </ButtonSecondary>
+              <ButtonSecondary
+                small
                 StartIcon={IconFileTextRegular}
-                onPress={() => navigate("/generate")}
+                onPress={() => {
+                  const offTrack = kpis.filter((k) => k.status !== "on-track");
+                  const names = kpis.map((k) => k.name).slice(0, 6).join(", ");
+                  const topic = `${PERIOD_LABELS[period]} KPI report for ${area}: ${summary.total} tracked objectives, ${summary.onTrack} on track, ${summary.atRisk} at risk, ${summary.offTrack} off track. Covering ${names}${kpis.length > 6 ? " and others" : ""}.${offTrack.length > 0 ? ` Focus on deviations: ${offTrack.map((k) => k.name).join(", ")}.` : ""}`;
+                  sessionStorage.setItem(
+                    "hub-kpi-report-prefill",
+                    JSON.stringify({ topic, audience: "internal", confidentiality: "internal" }),
+                  );
+                  navigate("/generate");
+                }}
                 disabled={kpis.length === 0}
               >
                 Generate KPI report
@@ -1232,6 +1390,15 @@ export default function KpisPage() {
                 onChange={setInitiativeType}
                 options={facets.initiativeTypes.map((t) => ({ value: t, label: t }))}
               />
+              {facets.objectives && facets.objectives.length > 0 && (
+                <FilterSelect
+                  label="Objective"
+                  allLabel="All objectives"
+                  value={objectiveId}
+                  onChange={setObjectiveId}
+                  options={facets.objectives.map((o) => ({ value: o.id, label: o.name }))}
+                />
+              )}
             </Inline>
           </div>
         )}
@@ -1354,6 +1521,60 @@ export default function KpisPage() {
           </Text1>
         </Inline>
       </Stack>
+
+      {alertsOpen && (
+        <Drawer
+          onClose={() => setAlertsOpen(false)}
+          onDismiss={() => setAlertsOpen(false)}
+          width={560}
+          title="Threshold alerts"
+        >
+          <Stack space={16}>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              Raised when a governed KPI crosses its configured amber or critical threshold, or its
+              forecast points at a miss. Each alert records who was notified, on which channel, and
+              who acknowledged it — scoped to your clearance.
+            </Text2>
+            {alertsLoading && (
+              <Inline space={12} alignItems="center">
+                <Spinner size={20} />
+                <Text2 medium color={skinVars.colors.textPrimary}>
+                  Checking thresholds...
+                </Text2>
+              </Inline>
+            )}
+            {!alertsLoading && alerts.length === 0 && (
+              <div
+                style={{
+                  border: `1px dashed ${skinVars.colors.divider}`,
+                  borderRadius: skinVars.borderRadii.container,
+                  padding: 32,
+                }}
+              >
+                <Stack space={8}>
+                  <Inline space={0} alignItems="center">
+                    <div style={{ margin: "0 auto" }}>
+                      <IconCheckedRegular size={28} color={skinVars.colors.success} />
+                    </div>
+                  </Inline>
+                  <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
+                    No threshold alerts for the objectives visible to this persona.
+                  </Text2>
+                </Stack>
+              </div>
+            )}
+            {!alertsLoading &&
+              alerts.map((a) => (
+                <AlertRow
+                  key={a.id}
+                  alert={a}
+                  onAcknowledge={() => handleAcknowledge(a.id)}
+                  acknowledging={ackAlert.isPending}
+                />
+              ))}
+          </Stack>
+        </Drawer>
+      )}
 
       {openId && (
         <Drawer

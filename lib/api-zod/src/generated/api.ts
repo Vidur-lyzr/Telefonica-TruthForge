@@ -510,7 +510,8 @@ export const QueryKpisBody = zod.object({
   "market": zod.string().nullish(),
   "brand": zod.string().nullish(),
   "source": zod.string().nullish(),
-  "initiativeType": zod.string().nullish()
+  "initiativeType": zod.string().nullish(),
+  "objectiveId": zod.string().nullish()
 })
 
 export const QueryKpisResponse = zod.object({
@@ -566,7 +567,13 @@ export const QueryKpisResponse = zod.object({
   "note": zod.string(),
   "deviationRisk": zod.boolean(),
   "confidence": zod.number()
-})
+}),
+  "owner": zod.string(),
+  "thresholds": zod.object({
+  "amberBelow": zod.number().describe('Attainment ratio below which the KPI turns amber'),
+  "criticalBelow": zod.number().describe('Attainment ratio below which the KPI turns critical \/ off-track')
+}),
+  "definitionVersion": zod.number()
 })),
   "facets": zod.object({
   "axes": zod.array(zod.object({
@@ -577,7 +584,11 @@ export const QueryKpisResponse = zod.object({
   "markets": zod.array(zod.string()),
   "brands": zod.array(zod.string()),
   "sources": zod.array(zod.string()),
-  "initiativeTypes": zod.array(zod.string())
+  "initiativeTypes": zod.array(zod.string()),
+  "objectives": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string()
+})).optional()
 })
 })
 
@@ -732,7 +743,13 @@ export const GetKpiDetailResponse = zod.object({
   "note": zod.string(),
   "deviationRisk": zod.boolean(),
   "confidence": zod.number()
-})
+}),
+  "owner": zod.string(),
+  "thresholds": zod.object({
+  "amberBelow": zod.number().describe('Attainment ratio below which the KPI turns amber'),
+  "criticalBelow": zod.number().describe('Attainment ratio below which the KPI turns critical \/ off-track')
+}),
+  "definitionVersion": zod.number()
 }),
   "series": zod.array(zod.object({
   "period": zod.string(),
@@ -745,6 +762,177 @@ export const GetKpiDetailResponse = zod.object({
   "value": zod.number()
 }))
 }))
+})
+
+
+/**
+ * The full versioned KPI definition registry the calculation engine runs on. Seed definitions come from the governed corpus (version 1); admin edits append immutable new versions. Intended for the administration backend.
+ * @summary Versioned KPI definitions (configuration-as-data)
+ */
+export const ListKpiDefinitionsResponseItem = zod.object({
+  "id": zod.string(),
+  "seeded": zod.boolean(),
+  "latestVersion": zod.number(),
+  "versions": zod.array(zod.object({
+  "version": zod.number(),
+  "editedBy": zod.string(),
+  "editedAt": zod.string(),
+  "changeNote": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "unit": zod.string(),
+  "objectiveId": zod.string(),
+  "axisId": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "initiativeType": zod.string(),
+  "confidentiality": zod.string(),
+  "areas": zod.array(zod.string()),
+  "direction": zod.string().describe('higher-better | lower-better'),
+  "target": zod.number(),
+  "thresholds": zod.object({
+  "amberBelow": zod.number().describe('Attainment ratio below which the KPI turns amber'),
+  "criticalBelow": zod.number().describe('Attainment ratio below which the KPI turns critical \/ off-track')
+}),
+  "owner": zod.string(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "kind": zod.string().describe('internal | external'),
+  "weight": zod.number(),
+  "docId": zod.string().nullable(),
+  "note": zod.string().nullable(),
+  "conflict": zod.boolean()
+}))
+}))
+})
+export const ListKpiDefinitionsResponse = zod.array(ListKpiDefinitionsResponseItem)
+
+
+/**
+ * Saves an admin-edited KPI definition. When id is provided, a new immutable version is appended to that definition's history; when null, a new KPI is created with a deterministic synthetic series. The panel always renders the latest version.
+ * @summary Create a KPI or append a new version of an existing definition
+ */
+
+
+
+export const UpsertKpiDefinitionBody = zod.object({
+  "id": zod.string().nullish().describe('Existing KPI id to append a new version; null creates a new KPI'),
+  "name": zod.string().min(1),
+  "description": zod.string(),
+  "unit": zod.string(),
+  "objectiveId": zod.string(),
+  "axisId": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "initiativeType": zod.string(),
+  "confidentiality": zod.string(),
+  "areas": zod.array(zod.string()),
+  "direction": zod.string(),
+  "target": zod.number(),
+  "thresholds": zod.object({
+  "amberBelow": zod.number().describe('Attainment ratio below which the KPI turns amber'),
+  "criticalBelow": zod.number().describe('Attainment ratio below which the KPI turns critical \/ off-track')
+}),
+  "owner": zod.string(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "kind": zod.string().describe('internal | external'),
+  "weight": zod.number(),
+  "docId": zod.string().nullable(),
+  "note": zod.string().nullable(),
+  "conflict": zod.boolean()
+})),
+  "editedBy": zod.string(),
+  "changeNote": zod.string()
+})
+
+export const UpsertKpiDefinitionResponse = zod.object({
+  "id": zod.string(),
+  "seeded": zod.boolean(),
+  "latestVersion": zod.number(),
+  "versions": zod.array(zod.object({
+  "version": zod.number(),
+  "editedBy": zod.string(),
+  "editedAt": zod.string(),
+  "changeNote": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "unit": zod.string(),
+  "objectiveId": zod.string(),
+  "axisId": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "initiativeType": zod.string(),
+  "confidentiality": zod.string(),
+  "areas": zod.array(zod.string()),
+  "direction": zod.string().describe('higher-better | lower-better'),
+  "target": zod.number(),
+  "thresholds": zod.object({
+  "amberBelow": zod.number().describe('Attainment ratio below which the KPI turns amber'),
+  "criticalBelow": zod.number().describe('Attainment ratio below which the KPI turns critical \/ off-track')
+}),
+  "owner": zod.string(),
+  "sources": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "kind": zod.string().describe('internal | external'),
+  "weight": zod.number(),
+  "docId": zod.string().nullable(),
+  "note": zod.string().nullable(),
+  "conflict": zod.boolean()
+}))
+}))
+})
+
+
+/**
+ * Deterministically recomputed threshold-breach and forecast-deviation alerts, recorded per KPI owner with a simulated Teams/email delivery channel. Fail closed — a persona only sees alerts for KPIs it could open itself.
+ * @summary Threshold and deviation alerts for the persona's visible KPIs
+ */
+export const ListKpiAlertsBody = zod.object({
+  "roleId": zod.string(),
+  "area": zod.string()
+})
+
+export const ListKpiAlertsResponseItem = zod.object({
+  "id": zod.string(),
+  "kpiId": zod.string(),
+  "kpiName": zod.string(),
+  "severity": zod.string().describe('amber | critical | forecast'),
+  "owner": zod.string(),
+  "channel": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string(),
+  "acknowledged": zod.boolean(),
+  "acknowledgedBy": zod.string().nullable(),
+  "acknowledgedAt": zod.string().nullable()
+})
+export const ListKpiAlertsResponse = zod.array(ListKpiAlertsResponseItem)
+
+
+/**
+ * @summary Acknowledge an alert (records who and when in the trail)
+ */
+export const AcknowledgeKpiAlertBody = zod.object({
+  "id": zod.string(),
+  "roleId": zod.string(),
+  "area": zod.string()
+})
+
+export const AcknowledgeKpiAlertResponse = zod.object({
+  "id": zod.string(),
+  "kpiId": zod.string(),
+  "kpiName": zod.string(),
+  "severity": zod.string().describe('amber | critical | forecast'),
+  "owner": zod.string(),
+  "channel": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string(),
+  "acknowledged": zod.boolean(),
+  "acknowledgedBy": zod.string().nullable(),
+  "acknowledgedAt": zod.string().nullable()
 })
 
 

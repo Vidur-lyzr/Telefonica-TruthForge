@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { KpiFacetsAxesItem } from './kpiFacetsAxesItem';
+import type { KpiFacetsObjectivesItem } from './kpiFacetsObjectivesItem';
 
 export interface KpiFacets {
   axes: KpiFacetsAxesItem[];
@@ -13,4 +14,5 @@ export interface KpiFacets {
   brands: string[];
   sources: string[];
   initiativeTypes: string[];
+  objectives?: KpiFacetsObjectivesItem[];
 }

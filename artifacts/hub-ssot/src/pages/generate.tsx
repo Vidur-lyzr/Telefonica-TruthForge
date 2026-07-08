@@ -519,6 +519,28 @@ function BriefForm({
     setFormat(FORMAT_OPTIONS[shape][0].value);
   }, [shape]);
 
+  // Prefill handed over from the KPIs page ("Generate KPI report").
+  React.useEffect(() => {
+    const raw = sessionStorage.getItem("hub-kpi-report-prefill");
+    if (!raw) return;
+    sessionStorage.removeItem("hub-kpi-report-prefill");
+    try {
+      const prefill = JSON.parse(raw) as {
+        topic?: string;
+        audience?: string;
+        confidentiality?: string;
+      };
+      if (prefill.topic) setTopic(prefill.topic);
+      if (prefill.audience === "internal" || prefill.audience === "external") {
+        setAudience(prefill.audience);
+      }
+      if (prefill.confidentiality) setConfidentiality(prefill.confidentiality);
+    } catch {
+      // Malformed handoff payloads are ignored; the form simply starts empty.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Natural-language set-up suggestion.
   const suggestTemplate = useSuggestTemplate();
   const [nlDescription, setNlDescription] = React.useState("");

@@ -22,4 +22,6 @@ export interface KpiQueryInput {
   source?: string | null;
   /** @nullable */
   initiativeType?: string | null;
+  /** @nullable */
+  objectiveId?: string | null;
 }

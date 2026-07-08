@@ -7,6 +7,7 @@
  */
 import type { KpiForecast } from './kpiForecast';
 import type { KpiSource } from './kpiSource';
+import type { KpiThresholds } from './kpiThresholds';
 
 export interface KpiCard {
   id: string;
@@ -42,4 +43,7 @@ export interface KpiCard {
   conflict: boolean;
   sources: KpiSource[];
   forecast: KpiForecast;
+  owner: string;
+  thresholds: KpiThresholds;
+  definitionVersion: number;
 }
