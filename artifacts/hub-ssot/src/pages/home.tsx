@@ -20,7 +20,6 @@ import {
   Boxed,
   Divider,
   ResponsiveLayout,
-  GridLayout,
   Circle,
   Touchable,
   TextField,
@@ -34,7 +33,6 @@ import {
   SkeletonLine,
   ProgressBar,
   skinVars,
-  applyAlpha,
   IconSendRegular,
   IconAiRegular,
   IconBarChartRegular,
@@ -191,26 +189,24 @@ function HeroAskBar({
 
   return (
     <Stack space={12}>
-      <div
-        style={{ display: "flex", alignItems: "center", gap: 8 }}
-        onKeyDown={onKeyDown}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <TextField
-            key={placeholder}
-            name="ask"
-            fullWidth
-            label={placeholder}
-            value={text}
-            onChangeValue={setText}
-          />
-        </div>
-        <IconButton
-          aria-label="Ask"
-          onPress={() => submit(text.trim() ? text : rotatingPrompt)}
-          disabled={disabled}
-          Icon={IconSendRegular}
-          type="brand"
+      <div style={{ position: "relative" }} onKeyDown={onKeyDown}>
+        <TextField
+          key={placeholder}
+          name="ask"
+          fullWidth
+          label={placeholder}
+          value={text}
+          onChangeValue={setText}
+          endIcon={
+            <IconButton
+              aria-label="Ask"
+              onPress={() => submit(text.trim() ? text : rotatingPrompt)}
+              disabled={disabled}
+              Icon={IconSendRegular}
+              type="brand"
+              small
+            />
+          }
         />
       </div>
       <div style={{ display: "flex", justifyContent: "center" }}>
@@ -371,36 +367,24 @@ function HealthStat({
 }) {
   return (
     <Inline space={12} alignItems="center">
-      <Circle size={40} backgroundColor={applyAlpha(skinVars.rawColors.inverse, 0.1)}>
-        <Icon size={20} color={skinVars.colors.inverse} />
+      <Circle size={40} backgroundColor={skinVars.colors.brandLow}>
+        <Icon size={20} color={skinVars.colors.brand} />
       </Circle>
       <div style={{ minWidth: 0 }}>
         <Stack space={2}>
-          <Text1 medium color={applyAlpha(skinVars.rawColors.inverse, 0.72)} transform="uppercase">
+          <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
             {label}
           </Text1>
           {loading ? (
             <SkeletonLine width="60%" />
           ) : (
-            <Text3 medium color={skinVars.colors.textPrimaryInverse}>
+            <Text3 medium color={skinVars.colors.textPrimary}>
               {value}
             </Text3>
           )}
         </Stack>
       </div>
     </Inline>
-  );
-}
-
-function InverseDivider() {
-  return (
-    <div
-      style={{
-        height: 1,
-        width: "100%",
-        backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.1),
-      }}
-    />
   );
 }
 
@@ -550,12 +534,7 @@ export default function Home() {
         <Title2>Knowledge health</Title2>
       </Inline>
 
-      <div
-        style={{
-          backgroundColor: skinVars.colors.navigationBarBackground,
-          borderRadius: skinVars.borderRadii.container,
-        }}
-      >
+      <Boxed>
         <Box padding={24}>
           <Stack space={24}>
             <HealthStat
@@ -564,14 +543,14 @@ export default function Home() {
               value={`${stats?.totalDocuments ?? 0} documents`}
               loading={statsLoad}
             />
-            <InverseDivider />
+            <Divider />
             <Stack space={8}>
               <Inline space="between" alignItems="center">
-                <Text1 medium color={applyAlpha(skinVars.rawColors.inverse, 0.72)} transform="uppercase">
+                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
                   Validated
                 </Text1>
                 {!statsLoad && (
-                  <Text2 medium color={skinVars.colors.textPrimaryInverse}>
+                  <Text2 medium color={skinVars.colors.textPrimary}>
                     {stats?.validatedPercent ?? 0}%
                   </Text2>
                 )}
@@ -585,14 +564,14 @@ export default function Home() {
                 />
               )}
             </Stack>
-            <InverseDivider />
+            <Divider />
             <HealthStat
               icon={IconWorldDeviceRegular}
               label="Languages"
               value={languages || "—"}
               loading={statsLoad}
             />
-            <InverseDivider />
+            <Divider />
             <HealthStat
               icon={IconTimeRegular}
               label="Last updated"
@@ -601,17 +580,17 @@ export default function Home() {
             />
             {!statsLoad && (stats?.quarantined ?? 0) > 0 && (
               <>
-                <InverseDivider />
+                <Divider />
                 <Inline space={12} alignItems="center">
-                  <Circle size={40} backgroundColor={applyAlpha(skinVars.rawColors.warning, 0.2)}>
+                  <Circle size={40} backgroundColor={skinVars.colors.warningLow}>
                     <IconAlertRegular size={20} color={skinVars.colors.warning} />
                   </Circle>
                   <div>
                     <Stack space={2}>
-                      <Text1 medium color={applyAlpha(skinVars.rawColors.inverse, 0.72)} transform="uppercase">
+                      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
                         Quarantined
                       </Text1>
-                      <Text3 medium color={skinVars.colors.textPrimaryInverse}>
+                      <Text3 medium color={skinVars.colors.textPrimary}>
                         {stats?.quarantined} held from answers
                       </Text3>
                     </Stack>
@@ -619,19 +598,18 @@ export default function Home() {
                 </Inline>
               </>
             )}
+            <Divider />
             <Touchable onPress={() => navigate("/data")} aria-label="Browse the governed corpus">
-              <Box paddingTop={4}>
-                <Inline space={8} alignItems="center">
-                  <Text2 medium color={skinVars.colors.textPrimaryInverse}>
-                    Browse the governed corpus
-                  </Text2>
-                  <IconArrowLineUpRegular size={16} color={skinVars.colors.inverse} />
-                </Inline>
-              </Box>
+              <Inline space={8} alignItems="center">
+                <Text2 medium color={skinVars.colors.brand}>
+                  Browse the governed corpus
+                </Text2>
+                <IconArrowLineUpRegular size={16} color={skinVars.colors.brand} />
+              </Inline>
             </Touchable>
           </Stack>
         </Box>
-      </div>
+      </Boxed>
     </Stack>
   );
 
@@ -650,10 +628,14 @@ export default function Home() {
                     style={{ height: 32, width: "auto" }}
                   />
                 </div>
-                <Text6 textAlign="center">Welcome back</Text6>
-                <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
-                  {COPY[lang].subtitle}
-                </Text2>
+                <div style={{ textAlign: "center" }}>
+                  <Text6>Welcome back</Text6>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {COPY[lang].subtitle}
+                  </Text2>
+                </div>
               </Stack>
               <HeroAskBar lang={lang} suggestions={suggestions ?? []} />
             </Stack>
@@ -687,9 +669,20 @@ export default function Home() {
               </Box>
             </Boxed>
           ) : (
-            <>
-              {/* Radar + health */}
-              <GridLayout template="8+4" left={radarPanel} right={healthPanel} />
+            <Stack space={48}>
+              {/* Radar + health — plain CSS grid so the row grows with the
+                  taller panel and never overlaps the cards below */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+                  gap: 24,
+                  alignItems: "start",
+                }}
+              >
+                {radarPanel}
+                {healthPanel}
+              </div>
 
               {/* Compact metric cards — wraps to fewer columns on narrow screens */}
               <div
@@ -711,7 +704,7 @@ export default function Home() {
                   );
                 })}
               </div>
-            </>
+            </Stack>
           )}
         </Stack>
       </Box>
