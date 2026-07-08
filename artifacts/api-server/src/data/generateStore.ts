@@ -80,6 +80,33 @@ export interface ReviewItem {
   approvedHash: string | null;
 }
 
+// A recorded editorial review of a press release. Server-authoritative: the
+// export gate for press releases consults THIS registry (keyed by content
+// hash), never a client-supplied flag. Any edit after review changes the hash
+// and voids the review.
+export interface EditorialReview {
+  id: string;
+  contentHash: string;
+  draftId: string;
+  title: string;
+  reviewedBy: string;
+  reviewedAt: string;
+}
+
+// Notification record for the review-folder flow: a scheduled run landed a
+// draft in the owner's folder, or an item was approved.
+export interface NotificationRecord {
+  id: string;
+  kind: "scheduled_draft_ready" | "review_approved";
+  reviewItemId: string;
+  reviewFolder: string;
+  ownerRoleId: string;
+  ownerLabel: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
+}
+
 // ---- Persistence -------------------------------------------------------------
 // A single JSON snapshot, written atomically (temp file + rename) on every
 // mutation. Loaded once at module init; corrupt or missing files fail soft to
@@ -92,12 +119,16 @@ interface PersistedState {
   schedules: Schedule[];
   reviewInbox: ReviewItem[];
   scheduledDraftIndex: Record<string, string>;
+  editorialReviews?: EditorialReview[];
+  notifications?: NotificationRecord[];
   idCounter: number;
 }
 
 let savedVersions: SavedVersion[] = [];
 let schedules: Schedule[] = [];
 let reviewInbox: ReviewItem[] = [];
+let editorialReviews: EditorialReview[] = [];
+let notifications: NotificationRecord[] = [];
 // Server-authoritative lineage for every draft produced by a schedule. Keyed by
 // BOTH the draft id AND the content hash, so a caller cannot escape the gate by
 // mutating the client-supplied draft.id: the content hash still resolves to the
@@ -114,6 +145,8 @@ function load(): void {
     schedules = Array.isArray(raw.schedules) ? raw.schedules : [];
     reviewInbox = Array.isArray(raw.reviewInbox) ? raw.reviewInbox : [];
     scheduledDraftIndex = new Map(Object.entries(raw.scheduledDraftIndex ?? {}));
+    editorialReviews = Array.isArray(raw.editorialReviews) ? raw.editorialReviews : [];
+    notifications = Array.isArray(raw.notifications) ? raw.notifications : [];
     idCounter = typeof raw.idCounter === "number" ? raw.idCounter : 0;
     logger.info(
       {
@@ -129,6 +162,8 @@ function load(): void {
     schedules = [];
     reviewInbox = [];
     scheduledDraftIndex = new Map();
+    editorialReviews = [];
+    notifications = [];
   }
 }
 
@@ -139,6 +174,8 @@ function persist(): void {
       schedules,
       reviewInbox,
       scheduledDraftIndex: Object.fromEntries(scheduledDraftIndex),
+      editorialReviews,
+      notifications,
       idCounter,
     };
     mkdirSync(dirname(STORE_PATH), { recursive: true });
@@ -189,6 +226,64 @@ export function findScheduledReviewItemId(keys: string[]): string | undefined {
 function nextId(prefix: string): string {
   idCounter += 1;
   return `${prefix}-${Date.now().toString(36)}-${idCounter}`;
+}
+
+// ---- Editorial review registry (press releases) --------------------------------
+
+export function recordEditorialReview(
+  draft: GeneratedDraft,
+  reviewedBy: string,
+): EditorialReview {
+  const contentHash = hashDraftContent(draft);
+  const existing = editorialReviews.find((r) => r.contentHash === contentHash);
+  if (existing) return existing;
+  const review: EditorialReview = {
+    id: nextId("edrev"),
+    contentHash,
+    draftId: draft.id,
+    title: draft.title,
+    reviewedBy,
+    reviewedAt: new Date().toISOString(),
+  };
+  editorialReviews.push(review);
+  persist();
+  return review;
+}
+
+export function findEditorialReview(contentHash: string): EditorialReview | undefined {
+  return editorialReviews.find((r) => r.contentHash === contentHash);
+}
+
+// ---- Notifications --------------------------------------------------------------
+
+export function addNotification(
+  input: Omit<NotificationRecord, "id" | "createdAt" | "read">,
+): NotificationRecord {
+  const record: NotificationRecord = {
+    ...input,
+    id: nextId("notif"),
+    createdAt: new Date().toISOString(),
+    read: false,
+  };
+  notifications.unshift(record);
+  if (notifications.length > 100) notifications.length = 100;
+  persist();
+  return record;
+}
+
+export function listNotifications(): NotificationRecord[] {
+  return notifications;
+}
+
+export function markNotificationsRead(): void {
+  let changed = false;
+  for (const n of notifications) {
+    if (!n.read) {
+      n.read = true;
+      changed = true;
+    }
+  }
+  if (changed) persist();
 }
 
 // ---- Version tags --------------------------------------------------------------

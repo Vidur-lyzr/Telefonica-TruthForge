@@ -5,9 +5,9 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { GeneratedDraft } from './generatedDraft';
 
-export interface ErrorResponse {
-  error: string;
-  /** Machine-readable refusal code, e.g. editorial_review_required */
-  code?: string;
+export interface EditorialReviewInput {
+  draft: GeneratedDraft;
+  reviewedBy: string;
 }

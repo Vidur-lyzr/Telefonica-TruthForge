@@ -116,6 +116,18 @@ export interface BrandCheckInput {
   text: string;
 }
 
+export interface DraftExclusion {
+  /** clearance | destination */
+  reason: string;
+  /**
+     * Null when the exclusion must not reveal the source title
+     * @nullable
+     */
+  docTitle: string | null;
+  confidentiality: string;
+  note: string;
+}
+
 export interface DraftSection {
   id: string;
   kind: string;
@@ -237,6 +249,10 @@ export interface DraftParams {
   confidentiality: string;
   format: string;
   axisIds: string[];
+  /** @nullable */
+  spokesperson?: string | null;
+  /** @nullable */
+  eventDate?: string | null;
 }
 
 export interface GeneratedDraft {
@@ -251,6 +267,8 @@ export interface GeneratedDraft {
   confidentiality: string;
   /** @nullable */
   umbrella?: string | null;
+  /** Sources considered but excluded by governance — either above the persona's clearance or above the destination confidentiality. Clearance exclusions never reveal the document title. */
+  exclusions?: DraftExclusion[];
   sections: DraftSection[];
   spokesperson: SpokespersonNote[];
   charts: ChartSpec[];
@@ -293,6 +311,8 @@ export interface HealthStatus {
 
 export interface ErrorResponse {
   error: string;
+  /** Machine-readable refusal code, e.g. editorial_review_required */
+  code?: string;
 }
 
 export interface AskTurn {
@@ -1248,6 +1268,91 @@ export interface GenerateInput {
   /** Output format hint, e.g. document, email, note */
   format?: string;
   axisIds?: string[];
+  /**
+     * Named spokesperson for quotes and spokesperson notes
+     * @nullable
+     */
+  spokesperson?: string | null;
+  /**
+     * Event or publication date framing the document
+     * @nullable
+     */
+  eventDate?: string | null;
+}
+
+export interface EditorialReviewInput {
+  draft: GeneratedDraft;
+  reviewedBy: string;
+}
+
+export interface EditorialReviewRecord {
+  id: string;
+  draftId: string;
+  title: string;
+  reviewedBy: string;
+  reviewedAt: string;
+}
+
+export interface SuggestTemplateInput {
+  /** @minLength 1 */
+  description: string;
+}
+
+export interface SuggestedBrief {
+  /** @nullable */
+  shape: string | null;
+  /** @nullable */
+  topic: string | null;
+  /** @nullable */
+  audience: string | null;
+  /** @nullable */
+  language: string | null;
+  /** @nullable */
+  confidentiality: string | null;
+  axisIds: string[];
+  /** @nullable */
+  spokesperson: string | null;
+  /** @nullable */
+  eventDate: string | null;
+}
+
+export interface TemplateSuggestion {
+  templateId: string;
+  shape: string;
+  templateName: string;
+  rationale: string;
+  brief: SuggestedBrief;
+}
+
+export interface BriefChatTurn {
+  /** user | assistant */
+  role: string;
+  content: string;
+}
+
+export interface BriefChatInput {
+  /** @minItems 1 */
+  turns: BriefChatTurn[];
+}
+
+export interface BriefChatResult {
+  fields: SuggestedBrief;
+  /** @nullable */
+  nextQuestion: string | null;
+  complete: boolean;
+}
+
+export interface NotificationRecord {
+  id: string;
+  /** scheduled_draft_ready | review_approved */
+  kind: string;
+  reviewItemId: string;
+  reviewFolder: string;
+  ownerRoleId: string;
+  ownerLabel: string;
+  message: string;
+  createdAt: string;
+  read: boolean;
 }
 
 export interface RefineInput {

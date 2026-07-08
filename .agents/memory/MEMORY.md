@@ -16,3 +16,4 @@
 - [Multilingual retrieval synonyms](multilingual-retrieval-synonyms.md) — cross-language EN/ES/DE/PT matching is a curated tokenizer synonym map (accent-fold first), not translation; beware short-word collisions.
 - [Server bundling natives](esbuild-native-externals.md) — packages with native .node bindings or file-relative data (resvg, pdfkit) must be externalized in api-server build.mjs, not bundled.
 - [Export governance gates](export-governance.md) — export gates re-derive citation confidentiality from the server corpus and key scheduled lineage on multiple server-known ids; never trust client draft labels.
+- [Refusal error codes](refusal-error-codes.md) — governance refusal responses must return a machine-readable `code` alongside the message; frontends key remediation UX on the code with a message fallback.

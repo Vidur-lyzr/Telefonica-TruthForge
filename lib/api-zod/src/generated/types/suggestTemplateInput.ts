@@ -6,8 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ErrorResponse {
-  error: string;
-  /** Machine-readable refusal code, e.g. editorial_review_required */
-  code?: string;
+export interface SuggestTemplateInput {
+  /** @minLength 1 */
+  description: string;
 }

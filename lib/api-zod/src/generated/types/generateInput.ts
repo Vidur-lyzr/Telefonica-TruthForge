@@ -22,4 +22,14 @@ export interface GenerateInput {
   /** Output format hint, e.g. document, email, note */
   format?: string;
   axisIds?: string[];
+  /**
+     * Named spokesperson for quotes and spokesperson notes
+     * @nullable
+     */
+  spokesperson?: string | null;
+  /**
+     * Event or publication date framing the document
+     * @nullable
+     */
+  eventDate?: string | null;
 }

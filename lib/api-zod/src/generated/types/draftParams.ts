@@ -15,4 +15,8 @@ export interface DraftParams {
   confidentiality: string;
   format: string;
   axisIds: string[];
+  /** @nullable */
+  spokesperson?: string | null;
+  /** @nullable */
+  eventDate?: string | null;
 }

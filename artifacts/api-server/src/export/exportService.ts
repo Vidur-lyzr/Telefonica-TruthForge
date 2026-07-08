@@ -17,6 +17,7 @@ import type { GeneratedDraft } from "../agent/generateAgent";
 import { DOCS } from "../data/corpus";
 import {
   findScheduledReviewItemId,
+  findEditorialReview,
   getReviewItem,
   hashDraftContent,
 } from "../data/generateStore";
@@ -61,7 +62,12 @@ export interface ExportDocumentModel {
 
 export class ExportRefusedError extends Error {
   constructor(
-    public readonly code: "guardian_blocked" | "approval_required" | "confidentiality_blocked" | "not_exportable",
+    public readonly code:
+      | "guardian_blocked"
+      | "approval_required"
+      | "editorial_review_required"
+      | "confidentiality_blocked"
+      | "not_exportable",
     message: string,
   ) {
     super(message);
@@ -114,6 +120,20 @@ function assertScheduledApproval(draft: GeneratedDraft): void {
   }
 }
 
+// Press releases carry a mandatory editorial-review step before ANY export.
+// Server-authoritative: the review registry is keyed by content hash, so a
+// post-review edit voids the review and the export is refused again.
+function assertEditorialReview(draft: GeneratedDraft): void {
+  if (draft.shape !== "press") return;
+  const review = findEditorialReview(hashDraftContent(draft));
+  if (!review) {
+    throw new ExportRefusedError(
+      "editorial_review_required",
+      "A press release must pass the editorial review before it can be exported. Mark it reviewed in the editor — any later edit voids the review.",
+    );
+  }
+}
+
 // External destination: refuse when anything non-public would be carried.
 function gateDestination(draft: GeneratedDraft, destination: ExportDestination): void {
   if (destination !== "external") return;
@@ -154,6 +174,7 @@ export function buildExportModel(
   assertExportable(draft);
   assertGuardian(draft);
   assertScheduledApproval(draft);
+  assertEditorialReview(draft);
   gateDestination(draft, destination);
 
   const template =

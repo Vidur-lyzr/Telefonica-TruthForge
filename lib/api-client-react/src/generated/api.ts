@@ -30,6 +30,8 @@ import type {
   BrandTemplateDetailView,
   BrandTemplatesView,
   BrandToneView,
+  BriefChatInput,
+  BriefChatResult,
   CheckInput,
   CorpusDocument,
   CorpusDocumentDetail,
@@ -38,6 +40,8 @@ import type {
   DataSource,
   DocFreshness,
   DocumentShape,
+  EditorialReviewInput,
+  EditorialReviewRecord,
   ErrorResponse,
   ExportDocumentInput,
   ExportTemplate,
@@ -69,6 +73,7 @@ import type {
   ListRadarParams,
   ListWikiLineageParams,
   ListWikiPagesParams,
+  NotificationRecord,
   PlanningAskInput,
   PlanningAskResult,
   PlanningEvent,
@@ -92,8 +97,10 @@ import type {
   Schedule,
   ScheduledDocument,
   StrategicAxis,
+  SuggestTemplateInput,
   SuggestedQuery,
   TaxonomyState,
+  TemplateSuggestion,
   ValidationItem,
   VisibilityMatrix,
   WikiGraph,
@@ -3163,6 +3170,365 @@ export const useExportDocument = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getExportDocumentMutationOptions(options));
+    }
+
+export const getRecordEditorialReviewUrl = () => {
+
+
+
+
+  return `/api/generate/editorial-review`
+}
+
+/**
+ * Registers a human editorial sign-off for a press release, bound to the exact content reviewed (server-side content hash). Press exports are refused until a review exists for the current content; any later edit voids the review. The Brand Guardian must pass before a review can be recorded.
+ * @summary Record a mandatory editorial review of a press release
+ */
+export const recordEditorialReview = async (editorialReviewInput: EditorialReviewInput, options?: RequestInit): Promise<EditorialReviewRecord> => {
+
+  return customFetch<EditorialReviewRecord>(getRecordEditorialReviewUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(editorialReviewInput)
+  }
+);}
+
+
+
+
+export const getRecordEditorialReviewMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordEditorialReview>>, TError,{data: BodyType<EditorialReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordEditorialReview>>, TError,{data: BodyType<EditorialReviewInput>}, TContext> => {
+
+const mutationKey = ['recordEditorialReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordEditorialReview>>, {data: BodyType<EditorialReviewInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  recordEditorialReview(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordEditorialReviewMutationResult = NonNullable<Awaited<ReturnType<typeof recordEditorialReview>>>
+    export type RecordEditorialReviewMutationBody = BodyType<EditorialReviewInput>
+    export type RecordEditorialReviewMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Record a mandatory editorial review of a press release
+ */
+export const useRecordEditorialReview = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordEditorialReview>>, TError,{data: BodyType<EditorialReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordEditorialReview>>,
+        TError,
+        {data: BodyType<EditorialReviewInput>},
+        TContext
+      > => {
+      return useMutation(getRecordEditorialReviewMutationOptions(options));
+    }
+
+export const getSuggestTemplateUrl = () => {
+
+
+
+
+  return `/api/generate/suggest-template`
+}
+
+/**
+ * @summary Suggest a governed document shape from a natural-language description
+ */
+export const suggestTemplate = async (suggestTemplateInput: SuggestTemplateInput, options?: RequestInit): Promise<TemplateSuggestion> => {
+
+  return customFetch<TemplateSuggestion>(getSuggestTemplateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(suggestTemplateInput)
+  }
+);}
+
+
+
+
+export const getSuggestTemplateMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestTemplate>>, TError,{data: BodyType<SuggestTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof suggestTemplate>>, TError,{data: BodyType<SuggestTemplateInput>}, TContext> => {
+
+const mutationKey = ['suggestTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suggestTemplate>>, {data: BodyType<SuggestTemplateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  suggestTemplate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SuggestTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof suggestTemplate>>>
+    export type SuggestTemplateMutationBody = BodyType<SuggestTemplateInput>
+    export type SuggestTemplateMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Suggest a governed document shape from a natural-language description
+ */
+export const useSuggestTemplate = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestTemplate>>, TError,{data: BodyType<SuggestTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof suggestTemplate>>,
+        TError,
+        {data: BodyType<SuggestTemplateInput>},
+        TContext
+      > => {
+      return useMutation(getSuggestTemplateMutationOptions(options));
+    }
+
+export const getBriefChatUrl = () => {
+
+
+
+
+  return `/api/generate/brief-chat`
+}
+
+/**
+ * Extracts brief fields from the conversation so far and returns the one next question to ask, or completes when enough is captured. Capture only — never retrieves evidence or composes content.
+ * @summary Guided-chat parameter capture for the document brief
+ */
+export const briefChat = async (briefChatInput: BriefChatInput, options?: RequestInit): Promise<BriefChatResult> => {
+
+  return customFetch<BriefChatResult>(getBriefChatUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(briefChatInput)
+  }
+);}
+
+
+
+
+export const getBriefChatMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof briefChat>>, TError,{data: BodyType<BriefChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof briefChat>>, TError,{data: BodyType<BriefChatInput>}, TContext> => {
+
+const mutationKey = ['briefChat'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof briefChat>>, {data: BodyType<BriefChatInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  briefChat(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BriefChatMutationResult = NonNullable<Awaited<ReturnType<typeof briefChat>>>
+    export type BriefChatMutationBody = BodyType<BriefChatInput>
+    export type BriefChatMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Guided-chat parameter capture for the document brief
+ */
+export const useBriefChat = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof briefChat>>, TError,{data: BodyType<BriefChatInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof briefChat>>,
+        TError,
+        {data: BodyType<BriefChatInput>},
+        TContext
+      > => {
+      return useMutation(getBriefChatMutationOptions(options));
+    }
+
+export const getListNotificationsUrl = () => {
+
+
+
+
+  return `/api/generate/notifications`
+}
+
+/**
+ * @summary Notifications for the scheduled-draft review flow
+ */
+export const listNotifications = async ( options?: RequestInit): Promise<NotificationRecord[]> => {
+
+  return customFetch<NotificationRecord[]>(getListNotificationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListNotificationsQueryKey = () => {
+    return [
+    `/api/generate/notifications`
+    ] as const;
+    }
+
+
+export const getListNotificationsQueryOptions = <TData = Awaited<ReturnType<typeof listNotifications>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListNotificationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listNotifications>>> = ({ signal }) => listNotifications({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listNotifications>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof listNotifications>>>
+export type ListNotificationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Notifications for the scheduled-draft review flow
+ */
+
+export function useListNotifications<TData = Awaited<ReturnType<typeof listNotifications>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listNotifications>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListNotificationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getMarkNotificationsReadUrl = () => {
+
+
+
+
+  return `/api/generate/notifications`
+}
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const markNotificationsRead = async ( options?: RequestInit): Promise<NotificationRecord[]> => {
+
+  return customFetch<NotificationRecord[]>(getMarkNotificationsReadUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getMarkNotificationsReadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markNotificationsRead>>, TError,void, TContext> => {
+
+const mutationKey = ['markNotificationsRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markNotificationsRead>>, void> = () => {
+
+
+          return  markNotificationsRead(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkNotificationsReadMutationResult = NonNullable<Awaited<ReturnType<typeof markNotificationsRead>>>
+
+    export type MarkNotificationsReadMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Mark all notifications as read
+ */
+export const useMarkNotificationsRead = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationsRead>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markNotificationsRead>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getMarkNotificationsReadMutationOptions(options));
     }
 
 export const getStartGenerateJobUrl = () => {

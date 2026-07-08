@@ -22,6 +22,14 @@ import {
   StartRefineJobBody,
   GetGenerationJobResponse,
   ExportDocumentBody,
+  RecordEditorialReviewBody,
+  RecordEditorialReviewResponse,
+  SuggestTemplateBody,
+  SuggestTemplateResponse,
+  BriefChatBody,
+  BriefChatResponse,
+  ListNotificationsResponse,
+  MarkNotificationsReadResponse,
 } from "@workspace/api-zod";
 import {
   exportDraft,
@@ -34,6 +42,7 @@ import {
   refineDraft,
   type GeneratedDraft,
 } from "../agent/generateAgent";
+import { suggestTemplate, captureBrief } from "../agent/briefAgent";
 import { runBrandGuardian } from "../agent/brandGuardian";
 import { ROLES } from "../data/corpus";
 import {
@@ -59,6 +68,10 @@ import {
   findScheduledReviewItemId,
   hashDraftContent,
   touchReviewItem,
+  recordEditorialReview,
+  addNotification,
+  listNotifications,
+  markNotificationsRead,
   createJob,
   getJob,
   setJobStage,
@@ -89,6 +102,8 @@ router.post("/generate", async (req, res) => {
         confidentiality: parsed.data.confidentiality,
         format: parsed.data.format,
         axisIds: parsed.data.axisIds,
+        spokesperson: parsed.data.spokesperson ?? null,
+        eventDate: parsed.data.eventDate ?? null,
       },
       req.log,
     );
@@ -255,6 +270,14 @@ router.post("/generate/schedules/:id/run", async (req, res) => {
     // The provenance stamps above mutated the stored item after addReviewItem
     // persisted it — write the snapshot again so they survive a restart.
     touchReviewItem(item.id);
+    addNotification({
+      kind: "scheduled_draft_ready",
+      reviewItemId: item.id,
+      reviewFolder: schedule.reviewFolder,
+      ownerRoleId: schedule.ownerRoleId,
+      ownerLabel: schedule.ownerLabel,
+      message: `"${schedule.name}" produced a new draft in "${schedule.reviewFolder}" and is waiting for review.`,
+    });
     res.json(RunScheduleResponse.parse(item));
   } catch (err) {
     req.log.error({ err }, "run schedule failed");
@@ -298,6 +321,14 @@ router.post("/generate/inbox/:id/approve", async (req, res) => {
   // review before approving.
   if (approved) {
     registerScheduledDraft([approved.draft.id, hashDraftContent(approved.draft)], item.id);
+    addNotification({
+      kind: "review_approved",
+      reviewItemId: item.id,
+      reviewFolder: approved.reviewFolder,
+      ownerRoleId: approved.ownerRoleId,
+      ownerLabel: approved.ownerLabel,
+      message: `"${approved.draft.title}" was approved in "${approved.reviewFolder}" and can now be saved and exported.`,
+    });
   }
   res.json(ApproveReviewItemResponse.parse(approved));
 });
@@ -389,12 +420,94 @@ router.post("/generate/export", async (req, res) => {
   } catch (err) {
     if (err instanceof ExportRefusedError) {
       const status = err.code === "not_exportable" ? 400 : 409;
-      res.status(status).json({ error: err.message });
+      res.status(status).json({ error: err.message, code: err.code });
       return;
     }
     req.log.error({ err }, "export route failed");
     res.status(500).json({ error: "The Hub could not export this document." });
   }
+});
+
+// ---- Editorial review (press releases) --------------------------------------
+// Mandatory human sign-off before a press release can be exported. The review
+// is bound server-side to the exact content hash, so any later edit voids it.
+
+router.post("/generate/editorial-review", async (req, res) => {
+  const parsed = RecordEditorialReviewBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const draft = parsed.data.draft as unknown as GeneratedDraft;
+  if (draft.shape !== "press") {
+    res.status(409).json({ error: "Editorial review applies to press releases only." });
+    return;
+  }
+  if (draft.status !== "drafted") {
+    res.status(409).json({ error: "Only a drafted document can be reviewed." });
+    return;
+  }
+  const guardian = runBrandGuardian(draft);
+  if (guardian.status !== "pass") {
+    res
+      .status(409)
+      .json({ error: "The Brand Guardian must pass before the editorial review can be recorded." });
+    return;
+  }
+  const review = recordEditorialReview(draft, parsed.data.reviewedBy);
+  req.log.info({ draftId: draft.id, reviewedBy: parsed.data.reviewedBy }, "editorial review recorded");
+  res.json(
+    RecordEditorialReviewResponse.parse({
+      id: review.id,
+      draftId: review.draftId,
+      title: review.title,
+      reviewedBy: review.reviewedBy,
+      reviewedAt: review.reviewedAt,
+    }),
+  );
+});
+
+// ---- Brief helpers -----------------------------------------------------------
+
+router.post("/generate/suggest-template", async (req, res) => {
+  const parsed = SuggestTemplateBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  try {
+    const suggestion = await suggestTemplate(parsed.data.description, req.log);
+    res.json(SuggestTemplateResponse.parse(suggestion));
+  } catch (err) {
+    req.log.error({ err }, "suggest-template route failed");
+    res.status(500).json({ error: "The Hub could not suggest a template." });
+  }
+});
+
+router.post("/generate/brief-chat", async (req, res) => {
+  const parsed = BriefChatBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  try {
+    const result = await captureBrief(parsed.data.turns, req.log);
+    res.json(BriefChatResponse.parse(result));
+  } catch (err) {
+    req.log.error({ err }, "brief-chat route failed");
+    res.status(500).json({ error: "The Hub could not process the brief conversation." });
+  }
+});
+
+// ---- Notifications -------------------------------------------------------------
+
+router.get("/generate/notifications", async (_req, res) => {
+  res.json(ListNotificationsResponse.parse(listNotifications()));
+});
+
+router.post("/generate/notifications", async (_req, res) => {
+  markNotificationsRead();
+  res.json(MarkNotificationsReadResponse.parse(listNotifications()));
 });
 
 // ---- Observable, staged jobs -----------------------------------------------
@@ -419,6 +532,8 @@ router.post("/generate/jobs", async (req, res) => {
     confidentiality: parsed.data.confidentiality,
     format: parsed.data.format,
     axisIds: parsed.data.axisIds,
+    spokesperson: parsed.data.spokesperson ?? null,
+    eventDate: parsed.data.eventDate ?? null,
   };
   const log = req.log;
   void (async () => {

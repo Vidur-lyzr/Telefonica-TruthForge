@@ -15,7 +15,18 @@ import {
   useApproveReviewItem,
   useListVersions,
   useSaveVersion,
+  useSuggestTemplate,
+  useBriefChat,
+  useListNotifications,
+  useMarkNotificationsRead,
+  useRecordEditorialReview,
+  useExportDocument,
   type GeneratedDraft,
+  type DraftExclusion,
+  type TemplateSuggestion,
+  type BriefChatTurn,
+  type SuggestedBrief,
+  type NotificationRecord,
   type DraftSection,
   type ChartSpec,
   type Citation,
@@ -72,6 +83,10 @@ import {
   IconRefreshRegular,
   IconSearchRegular,
   IconPenRegular,
+  IconBellRegular,
+  IconChatRegular,
+  IconStarRegular,
+  IconUserAccountRegular,
 } from "@telefonica/mistica";
 import {
   BarChart,
@@ -133,6 +148,25 @@ const FORMAT_OPTIONS: Record<Shape, { value: string; label: string }[]> = {
     { value: "social_pack", label: "Social pack" },
     { value: "email_and_web", label: "Email and web" },
   ],
+};
+
+const LANGUAGE_OPTIONS: { value: string; text: string }[] = [
+  { value: "en", text: "English" },
+  { value: "es", text: "Español" },
+  { value: "de", text: "Deutsch" },
+  { value: "pt", text: "Português" },
+];
+
+type BriefValues = {
+  shape: Shape;
+  topic: string;
+  audience: Audience;
+  language: string;
+  axisIds: string[];
+  confidentiality: string;
+  format: string;
+  spokesperson: string | null;
+  eventDate: string | null;
 };
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -460,34 +494,67 @@ function BriefForm({
   isPending,
 }: {
   shapes: DocumentShape[] | undefined;
-  onGenerate: (v: {
-    shape: Shape;
-    topic: string;
-    audience: Audience;
-    language: string;
-    axisIds: string[];
-    confidentiality: string;
-    format: string;
-  }) => void;
+  onGenerate: (v: BriefValues) => void;
   isPending: boolean;
 }) {
   const { data: axes } = useListAxes();
+  const [mode, setMode] = React.useState<"form" | "chat">("form");
   const [shape, setShape] = React.useState<Shape>("messaging");
   const [topic, setTopic] = React.useState("");
   const [audience, setAudience] = React.useState<Audience>("internal");
   const [language, setLanguage] = React.useState("en");
   const [axisIds, setAxisIds] = React.useState<string[]>([]);
   const [confidentiality, setConfidentiality] = React.useState("internal");
+  const [spokesperson, setSpokesperson] = React.useState("");
+  const [eventDate, setEventDate] = React.useState("");
   const formatOptions = FORMAT_OPTIONS[shape];
   const [format, setFormat] = React.useState(formatOptions[0].value);
 
-  React.useEffect(() => {
-    setConfidentiality(audience === "external" ? "public" : "internal");
-  }, [audience]);
+  const changeAudience = (a: Audience) => {
+    setAudience(a);
+    setConfidentiality(a === "external" ? "public" : "internal");
+  };
 
   React.useEffect(() => {
     setFormat(FORMAT_OPTIONS[shape][0].value);
   }, [shape]);
+
+  // Natural-language set-up suggestion.
+  const suggestTemplate = useSuggestTemplate();
+  const [nlDescription, setNlDescription] = React.useState("");
+  const [suggestion, setSuggestion] = React.useState<TemplateSuggestion | null>(null);
+
+  const applySuggested = (b: SuggestedBrief) => {
+    if (b.shape && b.shape in SHAPE_META) setShape(b.shape as Shape);
+    if (b.topic) setTopic(b.topic);
+    if (b.audience === "internal" || b.audience === "external") {
+      setAudience(b.audience);
+      setConfidentiality(
+        b.confidentiality ?? (b.audience === "external" ? "public" : "internal"),
+      );
+    } else if (b.confidentiality) {
+      setConfidentiality(b.confidentiality);
+    }
+    if (b.language && LANGUAGE_OPTIONS.some((l) => l.value === b.language)) setLanguage(b.language);
+    if (b.axisIds.length > 0) setAxisIds(b.axisIds);
+    if (b.spokesperson) setSpokesperson(b.spokesperson);
+    if (b.eventDate) setEventDate(b.eventDate);
+  };
+
+  const requestSuggestion = () => {
+    if (!nlDescription.trim()) return;
+    suggestTemplate.mutate(
+      { data: { description: nlDescription.trim() } },
+      { onSuccess: (s) => setSuggestion(s) },
+    );
+  };
+
+  const applySuggestion = () => {
+    if (!suggestion) return;
+    if (suggestion.shape in SHAPE_META) setShape(suggestion.shape as Shape);
+    applySuggested(suggestion.brief);
+    setSuggestion(null);
+  };
 
   const [followUp, setFollowUp] = React.useState<string | null>(null);
   const [followUpAnswer, setFollowUpAnswer] = React.useState("");
@@ -504,12 +571,24 @@ function BriefForm({
 
   const briefIsThin = topic.trim().split(/\s+/).filter(Boolean).length < 6;
 
+  const buildValues = (finalTopic: string): BriefValues => ({
+    shape,
+    topic: finalTopic,
+    audience,
+    language,
+    axisIds,
+    confidentiality,
+    format,
+    spokesperson: spokesperson.trim() || null,
+    eventDate: eventDate.trim() || null,
+  });
+
   const submitBrief = () => {
     if (!askedFollowUp && briefIsThin) {
       setFollowUp(FOLLOW_UP[shape]);
       return;
     }
-    onGenerate({ shape, topic, audience, language, axisIds, confidentiality, format });
+    onGenerate(buildValues(topic));
   };
 
   const submitFollowUp = (skip: boolean) => {
@@ -517,7 +596,12 @@ function BriefForm({
     setFollowUp(null);
     const finalTopic =
       !skip && followUpAnswer.trim() ? `${topic.trim()} — ${followUpAnswer.trim()}` : topic;
-    onGenerate({ shape, topic: finalTopic, audience, language, axisIds, confidentiality, format });
+    onGenerate(buildValues(finalTopic));
+  };
+
+  const handleChatComplete = (fields: SuggestedBrief) => {
+    applySuggested(fields);
+    setMode("form");
   };
 
   return (
@@ -549,6 +633,78 @@ function BriefForm({
             </Text3>
           </div>
         </Stack>
+
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <Inline space={8}>
+            <Chip active={mode === "form"} onPress={() => setMode("form")} Icon={IconListDocumentRegular}>
+              Structured brief
+            </Chip>
+            <Chip active={mode === "chat"} onPress={() => setMode("chat")} Icon={IconChatRegular}>
+              Guided chat
+            </Chip>
+          </Inline>
+        </div>
+
+        {mode === "chat" ? (
+          <GuidedChat onComplete={handleChatComplete} />
+        ) : (
+        <Stack space={32}>
+        <div
+          style={{
+            borderRadius: skinVars.borderRadii.container,
+            border: `1px solid ${c.divider}`,
+            backgroundColor: c.backgroundAlternative,
+            padding: 20,
+          }}
+        >
+          <Stack space={12}>
+            <Inline space={8} alignItems="center">
+              <IconStarRegular size={16} color={c.brand} />
+              <Text2 medium color={c.textPrimary}>
+                Describe what you need and the engine suggests a set-up
+              </Text2>
+            </Inline>
+            <TextField
+              name="nlDescription"
+              label="What do you need?"
+              placeholder="e.g. An external announcement of the Q1 results for the press, quoting the CEO"
+              value={nlDescription}
+              onChangeValue={setNlDescription}
+              fullWidth
+            />
+            <Inline space={8}>
+              <ButtonSecondary
+                small
+                onPress={requestSuggestion}
+                disabled={!nlDescription.trim() || suggestTemplate.isPending}
+              >
+                {suggestTemplate.isPending ? "Thinking..." : "Suggest a set-up"}
+              </ButtonSecondary>
+            </Inline>
+            {suggestion && (
+              <Boxed>
+                <Box padding={16}>
+                  <Stack space={8}>
+                    <Inline space={8} alignItems="center">
+                      <Tag type="promo">{suggestion.templateName}</Tag>
+                    </Inline>
+                    <Text2 regular color={c.textSecondary}>
+                      {suggestion.rationale}
+                    </Text2>
+                    <Inline space={8}>
+                      <ButtonPrimary small onPress={applySuggestion}>
+                        Use this set-up
+                      </ButtonPrimary>
+                      <ButtonSecondary small onPress={() => setSuggestion(null)}>
+                        Dismiss
+                      </ButtonSecondary>
+                    </Inline>
+                  </Stack>
+                </Box>
+              </Boxed>
+            )}
+          </Stack>
+        </div>
 
         <div
           style={{
@@ -606,7 +762,7 @@ function BriefForm({
               name="audience"
               label="Audience"
               value={audience}
-              onChangeValue={(v) => setAudience(v as Audience)}
+              onChangeValue={(v) => changeAudience(v as Audience)}
               options={[
                 { value: "internal", text: "Internal" },
                 { value: "external", text: "External" },
@@ -629,10 +785,7 @@ function BriefForm({
               label="Language"
               value={language}
               onChangeValue={setLanguage}
-              options={[
-                { value: "en", text: "English" },
-                { value: "es", text: "Español" },
-              ]}
+              options={LANGUAGE_OPTIONS}
               fullWidth
             />
           </Stack>
@@ -668,6 +821,39 @@ function BriefForm({
               options={formatOptions.map((o) => ({ value: o.value, text: o.label }))}
               fullWidth
             />
+          </Stack>
+        </div>
+
+        <div
+          style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}
+        >
+          <Stack space={8}>
+            <FieldLabel>Spokesperson (optional)</FieldLabel>
+            <TextField
+              name="spokesperson"
+              label="Spokesperson"
+              placeholder="e.g. María García, Chief Communications Officer"
+              value={spokesperson}
+              onChangeValue={setSpokesperson}
+              fullWidth
+            />
+            <Text1 regular color={c.textSecondary}>
+              Quotes and spokesperson notes are attributed to this person.
+            </Text1>
+          </Stack>
+          <Stack space={8}>
+            <FieldLabel>Event date (optional)</FieldLabel>
+            <TextField
+              name="eventDate"
+              label="Event date"
+              placeholder="e.g. 12 May 2026"
+              value={eventDate}
+              onChangeValue={setEventDate}
+              fullWidth
+            />
+            <Text1 regular color={c.textSecondary}>
+              The date the announcement or event takes place.
+            </Text1>
           </Stack>
         </div>
 
@@ -724,7 +910,180 @@ function BriefForm({
             Generate draft
           </ButtonPrimary>
         )}
+        </Stack>
+        )}
       </Stack>
+    </div>
+  );
+}
+
+// ---- Dual-filter exclusions panel ---------------------------------------------
+function ExclusionsPanel({ exclusions }: { exclusions: DraftExclusion[] }) {
+  return (
+    <div
+      style={{
+        borderRadius: skinVars.borderRadii.container,
+        border: `1px solid ${applyAlpha(skinVars.rawColors.warning, 0.25)}`,
+        backgroundColor: c.warningLow,
+        padding: 16,
+      }}
+    >
+      <Stack space={12}>
+        <Inline space={8} alignItems="center">
+          <IconLockClosedRegular size={16} color={c.warning} />
+          <Text2 medium color={c.textPrimary}>
+            Sources excluded by governance
+          </Text2>
+        </Inline>
+        <Text1 regular color={c.textSecondary}>
+          Two filters run before anything reaches the engine: your clearance, then the destination
+          confidentiality of this document.
+        </Text1>
+        <Stack space={8}>
+          {exclusions.map((x, i) => (
+            <Boxed key={i}>
+              <Box padding={12}>
+                <Stack space={4}>
+                  <Inline space={8} alignItems="center" wrap>
+                    <Tag type={x.reason === "clearance" ? "error" : "warning"}>
+                      {x.reason === "clearance" ? "Your clearance" : "Destination"}
+                    </Tag>
+                    <Tag type="inactive">{x.confidentiality}</Tag>
+                    {x.docTitle && (
+                      <Text2 medium color={c.textPrimary}>
+                        {x.docTitle}
+                      </Text2>
+                    )}
+                  </Inline>
+                  <Text1 regular color={c.textSecondary}>
+                    {x.note}
+                  </Text1>
+                </Stack>
+              </Box>
+            </Boxed>
+          ))}
+        </Stack>
+      </Stack>
+    </div>
+  );
+}
+
+// ---- Guided-chat brief capture -------------------------------------------------
+function GuidedChat({ onComplete }: { onComplete: (fields: SuggestedBrief) => void }) {
+  const briefChat = useBriefChat();
+  const [turns, setTurns] = React.useState<BriefChatTurn[]>([]);
+  const [input, setInput] = React.useState("");
+  const [pendingQuestion, setPendingQuestion] = React.useState<string>(
+    "What do you need to produce? Describe the document in your own words — the shape, the topic, who it is for, the language, any spokesperson and the event date.",
+  );
+
+  const send = () => {
+    const content = input.trim();
+    if (!content || briefChat.isPending) return;
+    const nextTurns: BriefChatTurn[] = [...turns, { role: "user", content }];
+    setTurns(nextTurns);
+    setInput("");
+    briefChat.mutate(
+      { data: { turns: nextTurns } },
+      {
+        onSuccess: (r) => {
+          if (r.complete) {
+            onComplete(r.fields);
+          } else if (r.nextQuestion) {
+            setTurns([...nextTurns, { role: "assistant", content: r.nextQuestion }]);
+            setPendingQuestion(r.nextQuestion);
+          }
+        },
+      },
+    );
+  };
+
+  return (
+    <div
+      style={{
+        borderRadius: skinVars.borderRadii.container,
+        border: `1px solid ${c.divider}`,
+        backgroundColor: c.backgroundContainer,
+      }}
+    >
+      <div style={{ padding: 20 }}>
+        <Stack space={16}>
+          <Inline space={8} alignItems="center">
+            <IconChatRegular size={16} color={c.brand} />
+            <Text2 medium color={c.textPrimary}>
+              Guided brief
+            </Text2>
+            <Text1 regular color={c.textSecondary}>
+              A few questions, then the form is filled in for you.
+            </Text1>
+          </Inline>
+
+          {turns.length === 0 && (
+            <div
+              style={{
+                borderRadius: skinVars.borderRadii.container,
+                backgroundColor: c.brandLow,
+                padding: 16,
+              }}
+            >
+              <Text2 regular color={c.textPrimary}>
+                {pendingQuestion}
+              </Text2>
+            </div>
+          )}
+
+          {turns.map((t, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                justifyContent: t.role === "user" ? "flex-end" : "flex-start",
+              }}
+            >
+              <div
+                style={{
+                  maxWidth: "80%",
+                  borderRadius: skinVars.borderRadii.container,
+                  backgroundColor: t.role === "user" ? c.brand : c.brandLow,
+                  padding: "12px 16px",
+                }}
+              >
+                <Text2 regular color={t.role === "user" ? c.textPrimaryInverse : c.textPrimary}>
+                  {t.content}
+                </Text2>
+              </div>
+            </div>
+          ))}
+
+          {briefChat.isPending && (
+            <Inline space={8} alignItems="center">
+              <Spinner size={16} />
+              <Text1 regular color={c.textSecondary}>
+                Working out what is still missing...
+              </Text1>
+            </Inline>
+          )}
+
+          <Inline space={8} alignItems="center" fullWidth>
+            <div style={{ flex: 1 }}>
+              <TextField
+                name="chatInput"
+                label="Your answer"
+                placeholder="Type your answer"
+                value={input}
+                onChangeValue={setInput}
+                fullWidth
+              />
+            </div>
+            <IconButton
+              aria-label="Send answer"
+              onPress={send}
+              disabled={!input.trim() || briefChat.isPending}
+              Icon={IconSendRegular}
+            />
+          </Inline>
+        </Stack>
+      </div>
     </div>
   );
 }
@@ -845,6 +1204,21 @@ export default function Generate() {
   const approve = useApproveReviewItem();
   const versionsQ = useListVersions();
 
+  // Notifications for scheduled drafts and approvals.
+  const [showNotifications, setShowNotifications] = React.useState(false);
+  const notificationsQ = useListNotifications({
+    query: { queryKey: ["notifications"], refetchInterval: 20000 },
+  });
+  const markRead = useMarkNotificationsRead();
+  const unreadCount = notificationsQ.data?.filter((n) => !n.read).length ?? 0;
+
+  const openNotifications = () => {
+    setShowNotifications(true);
+    if (unreadCount > 0) {
+      markRead.mutate(undefined, { onSuccess: () => notificationsQ.refetch() });
+    }
+  };
+
   const [jobId, setJobId] = React.useState<string | null>(null);
   const [jobVariant, setJobVariant] = React.useState<"generate" | "refine">("generate");
   const jobQ = useGetGenerationJob(jobId ?? "", {
@@ -873,15 +1247,7 @@ export default function Generate() {
     startRefine.isPending ||
     (!!jobId && jobQ.data?.status !== "done" && jobQ.data?.status !== "error");
 
-  const handleGenerate = (v: {
-    shape: Shape;
-    topic: string;
-    audience: Audience;
-    language: string;
-    axisIds: string[];
-    confidentiality: string;
-    format: string;
-  }) => {
+  const handleGenerate = (v: BriefValues) => {
     if (!roleId) return;
     setEditing(false);
     setJobVariant("generate");
@@ -896,6 +1262,8 @@ export default function Generate() {
           axisIds: v.axisIds,
           confidentiality: v.confidentiality,
           format: v.format,
+          spokesperson: v.spokesperson,
+          eventDate: v.eventDate,
         },
       },
       { onSuccess: (job) => setJobId(job.id) },
@@ -946,15 +1314,66 @@ export default function Generate() {
     );
   };
 
+  // Export with an editorial-review gate for press material.
+  const exportDoc = useExportDocument();
+  const recordReview = useRecordEditorialReview();
+  const [exportFormat, setExportFormat] = React.useState<"docx" | "pptx" | "pdf">("docx");
+  const [reviewedDraft, setReviewedDraft] = React.useState<string | null>(null);
+  const [exportError, setExportError] = React.useState<string | null>(null);
+
+  const draftSignature = draft
+    ? JSON.stringify([draft.id, draft.umbrella, draft.sections.map((s) => s.body)])
+    : null;
+  const editorialReviewed = !!draftSignature && reviewedDraft === draftSignature;
+  const needsEditorialReview = draft?.shape === "press" && !editorialReviewed;
+
+  const handleMarkReviewed = () => {
+    if (!draft || !draftSignature) return;
+    setExportError(null);
+    const reviewedBy = roles?.find((r) => r.id === roleId)?.label ?? "Hub user";
+    recordReview.mutate(
+      { data: { draft, reviewedBy } },
+      { onSuccess: () => setReviewedDraft(draftSignature) },
+    );
+  };
+
   const handleExport = () => {
     if (!draft) return;
+    setExportError(null);
     const savedBy = roles?.find((r) => r.id === roleId)?.label ?? "Hub user";
-    saveVersion.mutate(
-      { data: { draft, savedBy } },
+    exportDoc.mutate(
       {
-        onSuccess: () => {
-          versionsQ.refetch();
-          window.print();
+        data: {
+          draft,
+          format: exportFormat,
+          destination: draft.audience === "external" ? "external" : "internal",
+        },
+      },
+      {
+        onSuccess: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${draft.title.replace(/[^\w\d-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "document"}.${exportFormat}`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          saveVersion.mutate({ data: { draft, savedBy } }, { onSuccess: () => versionsQ.refetch() });
+        },
+        onError: (err) => {
+          const data = (err as { data?: { code?: string; error?: string } | null }).data;
+          const reviewRefused =
+            data?.code === "editorial_review_required" ||
+            (data?.error ?? "").toLowerCase().includes("editorial review");
+          if (reviewRefused) {
+            setReviewedDraft(null);
+            setExportError(
+              "Press material needs a completed editorial review before it can be exported. Mark the review below, then export again.",
+            );
+          } else {
+            setExportError(data?.error ?? "The export was refused. Check the Guardian verdict and try again.");
+          }
         },
       },
     );
@@ -987,15 +1406,55 @@ export default function Generate() {
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      <div style={{ borderBottom: `1px solid ${c.divider}`, backgroundColor: c.backgroundContainer, flexShrink: 0 }}>
-        <Tabs
-          selectedIndex={tabIndex}
-          onChange={(idx) => setTab(tabDefs[idx].id)}
-          tabs={tabDefs.map((t) => ({
-            text: typeof t.count === "number" && t.count > 0 ? `${t.label} (${t.count})` : t.label,
-            Icon: t.icon,
-          }))}
-        />
+      <div
+        style={{
+          borderBottom: `1px solid ${c.divider}`,
+          backgroundColor: c.backgroundContainer,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Tabs
+            selectedIndex={tabIndex}
+            onChange={(idx) => setTab(tabDefs[idx].id)}
+            tabs={tabDefs.map((t) => ({
+              text: typeof t.count === "number" && t.count > 0 ? `${t.label} (${t.count})` : t.label,
+              Icon: t.icon,
+            }))}
+          />
+        </div>
+        <div style={{ flexShrink: 0, padding: "0 12px", position: "relative" }}>
+          <IconButton
+            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+            onPress={openNotifications}
+            Icon={IconBellRegular}
+          />
+          {unreadCount > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                top: 2,
+                right: 10,
+                minWidth: 18,
+                height: 18,
+                borderRadius: 9,
+                backgroundColor: c.error,
+                color: c.textPrimaryInverse,
+                fontSize: 11,
+                fontWeight: 600,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 5px",
+                pointerEvents: "none",
+              }}
+            >
+              {unreadCount}
+            </div>
+          )}
+        </div>
       </div>
 
       {tab === "compose" && (
@@ -1007,21 +1466,31 @@ export default function Generate() {
               <BriefForm shapes={shapes} onGenerate={handleGenerate} isPending={busy} />
             ) : draft.status === "no_evidence" ? (
               <div style={{ maxWidth: 672, margin: "40px auto 0" }}>
-                <Callout
-                  asset={<IconAlertRegular color={c.warning} />}
-                  title="No governed evidence"
-                  description={draft.note ?? ""}
-                  button={<ButtonSecondary onPress={() => setDraft(null)}>Adjust the brief</ButtonSecondary>}
-                />
+                <Stack space={16}>
+                  <Callout
+                    asset={<IconAlertRegular color={c.warning} />}
+                    title="No governed evidence"
+                    description={draft.note ?? ""}
+                    button={<ButtonSecondary onPress={() => setDraft(null)}>Adjust the brief</ButtonSecondary>}
+                  />
+                  {draft.exclusions && draft.exclusions.length > 0 && (
+                    <ExclusionsPanel exclusions={draft.exclusions} />
+                  )}
+                </Stack>
               </div>
             ) : draft.status === "permission_blocked" ? (
               <div style={{ maxWidth: 672, margin: "40px auto 0" }}>
-                <Callout
-                  asset={<IconAlertRegular color={c.error} />}
-                  title="Permission restricted"
-                  description={draft.permissionNote ?? ""}
-                  button={<ButtonSecondary onPress={() => setDraft(null)}>Adjust the brief</ButtonSecondary>}
-                />
+                <Stack space={16}>
+                  <Callout
+                    asset={<IconAlertRegular color={c.error} />}
+                    title="Permission restricted"
+                    description={draft.permissionNote ?? ""}
+                    button={<ButtonSecondary onPress={() => setDraft(null)}>Adjust the brief</ButtonSecondary>}
+                  />
+                  {draft.exclusions && draft.exclusions.length > 0 && (
+                    <ExclusionsPanel exclusions={draft.exclusions} />
+                  )}
+                </Stack>
               </div>
             ) : (
               <DocumentCanvas
@@ -1059,14 +1528,6 @@ export default function Generate() {
                     </ButtonSecondary>
                     <ButtonSecondary
                       small
-                      onPress={handleExport}
-                      disabled={!canExport || saveVersion.isPending}
-                      StartIcon={IconPrinterRegular}
-                    >
-                      Export
-                    </ButtonSecondary>
-                    <ButtonSecondary
-                      small
                       onPress={handleSaveVersion}
                       disabled={!canExport || saveVersion.isPending}
                       StartIcon={IconDownloadRegular}
@@ -1077,6 +1538,86 @@ export default function Generate() {
                       Assets
                     </ButtonSecondary>
                   </div>
+
+                  <Stack space={8}>
+                    <FieldLabel>Export</FieldLabel>
+                    <Inline space={8} alignItems="center" fullWidth>
+                      <div style={{ flex: 1 }}>
+                        <Select
+                          name="exportFormat"
+                          label="Format"
+                          value={exportFormat}
+                          onChangeValue={(v) => setExportFormat(v as "docx" | "pptx" | "pdf")}
+                          options={[
+                            { value: "docx", text: "Word (.docx)" },
+                            { value: "pptx", text: "PowerPoint (.pptx)" },
+                            { value: "pdf", text: "PDF (.pdf)" },
+                          ]}
+                          fullWidth
+                        />
+                      </div>
+                      <ButtonPrimary
+                        small
+                        onPress={handleExport}
+                        disabled={!canExport || needsEditorialReview || exportDoc.isPending}
+                        StartIcon={IconPrinterRegular}
+                      >
+                        {exportDoc.isPending ? "Exporting..." : "Export"}
+                      </ButtonPrimary>
+                    </Inline>
+                    {draft.shape === "press" && (
+                      <div
+                        style={{
+                          borderRadius: skinVars.borderRadii.container,
+                          border: `1px solid ${editorialReviewed ? applyAlpha(skinVars.rawColors.success, 0.3) : c.divider}`,
+                          backgroundColor: editorialReviewed ? c.successLow : c.backgroundContainer,
+                          padding: 12,
+                        }}
+                      >
+                        <Stack space={8}>
+                          <Inline space={8} alignItems="center">
+                            <IconUserAccountRegular
+                              size={16}
+                              color={editorialReviewed ? c.success : c.textSecondary}
+                            />
+                            <Text2 medium color={c.textPrimary}>
+                              Editorial review
+                            </Text2>
+                            <Tag type={editorialReviewed ? "success" : "warning"}>
+                              {editorialReviewed ? "Completed" : "Required"}
+                            </Tag>
+                          </Inline>
+                          <Text1 regular color={c.textSecondary}>
+                            {editorialReviewed
+                              ? "This exact version has been reviewed. Any further edit voids the review."
+                              : "Press material must be read and signed off by a person before it can be exported."}
+                          </Text1>
+                          {!editorialReviewed && (
+                            <ButtonSecondary
+                              small
+                              onPress={handleMarkReviewed}
+                              disabled={recordReview.isPending || editing}
+                              StartIcon={IconCheckedRegular}
+                            >
+                              {recordReview.isPending ? "Recording..." : "Mark review complete"}
+                            </ButtonSecondary>
+                          )}
+                        </Stack>
+                      </div>
+                    )}
+                    {exportError && (
+                      <Inline space={4} alignItems="center">
+                        <IconAlertRegular size={12} color={c.error} />
+                        <Text1 regular color={c.error}>
+                          {exportError}
+                        </Text1>
+                      </Inline>
+                    )}
+                  </Stack>
+
+                  {draft.exclusions && draft.exclusions.length > 0 && (
+                    <ExclusionsPanel exclusions={draft.exclusions} />
+                  )}
                   {scheduledLocked && (
                     <ButtonPrimary
                       onPress={handleApproveFromCanvas}
@@ -1224,6 +1765,64 @@ export default function Generate() {
       )}
 
       {tab === "versions" && <VersionsTab versions={versionsQ.data} onOpen={(d) => { setDraft(d); setTab("compose"); }} />}
+
+      {showNotifications && (
+        <Drawer
+          width={480}
+          onClose={() => setShowNotifications(false)}
+          onDismiss={() => setShowNotifications(false)}
+          title="Notifications"
+          description="Scheduled drafts arriving for review and approvals as they happen."
+        >
+          <Stack space={12}>
+            {(!notificationsQ.data || notificationsQ.data.length === 0) && (
+              <div style={{ textAlign: "center", padding: "40px 0" }}>
+                <Text2 regular color={c.textSecondary}>
+                  Nothing yet. Run a schedule and its drafts will announce themselves here.
+                </Text2>
+              </div>
+            )}
+            {notificationsQ.data?.map((n: NotificationRecord) => (
+              <Boxed key={n.id}>
+                <Box padding={16}>
+                  <Stack space={4}>
+                    <Inline space={8} alignItems="center" wrap>
+                      {n.kind === "review_approved" ? (
+                        <IconCheckRegular size={16} color={c.success} />
+                      ) : (
+                        <IconListDocumentRegular size={16} color={c.brand} />
+                      )}
+                      <Tag type={n.kind === "review_approved" ? "success" : "promo"}>
+                        {n.kind === "review_approved" ? "Approved" : "Ready for review"}
+                      </Tag>
+                      <Tag type="inactive">{n.reviewFolder}</Tag>
+                    </Inline>
+                    <Text2 regular color={c.textPrimary}>
+                      {n.message}
+                    </Text2>
+                    <Inline space={8} alignItems="center">
+                      <Text1 regular color={c.textSecondary}>
+                        {n.ownerLabel} • {new Date(n.createdAt).toLocaleString()}
+                      </Text1>
+                      {n.kind !== "review_approved" && (
+                        <ButtonLink
+                          small
+                          onPress={() => {
+                            setShowNotifications(false);
+                            setTab("inbox");
+                          }}
+                        >
+                          Open inbox
+                        </ButtonLink>
+                      )}
+                    </Inline>
+                  </Stack>
+                </Box>
+              </Boxed>
+            ))}
+          </Stack>
+        </Drawer>
+      )}
 
       {selectedCitation && (
         <Drawer

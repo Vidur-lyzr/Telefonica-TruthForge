@@ -8,6 +8,7 @@
 import type { ChartSpec } from './chartSpec';
 import type { Citation } from './citation';
 import type { DraftDisclaimer } from './draftDisclaimer';
+import type { DraftExclusion } from './draftExclusion';
 import type { DraftParams } from './draftParams';
 import type { DraftSection } from './draftSection';
 import type { GuardianResult } from './guardianResult';
@@ -25,6 +26,8 @@ export interface GeneratedDraft {
   confidentiality: string;
   /** @nullable */
   umbrella?: string | null;
+  /** Sources considered but excluded by governance — either above the persona's clearance or above the destination confidentiality. Clearance exclusions never reveal the document title. */
+  exclusions?: DraftExclusion[];
   sections: DraftSection[];
   spokesperson: SpokespersonNote[];
   charts: ChartSpec[];

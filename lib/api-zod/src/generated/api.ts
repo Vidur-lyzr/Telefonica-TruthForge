@@ -1026,7 +1026,9 @@ export const GenerateBody = zod.object({
   "language": zod.string().optional().describe('BCP-47-ish code, e.g. en, es'),
   "confidentiality": zod.string().optional().describe('Destination confidentiality of the document'),
   "format": zod.string().optional().describe('Output format hint, e.g. document, email, note'),
-  "axisIds": zod.array(zod.string()).optional()
+  "axisIds": zod.array(zod.string()).optional(),
+  "spokesperson": zod.string().nullish().describe('Named spokesperson for quotes and spokesperson notes'),
+  "eventDate": zod.string().nullish().describe('Event or publication date framing the document')
 })
 
 export const GenerateResponse = zod.object({
@@ -1039,6 +1041,12 @@ export const GenerateResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -1121,7 +1129,9 @@ export const GenerateResponse = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -1146,6 +1156,12 @@ export const RefineDocumentBody = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -1228,7 +1244,9 @@ export const RefineDocumentBody = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -1248,6 +1266,12 @@ export const RefineDocumentResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -1330,7 +1354,9 @@ export const RefineDocumentResponse = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -1352,6 +1378,12 @@ export const CheckDocumentBody = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -1434,7 +1466,9 @@ export const CheckDocumentBody = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -1605,6 +1639,12 @@ export const RunScheduleResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -1687,7 +1727,9 @@ export const RunScheduleResponse = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -1719,6 +1761,12 @@ export const ListReviewItemsResponseItem = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -1801,7 +1849,9 @@ export const ListReviewItemsResponseItem = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -1829,6 +1879,12 @@ export const ApproveReviewItemBody = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -1911,7 +1967,9 @@ export const ApproveReviewItemBody = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -1939,6 +1997,12 @@ export const ApproveReviewItemResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -2021,7 +2085,9 @@ export const ApproveReviewItemResponse = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2060,6 +2126,12 @@ export const ListVersionsResponseItem = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -2142,7 +2214,9 @@ export const ListVersionsResponseItem = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2166,6 +2240,12 @@ export const SaveVersionBody = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -2248,7 +2328,9 @@ export const SaveVersionBody = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2284,6 +2366,12 @@ export const SaveVersionResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -2366,7 +2454,9 @@ export const SaveVersionResponse = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2390,6 +2480,12 @@ export const ExportDocumentBody = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -2472,7 +2568,9 @@ export const ExportDocumentBody = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2484,6 +2582,221 @@ export const ExportDocumentBody = zod.object({
 })
 
 export const ExportDocumentResponse = zod.unknown()
+
+
+/**
+ * Registers a human editorial sign-off for a press release, bound to the exact content reviewed (server-side content hash). Press exports are refused until a review exists for the current content; any later edit voids the review. The Brand Guardian must pass before a review can be recorded.
+ * @summary Record a mandatory editorial review of a press release
+ */
+export const RecordEditorialReviewBody = zod.object({
+  "draft": zod.object({
+  "id": zod.string(),
+  "status": zod.string().describe('drafted | no_evidence | permission_blocked'),
+  "shape": zod.string(),
+  "templateId": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "audience": zod.string(),
+  "confidentiality": zod.string(),
+  "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "heading": zod.string(),
+  "axisId": zod.string().nullish(),
+  "body": zod.string(),
+  "citationIds": zod.array(zod.string()),
+  "internalOnly": zod.boolean()
+})),
+  "spokesperson": zod.array(zod.object({
+  "question": zod.string(),
+  "guidance": zod.string(),
+  "doNotSay": zod.string().nullish()
+})),
+  "charts": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "type": zod.string().describe('bar | line'),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "points": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+}))
+})),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
+  "confidentiality": zod.string().describe('public | internal | confidential | restricted'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "axisIds": zod.array(zod.string()),
+  "guardian": zod.object({
+  "status": zod.string().describe('pass | block'),
+  "summary": zod.string(),
+  "findings": zod.array(zod.object({
+  "severity": zod.string().describe('error | warning'),
+  "rule": zod.string(),
+  "message": zod.string(),
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
+}))
+}),
+  "historic": zod.boolean(),
+  "historicNote": zod.string().nullish(),
+  "permissionNote": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "params": zod.object({
+  "shape": zod.string(),
+  "topic": zod.string(),
+  "roleId": zod.string(),
+  "audience": zod.string(),
+  "language": zod.string(),
+  "confidentiality": zod.string(),
+  "format": zod.string(),
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
+}),
+  "origin": zod.string().optional().describe('manual | scheduled'),
+  "reviewItemId": zod.string().nullish(),
+  "approved": zod.boolean().optional()
+}),
+  "reviewedBy": zod.string()
+})
+
+export const RecordEditorialReviewResponse = zod.object({
+  "id": zod.string(),
+  "draftId": zod.string(),
+  "title": zod.string(),
+  "reviewedBy": zod.string(),
+  "reviewedAt": zod.string()
+})
+
+
+/**
+ * @summary Suggest a governed document shape from a natural-language description
+ */
+
+
+
+export const SuggestTemplateBody = zod.object({
+  "description": zod.string().min(1)
+})
+
+export const SuggestTemplateResponse = zod.object({
+  "templateId": zod.string(),
+  "shape": zod.string(),
+  "templateName": zod.string(),
+  "rationale": zod.string(),
+  "brief": zod.object({
+  "shape": zod.string().nullable(),
+  "topic": zod.string().nullable(),
+  "audience": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "confidentiality": zod.string().nullable(),
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullable(),
+  "eventDate": zod.string().nullable()
+})
+})
+
+
+/**
+ * Extracts brief fields from the conversation so far and returns the one next question to ask, or completes when enough is captured. Capture only — never retrieves evidence or composes content.
+ * @summary Guided-chat parameter capture for the document brief
+ */
+
+
+
+export const BriefChatBody = zod.object({
+  "turns": zod.array(zod.object({
+  "role": zod.string().describe('user | assistant'),
+  "content": zod.string()
+})).min(1)
+})
+
+export const BriefChatResponse = zod.object({
+  "fields": zod.object({
+  "shape": zod.string().nullable(),
+  "topic": zod.string().nullable(),
+  "audience": zod.string().nullable(),
+  "language": zod.string().nullable(),
+  "confidentiality": zod.string().nullable(),
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullable(),
+  "eventDate": zod.string().nullable()
+}),
+  "nextQuestion": zod.string().nullable(),
+  "complete": zod.boolean()
+})
+
+
+/**
+ * @summary Notifications for the scheduled-draft review flow
+ */
+export const ListNotificationsResponseItem = zod.object({
+  "id": zod.string(),
+  "kind": zod.string().describe('scheduled_draft_ready | review_approved'),
+  "reviewItemId": zod.string(),
+  "reviewFolder": zod.string(),
+  "ownerRoleId": zod.string(),
+  "ownerLabel": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string(),
+  "read": zod.boolean()
+})
+export const ListNotificationsResponse = zod.array(ListNotificationsResponseItem)
+
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkNotificationsReadResponseItem = zod.object({
+  "id": zod.string(),
+  "kind": zod.string().describe('scheduled_draft_ready | review_approved'),
+  "reviewItemId": zod.string(),
+  "reviewFolder": zod.string(),
+  "ownerRoleId": zod.string(),
+  "ownerLabel": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string(),
+  "read": zod.boolean()
+})
+export const MarkNotificationsReadResponse = zod.array(MarkNotificationsReadResponseItem)
 
 
 /**
@@ -2501,7 +2814,9 @@ export const StartGenerateJobBody = zod.object({
   "language": zod.string().optional().describe('BCP-47-ish code, e.g. en, es'),
   "confidentiality": zod.string().optional().describe('Destination confidentiality of the document'),
   "format": zod.string().optional().describe('Output format hint, e.g. document, email, note'),
-  "axisIds": zod.array(zod.string()).optional()
+  "axisIds": zod.array(zod.string()).optional(),
+  "spokesperson": zod.string().nullish().describe('Named spokesperson for quotes and spokesperson notes'),
+  "eventDate": zod.string().nullish().describe('Event or publication date framing the document')
 })
 
 export const StartGenerateJobResponse = zod.object({
@@ -2519,6 +2834,12 @@ export const StartGenerateJobResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -2601,7 +2922,9 @@ export const StartGenerateJobResponse = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2629,6 +2952,12 @@ export const StartRefineJobBody = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -2711,7 +3040,9 @@ export const StartRefineJobBody = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2736,6 +3067,12 @@ export const StartRefineJobResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -2818,7 +3155,9 @@ export const StartRefineJobResponse = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2851,6 +3190,12 @@ export const GetGenerationJobResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
   "sections": zod.array(zod.object({
   "id": zod.string(),
   "kind": zod.string(),
@@ -2933,7 +3278,9 @@ export const GetGenerationJobResponse = zod.object({
   "language": zod.string(),
   "confidentiality": zod.string(),
   "format": zod.string(),
-  "axisIds": zod.array(zod.string())
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),

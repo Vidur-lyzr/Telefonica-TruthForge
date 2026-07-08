@@ -935,6 +935,107 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /generate/editorial-review:
+    post:
+      operationId: recordEditorialReview
+      tags: [generate]
+      summary: Record a mandatory editorial review of a press release
+      description: >
+        Registers a human editorial sign-off for a press release, bound to the
+        exact content reviewed (server-side content hash). Press exports are
+        refused until a review exists for the current content; any later edit
+        voids the review. The Brand Guardian must pass before a review can be
+        recorded.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditorialReviewInput"
+      responses:
+        "200":
+          description: The recorded review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EditorialReviewRecord"
+        "409":
+          description: Guardian failed or the draft is not reviewable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /generate/suggest-template:
+    post:
+      operationId: suggestTemplate
+      tags: [generate]
+      summary: Suggest a governed document shape from a natural-language description
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuggestTemplateInput"
+      responses:
+        "200":
+          description: Suggested template with a pre-filled brief
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateSuggestion"
+
+  /generate/brief-chat:
+    post:
+      operationId: briefChat
+      tags: [generate]
+      summary: Guided-chat parameter capture for the document brief
+      description: >
+        Extracts brief fields from the conversation so far and returns the one
+        next question to ask, or completes when enough is captured. Capture
+        only — never retrieves evidence or composes content.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BriefChatInput"
+      responses:
+        "200":
+          description: Captured fields and the next question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BriefChatResult"
+
+  /generate/notifications:
+    get:
+      operationId: listNotifications
+      tags: [generate]
+      summary: Notifications for the scheduled-draft review flow
+      responses:
+        "200":
+          description: Notifications, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NotificationRecord"
+    post:
+      operationId: markNotificationsRead
+      tags: [generate]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: Notifications after marking read
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NotificationRecord"
+
   /generate/jobs:
     post:
       operationId: startGenerateJob
@@ -1604,6 +1705,9 @@ components:
       properties:
         error:
           type: string
+        code:
+          type: string
+          description: Machine-readable refusal code, e.g. editorial_review_required
       required:
         - error
 
@@ -3416,6 +3520,12 @@ components:
           type: array
           items:
             type: string
+        spokesperson:
+          type: ["string", "null"]
+          description: Named spokesperson for quotes and spokesperson notes
+        eventDate:
+          type: ["string", "null"]
+          description: Event or publication date framing the document
 
     DraftParams:
       type: object
@@ -3439,6 +3549,10 @@ components:
           type: array
           items:
             type: string
+        spokesperson:
+          type: ["string", "null"]
+        eventDate:
+          type: ["string", "null"]
 
     ChartPoint:
       type: object
@@ -3577,6 +3691,14 @@ components:
           type: string
         umbrella:
           type: ["string", "null"]
+        exclusions:
+          type: array
+          description: >
+            Sources considered but excluded by governance — either above the
+            persona's clearance or above the destination confidentiality.
+            Clearance exclusions never reveal the document title.
+          items:
+            $ref: "#/components/schemas/DraftExclusion"
         sections:
           type: array
           items:
@@ -3621,6 +3743,146 @@ components:
         reviewItemId:
           type: ["string", "null"]
         approved:
+          type: boolean
+
+    DraftExclusion:
+      type: object
+      required: [reason, docTitle, confidentiality, note]
+      properties:
+        reason:
+          type: string
+          description: clearance | destination
+        docTitle:
+          type: ["string", "null"]
+          description: Null when the exclusion must not reveal the source title
+        confidentiality:
+          type: string
+        note:
+          type: string
+
+    EditorialReviewInput:
+      type: object
+      required: [draft, reviewedBy]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+        reviewedBy:
+          type: string
+
+    EditorialReviewRecord:
+      type: object
+      required: [id, draftId, title, reviewedBy, reviewedAt]
+      properties:
+        id:
+          type: string
+        draftId:
+          type: string
+        title:
+          type: string
+        reviewedBy:
+          type: string
+        reviewedAt:
+          type: string
+
+    SuggestTemplateInput:
+      type: object
+      required: [description]
+      properties:
+        description:
+          type: string
+          minLength: 1
+
+    SuggestedBrief:
+      type: object
+      required: [shape, topic, audience, language, confidentiality, axisIds, spokesperson, eventDate]
+      properties:
+        shape:
+          type: ["string", "null"]
+        topic:
+          type: ["string", "null"]
+        audience:
+          type: ["string", "null"]
+        language:
+          type: ["string", "null"]
+        confidentiality:
+          type: ["string", "null"]
+        axisIds:
+          type: array
+          items:
+            type: string
+        spokesperson:
+          type: ["string", "null"]
+        eventDate:
+          type: ["string", "null"]
+
+    TemplateSuggestion:
+      type: object
+      required: [templateId, shape, templateName, rationale, brief]
+      properties:
+        templateId:
+          type: string
+        shape:
+          type: string
+        templateName:
+          type: string
+        rationale:
+          type: string
+        brief:
+          $ref: "#/components/schemas/SuggestedBrief"
+
+    BriefChatTurn:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          description: user | assistant
+        content:
+          type: string
+
+    BriefChatInput:
+      type: object
+      required: [turns]
+      properties:
+        turns:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/BriefChatTurn"
+
+    BriefChatResult:
+      type: object
+      required: [fields, nextQuestion, complete]
+      properties:
+        fields:
+          $ref: "#/components/schemas/SuggestedBrief"
+        nextQuestion:
+          type: ["string", "null"]
+        complete:
+          type: boolean
+
+    NotificationRecord:
+      type: object
+      required: [id, kind, reviewItemId, reviewFolder, ownerRoleId, ownerLabel, message, createdAt, read]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          description: scheduled_draft_ready | review_approved
+        reviewItemId:
+          type: string
+        reviewFolder:
+          type: string
+        ownerRoleId:
+          type: string
+        ownerLabel:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+        read:
           type: boolean
 
     RefineInput:

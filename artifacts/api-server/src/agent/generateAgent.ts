@@ -26,6 +26,7 @@ import {
   getDisclaimer,
   APPROVED_QUOTES,
   BOILERPLATES,
+  PRESS_CONTACT,
   type DocShape,
 } from "../data/assets";
 import { runBrandGuardian } from "./brandGuardian";
@@ -77,6 +78,17 @@ export interface SpokespersonNote {
   doNotSay?: string | null;
 }
 
+// A source the dual filter kept away from the model, surfaced honestly so the
+// user can see WHAT was excluded and WHY. Titles are only revealed when the
+// persona itself is cleared to read the document (destination exclusions);
+// clearance exclusions never leak a title — only the classification.
+export interface DraftExclusion {
+  reason: "clearance" | "destination";
+  docTitle: string | null;
+  confidentiality: string;
+  note: string;
+}
+
 export interface DraftSection {
   id: string;
   kind: string;
@@ -123,6 +135,8 @@ export interface DraftParams {
   confidentiality: string;
   format: string;
   axisIds: string[];
+  spokesperson?: string | null;
+  eventDate?: string | null;
 }
 
 export interface GeneratedDraft {
@@ -135,6 +149,7 @@ export interface GeneratedDraft {
   audience: Audience;
   confidentiality: string;
   umbrella?: string | null;
+  exclusions: DraftExclusion[];
   sections: DraftSection[];
   spokesperson: SpokespersonNote[];
   charts: ChartSpec[];
@@ -171,6 +186,8 @@ export interface GenerateInput {
   confidentiality?: string;
   format?: string;
   axisIds?: string[];
+  spokesperson?: string | null;
+  eventDate?: string | null;
   // Governed source/query presets (used by scheduled definitions). These are
   // added to the retrieval query so a recurring document always pulls from the
   // same governed material, not just the free-text topic. They never bypass the
@@ -245,9 +262,20 @@ async function compose(
   const template = getTemplate(shape);
   const templateId = template?.id ?? "tmpl-multiformat";
 
-  // Audience gate: external caps the body's accessible set to public.
-  const bodyClearance: Clearance = audience === "external" ? "public" : clearance;
-  const bodyRank = CLEARANCE_RANK[bodyClearance];
+  // Dual filter: the model may only see material that BOTH the persona is
+  // cleared to read AND the destination may carry. External audiences are
+  // additionally capped to public regardless of the declared destination.
+  const destRank =
+    CLEARANCE_RANK[confidentiality as Clearance] ?? CLEARANCE_RANK[clearance];
+  const bodyRank = Math.min(
+    CLEARANCE_RANK[clearance],
+    destRank,
+    audience === "external" ? CLEARANCE_RANK.public : CLEARANCE_RANK[clearance],
+  );
+  const bodyClearance: Clearance =
+    (Object.entries(CLEARANCE_RANK).find(([, r]) => r === bodyRank)?.[0] as
+      | Clearance
+      | undefined) ?? "public";
 
   const axisNames = (input.axisIds ?? [])
     .map((id) => AXES.find((a) => a.id === id)?.name ?? "")
@@ -268,6 +296,8 @@ async function compose(
     confidentiality,
     format,
     axisIds: input.axisIds ?? [],
+    spokesperson: input.spokesperson ?? null,
+    eventDate: input.eventDate ?? null,
   };
 
   const emptyGuardian: GuardianResult = {
@@ -277,11 +307,58 @@ async function compose(
   };
 
   // ---- Governed retrieval (body) --------------------------------------------
+  // Retrieval runs at the PERSONA's clearance so we can explain honestly which
+  // relevant sources the dual filter excluded. Nothing above the effective
+  // (dual-filtered) rank ever reaches the model: permitted is re-capped below.
   onStage?.("retrieving");
-  const retrieved = retrieve({ question: retrievalQuery, clearance: bodyClearance, topK: 12 });
+  const retrieved = retrieve({ question: retrievalQuery, clearance, topK: 12 });
   const relevant = retrieved.filter((c) => c.coverage >= COVERAGE_MIN);
-  const permitted = relevant.filter((c) => c.accessible);
+  const personaPermitted = relevant.filter((c) => c.accessible);
   const blocked = relevant.filter((c) => !c.accessible);
+  // Destination gate on top of the persona gate.
+  const permitted = personaPermitted.filter(
+    (c) =>
+      CLEARANCE_RANK[resolveDoc(c.docId)?.confidentiality ?? "restricted"] <= bodyRank,
+  );
+  const destinationExcluded = personaPermitted.filter(
+    (c) =>
+      CLEARANCE_RANK[resolveDoc(c.docId)?.confidentiality ?? "restricted"] > bodyRank,
+  );
+
+  // Visible dual-filter explanation. Clearance exclusions never reveal a title
+  // (the persona may not know the document exists); destination exclusions do,
+  // because the persona could read the document — it is the destination that
+  // cannot carry it.
+  const exclusions: DraftExclusion[] = [];
+  const seenClearance = new Set<string>();
+  for (const b of blocked) {
+    const doc = resolveDoc(b.docId);
+    const conf = doc?.confidentiality ?? "restricted";
+    if (seenClearance.has(b.docId)) continue;
+    seenClearance.add(b.docId);
+    exclusions.push({
+      reason: "clearance",
+      docTitle: null,
+      confidentiality: conf,
+      note: `A relevant source classified "${conf}" was excluded: it is above your clearance ("${clearance}").`,
+    });
+  }
+  const seenDest = new Set<string>();
+  for (const d of destinationExcluded) {
+    const doc = resolveDoc(d.docId);
+    if (seenDest.has(d.docId)) continue;
+    seenDest.add(d.docId);
+    const conf = doc?.confidentiality ?? "restricted";
+    exclusions.push({
+      reason: "destination",
+      docTitle: doc?.title ?? d.docId,
+      confidentiality: conf,
+      note:
+        audience === "external" && CLEARANCE_RANK[conf as Clearance] > CLEARANCE_RANK.public
+          ? `"${doc?.title ?? d.docId}" (${conf}) was excluded: an external destination may only carry public material.`
+          : `"${doc?.title ?? d.docId}" (${conf}) was excluded: it is above the destination confidentiality ("${bodyClearance}").`,
+    });
+  }
 
   if (relevant.length === 0) {
     log.info({ topic: input.topic, roleId: role.id }, "generate: no_evidence");
@@ -295,6 +372,7 @@ async function compose(
       audience,
       confidentiality,
       umbrella: null,
+      exclusions,
       sections: [],
       spokesperson: [],
       charts: [],
@@ -311,14 +389,18 @@ async function compose(
   }
 
   if (permitted.length === 0) {
-    const need = blocked
+    const need = [...blocked, ...destinationExcluded]
       .map((b) => resolveDoc(b.docId)?.confidentiality)
       .filter((c): c is Clearance => Boolean(c))
       .sort((a, b) => CLEARANCE_RANK[b] - CLEARANCE_RANK[a])[0];
     const reason =
-      audience === "external"
-        ? `The only relevant material is classified "${need}". For an external audience the engine restricts sources to public material, so this content cannot be used.`
-        : `Relevant material exists but is classified "${need}", above your clearance "${clearance}".`;
+      destinationExcluded.length > 0 && blocked.length === 0
+        ? audience === "external"
+          ? `The only relevant material is classified "${need}". For an external audience the engine restricts sources to public material, so this content cannot be used.`
+          : `The only relevant material is classified "${need}", above the destination confidentiality "${bodyClearance}". Raise the destination confidentiality or choose different material.`
+        : audience === "external"
+          ? `The only relevant material is classified "${need}". For an external audience the engine restricts sources to public material, so this content cannot be used.`
+          : `Relevant material exists but is classified "${need}", above your clearance "${clearance}".`;
     log.info(
       { topic: input.topic, roleId: role.id, audience, need },
       "generate: permission_blocked",
@@ -333,6 +415,7 @@ async function compose(
       audience,
       confidentiality,
       umbrella: null,
+      exclusions,
       sections: [],
       spokesperson: [],
       charts: [],
@@ -467,6 +550,7 @@ async function compose(
     "You write on-brand corporate documents where EVERY factual claim carries a source marker in square brackets, e.g. [S1] or [S2].",
     "Use ONLY the numbered body sources provided for factual claims. Do not use outside knowledge and never invent a figure, quote or fact.",
     "Only cite markers that were provided. If a section cannot be supported by a source, write a brief honest note instead of a fabricated claim.",
+    "The umbrella message, when present, must also end with at least one source marker.",
     "Voice: clear, human, confident. Sentence case for headings. No jargon. Never use emoji. No unapproved superlatives (e.g. 'European leader', 'the largest', 'number one', 'best network in the world').",
     "Spokesperson notes and any internal-only guidance draw on the internal guidance sources [G#]; these support the drafter and must never be phrased as external-facing copy.",
     `Write the document in ${languageName(language)}.`,
@@ -489,7 +573,15 @@ Brief:
 - Audience: ${audience}${audience === "external" ? " (only public sources are available; nothing confidential can appear)" : ""}
 - Destination confidentiality: ${confidentiality}
 - Selected strategic axes: ${axisList || "(none specified — infer the most relevant from the sources)"}
-- Output format: ${format}
+- Output format: ${format}${input.spokesperson ? `\n- Spokesperson: ${input.spokesperson} (address spokesperson notes to this person; for the quote section use ONLY an approved quote whose attribution matches — never invent or reattribute a quote. If no approved quote is attributed to this person, leave the quote section body completely empty)` : ""}${input.eventDate ? `\n- Event / publication date: ${input.eventDate} (frame timing references around this date)` : ""}${
+    shape === "press"
+      ? `\n\nPress-release structure requirements:\n- The headline must carry a source marker like every other factual section.\n- The 'lead' section is the STANDFIRST: one or two sentences that carry the whole story, cited.\n- Every Q&A answer must end with its own source marker(s); an answer without support must honestly say the point is not covered by approved material.\n- Do not write the press contact or boilerplate yourself beyond the approved text provided.`
+      : ""
+  }${
+    shape === "messaging"
+      ? `\n\nTalking-points requirements:\n- One key message per selected axis, each backed by a cited figure where available.\n- Match the tone to the audience: ${audience === "external" ? "external — quotable, plain-spoken, no internal shorthand" : "internal — candid, direct, may reference internal context"}.`
+      : ""
+  }
 
 Body sources (cite these with [S#]):
 ${sourceBlock}
@@ -584,6 +676,37 @@ ${jsonShape}${refineBlock}`;
     };
   });
 
+  // Quote sections are governed verbatim assets: if the model wrote a quote
+  // that is not one of the approved quotes available to this brief (e.g. it
+  // reattributed one to the requested spokesperson), blank it deterministically
+  // — an empty quote section is honest; an invented quote is a brand breach.
+  for (const s of sections) {
+    if (s.kind !== "quote" || !s.body.trim()) continue;
+    const matchesApproved = relevantQuotes.some((q) => s.body.includes(q.text));
+    if (!matchesApproved) {
+      s.body = "";
+      s.heading = "Executive quote — pending spokesperson approval";
+      s.citationIds = [];
+    }
+  }
+
+  // Press releases always end body content with the approved press-contact
+  // block — deterministic, never model-written. Any model attempt is replaced.
+  if (shape === "press") {
+    const withoutContact = sections.filter((s) => s.kind !== "contact");
+    withoutContact.push({
+      id: newId("sec"),
+      kind: "contact",
+      heading: PRESS_CONTACT.heading,
+      axisId: null,
+      body: PRESS_CONTACT.text,
+      citationIds: [],
+      internalOnly: false,
+    });
+    sections.length = 0;
+    sections.push(...withoutContact);
+  }
+
   // Chart citation ids also need renumbering.
   for (const c of charts) {
     if (c.citationId) {
@@ -669,6 +792,7 @@ ${jsonShape}${refineBlock}`;
     audience,
     confidentiality,
     umbrella,
+    exclusions,
     sections,
     spokesperson,
     charts,
@@ -728,6 +852,8 @@ export async function refineDraft(
     confidentiality: base.params.confidentiality,
     format: base.params.format,
     axisIds: base.params.axisIds,
+    spokesperson: base.params.spokesperson ?? null,
+    eventDate: base.params.eventDate ?? null,
   };
   return compose({ input: genInput, instruction: input.instruction, baseDraft: base, onStage }, log);
 }

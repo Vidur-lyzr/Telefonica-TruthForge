@@ -101,7 +101,7 @@ export const TEMPLATES: DocumentTemplate[] = [
       "Headline, lead, cited body, an executive quote, boilerplate and press contact, plus a prepared Q&A.",
     sections: [
       { key: "headline", label: "Headline", kind: "headline" },
-      { key: "lead", label: "Lead paragraph", kind: "lead" },
+      { key: "lead", label: "Standfirst", kind: "lead" },
       { key: "body", label: "Body", kind: "body" },
       { key: "quote", label: "Executive quote", kind: "quote" },
       { key: "boilerplate", label: "About Telefónica", kind: "boilerplate" },
@@ -182,6 +182,13 @@ export const BOILERPLATES: Boilerplate[] = [
     validity: "approved",
   },
 ];
+
+// Approved press contact block. Deterministic: the model never writes this —
+// it is appended verbatim to every press release.
+export const PRESS_CONTACT = {
+  heading: "Press contact",
+  text: "Telefónica Group Communications — press.office@telefonica.com · +34 91 482 38 00 · telefonica.com/press",
+};
 
 export const DISCLAIMERS: Disclaimer[] = [
   {
