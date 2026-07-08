@@ -171,6 +171,7 @@ function gateDestination(draft: GeneratedDraft, destination: ExportDestination):
 // strip the markers to keep exported copy clean.
 function stripEmphasisMarkers(text: string): string {
   return text
+    .replace(/^#{2,3}\s+/gm, "")
     .replace(/\*\*\*([^*]+)\*\*\*/g, "$1")
     .replace(/\*\*([^*]+)\*\*/g, "$1")
     .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,;:!?]|$)/g, "$1$2");

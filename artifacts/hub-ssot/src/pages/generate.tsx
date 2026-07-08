@@ -1219,6 +1219,15 @@ export default function Generate() {
   const [draft, setDraft] = React.useState<GeneratedDraft | null>(null);
   const [instruction, setInstruction] = React.useState("");
   const [pendingSelection, setPendingSelection] = React.useState<string | null>(null);
+  const [chatCollapsed, setChatCollapsed] = React.useState<boolean>(
+    () => window.localStorage.getItem("hub-generate-chat-collapsed") === "1",
+  );
+  const toggleChatCollapsed = () => {
+    setChatCollapsed((v) => {
+      window.localStorage.setItem("hub-generate-chat-collapsed", v ? "0" : "1");
+      return !v;
+    });
+  };
   const [chatMessages, setChatMessages] = React.useState<
     { role: "user" | "agent"; text: string; selection?: string | null; tone?: "error" }[]
   >([]);
@@ -1788,15 +1797,18 @@ export default function Generate() {
                   maxHeight: 340,
                 }}
               >
-                <Stack space={8}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <Inline space={8} alignItems="center">
                     <IconRobotRegular size={16} color={c.brand} />
                     <Text2 medium color={c.textSecondary}>
                       Edit with the agent
                     </Text2>
                   </Inline>
-                </Stack>
-                {chatMessages.length > 0 && (
+                  <ButtonLink small onPress={toggleChatCollapsed}>
+                    {chatCollapsed ? "Expand" : "Collapse"}
+                  </ButtonLink>
+                </div>
+                {!chatCollapsed && chatMessages.length > 0 && (
                   <div style={{ overflowY: "auto", margin: "8px 0", flex: 1 }}>
                     <Stack space={8}>
                       {chatMessages.map((m, i) => (
@@ -1849,6 +1861,7 @@ export default function Generate() {
                     </Stack>
                   </div>
                 )}
+                {!chatCollapsed && (
                 <Stack space={8}>
                   {pendingSelection && (
                     <div
@@ -1901,6 +1914,7 @@ export default function Generate() {
                     </ButtonLink>
                   </Inline>
                 </Stack>
+                )}
               </div>
             </div>
           )}

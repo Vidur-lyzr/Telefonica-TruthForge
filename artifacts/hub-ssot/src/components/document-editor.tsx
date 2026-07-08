@@ -73,6 +73,17 @@ export function textToDoc(text: string): JSONContent {
     bullets = null;
   };
   for (const line of lines) {
+    const headingMatch = line.match(/^(#{2,3})\s+(.*)$/);
+    if (headingMatch) {
+      flushBullets();
+      const inline = parseInline(headingMatch[2]);
+      content.push({
+        type: "heading",
+        attrs: { level: headingMatch[1].length },
+        content: inline.length ? inline : undefined,
+      });
+      continue;
+    }
     const bulletMatch = line.match(/^\s*[-•]\s+(.*)$/);
     if (bulletMatch) {
       const inline = parseInline(bulletMatch[1]);
@@ -125,7 +136,8 @@ export function docToText(doc: JSONContent): string {
         lines.push(`- ${inner}`);
       }
     } else if (block.type === "heading") {
-      lines.push(inlineToText(block.content));
+      const level = Math.min(Math.max(Number(block.attrs?.level ?? 2), 2), 3);
+      lines.push(`${"#".repeat(level)} ${inlineToText(block.content)}`);
     }
   }
   // Trim trailing empty lines the editor tends to accumulate.
@@ -236,7 +248,7 @@ export function RichTextEditor({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: false,
+        heading: { levels: [2, 3] },
         blockquote: false,
         codeBlock: false,
         code: false,
@@ -348,6 +360,20 @@ export function RichTextEditor({
             onPress={() => editor.chain().focus().toggleItalic().run()}
           >
             <span style={{ fontStyle: "italic" }}>I</span>
+          </ToolbarButton>
+          <ToolbarButton
+            label="Heading"
+            active={editor.isActive("heading", { level: 2 })}
+            onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          >
+            <span style={{ fontWeight: 700 }}>H2</span>
+          </ToolbarButton>
+          <ToolbarButton
+            label="Subheading"
+            active={editor.isActive("heading", { level: 3 })}
+            onPress={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          >
+            <span style={{ fontWeight: 700 }}>H3</span>
           </ToolbarButton>
           <ToolbarButton
             label="Bullet list"
