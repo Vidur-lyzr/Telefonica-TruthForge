@@ -29,6 +29,10 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // gitagent + its model layer use dynamic imports and file-relative
+      // resolution that do not survive bundling; keep them external.
+      "@open-gitagent/*",
+      "@mariozechner/*",
       "sharp",
       "better-sqlite3",
       "sqlite3",

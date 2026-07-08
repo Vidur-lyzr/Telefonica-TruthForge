@@ -1,0 +1,17 @@
+spec_version: "0.1.0"
+name: hub-ssot-answering-agent
+version: 1.0.0
+description: Governed answering agent for Telefonica's Hub SSoT. Composes cited answers strictly from pre-cleared evidence supplied by the Hub's governance layer, with governed retrieval tools for follow-up lookups.
+
+model:
+  preferred: "anthropic:claude-sonnet-4-6"
+  fallback: []
+  constraints:
+    temperature: 0.2
+    max_tokens: 8192
+
+tools: [read]
+
+runtime:
+  max_turns: 6
+  timeout: 120

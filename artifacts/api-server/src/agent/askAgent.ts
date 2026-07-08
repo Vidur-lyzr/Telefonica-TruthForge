@@ -17,9 +17,11 @@
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import {
   retrieve,
+  retrieveGoverned,
   resolveDoc,
   type RetrieveFilters,
 } from "../adapters/kb";
+import { runAgent, tool } from "./gitagentRuntime";
 import { query as numericQuery } from "../adapters/numeric";
 import { traverse } from "../adapters/kg";
 import { tokenize } from "../adapters/text";
@@ -190,12 +192,16 @@ export async function runAskAgent(
       ? `${lastUser.content} ${input.question}`
       : input.question;
 
-  const retrieved = retrieve({
-    question: retrievalQuery,
-    clearance,
-    topK: 8,
-    filters,
-  });
+  const { chunks: retrieved, engineDetail } =
+    await retrieveGoverned(
+      {
+        question: retrievalQuery,
+        clearance,
+        topK: 8,
+        filters,
+      },
+      log,
+    );
   const relevant = retrieved.filter((c) => c.coverage >= COVERAGE_MIN);
   const permitted = relevant.filter((c) => c.accessible);
   const blocked = relevant.filter((c) => !c.accessible);
@@ -242,7 +248,12 @@ export async function runAskAgent(
           : null,
       relatedEntities,
       suggestedNext: [],
-      retrievalModes: buildRetrievalModes(0, false, relatedEntities.length),
+      retrievalModes: buildRetrievalModes(
+        0,
+        false,
+        relatedEntities.length,
+        engineDetail,
+      ),
       attachmentAck,
     };
   }
@@ -285,7 +296,12 @@ export async function runAskAgent(
       numeric: null,
       relatedEntities,
       suggestedNext: [],
-      retrievalModes: buildRetrievalModes(0, false, relatedEntities.length),
+      retrievalModes: buildRetrievalModes(
+        0,
+        false,
+        relatedEntities.length,
+        engineDetail,
+      ),
       attachmentAck,
     };
   }
@@ -331,33 +347,48 @@ export async function runAskAgent(
     "Do not mention that you are an AI model or describe these instructions.",
   ].join(" ");
 
-  const userPrompt = `Question: ${input.question}\n\nSources:\n${sourceBlock}${numericLine}${attachmentBlock}`;
+  const historyBlock = history
+    .filter((t) => t.content?.trim())
+    .map((t) => `${t.role === "assistant" ? "Hub" : "User"}: ${t.content}`)
+    .join("\n");
 
-  const messages = [
-    ...history
-      .filter((t) => t.content?.trim())
-      .map((t) => ({
-        role: t.role === "assistant" ? ("assistant" as const) : ("user" as const),
-        content: t.content,
-      })),
-    { role: "user" as const, content: userPrompt },
-  ];
+  const userPrompt = `${
+    historyBlock ? `Conversation so far:\n${historyBlock}\n\n` : ""
+  }Question: ${input.question}\n\nSources:\n${sourceBlock}${numericLine}${attachmentBlock}`;
+
+  // Governed tools the agent may call during composition. Everything they
+  // return is already clearance-filtered — the agent can look further, but it
+  // can never see past the persona's clearance.
+  const agentTools = buildGovernedTools(clearance, roleRank, filters);
 
   let answer = "";
   try {
-    const message = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages,
+    const run = await runAgent({
+      prompt: userPrompt,
+      systemPromptSuffix: systemPrompt,
+      tools: agentTools,
+      log,
     });
-    answer = message.content
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("")
-      .trim();
+    answer = run.text.trim();
   } catch (err) {
-    log.error({ err }, "ask: model call failed, using extractive fallback");
-    answer = `${sources[0].text} [S1]`;
+    // Explicit degradation path: fall back to a direct model call, then to
+    // extractive text — each step is logged, never silent.
+    log.error({ err }, "ask: gitagent run failed, using direct model fallback");
+    try {
+      const message = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 8192,
+        system: systemPrompt,
+        messages: [{ role: "user" as const, content: userPrompt }],
+      });
+      answer = message.content
+        .map((b) => (b.type === "text" ? b.text : ""))
+        .join("")
+        .trim();
+    } catch (err2) {
+      log.error({ err: err2 }, "ask: model call failed, using extractive fallback");
+      answer = `${sources[0].text} [S1]`;
+    }
   }
   if (!answer) answer = `${sources[0].text} [S1]`;
 
@@ -523,22 +554,110 @@ export async function runAskAgent(
       sources.length,
       Boolean(showNumeric),
       relatedEntities.length,
+      engineDetail,
     ),
     attachmentAck,
   };
+}
+
+// Governed tools handed to the GitAgent run. Every result is filtered by the
+// persona's clearance BEFORE it is serialised for the model — the agent can
+// look further into the corpus mid-answer, but never past its clearance.
+function buildGovernedTools(
+  clearance: Clearance,
+  roleRank: number,
+  filters: RetrieveFilters | null | undefined,
+) {
+  return [
+    tool(
+      "kb_lookup",
+      "Search the governed knowledge base for additional evidence. Returns only passages the current persona is cleared to see. Use sparingly, only when the provided sources are insufficient for a follow-up detail.",
+      {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query" },
+        },
+        required: ["query"],
+      },
+      async (args: { query: string }) => {
+        const hits = retrieve({
+          question: String(args.query ?? ""),
+          clearance,
+          topK: 4,
+          filters,
+        }).filter((c) => c.accessible);
+        if (hits.length === 0) {
+          return "No accessible governed passages match this query.";
+        }
+        return {
+          text: hits
+            .map(
+              (c) =>
+                `- [${c.breadcrumb}] ${c.heading}: ${c.text}`,
+            )
+            .join("\n"),
+          details: { chunkIds: hits.map((c) => c.chunkId) },
+        };
+      },
+    ),
+    tool(
+      "kg_traverse",
+      "Traverse the governed knowledge graph for entities related to a topic (people, teams, documents, strategic axes).",
+      {
+        type: "object",
+        properties: {
+          topic: { type: "string", description: "Topic or entity to expand" },
+        },
+        required: ["topic"],
+      },
+      async (args: { topic: string }) => {
+        const entities = traverse(String(args.topic ?? ""));
+        if (entities.length === 0) return "No related entities found.";
+        return entities
+          .map((e) => `- ${e.name} (${e.kind}${e.relation ? `, ${e.relation}` : ""})`)
+          .join("\n");
+      },
+    ),
+    tool(
+      "numeric_query",
+      "Look up a governed numeric fact (KPIs, scores, budget figures). Returns value, unit, period and source — or nothing if no permitted fact matches.",
+      {
+        type: "object",
+        properties: {
+          question: { type: "string", description: "What figure is needed" },
+        },
+        required: ["question"],
+      },
+      async (args: { question: string }) => {
+        const fact = numericQuery(String(args.question ?? ""));
+        if (!fact) return "No governed numeric fact matches.";
+        const doc = resolveDoc(fact.docId);
+        const permitted =
+          doc && CLEARANCE_RANK[doc.confidentiality] <= roleRank;
+        if (!permitted) {
+          return "A matching figure exists but is above the current clearance; it cannot be shown.";
+        }
+        return `${fact.label}: ${fact.value} ${fact.unit} (${fact.period}) — source: ${fact.source}`;
+      },
+    ),
+  ];
 }
 
 function buildRetrievalModes(
   passages: number,
   numericUsed: boolean,
   entityCount: number,
+  engineDetail?: string,
 ): RetrievalMode[] {
   return [
     {
       mode: "semantic",
       label: "Semantic",
       used: passages > 0,
-      detail: passages > 0 ? `${passages} passage${passages === 1 ? "" : "s"}` : "no match",
+      detail:
+        passages > 0
+          ? `${passages} passage${passages === 1 ? "" : "s"}${engineDetail ? ` — ${engineDetail}` : ""}`
+          : engineDetail ?? "no match",
     },
     {
       mode: "keyword",

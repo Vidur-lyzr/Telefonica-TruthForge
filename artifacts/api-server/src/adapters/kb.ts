@@ -3,6 +3,7 @@
 // A real Lyzr Knowledge Base can be swapped in behind this same interface later.
 
 import { DOCS, getDoc, CLEARANCE_RANK, type Clearance } from "../data/corpus";
+import { isLyzrConfigured, lyzrRetrieve } from "./lyzr";
 import { tokenize } from "./text";
 
 export interface RetrievedChunk {
@@ -150,4 +151,97 @@ export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
 
 export function resolveDoc(docId: string) {
   return getDoc(docId);
+}
+
+// ── Governed retrieval front door ───────────────────────────────────────────
+//
+// When the Lyzr KB is configured (LYZR_API_KEY + LYZR_RAG_ID), semantic
+// candidate selection is delegated to the real Lyzr RAG API. Governance stays
+// local and non-negotiable: every Lyzr candidate is mapped back onto the
+// governed chunk registry, and clearance + idf-coverage are recomputed here.
+// Candidates that cannot be mapped to a governed chunk are dropped (fail
+// closed). If Lyzr errors, we fall back to the native engine and say so in
+// the engine detail — never silently.
+
+const chunkById = new Map(index.map((c) => [c.chunkId, c]));
+const chunkByText = new Map(index.map((c) => [c.text.trim(), c]));
+
+export interface GovernedRetrieval {
+  chunks: RetrievedChunk[];
+  engine: "lyzr" | "native";
+  engineDetail: string;
+}
+
+interface RetrieveLogger {
+  warn: (obj: unknown, msg?: string) => void;
+}
+
+function coverageFor(chunk: IndexedChunk, qSet: Set<string>, queryIdfMass: number): number {
+  let matchedMass = 0;
+  for (const term of qSet) {
+    if (chunk.termFreq.has(term)) matchedMass += idf(term);
+  }
+  return matchedMass / queryIdfMass;
+}
+
+export async function retrieveGoverned(
+  opts: RetrieveOptions,
+  log?: RetrieveLogger,
+): Promise<GovernedRetrieval> {
+  if (isLyzrConfigured()) {
+    try {
+      const candidates = await lyzrRetrieve(opts.question, Math.max(opts.topK ?? 6, 8));
+      const qTerms = tokenize(opts.question);
+      const qSet = new Set(qTerms);
+      const queryIdfMass =
+        Array.from(qSet).reduce((sum, t) => sum + idf(t), 0) || 1;
+      const roleRank = CLEARANCE_RANK[opts.clearance];
+      const seen = new Set<string>();
+      const chunks: RetrievedChunk[] = [];
+      let unmapped = 0;
+
+      for (const cand of candidates) {
+        const chunk =
+          (cand.chunkId ? chunkById.get(cand.chunkId) : undefined) ??
+          chunkByText.get(cand.text.trim());
+        if (!chunk) {
+          unmapped += 1;
+          continue; // fail closed: unknown material carries no governance metadata
+        }
+        if (seen.has(chunk.chunkId)) continue;
+        if (!passesFilters(chunk, opts.filters)) continue;
+        seen.add(chunk.chunkId);
+        chunks.push({
+          chunkId: chunk.chunkId,
+          docId: chunk.docId,
+          score: Number(cand.score.toFixed(4)),
+          coverage: Number(coverageFor(chunk, qSet, queryIdfMass).toFixed(4)),
+          heading: chunk.heading,
+          breadcrumb: chunk.breadcrumb,
+          text: chunk.text,
+          accessible: CLEARANCE_RANK[chunk.confidentiality] <= roleRank,
+        });
+      }
+
+      if (unmapped > 0) {
+        log?.warn(
+          { unmapped },
+          "kb: Lyzr returned candidates not present in the governed registry; dropped (fail closed)",
+        );
+      }
+
+      return {
+        chunks,
+        engine: "lyzr",
+        engineDetail: `Lyzr KB, ${chunks.length} governed candidate${chunks.length === 1 ? "" : "s"}`,
+      };
+    } catch (err) {
+      log?.warn({ err }, "kb: Lyzr retrieve failed; using native engine for this query");
+      const chunks = retrieve(opts);
+      return { chunks, engine: "native", engineDetail: "native BM25 (Lyzr unavailable)" };
+    }
+  }
+
+  const chunks = retrieve(opts);
+  return { chunks, engine: "native", engineDetail: "native BM25 (Lyzr not configured)" };
 }

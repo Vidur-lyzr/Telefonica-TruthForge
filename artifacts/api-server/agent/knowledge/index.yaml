@@ -1,0 +1,5 @@
+entries:
+  - path: governance.md
+    tags: [governance, citations]
+    priority: high
+    always_load: true
