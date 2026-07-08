@@ -65,6 +65,7 @@ import {
   IconNeuralNetworkRegular,
   IconTachometerRegular,
   IconMessageRegular,
+  IconChevronDownRegular,
 } from "@telefonica/mistica";
 
 const LANGS: Lang[] = ["ES", "EN", "DE", "PT"];
@@ -1155,28 +1156,69 @@ function RunProgress({
   );
 }
 
-// After the answer lands, the step trail collapses to a single quiet line.
+// After the answer lands, the step trail collapses into a quiet dropdown that
+// expands to reveal every real agent action taken during the run.
 function RunStepsSummary({ steps }: { steps: AskStep[] }) {
   const [open, setOpen] = React.useState(false);
   return (
     <Stack space={8}>
-      <Touchable onPress={() => setOpen((v) => !v)}>
+      <Touchable
+        onPress={() => setOpen((v) => !v)}
+        aria-label={open ? "Hide agent actions" : "Show agent actions"}
+      >
         <Inline space={8} alignItems="center">
-          <IconCheckedRegular size={14} color={skinVars.colors.textSecondary} />
+          <IconCheckedRegular size={14} color={skinVars.colors.success} />
           <Text1 regular color={skinVars.colors.textSecondary}>
-            Done · {steps.length} step{steps.length === 1 ? "" : "s"}
+            Done · {steps.length} agent action{steps.length === 1 ? "" : "s"}
           </Text1>
+          <div
+            aria-hidden
+            style={{
+              display: "inline-flex",
+              transition: "transform 0.15s ease",
+              transform: open ? "rotate(180deg)" : "none",
+            }}
+          >
+            <IconChevronDownRegular size={14} color={skinVars.colors.textSecondary} />
+          </div>
         </Inline>
       </Touchable>
       {open && (
-        <Stack space={4}>
-          {steps.map((s) => (
-            <Text1 regular color={skinVars.colors.textSecondary} key={s.id}>
-              {s.label}
-              {s.detail ? ` — ${s.detail}` : ""}
-            </Text1>
-          ))}
-        </Stack>
+        <div style={{ maxWidth: 480 }}>
+          <Boxed>
+            <Box padding={16}>
+              <Stack space={12}>
+                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  Agent actions
+                </Text1>
+                <Stack space={8}>
+                  {steps.map((s, i) => (
+                    <Inline space={12} alignItems="center" key={s.id}>
+                      <Circle size={24} backgroundColor={skinVars.colors.brandLow}>
+                        <Text1 medium color={skinVars.colors.brand}>
+                          {i + 1}
+                        </Text1>
+                      </Circle>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Stack space={0}>
+                          <Text2 medium color={skinVars.colors.textPrimary}>
+                            {s.label}
+                          </Text2>
+                          {s.detail && (
+                            <Text1 regular color={skinVars.colors.textSecondary}>
+                              {s.detail}
+                            </Text1>
+                          )}
+                        </Stack>
+                      </div>
+                      <IconCheckedRegular size={16} color={skinVars.colors.success} />
+                    </Inline>
+                  ))}
+                </Stack>
+              </Stack>
+            </Box>
+          </Boxed>
+        </div>
       )}
     </Stack>
   );
