@@ -18,6 +18,7 @@ import {
   Title1,
   IconButton,
   ButtonLink,
+  ButtonPrimary,
   Touchable,
   Menu,
   MenuSection,
@@ -34,6 +35,8 @@ import {
 } from "@telefonica/mistica";
 import { PlanningCalendar, type CalendarView } from "@/components/planning/calendar";
 import { EventDrawer } from "@/components/planning/event-drawer";
+import { EventForm } from "@/components/planning/event-form";
+import { AlertsPanel } from "@/components/planning/alerts-panel";
 import { PredictiveStrip } from "@/components/planning/predictive-strip";
 import { PlanningChat } from "@/components/planning/planning-chat";
 import { ForecastPanel } from "@/components/planning/forecast-panel";
@@ -47,9 +50,10 @@ import {
   startOfWeek,
   toISO,
   formatDay,
+  TYPE_LABEL,
 } from "@/components/planning/utils";
 
-type FilterKey = "area" | "market" | "brand" | "axis";
+type FilterKey = "area" | "market" | "brand" | "axis" | "type";
 const ALL = "__all__";
 
 function FilterDropdown({
@@ -136,8 +140,10 @@ export default function Planning() {
     market: ALL,
     brand: ALL,
     axis: ALL,
+    type: ALL,
   });
   const [openEvent, setOpenEvent] = React.useState<string | null>(null);
+  const [creating, setCreating] = React.useState(false);
   const disconnected = !!overview && overview.sources.length === 0;
 
   const range = React.useMemo(() => {
@@ -162,6 +168,7 @@ export default function Planning() {
       market: filters.market === ALL ? undefined : filters.market,
       brand: filters.brand === ALL ? undefined : filters.brand,
       axis: filters.axis === ALL ? undefined : filters.axis,
+      type: filters.type === ALL ? undefined : filters.type,
     }),
     [roleId, filters, range],
   );
@@ -296,6 +303,9 @@ export default function Planning() {
                     >
                       Today
                     </ButtonLink>
+                    <ButtonPrimary small onPress={() => setCreating(true)} disabled={!roleId}>
+                      New activity
+                    </ButtonPrimary>
                   </Inline>
                 </div>
 
@@ -324,6 +334,13 @@ export default function Planning() {
                     options={options.axis}
                     onChange={(v) => setFilters((f) => ({ ...f, axis: v }))}
                     render={(v) => axes?.find((a) => a.id === v)?.name ?? "Axis"}
+                  />
+                  <FilterDropdown
+                    label="Type"
+                    value={filters.type}
+                    options={["campaign", "milestone", "event", "publication"]}
+                    onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
+                    render={(v) => TYPE_LABEL[v] ?? v}
                   />
 
                   <div
@@ -440,6 +457,7 @@ export default function Planning() {
 
             <Stack space={24}>
               <ForecastPanel />
+              {!disconnected && <AlertsPanel onOpenEvent={setOpenEvent} />}
               <div style={{ minHeight: 420, display: "flex" }}>
                 <PlanningChat />
               </div>
@@ -449,6 +467,17 @@ export default function Planning() {
       </Box>
 
       <EventDrawer eventId={openEvent} axes={axes} onClose={() => setOpenEvent(null)} />
+      {creating && (
+        <EventForm
+          axes={axes}
+          todayISO={todayISO}
+          onClose={() => setCreating(false)}
+          onCreated={(id) => {
+            setCreating(false);
+            setOpenEvent(id);
+          }}
+        />
+      )}
     </ResponsiveLayout>
   );
 }

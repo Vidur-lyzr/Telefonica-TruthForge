@@ -87,6 +87,7 @@ export function PredictiveStrip({
     gaps.length > 0 ||
     signals.length > 0 ||
     predictions.workloadPeriods.length > 0 ||
+    predictions.delayRisks.length > 0 ||
     predictions.suggestedDates.length > 0 ||
     predictions.futureConflicts.length > 0 ||
     predictions.signalWarnings.length > 0 ||
@@ -178,6 +179,28 @@ export function PredictiveStrip({
             )}
           </Card>
         )}
+
+        {predictions.delayRisks.map((r) => (
+          <Card
+            key={`risk-${r.eventId}`}
+            Icon={IconTrendUpRegular}
+            tone={r.level === "high" ? "warning" : "info"}
+            title={`Delay risk · ${r.level === "high" ? "High" : "Medium"}`}
+            onClick={onOpenEvent ? () => onOpenEvent(r.eventId) : undefined}
+          >
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              {r.title} · {formatDayShort(r.date)}
+            </Text2>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {r.note}
+            </Text2>
+            {onOpenEvent && (
+              <Text1 medium color={skinVars.colors.brand}>
+                Open activity to review →
+              </Text1>
+            )}
+          </Card>
+        ))}
 
         {predictions.signalWarnings.map((w) => (
           <Card key={w.id} Icon={IconAntennaRegular} tone="warning" title={`Signal · ${w.market}`}>

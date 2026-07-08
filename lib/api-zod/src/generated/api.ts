@@ -989,7 +989,8 @@ export const ListPlanningEventsQueryParams = zod.object({
   "area": zod.coerce.string().optional(),
   "market": zod.coerce.string().optional(),
   "brand": zod.coerce.string().optional(),
-  "axis": zod.coerce.string().optional()
+  "axis": zod.coerce.string().optional(),
+  "type": zod.coerce.string().optional()
 })
 
 export const ListPlanningEventsResponseItem = zod.object({
@@ -1061,7 +1062,8 @@ export const GetPlanningInsightsQueryParams = zod.object({
   "area": zod.coerce.string().optional(),
   "market": zod.coerce.string().optional(),
   "brand": zod.coerce.string().optional(),
-  "axis": zod.coerce.string().optional()
+  "axis": zod.coerce.string().optional(),
+  "type": zod.coerce.string().optional()
 })
 
 export const GetPlanningInsightsResponse = zod.object({
@@ -1088,6 +1090,13 @@ export const GetPlanningInsightsResponse = zod.object({
   "note": zod.string()
 })),
   "predictions": zod.object({
+  "delayRisks": zod.array(zod.object({
+  "eventId": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "level": zod.string().describe('medium | high'),
+  "note": zod.string()
+})),
   "workloadPeriods": zod.array(zod.object({
   "id": zod.string(),
   "label": zod.string(),
@@ -1131,6 +1140,356 @@ export const GetPlanningInsightsResponse = zod.object({
   "market": zod.string(),
   "description": zod.string()
 }))
+})
+
+
+/**
+ * Creates a new activity in the Hub calendar. The persona must be cleared for the requested confidentiality and belong to the activity's area, otherwise the request is refused with an honest explanation. Every creation produces a simulated write-back record to the origin source, labelled pending confirmation.
+ * @summary Create a calendar activity (permission-checked, synced back to its source)
+ */
+export const CreatePlanningEventBody = zod.object({
+  "roleId": zod.string(),
+  "title": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "area": zod.string(),
+  "type": zod.string(),
+  "owner": zod.string(),
+  "axisId": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "source": zod.string(),
+  "confidentiality": zod.string(),
+  "description": zod.string()
+})
+
+export const CreatePlanningEventResponse = zod.object({
+  "event": zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "area": zod.string(),
+  "type": zod.string().describe('campaign | milestone | event | publication'),
+  "status": zod.string().describe('planned | in_progress | live | done | at_risk'),
+  "owner": zod.string(),
+  "axisId": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "source": zod.string(),
+  "confidentiality": zod.string(),
+  "restricted": zod.boolean().describe('True when redacted to a busy\/blocked stub above the persona\'s clearance'),
+  "conflict": zod.boolean(),
+  "description": zod.string()
+}),
+  "sync": zod.object({
+  "id": zod.string(),
+  "eventId": zod.string(),
+  "eventTitle": zod.string(),
+  "source": zod.string(),
+  "action": zod.string().describe('created | updated | moved'),
+  "detail": zod.string(),
+  "requestedBy": zod.string(),
+  "requestedAt": zod.string(),
+  "status": zod.string().describe('pending_confirmation')
+})
+})
+
+
+/**
+ * @summary Edit or move a calendar activity (permission-checked, synced back)
+ */
+export const UpdatePlanningEventBody = zod.object({
+  "roleId": zod.string(),
+  "id": zod.string(),
+  "title": zod.string().optional(),
+  "startDate": zod.string().optional(),
+  "endDate": zod.string().optional(),
+  "owner": zod.string().optional(),
+  "status": zod.string().optional(),
+  "description": zod.string().optional()
+})
+
+export const UpdatePlanningEventResponse = zod.object({
+  "event": zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "startDate": zod.string(),
+  "endDate": zod.string(),
+  "area": zod.string(),
+  "type": zod.string().describe('campaign | milestone | event | publication'),
+  "status": zod.string().describe('planned | in_progress | live | done | at_risk'),
+  "owner": zod.string(),
+  "axisId": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "source": zod.string(),
+  "confidentiality": zod.string(),
+  "restricted": zod.boolean().describe('True when redacted to a busy\/blocked stub above the persona\'s clearance'),
+  "conflict": zod.boolean(),
+  "description": zod.string()
+}),
+  "sync": zod.object({
+  "id": zod.string(),
+  "eventId": zod.string(),
+  "eventTitle": zod.string(),
+  "source": zod.string(),
+  "action": zod.string().describe('created | updated | moved'),
+  "detail": zod.string(),
+  "requestedBy": zod.string(),
+  "requestedAt": zod.string(),
+  "status": zod.string().describe('pending_confirmation')
+})
+})
+
+
+/**
+ * @summary Simulated write-back records to the origin source calendars
+ */
+export const ListPlanningSyncQueryParams = zod.object({
+  "roleId": zod.coerce.string(),
+  "eventId": zod.coerce.string().optional()
+})
+
+export const ListPlanningSyncResponseItem = zod.object({
+  "id": zod.string(),
+  "eventId": zod.string(),
+  "eventTitle": zod.string(),
+  "source": zod.string(),
+  "action": zod.string().describe('created | updated | moved'),
+  "detail": zod.string(),
+  "requestedBy": zod.string(),
+  "requestedAt": zod.string(),
+  "status": zod.string().describe('pending_confirmation')
+})
+export const ListPlanningSyncResponse = zod.array(ListPlanningSyncResponseItem)
+
+
+/**
+ * Deterministically reports what moving a permitted activity to a new start date would resolve and what it would newly disturb — overlaps, near misses and external signals — without changing anything.
+ * @summary What-if cascade simulation for moving an activity to a new date
+ */
+export const SimulatePlanningMoveBody = zod.object({
+  "roleId": zod.string(),
+  "eventId": zod.string(),
+  "toStart": zod.string()
+})
+
+export const SimulatePlanningMoveResponse = zod.object({
+  "eventId": zod.string(),
+  "eventTitle": zod.string(),
+  "fromStart": zod.string(),
+  "fromEnd": zod.string(),
+  "toStart": zod.string(),
+  "toEnd": zod.string(),
+  "resolved": zod.array(zod.object({
+  "eventId": zod.string(),
+  "title": zod.string(),
+  "note": zod.string()
+})),
+  "newConflicts": zod.array(zod.object({
+  "eventId": zod.string(),
+  "title": zod.string(),
+  "note": zod.string()
+})),
+  "nearMisses": zod.array(zod.object({
+  "eventId": zod.string(),
+  "title": zod.string(),
+  "note": zod.string()
+})),
+  "signalWarnings": zod.array(zod.object({
+  "signalId": zod.string(),
+  "title": zod.string(),
+  "date": zod.string(),
+  "note": zod.string()
+})),
+  "verdict": zod.string()
+})
+
+
+/**
+ * @summary Deterministic per-owner alerts (milestones, conflicts, deviations)
+ */
+export const ListPlanningAlertsQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
+export const ListPlanningAlertsResponseItem = zod.object({
+  "id": zod.string(),
+  "kind": zod.string().describe('milestone | conflict | deviation'),
+  "owner": zod.string(),
+  "eventId": zod.string(),
+  "eventTitle": zod.string(),
+  "date": zod.string(),
+  "severity": zod.string().describe('info | warning'),
+  "note": zod.string()
+})
+export const ListPlanningAlertsResponse = zod.array(ListPlanningAlertsResponseItem)
+
+
+/**
+ * Runs the cited 10-day forecast through the document engine and places the resulting draft in the requester's review inbox as a scheduled, approval-gated item, with a notification.
+ * @summary Generate the 10-day forecast as a document and land it in a review folder
+ */
+export const SchedulePlanningForecastBody = zod.object({
+  "area": zod.string(),
+  "roleId": zod.string()
+})
+
+export const SchedulePlanningForecastResponse = zod.object({
+  "reviewItem": zod.object({
+  "id": zod.string(),
+  "scheduleId": zod.string(),
+  "scheduleName": zod.string(),
+  "reviewFolder": zod.string(),
+  "ownerRoleId": zod.string(),
+  "ownerLabel": zod.string(),
+  "status": zod.string().describe('pending | approved'),
+  "createdAt": zod.string(),
+  "approvedAt": zod.string().nullish(),
+  "draft": zod.object({
+  "id": zod.string(),
+  "status": zod.string().describe('drafted | no_evidence | permission_blocked'),
+  "shape": zod.string(),
+  "templateId": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "audience": zod.string(),
+  "confidentiality": zod.string(),
+  "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "heading": zod.string(),
+  "axisId": zod.string().nullish(),
+  "body": zod.string(),
+  "citationIds": zod.array(zod.string()),
+  "internalOnly": zod.boolean()
+})),
+  "spokesperson": zod.array(zod.object({
+  "question": zod.string(),
+  "guidance": zod.string(),
+  "doNotSay": zod.string().nullish()
+})),
+  "charts": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "type": zod.string().describe('bar | line'),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "points": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+}))
+})),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
+  "confidentiality": zod.string().describe('public | internal | confidential | restricted'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "axisIds": zod.array(zod.string()),
+  "guardian": zod.object({
+  "status": zod.string().describe('pass | block'),
+  "summary": zod.string(),
+  "findings": zod.array(zod.object({
+  "severity": zod.string().describe('error | warning'),
+  "rule": zod.string(),
+  "message": zod.string(),
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
+}))
+}),
+  "historic": zod.boolean(),
+  "historicNote": zod.string().nullish(),
+  "permissionNote": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "params": zod.object({
+  "shape": zod.string(),
+  "topic": zod.string(),
+  "roleId": zod.string(),
+  "audience": zod.string(),
+  "language": zod.string(),
+  "confidentiality": zod.string(),
+  "format": zod.string(),
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
+}),
+  "origin": zod.string().optional().describe('manual | scheduled'),
+  "reviewItemId": zod.string().nullish(),
+  "approved": zod.boolean().optional()
+})
+}),
+  "forecast": zod.object({
+  "status": zod.string().describe('generated | no_activity'),
+  "generatedAt": zod.string(),
+  "horizonDays": zod.number(),
+  "rangeStart": zod.string(),
+  "rangeEnd": zod.string(),
+  "summary": zod.string(),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
+  "confidentiality": zod.string().describe('public | internal | confidential | restricted'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "highlights": zod.object({
+  "liveCount": zod.number(),
+  "conflictCount": zod.number(),
+  "riskCount": zod.number()
+})
+})
 })
 
 

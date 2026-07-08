@@ -6,13 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ListPlanningEventsParams = {
+export type ListPlanningAlertsParams = {
 roleId: string;
-from?: string;
-to?: string;
-area?: string;
-market?: string;
-brand?: string;
-axis?: string;
-type?: string;
 };

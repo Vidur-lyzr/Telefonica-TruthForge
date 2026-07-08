@@ -6,13 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ListPlanningEventsParams = {
-roleId: string;
-from?: string;
-to?: string;
-area?: string;
-market?: string;
-brand?: string;
-axis?: string;
-type?: string;
-};
+export interface DelayRisk {
+  eventId: string;
+  title: string;
+  date: string;
+  /** medium | high */
+  level: string;
+  note: string;
+}

@@ -14,4 +14,5 @@ area?: string;
 market?: string;
 brand?: string;
 axis?: string;
+type?: string;
 };

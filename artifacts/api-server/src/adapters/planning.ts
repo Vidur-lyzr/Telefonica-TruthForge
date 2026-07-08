@@ -10,12 +10,11 @@
 
 import { CLEARANCE_RANK, type Clearance, type Area } from "../data/corpus";
 import {
-  PLANNING_EVENTS,
   EXTERNAL_SIGNALS,
   PLANNING_TODAY,
-  getPlanningEvent,
   type PlanningEvent,
 } from "../data/planning";
+import { allPlanningEvents, findPlanningEvent } from "../data/planningStore";
 
 // A persona's governance scope: an event is only revealed when it is within the
 // persona's clearance AND within the persona's area. Anything outside either
@@ -37,6 +36,7 @@ export interface EventFilters {
   market?: string;
   brand?: string;
   axis?: string;
+  type?: string;
 }
 
 export interface EventView {
@@ -121,6 +121,7 @@ function matchesFacets(ev: PlanningEvent, f: EventFilters): boolean {
   if (f.market && ev.market !== f.market) return false;
   if (f.brand && ev.brand !== f.brand) return false;
   if (f.axis && ev.axisId !== f.axis) return false;
+  if (f.type && ev.type !== f.type) return false;
   return inRange(ev.startDate, ev.endDate, f.from, f.to);
 }
 
@@ -172,7 +173,7 @@ function lite(ev: PlanningEvent): EventLite {
 
 // The set of permitted events matching the facets — the basis for all analysis.
 function permittedInScope(scope: PersonaScope, f: EventFilters): PlanningEvent[] {
-  return PLANNING_EVENTS.filter((e) => accessible(e, scope) && matchesFacets(e, f));
+  return allPlanningEvents().filter((e) => accessible(e, scope) && matchesFacets(e, f));
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +181,7 @@ function permittedInScope(scope: PersonaScope, f: EventFilters): PlanningEvent[]
 // ---------------------------------------------------------------------------
 
 export function listEvents(scope: PersonaScope, f: EventFilters): EventView[] {
-  const scoped = PLANNING_EVENTS.filter((e) => matchesFacets(e, f));
+  const scoped = allPlanningEvents().filter((e) => matchesFacets(e, f));
   const conflictIds = conflictEventIds(permittedInScope(scope, f));
   return scoped
     .map((ev) =>
@@ -193,19 +194,19 @@ export function getEventDetail(
   id: string,
   scope: PersonaScope,
 ): { event: EventView; conflictsWith: EventLite[] } | null {
-  const ev = getPlanningEvent(id);
+  const ev = findPlanningEvent(id);
   if (!ev) return null;
   if (!accessible(ev, scope)) {
     return { event: redact(ev), conflictsWith: [] };
   }
-  const others = PLANNING_EVENTS.filter(
+  const others = allPlanningEvents().filter(
     (o) =>
       o.id !== ev.id &&
       accessible(o, scope) &&
       o.market === ev.market &&
       rangesOverlap(ev.startDate, ev.endDate, o.startDate, o.endDate),
   );
-  const conflictIds = conflictEventIds(PLANNING_EVENTS.filter((e) => accessible(e, scope)));
+  const conflictIds = conflictEventIds(allPlanningEvents().filter((e) => accessible(e, scope)));
   return { event: reveal(ev, conflictIds.has(ev.id)), conflictsWith: others.map(lite) };
 }
 
@@ -328,11 +329,19 @@ interface Cascade {
   note: string;
   shifts: { eventId: string; title: string; note: string }[];
 }
+interface DelayRisk {
+  eventId: string;
+  title: string;
+  date: string;
+  level: "medium" | "high";
+  note: string;
+}
 interface Predictions {
   workloadPeriods: WorkloadPeriod[];
   suggestedDates: SuggestedDate[];
   futureConflicts: FutureConflict[];
   signalWarnings: SignalWarning[];
+  delayRisks: DelayRisk[];
   cascade: Cascade | null;
 }
 
@@ -421,6 +430,42 @@ function computePredictions(
     }
   }
 
+  // Delay prediction — transparent, history-style heuristics: an activity is
+  // flagged when it is already marked at risk, or when its owner has another
+  // activity that ends 1 day or less before it starts (no slack to absorb a
+  // slip). Deterministic; framed as suggestions.
+  const delayRisks: DelayRisk[] = [];
+  for (const ev of events) {
+    if (ev.status === "done" || ev.endDate < anchor) continue;
+    if (ev.status === "at_risk") {
+      delayRisks.push({
+        eventId: ev.id,
+        title: ev.title,
+        date: ev.startDate,
+        level: "high",
+        note: `"${ev.title}" is already marked at risk — a delay is likely; downstream activity in ${ev.market} should be checked.`,
+      });
+      continue;
+    }
+    const tightPredecessor = events.find(
+      (o) =>
+        o.id !== ev.id &&
+        o.owner === ev.owner &&
+        o.endDate <= ev.startDate &&
+        daysBetween(o.endDate, ev.startDate) <= 1 &&
+        o.status !== "done",
+    );
+    if (tightPredecessor) {
+      delayRisks.push({
+        eventId: ev.id,
+        title: ev.title,
+        date: ev.startDate,
+        level: "medium",
+        note: `"${ev.title}" starts ${daysBetween(tightPredecessor.endDate, ev.startDate)} day(s) after "${tightPredecessor.title}" ends for the same owner (${ev.owner}) — no slack if the earlier activity slips.`,
+      });
+    }
+  }
+
   // Cascade preview for the first conflict
   let cascade: Cascade | null = null;
   const first = conflicts[0];
@@ -457,7 +502,7 @@ function computePredictions(
     };
   }
 
-  return { workloadPeriods, suggestedDates, futureConflicts, signalWarnings, cascade };
+  return { workloadPeriods, suggestedDates, futureConflicts, signalWarnings, delayRisks, cascade };
 }
 
 // ---------------------------------------------------------------------------
@@ -499,7 +544,26 @@ export function analyze(scope: PersonaScope, f: EventFilters): Insights {
 // ---------------------------------------------------------------------------
 
 export function permittedEvents(scope: PersonaScope): PlanningEvent[] {
-  return PLANNING_EVENTS.filter((e) => accessible(e, scope));
+  return allPlanningEvents().filter((e) => accessible(e, scope));
+}
+
+// Whether a persona may act on (create/edit/move) an event with the given
+// governance attributes. Same fail-closed rule as visibility: within clearance
+// AND within area. Exposed for the mutation routes.
+export function canActOn(
+  scope: PersonaScope,
+  attrs: { confidentiality: Clearance; area: Area },
+): boolean {
+  return (
+    CLEARANCE_RANK[attrs.confidentiality] <= CLEARANCE_RANK[scope.clearance] &&
+    attrs.area === scope.area
+  );
+}
+
+export function accessibleEvent(id: string, scope: PersonaScope): PlanningEvent | null {
+  const ev = findPlanningEvent(id);
+  if (!ev) return null;
+  return accessible(ev, scope) ? ev : null;
 }
 
 // Events matching a query (market/brand/axis/type/date words) among permitted.
@@ -509,7 +573,7 @@ export function selectRelevantEvents(
   limit = 6,
 ): { permitted: PlanningEvent[]; blocked: PlanningEvent[] } {
   const q = question.toLowerCase();
-  const scored = PLANNING_EVENTS.map((ev) => {
+  const scored = allPlanningEvents().map((ev) => {
     let score = 0;
     const hay = `${ev.title} ${ev.market} ${ev.brand} ${ev.type} ${ev.area} ${ev.description} ${ev.owner}`.toLowerCase();
     for (const token of q.split(/[^a-z0-9]+/).filter((t) => t.length > 2)) {
@@ -538,6 +602,181 @@ export function forecastWindow(scope: PersonaScope, days = 10): {
   const events = permittedEvents(scope).filter((e) => inRange(e.startDate, e.endDate, from, to));
   const insights = analyze(scope, { from, to });
   return { from, to, events, insights };
+}
+
+// ---------------------------------------------------------------------------
+// What-if cascade simulation: move one permitted event to a new start date and
+// report, deterministically, what the move would resolve and what it would
+// newly disturb — without changing anything.
+// ---------------------------------------------------------------------------
+
+export interface MoveSimulation {
+  eventId: string;
+  eventTitle: string;
+  fromStart: string;
+  fromEnd: string;
+  toStart: string;
+  toEnd: string;
+  resolved: { eventId: string; title: string; note: string }[];
+  newConflicts: { eventId: string; title: string; note: string }[];
+  nearMisses: { eventId: string; title: string; note: string }[];
+  signalWarnings: { signalId: string; title: string; date: string; note: string }[];
+  verdict: string;
+}
+
+export function simulateMove(
+  scope: PersonaScope,
+  eventId: string,
+  toStart: string,
+): MoveSimulation | null {
+  const ev = accessibleEvent(eventId, scope);
+  if (!ev) return null;
+  const duration = daysBetween(ev.startDate, ev.endDate);
+  const toEnd = addDays(toStart, duration);
+  const others = permittedEvents(scope).filter(
+    (o) => o.id !== ev.id && o.market === ev.market,
+  );
+
+  const overlapsNow = others.filter((o) =>
+    rangesOverlap(ev.startDate, ev.endDate, o.startDate, o.endDate),
+  );
+  const overlapsAfter = others.filter((o) =>
+    rangesOverlap(toStart, toEnd, o.startDate, o.endDate),
+  );
+  const afterIds = new Set(overlapsAfter.map((o) => o.id));
+
+  const resolved = overlapsNow
+    .filter((o) => !afterIds.has(o.id))
+    .map((o) => ({
+      eventId: o.id,
+      title: o.title,
+      note: `The current overlap with "${o.title}" (${fmt(o.startDate)}) would be cleared.`,
+    }));
+  const newConflicts = overlapsAfter
+    .filter((o) => !overlapsNow.some((n) => n.id === o.id))
+    .map((o) => ({
+      eventId: o.id,
+      title: o.title,
+      note: `The new dates would overlap "${o.title}" (${fmt(o.startDate)}${o.endDate !== o.startDate ? `–${fmt(o.endDate)}` : ""}) in ${ev.market}.`,
+    }));
+  const nearMisses = others
+    .filter((o) => !afterIds.has(o.id))
+    .filter((o) => {
+      const gap = o.startDate > toEnd ? daysBetween(toEnd, o.startDate) : daysBetween(o.endDate, toStart);
+      return gap >= 0 && gap <= NEAR_MISS_DAYS;
+    })
+    .map((o) => ({
+      eventId: o.id,
+      title: o.title,
+      note: `"${o.title}" (${fmt(o.startDate)}) would sit within ${NEAR_MISS_DAYS} days of the new dates — tight if either slips.`,
+    }));
+  const signalWarnings = EXTERNAL_SIGNALS.filter(
+    (s) => s.market === ev.market || s.market === "Group" || ev.market === "Group",
+  )
+    .filter((s) => Math.abs(daysBetween(toStart, s.date)) <= SIGNAL_WINDOW_DAYS)
+    .map((s) => ({
+      signalId: s.id,
+      title: s.title,
+      date: s.date,
+      note: `The new date lands near "${s.title}" (${fmt(s.date)}) — the two could compete for attention.`,
+    }));
+
+  const verdict =
+    newConflicts.length > 0
+      ? `Moving "${ev.title}" to ${fmt(toStart)} would create ${newConflicts.length} new overlap${newConflicts.length === 1 ? "" : "s"} — worth reconsidering the date.`
+      : resolved.length > 0
+        ? `Moving "${ev.title}" to ${fmt(toStart)} would clear ${resolved.length} existing overlap${resolved.length === 1 ? "" : "s"}${nearMisses.length > 0 ? `, though ${nearMisses.length} nearby activit${nearMisses.length === 1 ? "y sits" : "ies sit"} close` : ""}.`
+        : nearMisses.length > 0 || signalWarnings.length > 0
+          ? `Moving "${ev.title}" to ${fmt(toStart)} creates no hard overlap, but the window is tight — check the nearby items below.`
+          : `Moving "${ev.title}" to ${fmt(toStart)} looks clean: no overlaps, near misses or external signals detected in ${ev.market}.`;
+
+  return {
+    eventId: ev.id,
+    eventTitle: ev.title,
+    fromStart: ev.startDate,
+    fromEnd: ev.endDate,
+    toStart,
+    toEnd,
+    resolved,
+    newConflicts,
+    nearMisses,
+    signalWarnings,
+    verdict,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Alerts: deterministic per-owner records for upcoming milestones, detected
+// conflicts and plan deviations, over the persona's permitted events only.
+// ---------------------------------------------------------------------------
+
+export interface AlertRecord {
+  id: string;
+  kind: "milestone" | "conflict" | "deviation";
+  owner: string;
+  eventId: string;
+  eventTitle: string;
+  date: string;
+  severity: "info" | "warning";
+  note: string;
+}
+
+const MILESTONE_HORIZON_DAYS = 7;
+
+export function buildAlerts(scope: PersonaScope): AlertRecord[] {
+  const events = permittedEvents(scope);
+  const insights = analyze(scope, {});
+  const alerts: AlertRecord[] = [];
+
+  for (const ev of events) {
+    const lead = daysBetween(PLANNING_TODAY, ev.startDate);
+    if (lead >= 0 && lead <= MILESTONE_HORIZON_DAYS && ev.status !== "done") {
+      alerts.push({
+        id: `alert-milestone-${ev.id}`,
+        kind: "milestone",
+        owner: ev.owner,
+        eventId: ev.id,
+        eventTitle: ev.title,
+        date: ev.startDate,
+        severity: "info",
+        note: `"${ev.title}" starts ${lead === 0 ? "today" : `in ${lead} day${lead === 1 ? "" : "s"}`} (${fmt(ev.startDate)}) — reminder for ${ev.owner}.`,
+      });
+    }
+  }
+
+  for (const c of insights.conflicts) {
+    for (const e of c.events) {
+      const full = events.find((x) => x.id === e.id);
+      if (!full) continue;
+      alerts.push({
+        id: `alert-conflict-${c.id}-${e.id}`,
+        kind: "conflict",
+        owner: full.owner,
+        eventId: e.id,
+        eventTitle: e.title,
+        date: c.date,
+        severity: "warning",
+        note: c.suggestion,
+      });
+    }
+  }
+
+  for (const d of insights.predictions.delayRisks) {
+    const full = events.find((x) => x.id === d.eventId);
+    if (!full) continue;
+    alerts.push({
+      id: `alert-deviation-${d.eventId}`,
+      kind: "deviation",
+      owner: full.owner,
+      eventId: d.eventId,
+      eventTitle: d.title,
+      date: d.date,
+      severity: "warning",
+      note: d.note,
+    });
+  }
+
+  return alerts.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
 export { PLANNING_TODAY, fmt as formatPlanningDate };

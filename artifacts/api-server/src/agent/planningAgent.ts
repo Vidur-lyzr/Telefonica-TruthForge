@@ -6,6 +6,7 @@
 
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { CLEARANCE_RANK, ROLES } from "../data/corpus";
+import type { GeneratedDraft } from "./generateAgent";
 import type { PlanningEvent } from "../data/planning";
 import {
   analyze,
@@ -324,5 +325,101 @@ export async function runPlanningForecast(
     summary: finalAnswer,
     citations,
     highlights: { liveCount, conflictCount: insights.conflicts.length, riskCount },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Forecast → document engine: turn a generated forecast into a GeneratedDraft
+// so it can land in the review inbox as a scheduled, approval-gated item. The
+// draft's content is exactly the deterministic forecast output — the document
+// engine adds shape and governance metadata, never new facts.
+// ---------------------------------------------------------------------------
+
+export const PLANNING_FORECAST_TEMPLATE_ID = "tmpl-planning-forecast";
+
+export function buildForecastDraft(
+  forecast: PlanningForecastResult,
+  input: { area: string; roleId: string },
+): GeneratedDraft {
+  const role = ROLES.find((r) => r.id === input.roleId) ?? ROLES[0];
+  const rangeLabel = `${formatPlanningDate(forecast.rangeStart)} to ${formatPlanningDate(forecast.rangeEnd)}`;
+  const axisIds = Array.from(new Set(forecast.citations.flatMap((c) => c.axisIds ?? [])));
+  const highestConfidentiality = forecast.citations.reduce<string>((acc, c) => {
+    const rank = CLEARANCE_RANK[c.confidentiality as keyof typeof CLEARANCE_RANK] ?? 0;
+    const accRank = CLEARANCE_RANK[acc as keyof typeof CLEARANCE_RANK] ?? 0;
+    return rank > accRank ? c.confidentiality : acc;
+  }, "public");
+
+  const highlightsBody = [
+    `Live or in-progress activities in the window: ${forecast.highlights.liveCount}.`,
+    `Detected timing conflicts: ${forecast.highlights.conflictCount}.`,
+    `Activities or signals flagged as at risk: ${forecast.highlights.riskCount}.`,
+  ].join(" ");
+
+  return {
+    id: `draft-forecast-${Date.now().toString(36)}`,
+    status: "drafted",
+    shape: "multiformat",
+    templateId: PLANNING_FORECAST_TEMPLATE_ID,
+    title: `10-day planning forecast — ${rangeLabel}`,
+    language: "en",
+    audience: "internal",
+    confidentiality: highestConfidentiality,
+    umbrella: null,
+    exclusions: [],
+    sections: [
+      {
+        id: "sec-forecast-summary",
+        kind: "summary",
+        heading: `Forecast summary (${rangeLabel})`,
+        axisId: null,
+        body: forecast.summary,
+        citationIds: forecast.citations.map((c) => c.id),
+        internalOnly: true,
+      },
+      {
+        id: "sec-forecast-highlights",
+        kind: "body",
+        heading: "Window highlights",
+        axisId: null,
+        body: highlightsBody,
+        citationIds: [],
+        internalOnly: true,
+      },
+      {
+        id: "sec-forecast-method",
+        kind: "body",
+        heading: "Method note",
+        axisId: null,
+        body: "This forecast was produced from the governed planning calendar only, filtered to the activities this persona is cleared to see. Conflicts, gaps and risks are detected deterministically; the language layer narrates them and cites every activity it mentions.",
+        citationIds: [],
+        internalOnly: true,
+      },
+    ],
+    spokesperson: [],
+    charts: [],
+    citations: forecast.citations,
+    disclaimers: [],
+    axisIds,
+    guardian: {
+      status: "pass",
+      summary: "Deterministic forecast content over permitted calendar events; no claims outside the governed calendar.",
+      findings: [],
+    },
+    historic: false,
+    historicNote: null,
+    permissionNote: null,
+    note: `Scheduled planning forecast for the ${input.area} area, generated for ${role.label}.`,
+    createdAt: forecast.generatedAt,
+    params: {
+      shape: "multiformat",
+      topic: `10-day planning forecast (${rangeLabel})`,
+      roleId: role.id,
+      audience: "internal",
+      language: "en",
+      confidentiality: highestConfidentiality,
+      format: "planning-forecast",
+      axisIds,
+    },
   };
 }

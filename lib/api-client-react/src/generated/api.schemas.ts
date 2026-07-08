@@ -1133,7 +1133,17 @@ export interface Cascade {
   shifts: CascadeShift[];
 }
 
+export interface DelayRisk {
+  eventId: string;
+  title: string;
+  date: string;
+  /** medium | high */
+  level: string;
+  note: string;
+}
+
 export interface Predictions {
+  delayRisks: DelayRisk[];
   workloadPeriods: WorkloadPeriod[];
   suggestedDates: SuggestedDate[];
   futureConflicts: FutureConflict[];
@@ -1342,6 +1352,123 @@ export interface PlanningForecast {
   summary: string;
   citations: Citation[];
   highlights: PlanningForecastHighlights;
+}
+
+export interface PlanningEventCreateInput {
+  roleId: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  area: string;
+  type: string;
+  owner: string;
+  axisId: string;
+  market: string;
+  brand: string;
+  source: string;
+  confidentiality: string;
+  description: string;
+}
+
+export interface PlanningEventUpdateInput {
+  roleId: string;
+  id: string;
+  title?: string;
+  startDate?: string;
+  endDate?: string;
+  owner?: string;
+  status?: string;
+  description?: string;
+}
+
+export interface PlanningSyncRecord {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  source: string;
+  /** created | updated | moved */
+  action: string;
+  detail: string;
+  requestedBy: string;
+  requestedAt: string;
+  /** pending_confirmation */
+  status: string;
+}
+
+export interface PlanningMutationResult {
+  event: PlanningEvent;
+  sync: PlanningSyncRecord;
+}
+
+export interface PlanningSimulateInput {
+  roleId: string;
+  eventId: string;
+  toStart: string;
+}
+
+export interface PlanningSimulationImpact {
+  eventId: string;
+  title: string;
+  note: string;
+}
+
+export interface PlanningSimulationSignal {
+  signalId: string;
+  title: string;
+  date: string;
+  note: string;
+}
+
+export interface PlanningMoveSimulation {
+  eventId: string;
+  eventTitle: string;
+  fromStart: string;
+  fromEnd: string;
+  toStart: string;
+  toEnd: string;
+  resolved: PlanningSimulationImpact[];
+  newConflicts: PlanningSimulationImpact[];
+  nearMisses: PlanningSimulationImpact[];
+  signalWarnings: PlanningSimulationSignal[];
+  verdict: string;
+}
+
+export interface PlanningAlert {
+  id: string;
+  /** milestone | conflict | deviation */
+  kind: string;
+  owner: string;
+  eventId: string;
+  eventTitle: string;
+  date: string;
+  /** info | warning */
+  severity: string;
+  note: string;
+}
+
+export interface PlanningForecastScheduleInput {
+  area: string;
+  roleId: string;
+}
+
+export interface ReviewItem {
+  id: string;
+  scheduleId: string;
+  scheduleName: string;
+  reviewFolder: string;
+  ownerRoleId: string;
+  ownerLabel: string;
+  /** pending | approved */
+  status: string;
+  createdAt: string;
+  /** @nullable */
+  approvedAt?: string | null;
+  draft: GeneratedDraft;
+}
+
+export interface PlanningForecastScheduleResult {
+  reviewItem: ReviewItem;
+  forecast: PlanningForecast;
 }
 
 export interface HomeCardStat {
@@ -1630,21 +1757,6 @@ export interface Schedule {
   lastRunAt?: string | null;
 }
 
-export interface ReviewItem {
-  id: string;
-  scheduleId: string;
-  scheduleName: string;
-  reviewFolder: string;
-  ownerRoleId: string;
-  ownerLabel: string;
-  /** pending | approved */
-  status: string;
-  createdAt: string;
-  /** @nullable */
-  approvedAt?: string | null;
-  draft: GeneratedDraft;
-}
-
 export interface VersionGovernance {
   confidentiality: string;
   validity: string;
@@ -1885,6 +1997,7 @@ area?: string;
 market?: string;
 brand?: string;
 axis?: string;
+type?: string;
 };
 
 export type GetPlanningEventParams = {
@@ -1900,6 +2013,16 @@ area?: string;
 market?: string;
 brand?: string;
 axis?: string;
+type?: string;
+};
+
+export type ListPlanningSyncParams = {
+roleId: string;
+eventId?: string;
+};
+
+export type ListPlanningAlertsParams = {
+roleId: string;
 };
 
 export type GetWikiGraphParams = {

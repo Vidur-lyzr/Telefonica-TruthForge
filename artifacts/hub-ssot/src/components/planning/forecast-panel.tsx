@@ -1,6 +1,7 @@
 import React from "react";
 import {
   usePlanningForecast,
+  useSchedulePlanningForecast,
   type Citation,
   type PlanningForecast,
 } from "@workspace/api-client-react";
@@ -60,6 +61,12 @@ export function ForecastPanel() {
   const [selected, setSelected] = React.useState<Citation | null>(null);
   const { mutate, isPending, data } = usePlanningForecast();
   const forecast = data as PlanningForecast | undefined;
+  const {
+    mutate: schedule,
+    isPending: scheduling,
+    data: scheduled,
+    reset: resetScheduled,
+  } = useSchedulePlanningForecast();
 
   return (
     <ThemeVariant variant="brand">
@@ -80,7 +87,10 @@ export function ForecastPanel() {
               </Inline>
               <ButtonPrimary
                 small
-                onPress={() => mutate({ data: { area, roleId } })}
+                onPress={() => {
+                  resetScheduled();
+                  mutate({ data: { area, roleId } });
+                }}
                 disabled={isPending || !roleId}
               >
                 {isPending ? "Generating…" : forecast ? "Refresh" : "Generate"}
@@ -239,6 +249,34 @@ export function ForecastPanel() {
                           ))}
                         </div>
                       </Stack>
+                    )}
+                  </Stack>
+                )}
+
+                {forecast.status !== "no_activity" && (
+                  <Stack space={8}>
+                    {scheduled ? (
+                      <div
+                        style={{
+                          backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.1),
+                          borderRadius: skinVars.borderRadii.container,
+                          padding: 12,
+                        }}
+                      >
+                        <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.9)}>
+                          Sent to the "{scheduled.reviewItem.reviewFolder}" review folder as "
+                          {scheduled.reviewItem.draft.title}". It is waiting for approval in
+                          Generate.
+                        </Text2>
+                      </div>
+                    ) : (
+                      <ButtonPrimary
+                        small
+                        onPress={() => schedule({ data: { area, roleId } })}
+                        disabled={scheduling || !roleId}
+                      >
+                        {scheduling ? "Scheduling…" : "Schedule to review folder"}
+                      </ButtonPrimary>
                     )}
                   </Stack>
                 )}

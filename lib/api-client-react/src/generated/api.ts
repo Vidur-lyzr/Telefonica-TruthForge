@@ -75,19 +75,30 @@ import type {
   KpiDetailInput,
   KpiQueryInput,
   KpiQueryResult,
+  ListPlanningAlertsParams,
   ListPlanningEventsParams,
+  ListPlanningSyncParams,
   ListRadarParams,
   ListWikiLineageParams,
   ListWikiPagesParams,
   NotificationRecord,
+  PlanningAlert,
   PlanningAskInput,
   PlanningAskResult,
   PlanningEvent,
+  PlanningEventCreateInput,
   PlanningEventDetail,
+  PlanningEventUpdateInput,
   PlanningForecast,
   PlanningForecastInput,
+  PlanningForecastScheduleInput,
+  PlanningForecastScheduleResult,
   PlanningInsights,
+  PlanningMoveSimulation,
+  PlanningMutationResult,
   PlanningOverview,
+  PlanningSimulateInput,
+  PlanningSyncRecord,
   PlatformUser,
   RadarItem,
   RefineInput,
@@ -2457,6 +2468,457 @@ export function useGetPlanningInsights<TData = Awaited<ReturnType<typeof getPlan
 
 
 
+
+export const getCreatePlanningEventUrl = () => {
+
+
+
+
+  return `/api/planning/events/create`
+}
+
+/**
+ * Creates a new activity in the Hub calendar. The persona must be cleared for the requested confidentiality and belong to the activity's area, otherwise the request is refused with an honest explanation. Every creation produces a simulated write-back record to the origin source, labelled pending confirmation.
+ * @summary Create a calendar activity (permission-checked, synced back to its source)
+ */
+export const createPlanningEvent = async (planningEventCreateInput: PlanningEventCreateInput, options?: RequestInit): Promise<PlanningMutationResult> => {
+
+  return customFetch<PlanningMutationResult>(getCreatePlanningEventUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planningEventCreateInput)
+  }
+);}
+
+
+
+
+export const getCreatePlanningEventMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlanningEvent>>, TError,{data: BodyType<PlanningEventCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPlanningEvent>>, TError,{data: BodyType<PlanningEventCreateInput>}, TContext> => {
+
+const mutationKey = ['createPlanningEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPlanningEvent>>, {data: BodyType<PlanningEventCreateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPlanningEvent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePlanningEventMutationResult = NonNullable<Awaited<ReturnType<typeof createPlanningEvent>>>
+    export type CreatePlanningEventMutationBody = BodyType<PlanningEventCreateInput>
+    export type CreatePlanningEventMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a calendar activity (permission-checked, synced back to its source)
+ */
+export const useCreatePlanningEvent = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlanningEvent>>, TError,{data: BodyType<PlanningEventCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPlanningEvent>>,
+        TError,
+        {data: BodyType<PlanningEventCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePlanningEventMutationOptions(options));
+    }
+
+export const getUpdatePlanningEventUrl = () => {
+
+
+
+
+  return `/api/planning/events/update`
+}
+
+/**
+ * @summary Edit or move a calendar activity (permission-checked, synced back)
+ */
+export const updatePlanningEvent = async (planningEventUpdateInput: PlanningEventUpdateInput, options?: RequestInit): Promise<PlanningMutationResult> => {
+
+  return customFetch<PlanningMutationResult>(getUpdatePlanningEventUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planningEventUpdateInput)
+  }
+);}
+
+
+
+
+export const getUpdatePlanningEventMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlanningEvent>>, TError,{data: BodyType<PlanningEventUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlanningEvent>>, TError,{data: BodyType<PlanningEventUpdateInput>}, TContext> => {
+
+const mutationKey = ['updatePlanningEvent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlanningEvent>>, {data: BodyType<PlanningEventUpdateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePlanningEvent(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlanningEventMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlanningEvent>>>
+    export type UpdatePlanningEventMutationBody = BodyType<PlanningEventUpdateInput>
+    export type UpdatePlanningEventMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Edit or move a calendar activity (permission-checked, synced back)
+ */
+export const useUpdatePlanningEvent = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlanningEvent>>, TError,{data: BodyType<PlanningEventUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlanningEvent>>,
+        TError,
+        {data: BodyType<PlanningEventUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlanningEventMutationOptions(options));
+    }
+
+export const getListPlanningSyncUrl = (params: ListPlanningSyncParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/planning/sync?${stringifiedParams}` : `/api/planning/sync`
+}
+
+/**
+ * @summary Simulated write-back records to the origin source calendars
+ */
+export const listPlanningSync = async (params: ListPlanningSyncParams, options?: RequestInit): Promise<PlanningSyncRecord[]> => {
+
+  return customFetch<PlanningSyncRecord[]>(getListPlanningSyncUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlanningSyncQueryKey = (params?: ListPlanningSyncParams,) => {
+    return [
+    `/api/planning/sync`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListPlanningSyncQueryOptions = <TData = Awaited<ReturnType<typeof listPlanningSync>>, TError = ErrorType<unknown>>(params: ListPlanningSyncParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanningSync>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlanningSyncQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlanningSync>>> = ({ signal }) => listPlanningSync(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlanningSync>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlanningSyncQueryResult = NonNullable<Awaited<ReturnType<typeof listPlanningSync>>>
+export type ListPlanningSyncQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Simulated write-back records to the origin source calendars
+ */
+
+export function useListPlanningSync<TData = Awaited<ReturnType<typeof listPlanningSync>>, TError = ErrorType<unknown>>(
+ params: ListPlanningSyncParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanningSync>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlanningSyncQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSimulatePlanningMoveUrl = () => {
+
+
+
+
+  return `/api/planning/simulate`
+}
+
+/**
+ * Deterministically reports what moving a permitted activity to a new start date would resolve and what it would newly disturb — overlaps, near misses and external signals — without changing anything.
+ * @summary What-if cascade simulation for moving an activity to a new date
+ */
+export const simulatePlanningMove = async (planningSimulateInput: PlanningSimulateInput, options?: RequestInit): Promise<PlanningMoveSimulation> => {
+
+  return customFetch<PlanningMoveSimulation>(getSimulatePlanningMoveUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planningSimulateInput)
+  }
+);}
+
+
+
+
+export const getSimulatePlanningMoveMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof simulatePlanningMove>>, TError,{data: BodyType<PlanningSimulateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof simulatePlanningMove>>, TError,{data: BodyType<PlanningSimulateInput>}, TContext> => {
+
+const mutationKey = ['simulatePlanningMove'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof simulatePlanningMove>>, {data: BodyType<PlanningSimulateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  simulatePlanningMove(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SimulatePlanningMoveMutationResult = NonNullable<Awaited<ReturnType<typeof simulatePlanningMove>>>
+    export type SimulatePlanningMoveMutationBody = BodyType<PlanningSimulateInput>
+    export type SimulatePlanningMoveMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary What-if cascade simulation for moving an activity to a new date
+ */
+export const useSimulatePlanningMove = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof simulatePlanningMove>>, TError,{data: BodyType<PlanningSimulateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof simulatePlanningMove>>,
+        TError,
+        {data: BodyType<PlanningSimulateInput>},
+        TContext
+      > => {
+      return useMutation(getSimulatePlanningMoveMutationOptions(options));
+    }
+
+export const getListPlanningAlertsUrl = (params: ListPlanningAlertsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/planning/alerts?${stringifiedParams}` : `/api/planning/alerts`
+}
+
+/**
+ * @summary Deterministic per-owner alerts (milestones, conflicts, deviations)
+ */
+export const listPlanningAlerts = async (params: ListPlanningAlertsParams, options?: RequestInit): Promise<PlanningAlert[]> => {
+
+  return customFetch<PlanningAlert[]>(getListPlanningAlertsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlanningAlertsQueryKey = (params?: ListPlanningAlertsParams,) => {
+    return [
+    `/api/planning/alerts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListPlanningAlertsQueryOptions = <TData = Awaited<ReturnType<typeof listPlanningAlerts>>, TError = ErrorType<unknown>>(params: ListPlanningAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanningAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlanningAlertsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlanningAlerts>>> = ({ signal }) => listPlanningAlerts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlanningAlerts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlanningAlertsQueryResult = NonNullable<Awaited<ReturnType<typeof listPlanningAlerts>>>
+export type ListPlanningAlertsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Deterministic per-owner alerts (milestones, conflicts, deviations)
+ */
+
+export function useListPlanningAlerts<TData = Awaited<ReturnType<typeof listPlanningAlerts>>, TError = ErrorType<unknown>>(
+ params: ListPlanningAlertsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanningAlerts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlanningAlertsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSchedulePlanningForecastUrl = () => {
+
+
+
+
+  return `/api/planning/forecast/schedule`
+}
+
+/**
+ * Runs the cited 10-day forecast through the document engine and places the resulting draft in the requester's review inbox as a scheduled, approval-gated item, with a notification.
+ * @summary Generate the 10-day forecast as a document and land it in a review folder
+ */
+export const schedulePlanningForecast = async (planningForecastScheduleInput: PlanningForecastScheduleInput, options?: RequestInit): Promise<PlanningForecastScheduleResult> => {
+
+  return customFetch<PlanningForecastScheduleResult>(getSchedulePlanningForecastUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planningForecastScheduleInput)
+  }
+);}
+
+
+
+
+export const getSchedulePlanningForecastMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof schedulePlanningForecast>>, TError,{data: BodyType<PlanningForecastScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof schedulePlanningForecast>>, TError,{data: BodyType<PlanningForecastScheduleInput>}, TContext> => {
+
+const mutationKey = ['schedulePlanningForecast'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof schedulePlanningForecast>>, {data: BodyType<PlanningForecastScheduleInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  schedulePlanningForecast(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SchedulePlanningForecastMutationResult = NonNullable<Awaited<ReturnType<typeof schedulePlanningForecast>>>
+    export type SchedulePlanningForecastMutationBody = BodyType<PlanningForecastScheduleInput>
+    export type SchedulePlanningForecastMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Generate the 10-day forecast as a document and land it in a review folder
+ */
+export const useSchedulePlanningForecast = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof schedulePlanningForecast>>, TError,{data: BodyType<PlanningForecastScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof schedulePlanningForecast>>,
+        TError,
+        {data: BodyType<PlanningForecastScheduleInput>},
+        TContext
+      > => {
+      return useMutation(getSchedulePlanningForecastMutationOptions(options));
+    }
 
 export const getPlanningAskUrl = () => {
 

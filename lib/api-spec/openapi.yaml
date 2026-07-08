@@ -648,6 +648,11 @@ paths:
           required: false
           schema:
             type: string
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Events
@@ -729,6 +734,11 @@ paths:
           required: false
           schema:
             type: string
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: Insights
@@ -736,6 +746,167 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PlanningInsights"
+
+  /planning/events/create:
+    post:
+      operationId: createPlanningEvent
+      tags: [planning]
+      summary: Create a calendar activity (permission-checked, synced back to its source)
+      description: >
+        Creates a new activity in the Hub calendar. The persona must be cleared
+        for the requested confidentiality and belong to the activity's area,
+        otherwise the request is refused with an honest explanation. Every
+        creation produces a simulated write-back record to the origin source,
+        labelled pending confirmation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningEventCreateInput"
+      responses:
+        "200":
+          description: Created event and its sync record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningMutationResult"
+        "403":
+          description: Permission refused
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /planning/events/update:
+    post:
+      operationId: updatePlanningEvent
+      tags: [planning]
+      summary: Edit or move a calendar activity (permission-checked, synced back)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningEventUpdateInput"
+      responses:
+        "200":
+          description: Updated event and its sync record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningMutationResult"
+        "403":
+          description: Permission refused
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /planning/sync:
+    get:
+      operationId: listPlanningSync
+      tags: [planning]
+      summary: Simulated write-back records to the origin source calendars
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: eventId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sync records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanningSyncRecord"
+
+  /planning/simulate:
+    post:
+      operationId: simulatePlanningMove
+      tags: [planning]
+      summary: What-if cascade simulation for moving an activity to a new date
+      description: >
+        Deterministically reports what moving a permitted activity to a new
+        start date would resolve and what it would newly disturb — overlaps,
+        near misses and external signals — without changing anything.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningSimulateInput"
+      responses:
+        "200":
+          description: Simulation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningMoveSimulation"
+        "404":
+          description: Not found or not permitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /planning/alerts:
+    get:
+      operationId: listPlanningAlerts
+      tags: [planning]
+      summary: Deterministic per-owner alerts (milestones, conflicts, deviations)
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Alerts over the persona's permitted events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanningAlert"
+
+  /planning/forecast/schedule:
+    post:
+      operationId: schedulePlanningForecast
+      tags: [planning]
+      summary: Generate the 10-day forecast as a document and land it in a review folder
+      description: >
+        Runs the cited 10-day forecast through the document engine and places
+        the resulting draft in the requester's review inbox as a scheduled,
+        approval-gated item, with a notification.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningForecastScheduleInput"
+      responses:
+        "200":
+          description: Review item created from the forecast
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningForecastScheduleResult"
 
   /planning/ask:
     post:
@@ -3378,10 +3549,30 @@ components:
           items:
             $ref: "#/components/schemas/CascadeShift"
 
+    DelayRisk:
+      type: object
+      required: [eventId, title, date, level, note]
+      properties:
+        eventId:
+          type: string
+        title:
+          type: string
+        date:
+          type: string
+        level:
+          type: string
+          description: medium | high
+        note:
+          type: string
+
     Predictions:
       type: object
-      required: [workloadPeriods, suggestedDates, futureConflicts, signalWarnings, cascade]
+      required: [workloadPeriods, suggestedDates, futureConflicts, signalWarnings, delayRisks, cascade]
       properties:
+        delayRisks:
+          type: array
+          items:
+            $ref: "#/components/schemas/DelayRisk"
         workloadPeriods:
           type: array
           items:
@@ -3809,6 +4000,203 @@ components:
               type: integer
             riskCount:
               type: integer
+
+    PlanningEventCreateInput:
+      type: object
+      required: [roleId, title, startDate, endDate, area, type, owner, axisId, market, brand, source, confidentiality, description]
+      properties:
+        roleId:
+          type: string
+        title:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        area:
+          type: string
+        type:
+          type: string
+        owner:
+          type: string
+        axisId:
+          type: string
+        market:
+          type: string
+        brand:
+          type: string
+        source:
+          type: string
+        confidentiality:
+          type: string
+        description:
+          type: string
+
+    PlanningEventUpdateInput:
+      type: object
+      required: [roleId, id]
+      properties:
+        roleId:
+          type: string
+        id:
+          type: string
+        title:
+          type: string
+        startDate:
+          type: string
+        endDate:
+          type: string
+        owner:
+          type: string
+        status:
+          type: string
+        description:
+          type: string
+
+    PlanningSyncRecord:
+      type: object
+      required: [id, eventId, eventTitle, source, action, detail, requestedBy, requestedAt, status]
+      properties:
+        id:
+          type: string
+        eventId:
+          type: string
+        eventTitle:
+          type: string
+        source:
+          type: string
+        action:
+          type: string
+          description: created | updated | moved
+        detail:
+          type: string
+        requestedBy:
+          type: string
+        requestedAt:
+          type: string
+        status:
+          type: string
+          description: pending_confirmation
+
+    PlanningMutationResult:
+      type: object
+      required: [event, sync]
+      properties:
+        event:
+          $ref: "#/components/schemas/PlanningEvent"
+        sync:
+          $ref: "#/components/schemas/PlanningSyncRecord"
+
+    PlanningSimulateInput:
+      type: object
+      required: [roleId, eventId, toStart]
+      properties:
+        roleId:
+          type: string
+        eventId:
+          type: string
+        toStart:
+          type: string
+
+    PlanningSimulationImpact:
+      type: object
+      required: [eventId, title, note]
+      properties:
+        eventId:
+          type: string
+        title:
+          type: string
+        note:
+          type: string
+
+    PlanningSimulationSignal:
+      type: object
+      required: [signalId, title, date, note]
+      properties:
+        signalId:
+          type: string
+        title:
+          type: string
+        date:
+          type: string
+        note:
+          type: string
+
+    PlanningMoveSimulation:
+      type: object
+      required: [eventId, eventTitle, fromStart, fromEnd, toStart, toEnd, resolved, newConflicts, nearMisses, signalWarnings, verdict]
+      properties:
+        eventId:
+          type: string
+        eventTitle:
+          type: string
+        fromStart:
+          type: string
+        fromEnd:
+          type: string
+        toStart:
+          type: string
+        toEnd:
+          type: string
+        resolved:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanningSimulationImpact"
+        newConflicts:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanningSimulationImpact"
+        nearMisses:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanningSimulationImpact"
+        signalWarnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanningSimulationSignal"
+        verdict:
+          type: string
+
+    PlanningAlert:
+      type: object
+      required: [id, kind, owner, eventId, eventTitle, date, severity, note]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          description: milestone | conflict | deviation
+        owner:
+          type: string
+        eventId:
+          type: string
+        eventTitle:
+          type: string
+        date:
+          type: string
+        severity:
+          type: string
+          description: info | warning
+        note:
+          type: string
+
+    PlanningForecastScheduleInput:
+      type: object
+      required: [area, roleId]
+      properties:
+        area:
+          type: string
+        roleId:
+          type: string
+
+    PlanningForecastScheduleResult:
+      type: object
+      required: [reviewItem, forecast]
+      properties:
+        reviewItem:
+          $ref: "#/components/schemas/ReviewItem"
+        forecast:
+          $ref: "#/components/schemas/PlanningForecast"
 
     HomeCardStat:
       type: object

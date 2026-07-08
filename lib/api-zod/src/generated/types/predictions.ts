@@ -6,12 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Cascade } from './cascade';
+import type { DelayRisk } from './delayRisk';
 import type { FutureConflict } from './futureConflict';
 import type { SignalWarning } from './signalWarning';
 import type { SuggestedDate } from './suggestedDate';
 import type { WorkloadPeriod } from './workloadPeriod';
 
 export interface Predictions {
+  delayRisks: DelayRisk[];
   workloadPeriods: WorkloadPeriod[];
   suggestedDates: SuggestedDate[];
   futureConflicts: FutureConflict[];
