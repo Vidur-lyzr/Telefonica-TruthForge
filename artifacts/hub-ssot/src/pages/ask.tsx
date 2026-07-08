@@ -215,17 +215,14 @@ export default function Ask() {
     conversations.find((c) => c.id === activeId && c.roleId === roleId) ?? null;
   const thread = activeConvo?.turns ?? [];
 
-  // On persona switch, surface that persona's most recent conversation (or a
-  // clean slate). A conversation from another persona must never stay active, so
-  // a lower-clearance persona can never see or resume a higher-clearance thread.
+  // Opening Ask always starts on a clean new-conversation screen; past
+  // conversations stay resumable from the sidebar. On persona switch, any active
+  // conversation from another persona is cleared so a lower-clearance persona
+  // can never see or resume a higher-clearance thread.
   React.useEffect(() => {
     setActiveId((current) => {
       const cur = conversations.find((c) => c.id === current);
-      if (cur && cur.roleId === roleId) return current;
-      const latest = conversations
-        .filter((c) => c.roleId === roleId)
-        .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-      return latest ? latest.id : null;
+      return cur && cur.roleId === roleId ? current : null;
     });
   }, [roleId, conversations]);
 
