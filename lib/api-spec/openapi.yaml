@@ -294,6 +294,103 @@ paths:
                 items:
                   $ref: "#/components/schemas/AuditEntry"
 
+  /admin/visibility/{userId}:
+    get:
+      operationId: getUserVisibilityMatrix
+      tags: [admin]
+      summary: Per-document visibility matrix for a platform user
+      description: >
+        Resolves, for every governed document, whether the given user can see
+        it and — when blocked — which axis blocks it (clearance or area).
+        Access is the intersection of area and confidentiality, resolved by
+        the same engine every retrieval path uses.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Visibility matrix
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisibilityMatrix"
+        "404":
+          description: Unknown user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /governance/taxonomy:
+    get:
+      operationId: getTaxonomyState
+      tags: [governance]
+      summary: Current taxonomy configuration version and applied version history
+      responses:
+        "200":
+          description: Taxonomy state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxonomyState"
+
+  /governance/retag/propose:
+    post:
+      operationId: proposeRetag
+      tags: [governance]
+      summary: Step 1-3 of the governed re-tagging pipeline
+      description: >
+        Takes a taxonomy edit (axis rename / redefinition), builds the mapping
+        table of affected documents and produces per-document re-classification
+        proposals (LLM zero-shot against the edited axis, with a deterministic
+        fallback when the model is unavailable). Nothing is applied — a human
+        validates each proposal before apply.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RetagProposeInput"
+      responses:
+        "200":
+          description: Re-tagging proposals awaiting human validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetagProposeResult"
+        "404":
+          description: Unknown axis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /governance/retag/apply:
+    post:
+      operationId: applyRetag
+      tags: [governance]
+      summary: Step 4 — apply human-validated re-tagging as a new taxonomy version
+      description: >
+        Only accepted decisions are applied. Creates a new persisted taxonomy
+        version (metadata only — no re-embedding, no redeploy) and writes an
+        audit entry.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RetagApplyInput"
+      responses:
+        "200":
+          description: Applied taxonomy version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetagApplyResult"
+
   /kpis/query:
     post:
       operationId: queryKpis
@@ -3717,3 +3814,198 @@ components:
           type: boolean
         permissionNote:
           type: ["string", "null"]
+
+    VisibilityRow:
+      type: object
+      required: [docId, title, type, confidentiality, areas, visible, blockedBy, explanation]
+      properties:
+        docId:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        confidentiality:
+          type: string
+          description: public | internal | confidential | restricted
+        areas:
+          type: array
+          items:
+            type: string
+        visible:
+          type: boolean
+        blockedBy:
+          type: ["string", "null"]
+          description: clearance | area | null
+        explanation:
+          type: string
+
+    VisibilityMatrix:
+      type: object
+      required: [user, visibleCount, totalCount, rows]
+      properties:
+        user:
+          $ref: "#/components/schemas/PlatformUser"
+        visibleCount:
+          type: integer
+        totalCount:
+          type: integer
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/VisibilityRow"
+
+    TaxonomyAxisEdit:
+      type: object
+      required: [axisId, name, description]
+      properties:
+        axisId:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+
+    TaxonomyVersion:
+      type: object
+      required: [version, createdAt, actor, note, axisEdit, retaggedCount]
+      properties:
+        version:
+          type: integer
+        createdAt:
+          type: string
+        actor:
+          type: string
+        note:
+          type: string
+        axisEdit:
+          oneOf:
+            - $ref: "#/components/schemas/TaxonomyAxisEdit"
+            - type: "null"
+        retaggedCount:
+          type: integer
+
+    TaxonomyState:
+      type: object
+      required: [activeVersion, seedVersion, axes, versions]
+      properties:
+        activeVersion:
+          type: integer
+        seedVersion:
+          type: integer
+        axes:
+          type: array
+          items:
+            $ref: "#/components/schemas/StrategicAxis"
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxonomyVersion"
+
+    RetagProposeInput:
+      type: object
+      required: [axisId, newName]
+      properties:
+        axisId:
+          type: string
+        newName:
+          type: string
+        newDescription:
+          type: ["string", "null"]
+
+    RetagProposal:
+      type: object
+      required:
+        [docId, title, type, currentAxisIds, proposedAxisIds, currentTopics, proposedTopics, confidence, rationale]
+      properties:
+        docId:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        currentAxisIds:
+          type: array
+          items:
+            type: string
+        proposedAxisIds:
+          type: array
+          items:
+            type: string
+        currentTopics:
+          type: array
+          items:
+            type: string
+        proposedTopics:
+          type: array
+          items:
+            type: string
+        confidence:
+          type: number
+        rationale:
+          type: string
+
+    RetagProposeResult:
+      type: object
+      required: [axisId, fromName, toName, engine, affectedCount, proposals]
+      properties:
+        axisId:
+          type: string
+        fromName:
+          type: string
+        toName:
+          type: string
+        engine:
+          type: string
+          description: llm | deterministic
+        affectedCount:
+          type: integer
+        proposals:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetagProposal"
+
+    RetagDecision:
+      type: object
+      required: [docId, accept, axisIds, topics]
+      properties:
+        docId:
+          type: string
+        accept:
+          type: boolean
+        axisIds:
+          type: array
+          items:
+            type: string
+        topics:
+          type: array
+          items:
+            type: string
+
+    RetagApplyInput:
+      type: object
+      required: [actor, note, axisEdit, decisions]
+      properties:
+        actor:
+          type: string
+        note:
+          type: string
+        axisEdit:
+          oneOf:
+            - $ref: "#/components/schemas/TaxonomyAxisEdit"
+            - type: "null"
+        decisions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetagDecision"
+
+    RetagApplyResult:
+      type: object
+      required: [version, appliedCount, rejectedCount]
+      properties:
+        version:
+          type: integer
+        appliedCount:
+          type: integer
+        rejectedCount:
+          type: integer

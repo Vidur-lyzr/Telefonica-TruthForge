@@ -379,6 +379,122 @@ export const ListAuditEntriesResponse = zod.array(ListAuditEntriesResponseItem)
 
 
 /**
+ * Resolves, for every governed document, whether the given user can see it and — when blocked — which axis blocks it (clearance or area). Access is the intersection of area and confidentiality, resolved by the same engine every retrieval path uses.
+ * @summary Per-document visibility matrix for a platform user
+ */
+export const GetUserVisibilityMatrixParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const GetUserVisibilityMatrixResponse = zod.object({
+  "user": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "area": zod.string().describe('Comunicación | Marca | Gabinete'),
+  "profileId": zod.string().describe('superadmin | admin | editor | audit'),
+  "clearance": zod.string().describe('public | internal | confidential | restricted')
+}),
+  "visibleCount": zod.number(),
+  "totalCount": zod.number(),
+  "rows": zod.array(zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "confidentiality": zod.string().describe('public | internal | confidential | restricted'),
+  "areas": zod.array(zod.string()),
+  "visible": zod.boolean(),
+  "blockedBy": zod.string().nullable().describe('clearance | area | null'),
+  "explanation": zod.string()
+}))
+})
+
+
+/**
+ * @summary Current taxonomy configuration version and applied version history
+ */
+export const GetTaxonomyStateResponse = zod.object({
+  "activeVersion": zod.number(),
+  "seedVersion": zod.number(),
+  "axes": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "color": zod.string(),
+  "description": zod.string()
+})),
+  "versions": zod.array(zod.object({
+  "version": zod.number(),
+  "createdAt": zod.string(),
+  "actor": zod.string(),
+  "note": zod.string(),
+  "axisEdit": zod.union([zod.object({
+  "axisId": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable()
+}),zod.null()]),
+  "retaggedCount": zod.number()
+}))
+})
+
+
+/**
+ * Takes a taxonomy edit (axis rename / redefinition), builds the mapping table of affected documents and produces per-document re-classification proposals (LLM zero-shot against the edited axis, with a deterministic fallback when the model is unavailable). Nothing is applied — a human validates each proposal before apply.
+ * @summary Step 1-3 of the governed re-tagging pipeline
+ */
+export const ProposeRetagBody = zod.object({
+  "axisId": zod.string(),
+  "newName": zod.string(),
+  "newDescription": zod.string().nullish()
+})
+
+export const ProposeRetagResponse = zod.object({
+  "axisId": zod.string(),
+  "fromName": zod.string(),
+  "toName": zod.string(),
+  "engine": zod.string().describe('llm | deterministic'),
+  "affectedCount": zod.number(),
+  "proposals": zod.array(zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "currentAxisIds": zod.array(zod.string()),
+  "proposedAxisIds": zod.array(zod.string()),
+  "currentTopics": zod.array(zod.string()),
+  "proposedTopics": zod.array(zod.string()),
+  "confidence": zod.number(),
+  "rationale": zod.string()
+}))
+})
+
+
+/**
+ * Only accepted decisions are applied. Creates a new persisted taxonomy version (metadata only — no re-embedding, no redeploy) and writes an audit entry.
+ * @summary Step 4 — apply human-validated re-tagging as a new taxonomy version
+ */
+export const ApplyRetagBody = zod.object({
+  "actor": zod.string(),
+  "note": zod.string(),
+  "axisEdit": zod.union([zod.object({
+  "axisId": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable()
+}),zod.null()]),
+  "decisions": zod.array(zod.object({
+  "docId": zod.string(),
+  "accept": zod.boolean(),
+  "axisIds": zod.array(zod.string()),
+  "topics": zod.array(zod.string())
+}))
+})
+
+export const ApplyRetagResponse = zod.object({
+  "version": zod.number(),
+  "appliedCount": zod.number(),
+  "rejectedCount": zod.number()
+})
+
+
+/**
  * Returns the KPI cards a persona is cleared to see, scoped by clearance and area, with the selected reporting period applied. A KPI whose internal evidence is above the persona's clearance is withheld (fail closed). Also returns the available filter facets across the persona's visible KPIs.
  * @summary Governed KPI cards for the active persona and filters
  */

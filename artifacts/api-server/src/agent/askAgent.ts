@@ -32,9 +32,14 @@ import {
   GRAPH_NODES,
   ROLES,
   getDoc,
+  type Area,
   type Assertion,
   type Clearance,
 } from "../data/corpus";
+import { resolveDocAccess } from "../data/governance";
+
+type DocAccessTarget = { confidentiality: Clearance; areas: Area[] };
+type CanReadDoc = (doc: DocAccessTarget) => boolean;
 
 const MODEL = "claude-sonnet-4-6";
 // A chunk counts as relevant only if it covers a meaningful share of the query's
@@ -180,6 +185,10 @@ export async function runAskAgent(
   const role = ROLES.find((r) => r.id === input.roleId) ?? ROLES[0];
   const clearance: Clearance = role.clearance;
   const roleRank = CLEARANCE_RANK[clearance];
+  // Single access rule for every side channel (numeric facts, conflicts,
+  // corroboration): the same area + clearance resolver retrieval uses.
+  const canReadDoc: CanReadDoc = (doc) =>
+    resolveDocAccess(doc, { area: role.area, clearance }).accessible;
   const filters = input.filters ?? null;
   const history = input.history ?? [];
   const attachment = input.attachment ?? null;
@@ -197,6 +206,7 @@ export async function runAskAgent(
       {
         question: retrievalQuery,
         clearance,
+        area: role.area,
         topK: 8,
         filters,
       },
@@ -223,9 +233,7 @@ export async function runAskAgent(
     // Offer the closest adjacent governed datum, if any, without answering.
     const near = numericQuery(input.question);
     const nearDoc = near ? resolveDoc(near.docId) : undefined;
-    const nearAccessible = Boolean(
-      near && nearDoc && CLEARANCE_RANK[nearDoc.confidentiality] <= roleRank,
-    );
+    const nearAccessible = Boolean(near && nearDoc && canReadDoc(nearDoc));
     log.info({ q: input.question, roleId: role.id }, "ask: no_evidence");
     return {
       status: "no_evidence",
@@ -260,7 +268,7 @@ export async function runAskAgent(
 
   // Conflict: two permitted sources that materially disagree on the same metric
   // + period. Detected deterministically from declared contradictions — no model.
-  const conflict = detectConflict(permitted, roleRank);
+  const conflict = detectConflict(permitted, canReadDoc);
   if (conflict) {
     log.info(
       { q: input.question, roleId: role.id, pair: conflict.pair },
@@ -271,27 +279,50 @@ export async function runAskAgent(
 
   // Only blocked material is relevant → permission block, no model call, no leak.
   if (permitted.length === 0) {
-    const need = blocked
+    // Name the blocking axis honestly: clearance, area scope, or both.
+    const clearanceBlocked = blocked.filter((b) => b.blockedBy === "clearance");
+    const areaBlocked = blocked.filter((b) => b.blockedBy === "area");
+    const need = clearanceBlocked
       .map((b) => resolveDoc(b.docId)?.confidentiality)
       .filter((c): c is Clearance => Boolean(c))
       .sort((a, b) => CLEARANCE_RANK[b] - CLEARANCE_RANK[a])[0];
-    const clearedRole = ROLES.find((r) => r.clearance === need);
+    const clearedRole = need
+      ? ROLES.find((r) => r.clearance === need)
+      : undefined;
+    const areaScopes = Array.from(
+      new Set(
+        areaBlocked.flatMap((b) => resolveDoc(b.docId)?.areas ?? []),
+      ),
+    );
+    const noteParts: string[] = [];
+    if (need) {
+      noteParts.push(
+        `Matching material is classified "${need}". Your persona "${role.label}" is cleared for "${role.clearance}".${
+          clearedRole
+            ? ` Switch to a persona such as "${clearedRole.label}", or request access.`
+            : ""
+        }`,
+      );
+    }
+    if (areaBlocked.length > 0) {
+      noteParts.push(
+        `${need ? "Further material" : "Matching material"} is scoped to ${areaScopes.join(" / ")}, outside your area (${role.area}). Access is the intersection of area and confidentiality.`,
+      );
+    }
     log.info(
-      { q: input.question, roleId: role.id, need },
+      { q: input.question, roleId: role.id, need, areaBlocked: areaBlocked.length },
       "ask: permission_blocked",
     );
     return {
       status: "permission_blocked",
       answer:
-        "Relevant material exists, but it is above your current clearance, so the Hub will not reveal it.",
+        need != null
+          ? "Relevant material exists, but it is above your current clearance, so the Hub will not reveal it."
+          : "Relevant material exists, but it belongs to an area outside your scope, so the Hub will not reveal it.",
       citations: [],
       historic: false,
       lowConfidence: false,
-      permissionNote: `Matching material is classified "${need}". Your persona "${role.label}" is cleared for "${role.clearance}".${
-        clearedRole
-          ? ` Switch to a persona such as "${clearedRole.label}", or request access.`
-          : ""
-      }`,
+      permissionNote: noteParts.join(" "),
       axisIds: [],
       numeric: null,
       relatedEntities,
@@ -313,9 +344,7 @@ export async function runAskAgent(
   const numericDoc = numericFact ? resolveDoc(numericFact.docId) : undefined;
   // Fail closed: a metric whose source doc is missing is treated as inaccessible.
   const numericAccessible = Boolean(
-    numericFact &&
-      numericDoc &&
-      CLEARANCE_RANK[numericDoc.confidentiality] <= roleRank,
+    numericFact && numericDoc && canReadDoc(numericDoc),
   );
 
   const sourceBlock = sources
@@ -359,7 +388,7 @@ export async function runAskAgent(
   // Governed tools the agent may call during composition. Everything they
   // return is already clearance-filtered — the agent can look further, but it
   // can never see past the persona's clearance.
-  const agentTools = buildGovernedTools(clearance, roleRank, filters);
+  const agentTools = buildGovernedTools(clearance, filters, role.area);
 
   let answer = "";
   try {
@@ -409,7 +438,7 @@ export async function runAskAgent(
   // figure (same value + period) as the governed metric.
   const corroborationCount =
     numericAccessible && numericFact
-      ? countCorroboration(roleRank, numericFact.value, numericFact.period)
+      ? countCorroboration(canReadDoc, numericFact.value, numericFact.period)
       : 0;
 
   const citations: Citation[] = usedOld.map((oldN) => {
@@ -565,8 +594,8 @@ export async function runAskAgent(
 // look further into the corpus mid-answer, but never past its clearance.
 function buildGovernedTools(
   clearance: Clearance,
-  roleRank: number,
   filters: RetrieveFilters | null | undefined,
+  area: Area | null = null,
 ) {
   return [
     tool(
@@ -583,6 +612,7 @@ function buildGovernedTools(
         const hits = retrieve({
           question: String(args.query ?? ""),
           clearance,
+          area,
           topK: 4,
           filters,
         }).filter((c) => c.accessible);
@@ -633,9 +663,9 @@ function buildGovernedTools(
         if (!fact) return "No governed numeric fact matches.";
         const doc = resolveDoc(fact.docId);
         const permitted =
-          doc && CLEARANCE_RANK[doc.confidentiality] <= roleRank;
+          doc && resolveDocAccess(doc, { area, clearance }).accessible;
         if (!permitted) {
-          return "A matching figure exists but is above the current clearance; it cannot be shown.";
+          return "A matching figure exists but is outside the current permission scope; it cannot be shown.";
         }
         return `${fact.label}: ${fact.value} ${fact.unit} (${fact.period}) — source: ${fact.source}`;
       },
@@ -723,14 +753,14 @@ function buildSuggestedNext(
 // retrieved: count every source the persona may read that independently asserts
 // the same figure + period. This stays stable even if retrieval surfaces only one.
 function countCorroboration(
-  roleRank: number,
+  canRead: CanReadDoc,
   value: string,
   period: string,
 ): number {
   const target = normValue(value);
   let count = 0;
   for (const doc of DOCS) {
-    if (CLEARANCE_RANK[doc.confidentiality] > roleRank) continue;
+    if (!canRead(doc)) continue;
     if (doc.validity === "historic" || doc.validity === "superseded") continue;
     const agrees = (doc.assertions ?? []).some(
       (a) => normValue(a.value) === target && a.period === period,
@@ -740,12 +770,13 @@ function countCorroboration(
   return count;
 }
 
-// Deterministic conflict detection: among permitted relevant docs, find one that
-// declares it contradicts another permitted doc, where both assert the same
-// metric + period with different values. Returns a ready conflict result builder.
+// Deterministic conflict detection: a top-ranked permitted source that declares
+// it contradicts another doc the persona may read (the target need not have been
+// retrieved — e.g. the approved release), where both assert the same metric +
+// period with different values. Returns a ready conflict result builder.
 function detectConflict(
   permitted: { docId: string; coverage: number; text: string; breadcrumb: string }[],
-  roleRank: number,
+  canRead: CanReadDoc,
 ):
   | {
       pair: [string, string];
@@ -767,7 +798,7 @@ function detectConflict(
     for (const targetId of source.contradicts) {
       const target = getDoc(targetId);
       if (!target) continue;
-      if (CLEARANCE_RANK[target.confidentiality] > roleRank) continue;
+      if (!canRead(target)) continue;
       // Both must be resolvable to a disagreeing assertion pair.
       const pair = findDisagreement(source.assertions, target.assertions);
       if (!pair) continue;

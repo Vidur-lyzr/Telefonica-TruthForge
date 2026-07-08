@@ -78,6 +78,10 @@ import type {
   PlatformUser,
   RadarItem,
   RefineInput,
+  RetagApplyInput,
+  RetagApplyResult,
+  RetagProposeInput,
+  RetagProposeResult,
   ReviewItem,
   Role,
   SaveVersionInput,
@@ -86,7 +90,9 @@ import type {
   ScheduledDocument,
   StrategicAxis,
   SuggestedQuery,
+  TaxonomyState,
   ValidationItem,
+  VisibilityMatrix,
   WikiGraph,
   WikiLineage,
   WikiPageDetail,
@@ -1220,6 +1226,303 @@ export function useListAuditEntries<TData = Awaited<ReturnType<typeof listAuditE
 
 
 
+
+export const getGetUserVisibilityMatrixUrl = (userId: string,) => {
+
+
+
+
+  return `/api/admin/visibility/${userId}`
+}
+
+/**
+ * Resolves, for every governed document, whether the given user can see it and — when blocked — which axis blocks it (clearance or area). Access is the intersection of area and confidentiality, resolved by the same engine every retrieval path uses.
+ * @summary Per-document visibility matrix for a platform user
+ */
+export const getUserVisibilityMatrix = async (userId: string, options?: RequestInit): Promise<VisibilityMatrix> => {
+
+  return customFetch<VisibilityMatrix>(getGetUserVisibilityMatrixUrl(userId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserVisibilityMatrixQueryKey = (userId: string,) => {
+    return [
+    `/api/admin/visibility/${userId}`
+    ] as const;
+    }
+
+
+export const getGetUserVisibilityMatrixQueryOptions = <TData = Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError = ErrorType<ErrorResponse>>(userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserVisibilityMatrixQueryKey(userId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserVisibilityMatrix>>> = ({ signal }) => getUserVisibilityMatrix(userId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: userId !== null && userId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserVisibilityMatrixQueryResult = NonNullable<Awaited<ReturnType<typeof getUserVisibilityMatrix>>>
+export type GetUserVisibilityMatrixQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Per-document visibility matrix for a platform user
+ */
+
+export function useGetUserVisibilityMatrix<TData = Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError = ErrorType<ErrorResponse>>(
+ userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserVisibilityMatrixQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetTaxonomyStateUrl = () => {
+
+
+
+
+  return `/api/governance/taxonomy`
+}
+
+/**
+ * @summary Current taxonomy configuration version and applied version history
+ */
+export const getTaxonomyState = async ( options?: RequestInit): Promise<TaxonomyState> => {
+
+  return customFetch<TaxonomyState>(getGetTaxonomyStateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTaxonomyStateQueryKey = () => {
+    return [
+    `/api/governance/taxonomy`
+    ] as const;
+    }
+
+
+export const getGetTaxonomyStateQueryOptions = <TData = Awaited<ReturnType<typeof getTaxonomyState>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTaxonomyState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTaxonomyStateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTaxonomyState>>> = ({ signal }) => getTaxonomyState({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTaxonomyState>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTaxonomyStateQueryResult = NonNullable<Awaited<ReturnType<typeof getTaxonomyState>>>
+export type GetTaxonomyStateQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Current taxonomy configuration version and applied version history
+ */
+
+export function useGetTaxonomyState<TData = Awaited<ReturnType<typeof getTaxonomyState>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTaxonomyState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTaxonomyStateQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getProposeRetagUrl = () => {
+
+
+
+
+  return `/api/governance/retag/propose`
+}
+
+/**
+ * Takes a taxonomy edit (axis rename / redefinition), builds the mapping table of affected documents and produces per-document re-classification proposals (LLM zero-shot against the edited axis, with a deterministic fallback when the model is unavailable). Nothing is applied — a human validates each proposal before apply.
+ * @summary Step 1-3 of the governed re-tagging pipeline
+ */
+export const proposeRetag = async (retagProposeInput: RetagProposeInput, options?: RequestInit): Promise<RetagProposeResult> => {
+
+  return customFetch<RetagProposeResult>(getProposeRetagUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(retagProposeInput)
+  }
+);}
+
+
+
+
+export const getProposeRetagMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof proposeRetag>>, TError,{data: BodyType<RetagProposeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof proposeRetag>>, TError,{data: BodyType<RetagProposeInput>}, TContext> => {
+
+const mutationKey = ['proposeRetag'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof proposeRetag>>, {data: BodyType<RetagProposeInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  proposeRetag(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ProposeRetagMutationResult = NonNullable<Awaited<ReturnType<typeof proposeRetag>>>
+    export type ProposeRetagMutationBody = BodyType<RetagProposeInput>
+    export type ProposeRetagMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Step 1-3 of the governed re-tagging pipeline
+ */
+export const useProposeRetag = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof proposeRetag>>, TError,{data: BodyType<RetagProposeInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof proposeRetag>>,
+        TError,
+        {data: BodyType<RetagProposeInput>},
+        TContext
+      > => {
+      return useMutation(getProposeRetagMutationOptions(options));
+    }
+
+export const getApplyRetagUrl = () => {
+
+
+
+
+  return `/api/governance/retag/apply`
+}
+
+/**
+ * Only accepted decisions are applied. Creates a new persisted taxonomy version (metadata only — no re-embedding, no redeploy) and writes an audit entry.
+ * @summary Step 4 — apply human-validated re-tagging as a new taxonomy version
+ */
+export const applyRetag = async (retagApplyInput: RetagApplyInput, options?: RequestInit): Promise<RetagApplyResult> => {
+
+  return customFetch<RetagApplyResult>(getApplyRetagUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(retagApplyInput)
+  }
+);}
+
+
+
+
+export const getApplyRetagMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyRetag>>, TError,{data: BodyType<RetagApplyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof applyRetag>>, TError,{data: BodyType<RetagApplyInput>}, TContext> => {
+
+const mutationKey = ['applyRetag'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof applyRetag>>, {data: BodyType<RetagApplyInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  applyRetag(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApplyRetagMutationResult = NonNullable<Awaited<ReturnType<typeof applyRetag>>>
+    export type ApplyRetagMutationBody = BodyType<RetagApplyInput>
+    export type ApplyRetagMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Step 4 — apply human-validated re-tagging as a new taxonomy version
+ */
+export const useApplyRetag = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof applyRetag>>, TError,{data: BodyType<RetagApplyInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof applyRetag>>,
+        TError,
+        {data: BodyType<RetagApplyInput>},
+        TContext
+      > => {
+      return useMutation(getApplyRetagMutationOptions(options));
+    }
 
 export const getQueryKpisUrl = () => {
 

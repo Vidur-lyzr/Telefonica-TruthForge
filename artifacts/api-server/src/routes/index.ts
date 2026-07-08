@@ -9,6 +9,7 @@ import generateRouter from "./generate";
 import wikiRouter from "./wiki";
 import dataRouter from "./data";
 import brandRouter from "./brand";
+import governanceRouter from "./governance";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(generateRouter);
 router.use(wikiRouter);
 router.use(dataRouter);
 router.use(brandRouter);
+router.use(governanceRouter);
 
 export default router;

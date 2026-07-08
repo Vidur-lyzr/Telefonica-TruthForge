@@ -12,3 +12,4 @@
 - [Wiki graph encoding](graph-encoding-fill-vs-outline.md) — Map nodes must encode color=axis and fill=layer (compiled solid, raw entities outline); never color-by-kind.
 - [Orval path+query collision](orval-path-query-collision.md) — mixing a path param and a query param on one op makes orval emit `<Op>Params` twice (TS2308); keep persona-scoped detail endpoints query-only.
 - [Mística gotchas](mistica-gotchas.md) — @telefonica/mistica API constraints (spacing steps, Touchable, Drawer, Tag, borderRadii.avatar) that break typecheck if ignored.
+- [Governance access side channels](governance-access-side-channels.md) — all Ask side channels must gate via the shared area+clearance resolver; rank-only checks caused a leak.

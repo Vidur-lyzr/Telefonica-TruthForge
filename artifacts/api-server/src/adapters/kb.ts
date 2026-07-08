@@ -2,7 +2,8 @@
 // Backed natively by a local TF-IDF + BM25 hybrid over the synthetic corpus.
 // A real Lyzr Knowledge Base can be swapped in behind this same interface later.
 
-import { DOCS, getDoc, CLEARANCE_RANK, type Clearance } from "../data/corpus";
+import { DOCS, getDoc, type Area, type Clearance } from "../data/corpus";
+import { resolveDocAccess, type BlockedAxis } from "../data/governance";
 import { isLyzrConfigured, lyzrRetrieve } from "./lyzr";
 import { tokenize } from "./text";
 
@@ -15,6 +16,7 @@ export interface RetrievedChunk {
   breadcrumb: string;
   text: string;
   accessible: boolean;
+  blockedBy: BlockedAxis;
 }
 
 interface IndexedChunk {
@@ -85,8 +87,25 @@ export interface RetrieveFilters {
 export interface RetrieveOptions {
   question: string;
   clearance: Clearance;
+  // Persona's organisational area. Access = area × confidentiality; a null
+  // area means the caller is not area-scoped (legacy paths only).
+  area?: Area | null;
   topK?: number;
   filters?: RetrieveFilters | null;
+}
+
+// Single access decision for a chunk, via the governance resolver. The chunk
+// inherits its document's confidentiality and area scope.
+function accessFor(
+  docId: string,
+  confidentiality: Clearance,
+  opts: RetrieveOptions,
+) {
+  const doc = getDoc(docId);
+  return resolveDocAccess(
+    { confidentiality, areas: doc?.areas ?? [] },
+    { area: opts.area ?? null, clearance: opts.clearance },
+  );
 }
 
 function passesFilters(chunk: IndexedChunk, f?: RetrieveFilters | null): boolean {
@@ -97,7 +116,12 @@ function passesFilters(chunk: IndexedChunk, f?: RetrieveFilters | null): boolean
   if (!eq(chunk.brand, f.brand)) return false;
   if (!eq(chunk.quarter, f.period)) return false;
   if (!eq(chunk.type, f.source)) return false;
-  if (f.axis && !chunk.axisIds.includes(f.axis)) return false;
+  // Axis mapping is live taxonomy configuration — read it from the governed
+  // document, not the index-build snapshot, so re-tagging applies instantly.
+  if (f.axis) {
+    const axisIds = getDoc(chunk.docId)?.axisIds ?? chunk.axisIds;
+    if (!axisIds.includes(f.axis)) return false;
+  }
   return true;
 }
 
@@ -106,7 +130,6 @@ export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
   const qTerms = tokenize(question);
   if (qTerms.length === 0) return [];
   const qSet = new Set(qTerms);
-  const roleRank = CLEARANCE_RANK[clearance];
 
   // Total idf mass of the query. Absent terms (df = 0) get a naturally high idf,
   // so a question full of terms the corpus has never seen keeps its denominator
@@ -137,16 +160,20 @@ export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
     .sort((a, b) => b.score - a.score)
     .slice(0, Math.max(topK, 8));
 
-  return relevant.map(({ chunk, score, coverage }) => ({
-    chunkId: chunk.chunkId,
-    docId: chunk.docId,
-    score: Number(score.toFixed(4)),
-    coverage: Number(coverage.toFixed(4)),
-    heading: chunk.heading,
-    breadcrumb: chunk.breadcrumb,
-    text: chunk.text,
-    accessible: CLEARANCE_RANK[chunk.confidentiality] <= roleRank,
-  }));
+  return relevant.map(({ chunk, score, coverage }) => {
+    const access = accessFor(chunk.docId, chunk.confidentiality, opts);
+    return {
+      chunkId: chunk.chunkId,
+      docId: chunk.docId,
+      score: Number(score.toFixed(4)),
+      coverage: Number(coverage.toFixed(4)),
+      heading: chunk.heading,
+      breadcrumb: chunk.breadcrumb,
+      text: chunk.text,
+      accessible: access.accessible,
+      blockedBy: access.blockedBy,
+    };
+  });
 }
 
 export function resolveDoc(docId: string) {
@@ -195,7 +222,6 @@ export async function retrieveGoverned(
       const qSet = new Set(qTerms);
       const queryIdfMass =
         Array.from(qSet).reduce((sum, t) => sum + idf(t), 0) || 1;
-      const roleRank = CLEARANCE_RANK[opts.clearance];
       const seen = new Set<string>();
       const chunks: RetrievedChunk[] = [];
       let unmapped = 0;
@@ -211,6 +237,7 @@ export async function retrieveGoverned(
         if (seen.has(chunk.chunkId)) continue;
         if (!passesFilters(chunk, opts.filters)) continue;
         seen.add(chunk.chunkId);
+        const access = accessFor(chunk.docId, chunk.confidentiality, opts);
         chunks.push({
           chunkId: chunk.chunkId,
           docId: chunk.docId,
@@ -219,7 +246,8 @@ export async function retrieveGoverned(
           heading: chunk.heading,
           breadcrumb: chunk.breadcrumb,
           text: chunk.text,
-          accessible: CLEARANCE_RANK[chunk.confidentiality] <= roleRank,
+          accessible: access.accessible,
+          blockedBy: access.blockedBy,
         });
       }
 

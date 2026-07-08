@@ -4,6 +4,7 @@ import {
   useListPlatformUsers,
   useListScheduledDocuments,
   useListAuditEntries,
+  useGetUserVisibilityMatrix,
   PlatformUser,
   ScheduledDocument,
   AuditEntry,
@@ -305,6 +306,20 @@ export default function AdminPage() {
   const scheduleValid =
     scheduleDraft.template.trim().length > 0 && scheduleDraft.owner.trim().length > 0;
 
+  // ---- Visibility matrix (resolved server-side by the real access engine) ----
+  const [visibilityUserId, setVisibilityUserId] = React.useState<string>("");
+  const effectiveVisibilityUserId =
+    visibilityUserId || (seedUsers && seedUsers.length > 0 ? seedUsers[0].id : "");
+  const { data: visibility, isLoading: visibilityLoading } = useGetUserVisibilityMatrix(
+    effectiveVisibilityUserId,
+    {
+      query: {
+        enabled: effectiveVisibilityUserId.length > 0,
+        queryKey: ["visibility-matrix", effectiveVisibilityUserId],
+      },
+    },
+  );
+
   return (
     <Box padding={24}>
       <Stack space={32}>
@@ -471,6 +486,78 @@ export default function AdminPage() {
               </ButtonLink>,
             ])}
           />
+        </Stack>
+
+        {/* Visibility matrix */}
+        <Stack space={16}>
+          <Inline space="between" alignItems="center">
+            <Stack space={4}>
+              <Inline space={8} alignItems="center">
+                <IconEyeRegular color={skinVars.colors.brand} />
+                <Title3>Document visibility by user</Title3>
+              </Inline>
+              <Text2 regular color={skinVars.colors.textSecondary}>
+                Resolved live by the same access engine that filters retrieval — area and
+                confidentiality intersect, and every blocked row names which axis blocks it.
+              </Text2>
+            </Stack>
+            <div style={{ minWidth: 260 }}>
+              <Select
+                name="visibility-user"
+                label="Inspect user"
+                value={effectiveVisibilityUserId}
+                onChangeValue={setVisibilityUserId}
+                options={(seedUsers ?? []).map((u) => ({
+                  value: u.id,
+                  text: `${u.name} — ${u.area} · ${u.clearance}`,
+                }))}
+                fullWidth
+              />
+            </div>
+          </Inline>
+          {visibility && (
+            <Callout
+              variant="default"
+              asset={<IconShieldCheckedOkRegular color={skinVars.colors.brand} />}
+              title=""
+              description={`${visibility.user.name} can see ${visibility.visibleCount} of ${visibility.totalCount} governed documents. The rest never reach the model for this user.`}
+            />
+          )}
+          {visibilityLoading && !visibility && (
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              Resolving visibility…
+            </Text2>
+          )}
+          {visibility && (
+            <Table
+              heading={["Document", "Confidentiality", "Area scope", "Access", "Why"]}
+              content={visibility.rows.map((r) => [
+                <Stack space={2} key={`${r.docId}-doc`}>
+                  <Text2 medium color={skinVars.colors.textPrimary}>
+                    {r.title}
+                  </Text2>
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    {r.type}
+                  </Text1>
+                </Stack>,
+                <Tag type={clearanceTagType(r.confidentiality)} key={`${r.docId}-conf`}>
+                  {r.confidentiality}
+                </Tag>,
+                <Text2 regular color={skinVars.colors.textSecondary} key={`${r.docId}-areas`}>
+                  {r.areas.length > 0 ? r.areas.join(" / ") : "All areas"}
+                </Text2>,
+                <Tag
+                  type={r.visible ? "success" : r.blockedBy === "clearance" ? "error" : "warning"}
+                  key={`${r.docId}-access`}
+                >
+                  {r.visible ? "visible" : `blocked · ${r.blockedBy}`}
+                </Tag>,
+                <Text1 regular color={skinVars.colors.textSecondary} key={`${r.docId}-why`}>
+                  {r.explanation}
+                </Text1>,
+              ])}
+            />
+          )}
         </Stack>
 
         {/* Scheduled documents */}

@@ -1379,6 +1379,101 @@ export interface WikiSearchResult {
   permissionNote?: string | null;
 }
 
+export interface VisibilityRow {
+  docId: string;
+  title: string;
+  type: string;
+  /** public | internal | confidential | restricted */
+  confidentiality: string;
+  areas: string[];
+  visible: boolean;
+  /**
+     * clearance | area | null
+     * @nullable
+     */
+  blockedBy: string | null;
+  explanation: string;
+}
+
+export interface VisibilityMatrix {
+  user: PlatformUser;
+  visibleCount: number;
+  totalCount: number;
+  rows: VisibilityRow[];
+}
+
+export interface TaxonomyAxisEdit {
+  axisId: string;
+  name: string;
+  /** @nullable */
+  description: string | null;
+}
+
+export interface TaxonomyVersion {
+  version: number;
+  createdAt: string;
+  actor: string;
+  note: string;
+  axisEdit: TaxonomyAxisEdit | null;
+  retaggedCount: number;
+}
+
+export interface TaxonomyState {
+  activeVersion: number;
+  seedVersion: number;
+  axes: StrategicAxis[];
+  versions: TaxonomyVersion[];
+}
+
+export interface RetagProposeInput {
+  axisId: string;
+  newName: string;
+  /** @nullable */
+  newDescription?: string | null;
+}
+
+export interface RetagProposal {
+  docId: string;
+  title: string;
+  type: string;
+  currentAxisIds: string[];
+  proposedAxisIds: string[];
+  currentTopics: string[];
+  proposedTopics: string[];
+  confidence: number;
+  rationale: string;
+}
+
+export interface RetagProposeResult {
+  axisId: string;
+  fromName: string;
+  toName: string;
+  /** llm | deterministic */
+  engine: string;
+  affectedCount: number;
+  proposals: RetagProposal[];
+}
+
+export interface RetagDecision {
+  docId: string;
+  accept: boolean;
+  axisIds: string[];
+  topics: string[];
+}
+
+export interface RetagApplyInput {
+  actor: string;
+  note: string;
+  axisEdit: TaxonomyAxisEdit | null;
+  decisions: RetagDecision[];
+}
+
+export interface RetagApplyResult {
+  version: number;
+  appliedCount: number;
+  rejectedCount: number;
+}
+
 export type GetCorpusStatsParams = {
 /**
  * Optional persona id to scope stats by clearance
