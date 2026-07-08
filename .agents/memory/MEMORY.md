@@ -14,3 +14,5 @@
 - [Mística gotchas](mistica-gotchas.md) — @telefonica/mistica API constraints (spacing steps, Touchable, Drawer, Tag, borderRadii.avatar) that break typecheck if ignored.
 - [Governance access side channels](governance-access-side-channels.md) — all Ask side channels must gate via the shared area+clearance resolver; rank-only checks caused a leak.
 - [Multilingual retrieval synonyms](multilingual-retrieval-synonyms.md) — cross-language EN/ES/DE/PT matching is a curated tokenizer synonym map (accent-fold first), not translation; beware short-word collisions.
+- [Server bundling natives](esbuild-native-externals.md) — packages with native .node bindings or file-relative data (resvg, pdfkit) must be externalized in api-server build.mjs, not bundled.
+- [Export governance gates](export-governance.md) — export gates re-derive citation confidentiality from the server corpus and key scheduled lineage on multiple server-known ids; never trust client draft labels.

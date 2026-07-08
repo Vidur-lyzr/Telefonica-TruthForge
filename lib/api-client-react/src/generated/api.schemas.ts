@@ -1389,9 +1389,82 @@ export interface VersionGovernance {
   owner: string;
 }
 
+export type ExportDocumentInputFormat = typeof ExportDocumentInputFormat[keyof typeof ExportDocumentInputFormat];
+
+
+export const ExportDocumentInputFormat = {
+  docx: 'docx',
+  pptx: 'pptx',
+  pdf: 'pdf',
+} as const;
+
+/**
+ * Export destination. "external" strips internal-only material and refuses any non-public content (default internal).
+ */
+export type ExportDocumentInputDestination = typeof ExportDocumentInputDestination[keyof typeof ExportDocumentInputDestination];
+
+
+export const ExportDocumentInputDestination = {
+  internal: 'internal',
+  external: 'external',
+} as const;
+
+export interface ExportDocumentInput {
+  draft: GeneratedDraft;
+  format: ExportDocumentInputFormat;
+  /** Export destination. "external" strips internal-only material and refuses any non-public content (default internal). */
+  destination?: ExportDocumentInputDestination;
+  /**
+     * Export template id; defaults to the draft shape's template.
+     * @nullable
+     */
+  templateId?: string | null;
+}
+
+export interface ExportTemplateBlock {
+  kind: string;
+  label: string;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface ExportTemplatePreview {
+  heading: string;
+  lines: string[];
+}
+
+export type ExportTemplateFormatsItem = typeof ExportTemplateFormatsItem[keyof typeof ExportTemplateFormatsItem];
+
+
+export const ExportTemplateFormatsItem = {
+  docx: 'docx',
+  pptx: 'pptx',
+  pdf: 'pdf',
+} as const;
+
+export interface ExportTemplate {
+  id: string;
+  name: string;
+  description: string;
+  owner: string;
+  version: string;
+  /** Draft shapes this template accepts; empty accepts any. */
+  shapes: string[];
+  formats: ExportTemplateFormatsItem[];
+  blocks: ExportTemplateBlock[];
+  preview: ExportTemplatePreview;
+}
+
 export interface SavedVersion {
   id: string;
   version: number;
+  /**
+     * Previous version in the same document chain, if any.
+     * @nullable
+     */
+  previousVersionId: string | null;
+  /** Deterministic brief tags plus derived content tags. */
+  tags: string[];
   title: string;
   shape: string;
   language: string;

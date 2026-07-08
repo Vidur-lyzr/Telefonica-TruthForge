@@ -2031,11 +2031,13 @@ export const ApproveReviewItemResponse = zod.object({
 
 
 /**
- * @summary Saved document versions (in-memory; reset on restart)
+ * @summary Saved document versions (file-backed; survive restarts)
  */
 export const ListVersionsResponseItem = zod.object({
   "id": zod.string(),
   "version": zod.number(),
+  "previousVersionId": zod.string().nullable().describe('Previous version in the same document chain, if any.'),
+  "tags": zod.array(zod.string()).describe('Deterministic brief tags plus derived content tags.'),
   "title": zod.string(),
   "shape": zod.string(),
   "language": zod.string(),
@@ -2258,6 +2260,8 @@ export const SaveVersionBody = zod.object({
 export const SaveVersionResponse = zod.object({
   "id": zod.string(),
   "version": zod.number(),
+  "previousVersionId": zod.string().nullable().describe('Previous version in the same document chain, if any.'),
+  "tags": zod.array(zod.string()).describe('Deterministic brief tags plus derived content tags.'),
   "title": zod.string(),
   "shape": zod.string(),
   "language": zod.string(),
@@ -2369,6 +2373,117 @@ export const SaveVersionResponse = zod.object({
   "approved": zod.boolean().optional()
 })
 })
+
+
+/**
+ * Renders the draft into a Telefónica-templated binary document with embedded on-brand charts. Governance is enforced server-side before any byte is rendered: the Brand Guardian is re-run, scheduled drafts must match their approved content hash, and an external destination refuses any non-public content.
+ * @summary Export a guardian-passed draft as a real .docx, .pptx or .pdf file
+ */
+export const ExportDocumentBody = zod.object({
+  "draft": zod.object({
+  "id": zod.string(),
+  "status": zod.string().describe('drafted | no_evidence | permission_blocked'),
+  "shape": zod.string(),
+  "templateId": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "audience": zod.string(),
+  "confidentiality": zod.string(),
+  "umbrella": zod.string().nullish(),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "heading": zod.string(),
+  "axisId": zod.string().nullish(),
+  "body": zod.string(),
+  "citationIds": zod.array(zod.string()),
+  "internalOnly": zod.boolean()
+})),
+  "spokesperson": zod.array(zod.object({
+  "question": zod.string(),
+  "guidance": zod.string(),
+  "doNotSay": zod.string().nullish()
+})),
+  "charts": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "type": zod.string().describe('bar | line'),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "points": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+}))
+})),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
+  "confidentiality": zod.string().describe('public | internal | confidential | restricted'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "axisIds": zod.array(zod.string()),
+  "guardian": zod.object({
+  "status": zod.string().describe('pass | block'),
+  "summary": zod.string(),
+  "findings": zod.array(zod.object({
+  "severity": zod.string().describe('error | warning'),
+  "rule": zod.string(),
+  "message": zod.string(),
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
+}))
+}),
+  "historic": zod.boolean(),
+  "historicNote": zod.string().nullish(),
+  "permissionNote": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "params": zod.object({
+  "shape": zod.string(),
+  "topic": zod.string(),
+  "roleId": zod.string(),
+  "audience": zod.string(),
+  "language": zod.string(),
+  "confidentiality": zod.string(),
+  "format": zod.string(),
+  "axisIds": zod.array(zod.string())
+}),
+  "origin": zod.string().optional().describe('manual | scheduled'),
+  "reviewItemId": zod.string().nullish(),
+  "approved": zod.boolean().optional()
+}),
+  "format": zod.enum(['docx', 'pptx', 'pdf']),
+  "destination": zod.enum(['internal', 'external']).optional().describe('Export destination. \"external\" strips internal-only material and refuses any non-public content (default internal).\n'),
+  "templateId": zod.string().nullish().describe('Export template id; defaults to the draft shape\'s template.')
+})
+
+export const ExportDocumentResponse = zod.unknown()
 
 
 /**
@@ -3290,6 +3405,31 @@ export const GetBrandResourcesResponse = zod.object({
   "validity": zod.string()
 }))
 })
+
+
+/**
+ * The Telefónica export templates the export engine can render — talking points, press release, Q&A briefing, generic report, KPI report and the 10-day forecast — with their structure and an illustrative preview.
+ * @summary Export template library for governed document downloads
+ */
+export const GetExportTemplatesResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "owner": zod.string(),
+  "version": zod.string(),
+  "shapes": zod.array(zod.string()).describe('Draft shapes this template accepts; empty accepts any.'),
+  "formats": zod.array(zod.enum(['docx', 'pptx', 'pdf'])),
+  "blocks": zod.array(zod.object({
+  "kind": zod.string(),
+  "label": zod.string(),
+  "note": zod.string().nullish()
+})),
+  "preview": zod.object({
+  "heading": zod.string(),
+  "lines": zod.array(zod.string())
+})
+})
+export const GetExportTemplatesResponse = zod.array(GetExportTemplatesResponseItem)
 
 
 /**

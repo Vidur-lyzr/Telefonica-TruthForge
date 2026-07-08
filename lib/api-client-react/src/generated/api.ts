@@ -39,6 +39,8 @@ import type {
   DocFreshness,
   DocumentShape,
   ErrorResponse,
+  ExportDocumentInput,
+  ExportTemplate,
   GenerateInput,
   GeneratedAssets,
   GeneratedDraft,
@@ -2954,7 +2956,7 @@ export const getListVersionsUrl = () => {
 }
 
 /**
- * @summary Saved document versions (in-memory; reset on restart)
+ * @summary Saved document versions (file-backed; survive restarts)
  */
 export const listVersions = async ( options?: RequestInit): Promise<SavedVersion[]> => {
 
@@ -3001,7 +3003,7 @@ export type ListVersionsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Saved document versions (in-memory; reset on restart)
+ * @summary Saved document versions (file-backed; survive restarts)
  */
 
 export function useListVersions<TData = Awaited<ReturnType<typeof listVersions>>, TError = ErrorType<unknown>>(
@@ -3090,6 +3092,77 @@ export const useSaveVersion = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getSaveVersionMutationOptions(options));
+    }
+
+export const getExportDocumentUrl = () => {
+
+
+
+
+  return `/api/generate/export`
+}
+
+/**
+ * Renders the draft into a Telefónica-templated binary document with embedded on-brand charts. Governance is enforced server-side before any byte is rendered: the Brand Guardian is re-run, scheduled drafts must match their approved content hash, and an external destination refuses any non-public content.
+ * @summary Export a guardian-passed draft as a real .docx, .pptx or .pdf file
+ */
+export const exportDocument = async (exportDocumentInput: ExportDocumentInput, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getExportDocumentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(exportDocumentInput)
+  }
+);}
+
+
+
+
+export const getExportDocumentMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportDocument>>, TError,{data: BodyType<ExportDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof exportDocument>>, TError,{data: BodyType<ExportDocumentInput>}, TContext> => {
+
+const mutationKey = ['exportDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof exportDocument>>, {data: BodyType<ExportDocumentInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  exportDocument(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExportDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof exportDocument>>>
+    export type ExportDocumentMutationBody = BodyType<ExportDocumentInput>
+    export type ExportDocumentMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Export a guardian-passed draft as a real .docx, .pptx or .pdf file
+ */
+export const useExportDocument = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportDocument>>, TError,{data: BodyType<ExportDocumentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof exportDocument>>,
+        TError,
+        {data: BodyType<ExportDocumentInput>},
+        TContext
+      > => {
+      return useMutation(getExportDocumentMutationOptions(options));
     }
 
 export const getStartGenerateJobUrl = () => {
@@ -4500,6 +4573,84 @@ export function useGetBrandResources<TData = Awaited<ReturnType<typeof getBrandR
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetBrandResourcesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetExportTemplatesUrl = () => {
+
+
+
+
+  return `/api/brand/export-templates`
+}
+
+/**
+ * The Telefónica export templates the export engine can render — talking points, press release, Q&A briefing, generic report, KPI report and the 10-day forecast — with their structure and an illustrative preview.
+ * @summary Export template library for governed document downloads
+ */
+export const getExportTemplates = async ( options?: RequestInit): Promise<ExportTemplate[]> => {
+
+  return customFetch<ExportTemplate[]>(getGetExportTemplatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetExportTemplatesQueryKey = () => {
+    return [
+    `/api/brand/export-templates`
+    ] as const;
+    }
+
+
+export const getGetExportTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof getExportTemplates>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExportTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetExportTemplatesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getExportTemplates>>> = ({ signal }) => getExportTemplates({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getExportTemplates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetExportTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof getExportTemplates>>>
+export type GetExportTemplatesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Export template library for governed document downloads
+ */
+
+export function useGetExportTemplates<TData = Awaited<ReturnType<typeof getExportTemplates>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExportTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetExportTemplatesQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

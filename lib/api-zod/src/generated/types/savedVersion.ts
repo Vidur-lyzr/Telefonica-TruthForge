@@ -11,6 +11,13 @@ import type { VersionGovernance } from './versionGovernance';
 export interface SavedVersion {
   id: string;
   version: number;
+  /**
+     * Previous version in the same document chain, if any.
+     * @nullable
+     */
+  previousVersionId: string | null;
+  /** Deterministic brief tags plus derived content tags. */
+  tags: string[];
   title: string;
   shape: string;
   language: string;

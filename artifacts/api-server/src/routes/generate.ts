@@ -21,7 +21,14 @@ import {
   StartGenerateJobBody,
   StartRefineJobBody,
   GetGenerationJobResponse,
+  ExportDocumentBody,
 } from "@workspace/api-zod";
+import {
+  exportDraft,
+  ExportRefusedError,
+  type ExportDestination,
+} from "../export/exportService";
+import type { ExportFormat } from "../export/exportTemplates";
 import {
   runGenerateAgent,
   refineDraft,
@@ -51,6 +58,7 @@ import {
   registerScheduledDraft,
   findScheduledReviewItemId,
   hashDraftContent,
+  touchReviewItem,
   createJob,
   getJob,
   setJobStage,
@@ -244,6 +252,9 @@ router.post("/generate/schedules/:id/run", async (req, res) => {
     // review item so the save/version gate never has to trust client-submitted
     // provenance — mutating draft.id cannot escape the gate.
     registerScheduledDraft([item.draft.id, hashDraftContent(item.draft)], item.id);
+    // The provenance stamps above mutated the stored item after addReviewItem
+    // persisted it — write the snapshot again so they survive a restart.
+    touchReviewItem(item.id);
     res.json(RunScheduleResponse.parse(item));
   } catch (err) {
     req.log.error({ err }, "run schedule failed");
@@ -349,6 +360,41 @@ router.post("/generate/versions", async (req, res) => {
     draft: { ...draft, guardian },
   });
   res.json(SaveVersionResponse.parse(record));
+});
+
+router.post("/generate/export", async (req, res) => {
+  const parsed = ExportDocumentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const draft = parsed.data.draft as unknown as GeneratedDraft;
+  const format = parsed.data.format as ExportFormat;
+  const destination = (parsed.data.destination as ExportDestination | undefined) ?? "internal";
+  try {
+    const result = await exportDraft(draft, format, destination, parsed.data.templateId ?? null);
+    req.log.info(
+      {
+        format,
+        destination,
+        templateId: result.templateId,
+        charts: result.chartCount,
+        bytes: result.buffer.length,
+      },
+      "document exported",
+    );
+    res.setHeader("Content-Type", result.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+    res.send(result.buffer);
+  } catch (err) {
+    if (err instanceof ExportRefusedError) {
+      const status = err.code === "not_exportable" ? 400 : 409;
+      res.status(status).json({ error: err.message });
+      return;
+    }
+    req.log.error({ err }, "export route failed");
+    res.status(500).json({ error: "The Hub could not export this document." });
+  }
 });
 
 // ---- Observable, staged jobs -----------------------------------------------

@@ -29,6 +29,10 @@ async function buildAll() {
     // - use path traversal to read files (e.g. @google-cloud/secret-manager loads sibling .proto files)
     external: [
       "*.node",
+      // resvg loads a native .node binding; pdfkit reads its .afm font data
+      // from files relative to its own package dir — neither survives bundling.
+      "@resvg/*",
+      "pdfkit",
       // gitagent + its model layer use dynamic imports and file-relative
       // resolution that do not survive bundling; keep them external.
       "@open-gitagent/*",

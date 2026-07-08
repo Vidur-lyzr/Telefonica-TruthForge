@@ -1,11 +1,17 @@
-// In-memory demo store for the Generate engine: saved document versions,
-// scheduled-document definitions and the human review inbox.
+// File-backed store for the Generate engine: saved document versions (with
+// full tags and a version chain), scheduled-document definitions and the human
+// review inbox.
 //
-// No database is used (project constraint). All state here is process-local and
-// resets when the server restarts. The UI surfaces this limitation where
-// relevant so nothing implies durable persistence.
+// No database is used (project constraint). State is held in memory for speed
+// and persisted as a JSON snapshot on every mutation, so saved versions,
+// schedules, review items and the scheduled-draft lineage survive a server
+// restart. Generation jobs are deliberately NOT persisted — they are transient
+// progress trackers for in-flight requests.
 
 import { createHash } from "node:crypto";
+import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { logger } from "../lib/logger";
 import type { GeneratedDraft, GenerationStage } from "../agent/generateAgent";
 
 export interface SavedVersion {
@@ -18,6 +24,11 @@ export interface SavedVersion {
   confidentiality: string;
   savedAt: string;
   savedBy: string;
+  // Previous version of the same document chain (same title), if any.
+  previousVersionId: string | null;
+  // Full tag set: deterministic tags from the brief plus derived tags from the
+  // composed content, so versions are findable and auditable.
+  tags: string[];
   // 3-layer governance tags captured at save time.
   governance: {
     confidentiality: string;
@@ -69,15 +80,77 @@ export interface ReviewItem {
   approvedHash: string | null;
 }
 
-const savedVersions: SavedVersion[] = [];
-const schedules: Schedule[] = [];
-const reviewInbox: ReviewItem[] = [];
+// ---- Persistence -------------------------------------------------------------
+// A single JSON snapshot, written atomically (temp file + rename) on every
+// mutation. Loaded once at module init; corrupt or missing files fail soft to
+// an empty store so a bad disk state can never take the API down.
+
+const STORE_PATH = join(process.cwd(), ".data", "generate-store.json");
+
+interface PersistedState {
+  savedVersions: SavedVersion[];
+  schedules: Schedule[];
+  reviewInbox: ReviewItem[];
+  scheduledDraftIndex: Record<string, string>;
+  idCounter: number;
+}
+
+let savedVersions: SavedVersion[] = [];
+let schedules: Schedule[] = [];
+let reviewInbox: ReviewItem[] = [];
 // Server-authoritative lineage for every draft produced by a schedule. Keyed by
 // BOTH the draft id AND the content hash, so a caller cannot escape the gate by
 // mutating the client-supplied draft.id: the content hash still resolves to the
-// review item. The save/version gate consults THIS, never the client-submitted
-// draft.origin/approved fields (which are UX hints and can be tampered with).
-const scheduledDraftIndex = new Map<string, string>();
+// review item. The save/version/export gates consult THIS, never the
+// client-submitted draft.origin/approved fields.
+let scheduledDraftIndex = new Map<string, string>();
+let idCounter = 0;
+
+function load(): void {
+  try {
+    if (!existsSync(STORE_PATH)) return;
+    const raw = JSON.parse(readFileSync(STORE_PATH, "utf8")) as Partial<PersistedState>;
+    savedVersions = Array.isArray(raw.savedVersions) ? raw.savedVersions : [];
+    schedules = Array.isArray(raw.schedules) ? raw.schedules : [];
+    reviewInbox = Array.isArray(raw.reviewInbox) ? raw.reviewInbox : [];
+    scheduledDraftIndex = new Map(Object.entries(raw.scheduledDraftIndex ?? {}));
+    idCounter = typeof raw.idCounter === "number" ? raw.idCounter : 0;
+    logger.info(
+      {
+        versions: savedVersions.length,
+        schedules: schedules.length,
+        reviewItems: reviewInbox.length,
+      },
+      "generate store loaded from disk",
+    );
+  } catch (err) {
+    logger.error({ err }, "generate store could not be loaded; starting empty");
+    savedVersions = [];
+    schedules = [];
+    reviewInbox = [];
+    scheduledDraftIndex = new Map();
+  }
+}
+
+function persist(): void {
+  try {
+    const state: PersistedState = {
+      savedVersions,
+      schedules,
+      reviewInbox,
+      scheduledDraftIndex: Object.fromEntries(scheduledDraftIndex),
+      idCounter,
+    };
+    mkdirSync(dirname(STORE_PATH), { recursive: true });
+    const tmp = `${STORE_PATH}.tmp`;
+    writeFileSync(tmp, JSON.stringify(state), "utf8");
+    renameSync(tmp, STORE_PATH);
+  } catch (err) {
+    logger.error({ err }, "generate store could not be persisted");
+  }
+}
+
+load();
 
 // Deterministic hash of the governed CONTENT of a draft (ignores volatile fields
 // like guardian verdict and provenance flags), used to bind an approval to the
@@ -102,6 +175,7 @@ export function registerScheduledDraft(keys: string[], reviewItemId: string): vo
   for (const key of keys) {
     if (key) scheduledDraftIndex.set(key, reviewItemId);
   }
+  persist();
 }
 
 export function findScheduledReviewItemId(keys: string[]): string | undefined {
@@ -112,10 +186,32 @@ export function findScheduledReviewItemId(keys: string[]): string | undefined {
   return undefined;
 }
 
-let idCounter = 0;
 function nextId(prefix: string): string {
   idCounter += 1;
   return `${prefix}-${Date.now().toString(36)}-${idCounter}`;
+}
+
+// ---- Version tags --------------------------------------------------------------
+// Deterministic tags come straight from the brief; derived tags are computed
+// from the composed content at save time.
+
+export function buildVersionTags(draft: GeneratedDraft): string[] {
+  const tags = new Set<string>();
+  // Deterministic (from the brief)
+  tags.add(`shape:${draft.shape}`);
+  tags.add(`language:${draft.language}`);
+  tags.add(`audience:${draft.audience}`);
+  tags.add(`confidentiality:${draft.confidentiality}`);
+  if (draft.params.format) tags.add(`format:${draft.params.format}`);
+  for (const axisId of draft.axisIds) tags.add(`axis:${axisId}`);
+  // Derived (from the composed content)
+  tags.add(`sources:${draft.citations.length}`);
+  if (draft.charts.length > 0) tags.add("has-charts");
+  if (draft.spokesperson.length > 0) tags.add("has-spokesperson-notes");
+  if (draft.historic) tags.add("historic-sources");
+  if (draft.guardian.status === "pass") tags.add("guardian-passed");
+  tags.add(`origin:${draft.origin ?? "manual"}`);
+  return [...tags];
 }
 
 // ---- Saved versions ----------------------------------------------------------
@@ -125,16 +221,20 @@ export function listVersions(): SavedVersion[] {
 }
 
 export function saveVersion(
-  input: Omit<SavedVersion, "id" | "version" | "savedAt">,
+  input: Omit<SavedVersion, "id" | "version" | "savedAt" | "previousVersionId" | "tags">,
 ): SavedVersion {
-  const priorForTitle = savedVersions.filter((v) => v.title === input.title).length;
+  const chain = savedVersions.filter((v) => v.title === input.title);
+  const previous = chain.sort((a, b) => b.version - a.version)[0] ?? null;
   const record: SavedVersion = {
     ...input,
     id: nextId("ver"),
-    version: priorForTitle + 1,
+    version: (previous?.version ?? 0) + 1,
+    previousVersionId: previous?.id ?? null,
+    tags: buildVersionTags(input.draft),
     savedAt: new Date().toISOString(),
   };
   savedVersions.push(record);
+  persist();
   return record;
 }
 
@@ -158,12 +258,16 @@ export function createSchedule(
     lastRunAt: null,
   };
   schedules.push(record);
+  persist();
   return record;
 }
 
 export function markScheduleRun(id: string): void {
   const s = schedules.find((x) => x.id === id);
-  if (s) s.lastRunAt = new Date().toISOString();
+  if (s) {
+    s.lastRunAt = new Date().toISOString();
+    persist();
+  }
 }
 
 // ---- Review inbox ------------------------------------------------------------
@@ -188,7 +292,14 @@ export function addReviewItem(
     approvedHash: null,
   };
   reviewInbox.push(record);
+  persist();
   return record;
+}
+
+// Persist mutations made on a review item's draft by callers that stamp
+// provenance after addReviewItem (the run-schedule route mutates item.draft).
+export function touchReviewItem(id: string): void {
+  if (reviewInbox.some((r) => r.id === id)) persist();
 }
 
 export function approveReviewItem(
@@ -201,6 +312,7 @@ export function approveReviewItem(
   item.approvedAt = new Date().toISOString();
   item.draft = draft;
   item.approvedHash = hashDraftContent(draft);
+  persist();
   return item;
 }
 
@@ -208,7 +320,7 @@ export function approveReviewItem(
 // The compose pipeline runs a real sequence of governed phases (retrieval ->
 // composing -> guardian). A job records the phase the server is ACTUALLY in so
 // the client can watch true backend progress by polling, instead of guessing on
-// a timer. In-memory only, like the rest of this store.
+// a timer. Transient by design — never persisted.
 
 export type JobStatus = "running" | "done" | "error";
 

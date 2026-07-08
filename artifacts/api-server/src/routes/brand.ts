@@ -4,9 +4,11 @@ import {
   GetBrandTemplateResponse,
   GetBrandToneResponse,
   GetBrandResourcesResponse,
+  GetExportTemplatesResponse,
   CheckBrandTextBody,
   CheckBrandTextResponse,
 } from "@workspace/api-zod";
+import { EXPORT_TEMPLATES } from "../export/exportTemplates";
 import {
   accessibleTemplates,
   accessibleTemplate,
@@ -44,6 +46,10 @@ router.get("/brand/tone", (_req, res) => {
 router.get("/brand/resources", (req, res) => {
   const view = accessibleResources(roleIdParam(req.query.roleId));
   res.json(GetBrandResourcesResponse.parse(view));
+});
+
+router.get("/brand/export-templates", (_req, res) => {
+  res.json(GetExportTemplatesResponse.parse(EXPORT_TEMPLATES));
 });
 
 router.post("/brand/check", (req, res) => {

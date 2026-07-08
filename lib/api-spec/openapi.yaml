@@ -863,7 +863,7 @@ paths:
     get:
       operationId: listVersions
       tags: [generate]
-      summary: Saved document versions (in-memory; reset on restart)
+      summary: Saved document versions (file-backed; survive restarts)
       responses:
         "200":
           description: Saved versions
@@ -892,6 +892,44 @@ paths:
                 $ref: "#/components/schemas/SavedVersion"
         "409":
           description: Guardian has not passed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /generate/export:
+    post:
+      operationId: exportDocument
+      tags: [generate]
+      summary: Export a guardian-passed draft as a real .docx, .pptx or .pdf file
+      description: >
+        Renders the draft into a Telefónica-templated binary document with
+        embedded on-brand charts. Governance is enforced server-side before any
+        byte is rendered: the Brand Guardian is re-run, scheduled drafts must
+        match their approved content hash, and an external destination refuses
+        any non-public content.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportDocumentInput"
+      responses:
+        "200":
+          description: The rendered document (binary)
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "409":
+          description: Export refused by a governance gate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid request
           content:
             application/json:
               schema:
@@ -1269,6 +1307,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BrandResourcesView"
+
+  /brand/export-templates:
+    get:
+      operationId: getExportTemplates
+      tags: [brand-room]
+      summary: Export template library for governed document downloads
+      description: >
+        The Telefónica export templates the export engine can render — talking
+        points, press release, Q&A briefing, generic report, KPI report and the
+        10-day forecast — with their structure and an illustrative preview.
+      responses:
+        "200":
+          description: Export templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExportTemplate"
 
   /brand/check:
     post:
@@ -3840,15 +3897,95 @@ components:
         owner:
           type: string
 
+    ExportDocumentInput:
+      type: object
+      required: [draft, format]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+        format:
+          type: string
+          enum: [docx, pptx, pdf]
+        destination:
+          type: string
+          enum: [internal, external]
+          description: >
+            Export destination. "external" strips internal-only material and
+            refuses any non-public content (default internal).
+        templateId:
+          type: ["string", "null"]
+          description: Export template id; defaults to the draft shape's template.
+
+    ExportTemplateBlock:
+      type: object
+      required: [kind, label]
+      properties:
+        kind:
+          type: string
+        label:
+          type: string
+        note:
+          type: ["string", "null"]
+
+    ExportTemplatePreview:
+      type: object
+      required: [heading, lines]
+      properties:
+        heading:
+          type: string
+        lines:
+          type: array
+          items:
+            type: string
+
+    ExportTemplate:
+      type: object
+      required: [id, name, description, owner, version, shapes, formats, blocks, preview]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        owner:
+          type: string
+        version:
+          type: string
+        shapes:
+          type: array
+          items:
+            type: string
+          description: Draft shapes this template accepts; empty accepts any.
+        formats:
+          type: array
+          items:
+            type: string
+            enum: [docx, pptx, pdf]
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportTemplateBlock"
+        preview:
+          $ref: "#/components/schemas/ExportTemplatePreview"
+
     SavedVersion:
       type: object
       required:
-        [id, version, title, shape, language, audience, confidentiality, savedAt, savedBy, governance, draft]
+        [id, version, title, shape, language, audience, confidentiality, savedAt, savedBy, previousVersionId, tags, governance, draft]
       properties:
         id:
           type: string
         version:
           type: integer
+        previousVersionId:
+          type: ["string", "null"]
+          description: Previous version in the same document chain, if any.
+        tags:
+          type: array
+          items:
+            type: string
+          description: Deterministic brief tags plus derived content tags.
         title:
           type: string
         shape:
