@@ -32,6 +32,7 @@ import {
   DOCS,
   GRAPH_NODES,
   ROLES,
+  SUGGESTIONS,
   getDoc,
   type Area,
   type Assertion,
@@ -203,6 +204,66 @@ function entitiesInText(text: string): string[] {
   return Array.from(new Set(names));
 }
 
+type ConversationalKind = "greeting" | "thanks" | "capabilities";
+
+// Deterministic detection of conversational turns in the app's languages
+// (EN/ES/DE/PT). Only very short inputs qualify — anything with substance
+// still goes through governed retrieval.
+function detectConversational(question: string): ConversationalKind | null {
+  const q = question
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[¿¡!?.,;:]/g, "")
+    .trim();
+  const words = q.split(/\s+/).filter(Boolean);
+  if (words.length === 0 || words.length > 8) return null;
+
+  const greetings = new Set([
+    "hello", "hi", "hey", "good", "morning", "afternoon", "evening",
+    "hola", "buenas", "buenos", "dias", "tardes", "noches",
+    "hallo", "guten", "morgen", "tag", "abend", "servus",
+    "ola", "bom", "boa", "dia", "tarde", "noite",
+  ]);
+  const thanks = new Set([
+    "thanks", "thank", "you", "cheers", "gracias", "danke", "obrigado", "obrigada", "merci",
+  ]);
+  const capabilityPhrases = [
+    "what can you do", "who are you", "what are you", "how do you work", "help",
+    "que puedes hacer", "quien eres", "que eres", "como funcionas", "ayuda",
+    "was kannst du", "wer bist du", "wie funktionierst du", "hilfe",
+    "o que voce pode fazer", "quem e voce", "como voce funciona", "ajuda",
+  ];
+
+  // Capability phrases must match the WHOLE turn (optionally preceded by a
+  // greeting, e.g. "hi, what can you do"). Substring matching is deliberately
+  // avoided: "Who are you targeting in Germany?" is a governed question, not
+  // small talk, and must go through retrieval.
+  const withoutLeadingGreeting = words
+    .join(" ")
+    .replace(/^((hello|hi|hey|hola|hallo|ola)\s+)+/, "");
+  if (
+    capabilityPhrases.some(
+      (p) => q === p || withoutLeadingGreeting === p,
+    )
+  )
+    return "capabilities";
+  if (words.length <= 4 && words.every((w) => thanks.has(w))) return "thanks";
+  if (words.length <= 4 && words.every((w) => greetings.has(w))) return "greeting";
+  return null;
+}
+
+function conversationalAnswer(kind: ConversationalKind, roleLabel: string): string {
+  switch (kind) {
+    case "greeting":
+      return `Hello. I am the Hub's governed assistant, and you are currently browsing as ${roleLabel}. Ask me about strategy, brand or corporate facts and I will answer only from the governed corpus, always citing my sources. If the evidence is missing, blocked by your clearance or out of date, I will say so honestly.`;
+    case "thanks":
+      return "You're welcome. Ask whenever you need a cited, governed answer.";
+    case "capabilities":
+      return `I answer questions about Telefónica strategy, brand and corporate facts using only the governed corpus, and every claim I make carries a citation you can open. I respect your persona's clearance — currently ${roleLabel} — so I will tell you plainly when material exists but is above your access, when no evidence exists, or when a source is historic. I can also work with an attached document as session context, though I will never cite it as governed evidence.`;
+  }
+}
+
 export async function runAskAgent(
   input: AskAgentInput,
   log: Logger,
@@ -237,6 +298,41 @@ export async function runAskAgent(
     state: "done",
     detail: `${role.label} — ${role.area} / ${clearance}`,
   });
+  // Conversational turns (greetings, thanks, "what can you do") are not corpus
+  // questions. Answer them as the governed assistant instead of forcing them
+  // through retrieval and returning a jarring "no evidence".
+  const conversational = detectConversational(input.question);
+  if (conversational) {
+    log.info({ q: input.question, roleId: role.id }, "ask: conversational");
+    emit?.({
+      type: "step",
+      id: "decide",
+      label: "Recognising a conversational turn",
+      state: "done",
+      detail: "no retrieval needed",
+    });
+    return {
+      status: "answered",
+      answer: conversationalAnswer(conversational, role.label),
+      citations: [],
+      historic: false,
+      lowConfidence: false,
+      axisIds: [],
+      numeric: null,
+      adjacentDatum: null,
+      relatedEntities: [],
+      suggestedNext: SUGGESTIONS.filter((s) => s.kind === "cited")
+        .slice(0, 3)
+        .map((s) => ({
+          id: s.id,
+          text: s.text,
+          rationale: "A question the governed corpus can answer with citations",
+        })),
+      retrievalModes: [],
+      attachmentAck: null,
+    };
+  }
+
   emit?.({
     type: "step",
     id: "retrieve",
