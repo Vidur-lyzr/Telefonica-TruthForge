@@ -174,7 +174,9 @@ export const ListDocumentsResponseItem = zod.object({
   "topics": zod.array(zod.string()),
   "axisIds": zod.array(zod.string()),
   "summary": zod.string(),
-  "chunkCount": zod.number()
+  "chunkCount": zod.number(),
+  "sourceFormat": zod.string().describe('Simulated source format (structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump)'),
+  "connector": zod.string().describe('Simulated connector \/ provenance the document arrived through')
 })
 export const ListDocumentsResponse = zod.array(ListDocumentsResponseItem)
 
@@ -309,7 +311,9 @@ export const GetDocumentResponse = zod.object({
   "topics": zod.array(zod.string()),
   "axisIds": zod.array(zod.string()),
   "summary": zod.string(),
-  "chunkCount": zod.number()
+  "chunkCount": zod.number(),
+  "sourceFormat": zod.string().describe('Simulated source format (structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump)'),
+  "connector": zod.string().describe('Simulated connector \/ provenance the document arrived through')
 }),
   "chunks": zod.array(zod.object({
   "id": zod.string(),
@@ -3091,6 +3095,30 @@ export const GetIngestionSnapshotResponse = zod.object({
 })),
   "validatedPct": zod.number(),
   "taxonomyVersion": zod.string()
+})
+
+
+/**
+ * @summary Pre-ingestion relevance filter for external sources — rules and recent kept/dropped mentions
+ */
+export const GetRelevanceFilterResponse = zod.object({
+  "rules": zod.array(zod.object({
+  "id": zod.string(),
+  "category": zod.string().describe('keywords | competitors | executives | topics'),
+  "terms": zod.array(zod.string()),
+  "note": zod.string()
+})),
+  "mentions": zod.array(zod.object({
+  "id": zod.string(),
+  "source": zod.string(),
+  "excerpt": zod.string(),
+  "matchedRule": zod.string().nullable().describe('The rule category + term that matched, null when nothing matched'),
+  "sentiment": zod.string().describe('positive | negative | neutral'),
+  "decision": zod.string().describe('kept | dropped'),
+  "at": zod.string()
+})),
+  "keptCount": zod.number(),
+  "droppedCount": zod.number()
 })
 
 

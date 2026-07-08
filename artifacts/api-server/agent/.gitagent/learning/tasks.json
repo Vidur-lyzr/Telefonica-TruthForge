@@ -1,0 +1,24 @@
+{
+  "tasks": [
+    {
+      "id": "8c495a21-dac8-42d5-b7bf-397b0660bb90",
+      "objective": "Answer a governed question about German telecoms legislation and network build-out impact",
+      "steps": [],
+      "attempts": 1,
+      "status": "succeeded",
+      "started_at": "2026-07-08T00:42:50.994Z",
+      "outcome": "success",
+      "ended_at": "2026-07-08T00:42:59.032Z"
+    },
+    {
+      "id": "188640f6-0217-4cde-ba58-93e099608b6e",
+      "objective": "Answer a governed question about German telecoms legislation and network build-out impact",
+      "steps": [],
+      "attempts": 1,
+      "status": "succeeded",
+      "started_at": "2026-07-08T00:43:10.953Z",
+      "outcome": "success",
+      "ended_at": "2026-07-08T00:43:17.084Z"
+    }
+  ]
+}

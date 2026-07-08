@@ -24,4 +24,8 @@ export interface CorpusDocument {
   axisIds: string[];
   summary: string;
   chunkCount: number;
+  /** Simulated source format (structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump) */
+  sourceFormat: string;
+  /** Simulated connector / provenance the document arrived through */
+  connector: string;
 }

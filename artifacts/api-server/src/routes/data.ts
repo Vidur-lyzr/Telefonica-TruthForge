@@ -2,12 +2,14 @@ import { Router, type IRouter } from "express";
 import {
   ListDataSourcesResponse,
   GetIngestionSnapshotResponse,
+  GetRelevanceFilterResponse,
   ListValidationItemsResponse,
   ListDocumentFreshnessResponse,
 } from "@workspace/api-zod";
 import {
   DATA_SOURCES,
   INGESTION_SNAPSHOT,
+  RELEVANCE_FILTER,
   VALIDATION_ITEMS,
   DOC_FRESHNESS,
 } from "../data/dataCenter";
@@ -20,6 +22,10 @@ router.get("/data/sources", (_req, res) => {
 
 router.get("/data/ingestion", (_req, res) => {
   res.json(GetIngestionSnapshotResponse.parse(INGESTION_SNAPSHOT));
+});
+
+router.get("/data/relevance-filter", (_req, res) => {
+  res.json(GetRelevanceFilterResponse.parse(RELEVANCE_FILTER));
 });
 
 router.get("/data/validation", (_req, res) => {

@@ -57,6 +57,8 @@ router.get("/documents", (_req, res) => {
     axisIds: d.axisIds,
     summary: d.summary,
     chunkCount: d.chunks.length,
+    sourceFormat: d.sourceFormat,
+    connector: d.connector,
   }));
   res.json(ListDocumentsResponse.parse(items));
 });
@@ -108,6 +110,8 @@ router.get("/documents/:id", (req, res) => {
       axisIds: doc.axisIds,
       summary: doc.summary,
       chunkCount: doc.chunks.length,
+      sourceFormat: doc.sourceFormat,
+      connector: doc.connector,
     },
     chunks: doc.chunks.map((c) => ({
       id: c.id,

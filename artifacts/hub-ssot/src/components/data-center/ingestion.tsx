@@ -1,5 +1,8 @@
 import React from "react";
-import { useGetIngestionSnapshot } from "@workspace/api-client-react";
+import {
+  useGetIngestionSnapshot,
+  useGetRelevanceFilter,
+} from "@workspace/api-client-react";
 import type { QuarantineDoc } from "@workspace/api-client-react";
 import {
   Box,
@@ -30,6 +33,9 @@ import {
   IconAlertRegular,
   IconArrowLineRightRegular,
   IconArchiveRegular,
+  IconSearchRegular,
+  IconThumbUpRegular,
+  IconThumbDownRegular,
 } from "@telefonica/mistica";
 import { useDataCenter } from "./state";
 import { clearanceTagType, fieldLabel } from "./helpers";
@@ -47,6 +53,109 @@ const STAGE_ICON: Record<string, IconType> = {
 };
 
 const CLEARANCES = ["public", "internal", "confidential", "restricted"];
+
+function sentimentSign(sentiment: string): { label: string; color: string } {
+  if (sentiment === "positive") return { label: "+", color: skinVars.colors.success };
+  if (sentiment === "negative") return { label: "−", color: skinVars.colors.error };
+  return { label: "·", color: skinVars.colors.textSecondary };
+}
+
+function RelevanceFilterSection() {
+  const { data: filter } = useGetRelevanceFilter();
+  if (!filter) return null;
+
+  return (
+    <Boxed>
+      <Box padding={24}>
+        <Stack space={24}>
+          <Inline space="between" alignItems="center">
+            <Inline space={8} alignItems="center">
+              <IconSearchRegular size={20} color={skinVars.colors.brand} />
+              <Title2>Pre-ingestion relevance filter</Title2>
+            </Inline>
+            <Inline space={8} alignItems="center">
+              <Tag type="success">{`${filter.keptCount} kept`}</Tag>
+              <Tag type="inactive">{`${filter.droppedCount} dropped`}</Tag>
+            </Inline>
+          </Inline>
+
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            External mentions are screened against agreed rules before ingestion — keywords,
+            tracked competitors, named executives and priority topics. Dropped mentions never
+            reach the knowledge core.
+          </Text2>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {filter.rules.map((rule) => (
+              <div key={rule.id} style={{ flex: "1 1 220px", minWidth: 0 }}>
+                <Boxed>
+                  <Box padding={16}>
+                    <Stack space={8}>
+                      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                        {rule.category}
+                      </Text1>
+                      <Inline space={4} alignItems="center" wrap>
+                        {rule.terms.map((t) => (
+                          <Tag key={t} type="info">
+                            {t}
+                          </Tag>
+                        ))}
+                      </Inline>
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        {rule.note}
+                      </Text1>
+                    </Stack>
+                  </Box>
+                </Boxed>
+              </div>
+            ))}
+          </div>
+
+          <Divider />
+
+          <Stack space={12}>
+            <Title3>Recent decisions</Title3>
+            {filter.mentions.map((m) => {
+              const sign = sentimentSign(m.sentiment);
+              const kept = m.decision === "kept";
+              return (
+                <Inline key={m.id} space={12} alignItems="center">
+                  <Circle
+                    size={32}
+                    backgroundColor={
+                      kept ? skinVars.colors.successLow : skinVars.colors.neutralLow
+                    }
+                  >
+                    {kept ? (
+                      <IconThumbUpRegular size={14} color={skinVars.colors.success} />
+                    ) : (
+                      <IconThumbDownRegular size={14} color={skinVars.colors.textSecondary} />
+                    )}
+                  </Circle>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Stack space={2}>
+                      <Text2 regular color={skinVars.colors.textPrimary}>
+                        {m.excerpt}
+                      </Text2>
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        {m.source}
+                        {m.matchedRule ? ` · matched ${m.matchedRule}` : " · no rule matched"}
+                      </Text1>
+                    </Stack>
+                  </div>
+                  <Text2 medium color={sign.color}>
+                    {sign.label}
+                  </Text2>
+                  <Tag type={kept ? "success" : "inactive"}>{m.decision}</Tag>
+                </Inline>
+              );
+            })}
+          </Stack>
+        </Stack>
+      </Box>
+    </Boxed>
+  );
+}
 
 export default function IngestionArea() {
   const { data: snapshot } = useGetIngestionSnapshot();
@@ -87,6 +196,8 @@ export default function IngestionArea() {
 
   return (
     <Stack space={24}>
+      <RelevanceFilterSection />
+
       <Boxed>
         <Box padding={24}>
           <Stack space={24}>

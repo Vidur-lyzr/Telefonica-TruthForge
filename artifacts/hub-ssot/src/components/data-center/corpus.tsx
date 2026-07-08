@@ -126,7 +126,7 @@ export default function CorpusArea() {
             <BoxedRow
               key={doc.id}
               title={doc.title}
-              description={`${doc.brand} · ${doc.chunkCount} chunks`}
+              description={`${doc.brand} · ${doc.chunkCount} chunks · ${doc.sourceFormat} · via ${doc.connector} · ${doc.language.toUpperCase()}`}
               onPress={() => setSelectedDocId(doc.id)}
               right={
                 <Inline space={8} alignItems="center">
@@ -174,6 +174,17 @@ export default function CorpusArea() {
                 </Text2>
                 <Text2 regular color={skinVars.colors.textSecondary}>
                   Owner: {docDetail.document.owner}
+                </Text2>
+              </Inline>
+              <Inline space={16} alignItems="center" wrap>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  Format: {docDetail.document.sourceFormat}
+                </Text2>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  Source: {docDetail.document.connector}
+                </Text2>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  Language: {docDetail.document.language.toUpperCase()}
                 </Text2>
               </Inline>
             </Stack>

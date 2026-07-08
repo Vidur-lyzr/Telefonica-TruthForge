@@ -82,17 +82,183 @@ export const DATA_SOURCES: DataSource[] = [
     id: "src-sic",
     name: "SIC",
     type: "Corporate information system",
-    status: "to_configure",
-    cadence: "Not yet scheduled",
-    docCount: 0,
-    lastSync: null,
+    status: "filtered",
+    cadence: "Quarterly synthesis",
+    docCount: 12,
+    lastSync: "2d ago",
     externalFilter: true,
     filterNote:
-      "Filter scope to be agreed with the SIC owners before the first sync (keywords, entities, topics).",
+      "Filter scope agreed with the SIC owners: regulatory keywords, named entities and priority topics only.",
     description:
-      "Corporate information system connector, planned but not yet configured. No documents have been ingested from this source.",
+      "Corporate information system feed (simulated). Regulatory syntheses pass the agreed relevance filter before entering the core.",
+  },
+  {
+    id: "src-media",
+    name: "Media monitoring",
+    type: "Press & media coverage",
+    status: "filtered",
+    cadence: "Continuous, digested quarterly",
+    docCount: 96,
+    lastSync: "1h ago",
+    externalFilter: true,
+    filterNote:
+      "Pre-ingestion filter: tracked outlets, competitors, executives and priority topics. Irrelevant articles never enter the core.",
+    description:
+      "External media coverage feed (simulated). Retained articles are digested into governed coverage documents with share-of-voice figures.",
+  },
+  {
+    id: "src-cnmc",
+    name: "CNMC open data",
+    type: "Regulator open data API",
+    status: "live",
+    cadence: "Quarterly release",
+    docCount: 8,
+    lastSync: "5d ago",
+    externalFilter: false,
+    filterNote: null,
+    description:
+      "Public market data from the Spanish regulator (simulated API feed). Figures arrive already public and are governed as public-tier documents.",
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Pre-ingestion relevance filter (RFP rule): external mentions are screened
+// against keywords, tracked competitors, named executives and priority topics
+// BEFORE ingestion. Dropped mentions never reach the knowledge core.
+// ---------------------------------------------------------------------------
+
+export interface RelevanceFilterRule {
+  id: string;
+  category: "keywords" | "competitors" | "executives" | "topics";
+  terms: string[];
+  note: string;
+}
+
+export interface FilteredMention {
+  id: string;
+  source: string;
+  excerpt: string;
+  matchedRule: string | null;
+  sentiment: "positive" | "negative" | "neutral";
+  decision: "kept" | "dropped";
+  at: string;
+}
+
+export const RELEVANCE_FILTER_RULES: RelevanceFilterRule[] = [
+  {
+    id: "rf-keywords",
+    category: "keywords",
+    terms: ["Telefónica", "Movistar", "O2", "Vivo", "Telefónica Tech", "fibre guarantee", "5G coverage"],
+    note: "Brand and product keywords. A mention must reference the group or one of its brands to be considered.",
+  },
+  {
+    id: "rf-competitors",
+    category: "competitors",
+    terms: ["Deutsche Telekom", "Vodafone", "Orange", "Claro", "MásOrange", "1&1"],
+    note: "Tracked competitors. Mentions comparing them to our brands are retained for competitive context.",
+  },
+  {
+    id: "rf-executives",
+    category: "executives",
+    terms: ["Group CEO", "Group CFO", "O2 Telefónica CEO", "Vivo CEO"],
+    note: "Named executives (role-based tracking). Any mention of a tracked executive is retained and flagged.",
+  },
+  {
+    id: "rf-topics",
+    category: "topics",
+    terms: ["results", "spectrum", "regulation", "network outage", "M&A speculation", "sustainability", "AI Act"],
+    note: "Priority topics agreed with Communications. Mentions on these topics are retained even without a brand keyword.",
+  },
+];
+
+export const FILTERED_MENTIONS: FilteredMention[] = [
+  {
+    id: "fm-1",
+    source: "Talkwalker",
+    excerpt: "Movistar's rumoured symmetric-fibre guarantee would be a first in Spain if confirmed.",
+    matchedRule: "keywords · fibre guarantee",
+    sentiment: "positive",
+    decision: "kept",
+    at: "2026-07-07T09:12:00Z",
+  },
+  {
+    id: "fm-2",
+    source: "Talkwalker",
+    excerpt: "Rural 5G coverage in Bavaria still patchy according to user reports tagging O2.",
+    matchedRule: "keywords · 5G coverage",
+    sentiment: "negative",
+    decision: "kept",
+    at: "2026-07-07T08:47:00Z",
+  },
+  {
+    id: "fm-3",
+    source: "Media monitoring",
+    excerpt: "Deutsche Telekom raises German price premium; analysts compare value positioning against O2.",
+    matchedRule: "competitors · Deutsche Telekom",
+    sentiment: "neutral",
+    decision: "kept",
+    at: "2026-07-07T07:30:00Z",
+  },
+  {
+    id: "fm-4",
+    source: "Talkwalker",
+    excerpt: "Best paella places near the Gran Vía flagship store thread (brand handle tagged in passing).",
+    matchedRule: null,
+    sentiment: "neutral",
+    decision: "dropped",
+    at: "2026-07-07T07:22:00Z",
+  },
+  {
+    id: "fm-5",
+    source: "Media monitoring",
+    excerpt: "Group CEO quoted on AI Act transparency duties for telecom operators at industry panel.",
+    matchedRule: "executives · Group CEO",
+    sentiment: "positive",
+    decision: "kept",
+    at: "2026-07-06T18:05:00Z",
+  },
+  {
+    id: "fm-6",
+    source: "Talkwalker",
+    excerpt: "Generic meme about phone batteries with an unrelated operator hashtag.",
+    matchedRule: null,
+    sentiment: "neutral",
+    decision: "dropped",
+    at: "2026-07-06T16:40:00Z",
+  },
+  {
+    id: "fm-7",
+    source: "Talkwalker",
+    excerpt: "Speculation thread on further Hispam disposals citing unnamed sources.",
+    matchedRule: "topics · M&A speculation",
+    sentiment: "negative",
+    decision: "kept",
+    at: "2026-07-06T14:11:00Z",
+  },
+  {
+    id: "fm-8",
+    source: "Media monitoring",
+    excerpt: "Lifestyle piece on holiday roaming tips mentioning several operators generically.",
+    matchedRule: null,
+    sentiment: "neutral",
+    decision: "dropped",
+    at: "2026-07-06T11:02:00Z",
+  },
+];
+
+export interface RelevanceFilterSnapshot {
+  rules: RelevanceFilterRule[];
+  mentions: FilteredMention[];
+  keptCount: number;
+  droppedCount: number;
+}
+
+export const RELEVANCE_FILTER: RelevanceFilterSnapshot = {
+  rules: RELEVANCE_FILTER_RULES,
+  mentions: FILTERED_MENTIONS,
+  keptCount: FILTERED_MENTIONS.filter((m) => m.decision === "kept").length,
+  droppedCount: FILTERED_MENTIONS.filter((m) => m.decision === "dropped").length,
+};
 
 // ---------------------------------------------------------------------------
 // Ingestion pipeline snapshot

@@ -502,6 +502,10 @@ export interface CorpusDocument {
   axisIds: string[];
   summary: string;
   chunkCount: number;
+  /** Simulated source format (structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump) */
+  sourceFormat: string;
+  /** Simulated connector / provenance the document arrived through */
+  connector: string;
 }
 
 export interface DocumentChunk {
@@ -524,6 +528,37 @@ export interface CountBucket {
 export interface AxisCount {
   axisId: string;
   count: number;
+}
+
+export interface RelevanceFilterRule {
+  id: string;
+  /** keywords | competitors | executives | topics */
+  category: string;
+  terms: string[];
+  note: string;
+}
+
+export interface FilteredMention {
+  id: string;
+  source: string;
+  excerpt: string;
+  /**
+     * The rule category + term that matched, null when nothing matched
+     * @nullable
+     */
+  matchedRule: string | null;
+  /** positive | negative | neutral */
+  sentiment: string;
+  /** kept | dropped */
+  decision: string;
+  at: string;
+}
+
+export interface RelevanceFilterSnapshot {
+  rules: RelevanceFilterRule[];
+  mentions: FilteredMention[];
+  keptCount: number;
+  droppedCount: number;
 }
 
 export interface DataSource {

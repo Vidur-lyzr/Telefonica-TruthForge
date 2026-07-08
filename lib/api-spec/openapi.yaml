@@ -1126,6 +1126,19 @@ paths:
               schema:
                 $ref: "#/components/schemas/IngestionSnapshot"
 
+  /data/relevance-filter:
+    get:
+      operationId: getRelevanceFilter
+      tags: [data]
+      summary: Pre-ingestion relevance filter for external sources — rules and recent kept/dropped mentions
+      responses:
+        "200":
+          description: Relevance filter snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelevanceFilterSnapshot"
+
   /data/validation:
     get:
       operationId: listValidationItems
@@ -1904,7 +1917,7 @@ components:
     CorpusDocument:
       type: object
       required:
-        [id, title, country, brand, entity, quarter, type, confidentiality, owner, validity, language, topics, axisIds, summary, chunkCount]
+        [id, title, country, brand, entity, quarter, type, confidentiality, owner, validity, language, topics, axisIds, summary, chunkCount, sourceFormat, connector]
       properties:
         id:
           type: string
@@ -1942,6 +1955,12 @@ components:
           type: string
         chunkCount:
           type: integer
+        sourceFormat:
+          type: string
+          description: Simulated source format (structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump)
+        connector:
+          type: string
+          description: Simulated connector / provenance the document arrived through
 
     CorpusDocumentDetail:
       type: object
@@ -1983,6 +2002,61 @@ components:
         axisId:
           type: string
         count:
+          type: integer
+
+    RelevanceFilterRule:
+      type: object
+      required: [id, category, terms, note]
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+          description: keywords | competitors | executives | topics
+        terms:
+          type: array
+          items:
+            type: string
+        note:
+          type: string
+
+    FilteredMention:
+      type: object
+      required: [id, source, excerpt, matchedRule, sentiment, decision, at]
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+        excerpt:
+          type: string
+        matchedRule:
+          type: ["string", "null"]
+          description: The rule category + term that matched, null when nothing matched
+        sentiment:
+          type: string
+          description: positive | negative | neutral
+        decision:
+          type: string
+          description: kept | dropped
+        at:
+          type: string
+
+    RelevanceFilterSnapshot:
+      type: object
+      required: [rules, mentions, keptCount, droppedCount]
+      properties:
+        rules:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelevanceFilterRule"
+        mentions:
+          type: array
+          items:
+            $ref: "#/components/schemas/FilteredMention"
+        keptCount:
+          type: integer
+        droppedCount:
           type: integer
 
     DataSource:

@@ -78,6 +78,7 @@ import type {
   PlatformUser,
   RadarItem,
   RefineInput,
+  RelevanceFilterSnapshot,
   RetagApplyInput,
   RetagApplyResult,
   RetagProposeInput,
@@ -3936,6 +3937,83 @@ export function useGetIngestionSnapshot<TData = Awaited<ReturnType<typeof getIng
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetIngestionSnapshotQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetRelevanceFilterUrl = () => {
+
+
+
+
+  return `/api/data/relevance-filter`
+}
+
+/**
+ * @summary Pre-ingestion relevance filter for external sources — rules and recent kept/dropped mentions
+ */
+export const getRelevanceFilter = async ( options?: RequestInit): Promise<RelevanceFilterSnapshot> => {
+
+  return customFetch<RelevanceFilterSnapshot>(getGetRelevanceFilterUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRelevanceFilterQueryKey = () => {
+    return [
+    `/api/data/relevance-filter`
+    ] as const;
+    }
+
+
+export const getGetRelevanceFilterQueryOptions = <TData = Awaited<ReturnType<typeof getRelevanceFilter>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRelevanceFilter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRelevanceFilterQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRelevanceFilter>>> = ({ signal }) => getRelevanceFilter({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRelevanceFilter>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRelevanceFilterQueryResult = NonNullable<Awaited<ReturnType<typeof getRelevanceFilter>>>
+export type GetRelevanceFilterQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Pre-ingestion relevance filter for external sources — rules and recent kept/dropped mentions
+ */
+
+export function useGetRelevanceFilter<TData = Awaited<ReturnType<typeof getRelevanceFilter>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRelevanceFilter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRelevanceFilterQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

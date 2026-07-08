@@ -61,6 +61,10 @@ export interface CorpusDoc {
   axisIds: string[];
   summary: string;
   areas: Area[];
+  /** Simulated source format (C): structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump. */
+  sourceFormat: string;
+  /** Simulated connector / provenance the document arrived through (honestly labelled — no real connector). */
+  connector: string;
   chunks: Chunk[];
   assertions?: Assertion[];
   // Ids of documents this document materially contradicts. Drives the conflict flag.
@@ -336,6 +340,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["revenue", "results", "guidance", "financials"],
     axisIds: ["ax-core", "ax-b2b"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Self-explanatory PPT",
+    connector: "SharePoint sync",
     summary:
       "Group revenue reached €8,127M in Q1 2026, up 1.8% year on year, driven by core-market convergence and B2B growth. This is the defensible, externally reported figure.",
     assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€8,127M" }],
@@ -376,6 +382,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["revenue", "results", "financials"],
     axisIds: ["ax-core"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Self-explanatory PPT",
+    connector: "SharePoint sync",
     summary:
       "Q4 2025 group revenue was €7,982M. Superseded by the Q1 2026 results release.",
     assertions: [{ metric: "group-revenue", period: "Q4 2025", value: "€7,982M" }],
@@ -404,6 +412,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["revenue", "results", "press release", "financials"],
     axisIds: ["ax-core"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
     summary:
       "Public press release confirming €8,127M group revenue in Q1 2026 — the defensible figure for external use.",
     assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€8,127M" }],
@@ -432,6 +442,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["revenue", "financials", "investor relations", "factsheet"],
     axisIds: ["ax-core", "ax-b2b"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "PDF",
+    connector: "SharePoint sync",
     summary:
       "Investor factsheet reaffirming the €8,127M Q1 2026 group revenue figure defended externally.",
     assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€8,127M" }],
@@ -460,6 +472,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["revenue", "pre-publication", "preliminary", "flash", "unpublished", "finance"],
     axisIds: ["ax-core"],
     areas: ["Gabinete"],
+    sourceFormat: "Excel numeric",
+    connector: "SharePoint sync (restricted library)",
     summary:
       "Confidential pre-publication finance flash with unaudited preliminary Q1 figures. Not for external or Comms use before publication.",
     chunks: [
@@ -487,6 +501,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["Hispam", "Mexico", "Chile", "Spanish America", "divestment", "footprint"],
     axisIds: ["ax-core"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
     summary:
       "Public update on Telefónica's reduction of its Spanish America (Hispam) footprint, including the completed sale of Chile.",
     chunks: [
@@ -520,6 +536,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["messaging", "talking points", "spokesperson", "positioning", "lines to take"],
     axisIds: ["ax-core"],
     areas: ["Comunicación", "Marca"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
     summary:
       "Superseded approved messaging pack. Its headline top-line figure predates and disagrees with the published Q1 2026 results.",
     assertions: [{ metric: "group-revenue", period: "Q1 2026", value: "€7,982M" }],
@@ -549,6 +567,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["brand", "logo", "colour", "identity", "typography", "tone"],
     axisIds: ["ax-sustainability"],
     areas: ["Marca", "Comunicación"],
+    sourceFormat: "PDF",
+    connector: "SharePoint sync",
     summary:
       "Defines the five-dot 'T' identity, the vivid brand blue, the single sans typeface and voice principles.",
     chunks: [
@@ -588,6 +608,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["5G", "AI", "networks", "keynote", "strategy"],
     axisIds: ["ax-networks", "ax-digital"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Structured Word",
+    connector: "Manual upload",
     summary:
       "Keynote positioning Telefónica as a network and AI leader, announcing expanded 5G standalone coverage.",
     chunks: [
@@ -621,6 +643,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["sustainability", "net zero", "emissions", "inclusion", "climate"],
     axisIds: ["ax-sustainability"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "PDF",
+    connector: "SharePoint sync",
     summary:
       "Reports progress toward the net-zero 2040 commitment and on digital inclusion programmes.",
     chunks: [
@@ -654,6 +678,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["B2B", "enterprise", "cyber", "cloud", "IoT", "Telefónica Tech"],
     axisIds: ["ax-b2b"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Self-explanatory PPT",
+    connector: "SharePoint sync (restricted library)",
     summary:
       "Confidential plan to scale enterprise revenue in cyber security, cloud and IoT.",
     chunks: [
@@ -687,6 +713,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["5G", "fibre", "network", "copper", "coverage"],
     axisIds: ["ax-networks"],
     areas: ["Comunicación"],
+    sourceFormat: "Self-explanatory PPT",
+    connector: "SharePoint sync",
     summary:
       "Internal plan (under review) for 5G standalone expansion and copper retirement in Spain.",
     chunks: [
@@ -720,6 +748,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["M&A", "acquisition", "merger", "transaction", "consolidation"],
     axisIds: ["ax-core"],
     areas: ["Gabinete"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync (restricted library)",
     summary:
       "Board-restricted memo assessing a potential in-market consolidation opportunity.",
     chunks: [
@@ -753,6 +783,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["crisis", "incident", "outage", "reputation", "holding statement"],
     axisIds: ["ax-digital"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "PDF",
+    connector: "SharePoint sync (restricted library)",
     summary:
       "Confidential procedures for network outages, data incidents and reputational events.",
     chunks: [
@@ -786,6 +818,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["media", "press", "spokesperson", "interview", "embargo"],
     axisIds: ["ax-digital"],
     areas: ["Comunicación"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
     summary:
       "How to handle press enquiries, spokespeople, embargoes and attribution.",
     chunks: [
@@ -813,6 +847,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["Germany", "O2", "mobile", "market share"],
     axisIds: ["ax-core", "ax-networks"],
     areas: ["Comunicación"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
     summary: "Internal update on O2 Telefónica performance and 5G rollout in Germany.",
     chunks: [
       {
@@ -839,6 +875,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["Brazil", "Vivo", "fibre", "digital services"],
     axisIds: ["ax-core", "ax-b2b"],
     areas: ["Comunicación"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
     summary: "Internal update on Vivo's fibre and digital-services growth in Brazil.",
     chunks: [
       {
@@ -865,6 +903,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["campaign", "pricing", "Movistar", "advertising", "marca"],
     axisIds: ["ax-core"],
     areas: ["Marca", "Comunicación"],
+    sourceFormat: "Self-explanatory PPT",
+    connector: "Asana feed (simulated)",
     summary:
       "Campaign reinforcing price transparency and loyalty for existing Movistar customers.",
     chunks: [
@@ -892,6 +932,8 @@ export const DOCS: CorpusDoc[] = [
     topics: ["employees", "town hall", "culture", "strategy"],
     axisIds: ["ax-digital"],
     areas: ["Comunicación"],
+    sourceFormat: "Self-explanatory PPT",
+    connector: "SharePoint sync",
     summary:
       "Historic record of the spring 2026 employee town hall on the Transform & Grow plan.",
     chunks: [
@@ -927,6 +969,8 @@ export const DOCS: CorpusDoc[] = [
     ],
     axisIds: ["ax-core", "ax-b2b", "ax-digital"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Self-explanatory PPT",
+    connector: "SharePoint sync (restricted library)",
     summary:
       "Confidential three-year Transform & Grow plan setting the group narrative, targeted synergies and core-market priorities.",
     chunks: [
@@ -974,6 +1018,8 @@ export const DOCS: CorpusDoc[] = [
     ],
     axisIds: ["ax-core"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
     summary:
       "Public announcement that Telefónica has agreed to sell its Chilean subsidiary as part of its portfolio focus.",
     chunks: [
@@ -1021,6 +1067,8 @@ export const DOCS: CorpusDoc[] = [
     ],
     axisIds: ["ax-core"],
     areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Structured Word",
+    connector: "Manual upload",
     summary:
       "Internal-only holding note on the sequencing of further Hispanoamérica disposals. Not for external use.",
     chunks: [
@@ -1038,9 +1086,578 @@ export const DOCS: CorpusDoc[] = [
       },
     ],
   },
+
+  // ── PC3 data universe expansion ──────────────────────────────────────────
+  // A·Internal: calendar, HR, customer, research, New USP.
+  // B·External: social listening, SIC, media coverage, competitor studies,
+  // sector reports, legislation. E: SSoT-generated output.
+  {
+    id: "doc-comms-calendar-2026",
+    title: "Communication Calendar & Milestones 2026",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Group Communications",
+    quarter: "FY 2026",
+    type: "Calendar",
+    confidentiality: "internal",
+    owner: "Group Communications",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "en",
+    topics: ["calendar", "milestones", "events", "results dates", "planning", "calendario", "hitos"],
+    axisIds: ["ax-core", "ax-digital"],
+    areas: ["Comunicación", "Marca", "Gabinete"],
+    sourceFormat: "API feed",
+    connector: "Asana feed (simulated)",
+    summary:
+      "The governed 2026 communication calendar: results dates, MWC, shareholder meeting, campaign windows and internal milestones, synchronised from the project system.",
+    chunks: [
+      {
+        id: "doc-comms-calendar-2026#1",
+        heading: "Fixed corporate milestones",
+        breadcrumb: "Communication Calendar 2026 › Corporate milestones",
+        text: "Fixed corporate milestones for 2026: quarterly results on 25 February, 13 May, 29 July and 4 November; the Annual General Meeting on 11 June in Madrid; and MWC Barcelona from 2 to 5 March. Quiet periods start ten days before each results date and constrain proactive announcements.",
+      },
+      {
+        id: "doc-comms-calendar-2026#2",
+        heading: "Campaign and brand windows",
+        breadcrumb: "Communication Calendar 2026 › Campaign windows",
+        text: "Brand campaign windows are reserved for April (convergence offer), September (fibre and 5G leadership) and November (centenary of the Movistar brand identity refresh). Each window has a named owner in Marca and a talking-points pack scheduled 48 hours before launch.",
+      },
+    ],
+  },
+  {
+    id: "doc-hr-talento-2026",
+    title: "Programa Talento 2026 — Personas y Cultura",
+    country: "Spain",
+    brand: "Telefónica",
+    entity: "Personas (HR)",
+    quarter: "FY 2026",
+    type: "HR programme",
+    confidentiality: "internal",
+    owner: "Dirección de Personas",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "es",
+    topics: ["talento", "personas", "cultura", "formación", "hr", "talent", "people", "culture", "training", "reskilling"],
+    axisIds: ["ax-digital", "ax-sustainability"],
+    areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
+    summary:
+      "Programa interno de talento 2026: 45.000 horas de formación en IA y datos, movilidad interna y objetivos de diversidad. Documento interno de Personas para comunicación interna.",
+    assertions: [{ metric: "ai-training-hours", period: "FY 2026", value: "45,000" }],
+    chunks: [
+      {
+        id: "doc-hr-talento-2026#1",
+        heading: "Formación en IA y datos",
+        breadcrumb: "Programa Talento 2026 › Formación",
+        text: "El Programa Talento 2026 compromete 45.000 horas de formación en inteligencia artificial y datos para empleados en España durante 2026. La formación (training, reskilling) prioriza los equipos de operaciones y atención al cliente, y se comunica internamente cada trimestre.",
+      },
+      {
+        id: "doc-hr-talento-2026#2",
+        heading: "Movilidad y diversidad",
+        breadcrumb: "Programa Talento 2026 › Movilidad y diversidad",
+        text: "El programa fija un objetivo del 33% de mujeres en puestos directivos a final de 2026 y un mercado interno de talento que cubra el 40% de las vacantes con movilidad interna. Estos objetivos son internos y no constituyen guía externa.",
+      },
+    ],
+  },
+  {
+    id: "doc-customer-nps-q1-2026",
+    title: "Customer Experience Scorecard — NPS Q1 2026",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Customer Experience Office",
+    quarter: "Q1 2026",
+    type: "Customer scorecard",
+    confidentiality: "internal",
+    owner: "Customer Experience Office",
+    validity: "approved",
+    validUntil: "2026-09-30",
+    language: "en",
+    topics: ["nps", "customer", "satisfaction", "experience", "churn", "clientes", "satisfacción", "kunden"],
+    axisIds: ["ax-core", "ax-digital"],
+    areas: ["Comunicación", "Marca", "Gabinete"],
+    sourceFormat: "Excel numeric",
+    connector: "SharePoint sync",
+    summary:
+      "Quarterly customer scorecard: group NPS reached 34 in Q1 2026, up three points year on year, with churn at a record low in convergent households.",
+    assertions: [{ metric: "group-nps", period: "Q1 2026", value: "34" }],
+    chunks: [
+      {
+        id: "doc-customer-nps-q1-2026#1",
+        heading: "Group NPS",
+        breadcrumb: "CX Scorecard Q1 2026 › NPS",
+        text: "Group Net Promoter Score (NPS) reached 34 in Q1 2026, an improvement of three points year on year and the best first quarter on record. Spain and Brazil led the improvement; Germany was stable. The figure is the internal reference for customer satisfaction in Q1 2026.",
+      },
+      {
+        id: "doc-customer-nps-q1-2026#2",
+        heading: "Churn in convergent households",
+        breadcrumb: "CX Scorecard Q1 2026 › Churn",
+        text: "Churn in convergent households fell to 0.9% monthly, a record low. The scorecard attributes the improvement to the loyalty programme relaunch and faster fault resolution, both tracked as customer-experience milestones in the 2026 plan.",
+      },
+    ],
+  },
+  {
+    id: "doc-brand-tracker-q1-2026",
+    title: "Brand Tracker Wave — Q1 2026 (Research)",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Brand Insights",
+    quarter: "Q1 2026",
+    type: "Research",
+    confidentiality: "internal",
+    owner: "Global Brand Office",
+    validity: "approved",
+    validUntil: "2026-09-30",
+    language: "en",
+    topics: ["brand power", "consideration", "tracker", "research", "insights", "marca", "estudio", "markenstudie"],
+    axisIds: ["ax-core"],
+    areas: ["Marca", "Gabinete"],
+    sourceFormat: "Self-explanatory PPT",
+    connector: "Manual upload",
+    summary:
+      "Quarterly brand tracker: brand consideration at 52% across the four core markets, brand power index up two points, with the strongest gains among under-35 audiences.",
+    assertions: [{ metric: "brand-consideration", period: "Q1 2026", value: "52%" }],
+    chunks: [
+      {
+        id: "doc-brand-tracker-q1-2026#1",
+        heading: "Consideration and brand power",
+        breadcrumb: "Brand Tracker Q1 2026 › Headline measures",
+        text: "Brand consideration reached 52% on average across Spain, Germany, Brazil and the UK joint venture in Q1 2026, and the composite brand power index rose two points against the previous wave. The research (estudio de marca) is fielded monthly with a quarterly reported wave.",
+      },
+      {
+        id: "doc-brand-tracker-q1-2026#2",
+        heading: "Audience detail",
+        breadcrumb: "Brand Tracker Q1 2026 › Audiences",
+        text: "The strongest gains came from under-35 audiences, where consideration rose four points after the digital-first campaign flight. Premium perception remains the main gap against the leading competitor in Germany.",
+      },
+    ],
+  },
+  {
+    id: "doc-new-usp-fibra",
+    title: "Nuevo USP — Garantía de Fibra Simétrica",
+    country: "Spain",
+    brand: "Movistar",
+    entity: "Marca España",
+    quarter: "Q2 2026",
+    type: "USP definition",
+    confidentiality: "internal",
+    owner: "Marca España",
+    validity: "review",
+    validUntil: "2026-08-31",
+    language: "es",
+    topics: ["usp", "fibra", "garantía", "propuesta de valor", "fibre", "guarantee", "value proposition", "symmetric"],
+    axisIds: ["ax-core", "ax-networks"],
+    areas: ["Marca", "Comunicación"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
+    summary:
+      "Definición del nuevo USP de Movistar: garantía de velocidad simétrica en fibra con compensación automática. En revisión — pendiente de aprobación legal antes de uso externo.",
+    chunks: [
+      {
+        id: "doc-new-usp-fibra#1",
+        heading: "Definición del USP",
+        breadcrumb: "Nuevo USP › Definición",
+        text: "El nuevo USP propuesto para Movistar es la garantía de velocidad simétrica en fibra: si la velocidad medida baja del 80% de la contratada, el cliente recibe compensación automática en factura. La propuesta de valor (value proposition) está en revisión legal y no debe usarse externamente hasta su aprobación.",
+      },
+      {
+        id: "doc-new-usp-fibra#2",
+        heading: "Mensajes soporte",
+        breadcrumb: "Nuevo USP › Mensajes",
+        text: "Mensajes de soporte aprobados provisionalmente: la mayor red de fibra de Europa occidental, instalación en 24 horas y garantía sin letra pequeña. El claim de compensación automática requiere validación de Asesoría Jurídica antes de cualquier campaña.",
+      },
+    ],
+  },
+  {
+    id: "doc-social-listening-w27",
+    title: "Social Listening Digest — Week 27 2026",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "External Listening",
+    quarter: "Q3 2026",
+    type: "Social listening",
+    confidentiality: "public",
+    owner: "External Listening",
+    validity: "approved",
+    validUntil: "2026-07-14",
+    language: "en",
+    topics: ["social listening", "mentions", "sentiment", "talkwalker", "redes sociales", "menciones"],
+    axisIds: ["ax-core", "ax-digital"],
+    areas: ["Comunicación", "Marca"],
+    sourceFormat: "API feed",
+    connector: "Talkwalker feed (simulated, pre-filtered)",
+    summary:
+      "Weekly digest of relevant external mentions that passed the pre-ingestion relevance filter: sentiment stable at 68% positive-or-neutral, fibre guarantee chatter rising in Spain.",
+    chunks: [
+      {
+        id: "doc-social-listening-w27#1",
+        heading: "Sentiment and volume",
+        breadcrumb: "Social Listening W27 › Sentiment",
+        text: "Of 14,300 raw external mentions captured in week 27, 412 passed the relevance filter (keywords, tracked competitors, named executives, priority topics). Sentiment on the retained set was 68% positive or neutral. Only filtered mentions enter the knowledge core; raw chatter is never ingested.",
+      },
+      {
+        id: "doc-social-listening-w27#2",
+        heading: "Themes to watch",
+        breadcrumb: "Social Listening W27 › Themes",
+        text: "Rising themes: speculation about a Movistar symmetric-fibre guarantee in Spain (positive), questions about rural 5G coverage in Germany (negative flag), and analyst commentary on B2B cyber growth. The fibre-guarantee theme is flagged to Marca because the USP is not yet approved for external use.",
+      },
+    ],
+  },
+  {
+    id: "doc-sic-regulatorio-q2",
+    title: "SIC — Síntesis Regulatoria Q2 2026",
+    country: "Spain",
+    brand: "Telefónica",
+    entity: "Regulación",
+    quarter: "Q2 2026",
+    type: "Regulatory brief",
+    confidentiality: "internal",
+    owner: "Dirección de Regulación",
+    validity: "approved",
+    validUntil: "2026-10-31",
+    language: "es",
+    topics: ["regulación", "cnmc", "espectro", "regulatory", "regulation", "spectrum", "sic"],
+    axisIds: ["ax-networks", "ax-core"],
+    areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "API feed",
+    connector: "SIC feed (simulated, filter agreed with owners)",
+    summary:
+      "Síntesis del sistema de información corporativo (SIC): la CNMC abre consulta sobre la extensión del espectro 3,5 GHz y mantiene la senda de liberalización del cobre.",
+    chunks: [
+      {
+        id: "doc-sic-regulatorio-q2#1",
+        heading: "Consulta de espectro",
+        breadcrumb: "SIC Q2 2026 › Espectro",
+        text: "La CNMC ha abierto consulta pública sobre la extensión de las licencias de espectro (spectrum) en la banda de 3,5 GHz hasta 2040. La posición de la compañía apoya la extensión con obligaciones de cobertura rural proporcionadas. Cualquier declaración pública debe coordinarse con Regulación.",
+      },
+      {
+        id: "doc-sic-regulatorio-q2#2",
+        heading: "Cierre de cobre",
+        breadcrumb: "SIC Q2 2026 › Cobre",
+        text: "El calendario de cierre de centrales de cobre se mantiene: el 92% de las centrales estarán apagadas a final de 2026, consistente con el plan de redes. Este dato es utilizable externamente porque coincide con la información ya publicada.",
+      },
+    ],
+  },
+  {
+    id: "doc-media-coverage-q2-2026",
+    title: "Media Coverage Digest — Q2 2026",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Media Relations",
+    quarter: "Q2 2026",
+    type: "Media digest",
+    confidentiality: "public",
+    owner: "Media Relations",
+    validity: "approved",
+    validUntil: "2026-10-31",
+    language: "en",
+    topics: ["media", "coverage", "press", "share of voice", "prensa", "cobertura", "medien"],
+    axisIds: ["ax-core", "ax-b2b"],
+    areas: ["Comunicación"],
+    sourceFormat: "API feed",
+    connector: "Media monitoring feed (simulated, pre-filtered)",
+    summary:
+      "Quarterly media digest: 1,240 relevant articles retained by the relevance filter, share of voice at 31% in the core markets, tone predominantly factual around results and B2B growth.",
+    chunks: [
+      {
+        id: "doc-media-coverage-q2-2026#1",
+        heading: "Share of voice",
+        breadcrumb: "Media Digest Q2 2026 › Share of voice",
+        text: "Share of voice across the four core markets was 31% in Q2 2026, ahead of the nearest competitor at 27%. The relevance filter retained 1,240 articles out of 9,700 captured; retained coverage was predominantly factual, centred on the Q1 results and Telefónica Tech growth.",
+      },
+    ],
+  },
+  {
+    id: "doc-competitor-study-dt-2026",
+    title: "Competitor Study — Deutsche Telekom Positioning 2026",
+    country: "Germany",
+    brand: "O2",
+    entity: "Brand Insights",
+    quarter: "Q2 2026",
+    type: "Competitor study",
+    confidentiality: "confidential",
+    owner: "Global Brand Office",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "en",
+    topics: ["competitor", "deutsche telekom", "positioning", "germany", "wettbewerb", "competencia", "benchmark"],
+    axisIds: ["ax-core"],
+    areas: ["Marca", "Gabinete"],
+    sourceFormat: "PDF",
+    connector: "Manual upload",
+    summary:
+      "Confidential competitive study of Deutsche Telekom's 2026 brand positioning and price architecture in Germany, with implications for O2's premium-perception gap.",
+    chunks: [
+      {
+        id: "doc-competitor-study-dt-2026#1",
+        heading: "Positioning read",
+        breadcrumb: "Competitor Study DT 2026 › Positioning",
+        text: "Deutsche Telekom continues to anchor its German positioning on network superiority and premium service, sustaining a price premium of roughly 15% over O2 equivalents. The study concludes O2's most defensible counter-position is transparent value with verified network parity in cities, not a premium claim.",
+      },
+      {
+        id: "doc-competitor-study-dt-2026#2",
+        heading: "Implications for O2",
+        breadcrumb: "Competitor Study DT 2026 › Implications",
+        text: "Closing the premium-perception gap requires sustained proof points rather than claims: publish independent city-level network tests and extend the loyalty programme. This study is confidential; its figures must not be quoted externally.",
+      },
+    ],
+  },
+  {
+    id: "doc-sector-report-gsma-2026",
+    title: "Sector Report — European Telecoms Outlook 2026 (GSMA-style)",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "External research",
+    quarter: "FY 2026",
+    type: "Sector report",
+    confidentiality: "public",
+    owner: "Strategy & Insights",
+    validity: "approved",
+    validUntil: "2027-03-31",
+    language: "en",
+    topics: ["sector", "telecoms", "outlook", "market", "industry", "5g", "fibre", "informe sectorial", "branchenbericht"],
+    axisIds: ["ax-networks", "ax-b2b"],
+    areas: ["Comunicación", "Marca", "Gabinete"],
+    sourceFormat: "PDF",
+    connector: "Manual upload",
+    summary:
+      "Synthetic industry outlook: European telecom service revenue expected to grow 1.5% in 2026, with fibre passing 80% of households in Spain and B2B digital services as the fastest-growing segment.",
+    chunks: [
+      {
+        id: "doc-sector-report-gsma-2026#1",
+        heading: "European outlook",
+        breadcrumb: "Sector Report 2026 › Outlook",
+        text: "European telecom service revenue is expected to grow around 1.5% in 2026. Fibre now passes more than 80% of households in Spain, the highest in the large European markets, while Germany continues to lag on fibre but leads on 5G population coverage. B2B digital services remain the fastest-growing segment at 8% annually.",
+      },
+    ],
+  },
+  {
+    id: "doc-eu-dsa-briefing",
+    title: "EU Digital Services & AI Act — Compliance Briefing",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Public Policy",
+    quarter: "Q2 2026",
+    type: "Legislation brief",
+    confidentiality: "internal",
+    owner: "Public Policy",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "en",
+    topics: ["legislation", "eu", "ai act", "digital services act", "compliance", "regulación europea", "gesetzgebung"],
+    axisIds: ["ax-sustainability", "ax-digital"],
+    areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "Structured Word",
+    connector: "SharePoint sync",
+    summary:
+      "Briefing on EU legislation affecting communications work in 2026: AI Act transparency duties for AI-generated content and Digital Services Act obligations relevant to brand campaigns.",
+    chunks: [
+      {
+        id: "doc-eu-dsa-briefing#1",
+        heading: "AI Act duties for comms",
+        breadcrumb: "EU Legislation Briefing › AI Act",
+        text: "From August 2026, AI-generated or AI-assisted public content must be identifiable as such under the EU AI Act transparency provisions. All SSoT-generated external drafts must carry the provenance label, and spokespeople must not present synthetic media as unedited footage.",
+      },
+      {
+        id: "doc-eu-dsa-briefing#2",
+        heading: "DSA and campaigns",
+        breadcrumb: "EU Legislation Briefing › DSA",
+        text: "The Digital Services Act requires clear labelling of paid placements and influencer partnerships. Brand campaigns must include the paid-partnership disclosure in every market; the legal minimum is not the ceiling — the brand standard is full disclosure.",
+      },
+    ],
+  },
+  {
+    id: "doc-tkg-novelle-2026",
+    title: "TKG-Novelle 2026 — Auswirkungen auf O2 Telefónica",
+    country: "Germany",
+    brand: "O2",
+    entity: "Regulierung Deutschland",
+    quarter: "Q2 2026",
+    type: "Legislation brief",
+    confidentiality: "internal",
+    owner: "Regulierung Deutschland",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "de",
+    topics: ["tkg", "gesetzgebung", "regulierung", "deutschland", "legislation", "regulation", "germany", "netzausbau"],
+    axisIds: ["ax-networks"],
+    areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "PDF",
+    connector: "SharePoint sync",
+    summary:
+      "Zusammenfassung der TKG-Novelle 2026: beschleunigte Genehmigungen für den Netzausbau und neue Transparenzpflichten bei Mobilfunkverträgen für O2 Telefónica in Deutschland.",
+    chunks: [
+      {
+        id: "doc-tkg-novelle-2026#1",
+        heading: "Beschleunigter Netzausbau",
+        breadcrumb: "TKG-Novelle 2026 › Netzausbau",
+        text: "Die TKG-Novelle 2026 verkürzt Genehmigungsverfahren für Mobilfunkstandorte auf maximal drei Monate. Für O2 Telefónica bedeutet das einen schnelleren 5G-Ausbau (network build-out) im ländlichen Raum. Die Kommunikationslinie betont, dass O2 die neuen Verfahren aktiv nutzt.",
+      },
+      {
+        id: "doc-tkg-novelle-2026#2",
+        heading: "Transparenzpflichten",
+        breadcrumb: "TKG-Novelle 2026 › Transparenz",
+        text: "Neue Transparenzpflichten verlangen eine jährliche Vertragsübersicht für Mobilfunkkunden. O2 setzt die Pflicht ab Oktober 2026 um; die externe Kommunikation positioniert dies als Verbraucherfreundlichkeit, nicht als regulatorische Last.",
+      },
+    ],
+  },
+  {
+    id: "doc-vivo-social-w27",
+    title: "Escuta Social Vivo — Semana 27 de 2026",
+    country: "Brazil",
+    brand: "Vivo",
+    entity: "Vivo Comunicação",
+    quarter: "Q3 2026",
+    type: "Social listening",
+    confidentiality: "public",
+    owner: "Vivo Comunicação",
+    validity: "approved",
+    validUntil: "2026-07-14",
+    language: "pt",
+    topics: ["escuta social", "vivo", "menções", "sentimento", "social listening", "mentions", "sentiment", "brasil"],
+    axisIds: ["ax-core", "ax-digital"],
+    areas: ["Comunicación", "Marca"],
+    sourceFormat: "API feed",
+    connector: "Talkwalker feed (simulated, pre-filtered)",
+    summary:
+      "Resumo semanal de escuta social da Vivo: sentimento 72% positivo ou neutro após o lançamento do Vivo Total, com o filtro de relevância retendo 380 menções de 11.900 capturadas.",
+    chunks: [
+      {
+        id: "doc-vivo-social-w27#1",
+        heading: "Sentimento e volume",
+        breadcrumb: "Escuta Social Vivo S27 › Sentimento",
+        text: "Na semana 27, o filtro de relevância reteve 380 menções de 11.900 capturadas sobre a Vivo no Brasil. O sentimento (sentiment) ficou em 72% positivo ou neutro, impulsionado pelo lançamento do Vivo Total. Menções irrelevantes nunca entram no núcleo de conhecimento.",
+      },
+      {
+        id: "doc-vivo-social-w27#2",
+        heading: "Temas em alta",
+        breadcrumb: "Escuta Social Vivo S27 › Temas",
+        text: "Temas em alta: elogios à velocidade da fibra em São Paulo, dúvidas sobre cobertura 5G no Nordeste e comparações de preço com a concorrência. O tema de cobertura foi sinalizado à equipa de redes para resposta coordenada.",
+      },
+    ],
+  },
+  {
+    id: "doc-cnmc-datos-q1-2026",
+    title: "CNMC — Datos del Mercado Español Q1 2026",
+    country: "Spain",
+    brand: "Movistar",
+    entity: "External research",
+    quarter: "Q1 2026",
+    type: "Sector report",
+    confidentiality: "public",
+    owner: "Strategy & Insights",
+    validity: "approved",
+    validUntil: "2026-12-31",
+    language: "es",
+    topics: ["cnmc", "mercado", "españa", "cuota", "market", "spain", "share", "fibra", "portabilidad"],
+    axisIds: ["ax-core"],
+    areas: ["Comunicación", "Marca", "Gabinete"],
+    sourceFormat: "API feed",
+    connector: "CNMC open data feed (simulated)",
+    summary:
+      "Datos públicos del regulador español: Movistar mantiene el 27,4% de cuota móvil y lidera la banda ancha con el 35,1% en el primer trimestre de 2026.",
+    assertions: [{ metric: "spain-mobile-share", period: "Q1 2026", value: "27.4%" }],
+    chunks: [
+      {
+        id: "doc-cnmc-datos-q1-2026#1",
+        heading: "Cuota de mercado",
+        breadcrumb: "CNMC Q1 2026 › Cuotas",
+        text: "Según los datos públicos de la CNMC del primer trimestre de 2026, Movistar mantiene una cuota (market share) del 27,4% en líneas móviles y lidera la banda ancha fija con el 35,1%. La portabilidad neta fue positiva por segundo trimestre consecutivo.",
+      },
+    ],
+  },
+  {
+    id: "doc-ssot-weekly-brief-w27",
+    title: "SSoT Weekly Executive Brief — Week 27 2026",
+    country: "Group",
+    brand: "Telefónica",
+    entity: "Hub SSoT",
+    quarter: "Q3 2026",
+    type: "SSoT output",
+    confidentiality: "internal",
+    owner: "Hub SSoT",
+    validity: "approved",
+    validUntil: "2026-07-14",
+    language: "en",
+    topics: ["weekly brief", "executive summary", "ssot", "generated", "resumen ejecutivo"],
+    axisIds: ["ax-core", "ax-digital"],
+    areas: ["Comunicación", "Gabinete"],
+    sourceFormat: "SSoT generated",
+    connector: "Hub SSoT scheduled generation",
+    summary:
+      "System-generated weekly brief compiled from governed sources only, with every statement traceable to a cited document. Labelled as SSoT output under the AI Act provenance rule.",
+    chunks: [
+      {
+        id: "doc-ssot-weekly-brief-w27#1",
+        heading: "Week in brief",
+        breadcrumb: "SSoT Weekly Brief W27 › Summary",
+        text: "Week 27 summary, generated by the Hub from governed sources: external sentiment held at 68% positive or neutral; the CNMC confirmed Movistar's broadband leadership at 35.1%; and the fibre-guarantee USP remains in legal review and must not be used externally. Every statement in this brief traces to a cited governed document.",
+      },
+    ],
+  },
+  {
+    id: "doc-research-genz-2026",
+    title: "Estudio de Audiencias Jóvenes 2026 — Insights",
+    country: "Spain",
+    brand: "Movistar",
+    entity: "Brand Insights",
+    quarter: "Q2 2026",
+    type: "Research",
+    confidentiality: "internal",
+    owner: "Marca España",
+    validity: "approved",
+    validUntil: "2027-03-31",
+    language: "es",
+    topics: ["audiencias", "jóvenes", "insights", "estudio", "research", "youth", "gen z", "audiences"],
+    axisIds: ["ax-core", "ax-digital"],
+    areas: ["Marca"],
+    sourceFormat: "Self-explanatory PPT",
+    connector: "Manual upload",
+    summary:
+      "Estudio de audiencias jóvenes: el 61% de los menores de 30 valora la transparencia de precios por encima del descuento, y la notoriedad de Movistar en ese segmento sube cuatro puntos.",
+    chunks: [
+      {
+        id: "doc-research-genz-2026#1",
+        heading: "Transparencia sobre descuento",
+        breadcrumb: "Estudio Jóvenes 2026 › Insights",
+        text: "El 61% de los menores de 30 años valora la transparencia de precios por encima del descuento puntual. El estudio (research) recomienda que la comunicación joven de Movistar evite promociones complejas y refuerce el mensaje de precio claro, alineado con la campaña 'Mismo sitio, mismo precio'.",
+      },
+    ],
+  },
 ];
 
 export const NUMERIC_FACTS: NumericFact[] = [
+  {
+    id: "num-nps-q1-2026",
+    label: "Group NPS",
+    value: "34",
+    unit: "points",
+    period: "Q1 2026",
+    source: "Customer Experience Scorecard — NPS Q1 2026",
+    docId: "doc-customer-nps-q1-2026",
+    keywords: ["nps", "net promoter", "customer satisfaction", "satisfacción", "kundenzufriedenheit", "satisfação"],
+  },
+  {
+    id: "num-brand-consideration-q1-2026",
+    label: "Brand consideration",
+    value: "52",
+    unit: "%",
+    period: "Q1 2026",
+    source: "Brand Tracker Wave — Q1 2026 (Research)",
+    docId: "doc-brand-tracker-q1-2026",
+    keywords: ["consideration", "brand tracker", "brand power", "consideración", "marca", "markenstärke"],
+  },
+  {
+    id: "num-spain-mobile-share-q1-2026",
+    label: "Movistar mobile market share (Spain)",
+    value: "27.4",
+    unit: "%",
+    period: "Q1 2026",
+    source: "CNMC — Datos del Mercado Español Q1 2026",
+    docId: "doc-cnmc-datos-q1-2026",
+    keywords: ["cuota", "market share", "movistar", "spain mobile", "españa", "portabilidad"],
+  },
   {
     id: "num-revenue-q1-2026",
     label: "Group revenue",
