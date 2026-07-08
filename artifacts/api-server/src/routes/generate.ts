@@ -127,6 +127,7 @@ router.post("/generate/refine", async (req, res) => {
         draft: parsed.data.draft as unknown as GeneratedDraft,
         instruction: parsed.data.instruction,
         roleId: parsed.data.roleId,
+        selection: parsed.data.selection ?? null,
       },
       req.log,
     );
@@ -561,6 +562,7 @@ router.post("/generate/refine/jobs", async (req, res) => {
     draft: parsed.data.draft as unknown as GeneratedDraft,
     instruction: parsed.data.instruction,
     roleId: parsed.data.roleId,
+    selection: parsed.data.selection ?? null,
   };
   const log = req.log;
   void (async () => {

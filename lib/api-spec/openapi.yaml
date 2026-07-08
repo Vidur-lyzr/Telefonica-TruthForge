@@ -4769,6 +4769,10 @@ components:
           minLength: 1
         roleId:
           type: string
+        selection:
+          type: string
+          nullable: true
+          description: Optional passage of the draft the instruction targets.
 
     CheckInput:
       type: object

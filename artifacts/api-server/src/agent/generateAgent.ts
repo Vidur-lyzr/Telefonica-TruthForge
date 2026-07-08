@@ -215,6 +215,8 @@ export interface RefineInput {
   draft: GeneratedDraft;
   instruction: string;
   roleId: string;
+  // Optional passage of the draft the instruction targets (selection-to-chat).
+  selection?: string | null;
 }
 
 function confidenceFor(score: number, topScore: number): number {
@@ -328,7 +330,12 @@ async function compose(
   }
   const kpiQueryText = kpiCards.map((k) => k.name).join(" ");
 
-  const retrievalQuery = [input.topic, sourceQueryText, kpiQueryText, axisNames, instruction ?? ""]
+  // The instruction is deliberately NOT folded into the main retrieval query:
+  // coverage is a ratio over query idf mass, so refine wording ("make this more
+  // concise") would inflate the denominator and starve every chunk, flipping a
+  // valid refine into no_evidence. Instead the instruction gets its own
+  // retrieval pass below, gated by the same coverage threshold.
+  const retrievalQuery = [input.topic, sourceQueryText, kpiQueryText, axisNames]
     .filter(Boolean)
     .join(" ");
 
@@ -358,6 +365,19 @@ async function compose(
   // (dual-filtered) rank ever reaches the model: permitted is re-capped below.
   onStage?.("retrieving");
   const retrieved = retrieve({ question: retrievalQuery, clearance, topK: 12 });
+  if (instruction && baseDraft) {
+    // Refine: also retrieve for the instruction itself (e.g. "add the dividend
+    // figure") so newly requested material can enter, judged by its own
+    // coverage against the instruction query alone.
+    const extra = retrieve({ question: instruction, clearance, topK: 6 });
+    const seen = new Set(retrieved.map((c) => c.chunkId));
+    for (const c of extra) {
+      if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
+        seen.add(c.chunkId);
+        retrieved.push(c);
+      }
+    }
+  }
   const relevant = retrieved.filter((c) => c.coverage >= COVERAGE_MIN);
   const personaPermitted = relevant.filter((c) => c.accessible);
   const blocked = relevant.filter((c) => !c.accessible);
@@ -929,5 +949,9 @@ export async function refineDraft(
     spokesperson: base.params.spokesperson ?? null,
     eventDate: base.params.eventDate ?? null,
   };
-  return compose({ input: genInput, instruction: input.instruction, baseDraft: base, onStage }, log);
+  const selection = input.selection?.trim();
+  const instruction = selection
+    ? `${input.instruction}\n\nApply the change specifically to this passage of the draft, keeping the rest intact: "${selection}"`
+    : input.instruction;
+  return compose({ input: genInput, instruction, baseDraft: base, onStage }, log);
 }

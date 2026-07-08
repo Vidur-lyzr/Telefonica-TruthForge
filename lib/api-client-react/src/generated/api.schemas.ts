@@ -1666,6 +1666,8 @@ export interface RefineInput {
   /** @minLength 1 */
   instruction: string;
   roleId: string;
+  /** Optional passage of the draft the instruction targets. */
+  selection?: string | null;
 }
 
 export interface CheckInput {

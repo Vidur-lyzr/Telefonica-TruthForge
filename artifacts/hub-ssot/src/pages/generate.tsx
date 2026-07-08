@@ -38,6 +38,7 @@ import {
   type KpiReportContext,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { RichTextEditor } from "@/components/document-editor";
 import {
   Box,
   Stack,
@@ -289,15 +290,17 @@ function DraftChart({ chart }: { chart: ChartSpec }) {
   );
 }
 
-// ---- Inline-editable section -------------------------------------------------
+// ---- Inline-editable section (always-live rich editor) ------------------------
 function SectionBlock({
   section,
-  editing,
   onChange,
+  onOpenCitationId,
+  onAskSelection,
 }: {
   section: DraftSection;
-  editing: boolean;
   onChange: (body: string) => void;
+  onOpenCitationId: (id: string) => void;
+  onAskSelection: (passage: string) => void;
 }) {
   return (
     <Stack space={8}>
@@ -309,24 +312,13 @@ function SectionBlock({
           </Tag>
         )}
       </Inline>
-      {editing ? (
-        <TextField
-          name={`section-${section.id}`}
-          label="Section body"
-          value={section.body}
-          onChangeValue={onChange}
-          multiline
-          fullWidth
-        />
-      ) : (
-        <Stack space={8}>
-          {section.body.split("\n").map((p, i) => (
-            <Text3 regular key={i} color={c.textPrimary}>
-              {p}
-            </Text3>
-          ))}
-        </Stack>
-      )}
+      <RichTextEditor
+        value={section.body}
+        onChange={onChange}
+        onOpenCitation={onOpenCitationId}
+        onAskSelection={onAskSelection}
+        ariaLabel={`Section body: ${section.heading}`}
+      />
     </Stack>
   );
 }
@@ -334,21 +326,26 @@ function SectionBlock({
 // ---- The document canvas -----------------------------------------------------
 function DocumentCanvas({
   draft,
-  editing,
   onSectionChange,
   onUmbrellaChange,
   onOpenCitation,
+  onAskSelection,
 }: {
   draft: GeneratedDraft;
-  editing: boolean;
   onSectionChange: (id: string, body: string) => void;
   onUmbrellaChange: (body: string) => void;
   onOpenCitation: (c: Citation) => void;
+  onAskSelection: (passage: string) => void;
 }) {
   const externalStripped = draft.audience === "external";
   const visibleSections = externalStripped
     ? draft.sections.filter((s) => !s.internalOnly)
     : draft.sections;
+
+  const openCitationById = (id: string) => {
+    const cit = draft.citations.find((x) => x.id === id);
+    if (cit) onOpenCitation(cit);
+  };
 
   return (
     <div style={{ maxWidth: 768 }}>
@@ -396,20 +393,16 @@ function DocumentCanvas({
                   <Text1 medium color={c.textPrimaryInverse}>
                     Umbrella message
                   </Text1>
-                  {editing ? (
-                    <TextField
-                      name="umbrella"
-                      label="Umbrella message"
+                  <div style={{ color: c.textPrimaryInverse }}>
+                    <RichTextEditor
                       value={draft.umbrella}
-                      onChangeValue={onUmbrellaChange}
-                      multiline
-                      fullWidth
+                      onChange={onUmbrellaChange}
+                      onOpenCitation={openCitationById}
+                      onAskSelection={onAskSelection}
+                      inverse
+                      ariaLabel="Umbrella message"
                     />
-                  ) : (
-                    <Text3 medium color={c.textPrimaryInverse}>
-                      {draft.umbrella}
-                    </Text3>
-                  )}
+                  </div>
                 </Stack>
               </div>
             )}
@@ -419,8 +412,9 @@ function DocumentCanvas({
                 <SectionBlock
                   key={s.id}
                   section={s}
-                  editing={editing}
                   onChange={(body) => onSectionChange(s.id, body)}
+                  onOpenCitationId={openCitationById}
+                  onAskSelection={onAskSelection}
                 />
               ))}
             </Stack>
@@ -1223,8 +1217,11 @@ export default function Generate() {
   const { roleId } = useApp();
   const [tab, setTab] = React.useState<Tab>("compose");
   const [draft, setDraft] = React.useState<GeneratedDraft | null>(null);
-  const [editing, setEditing] = React.useState(false);
   const [instruction, setInstruction] = React.useState("");
+  const [pendingSelection, setPendingSelection] = React.useState<string | null>(null);
+  const [chatMessages, setChatMessages] = React.useState<
+    { role: "user" | "agent"; text: string; selection?: string | null; tone?: "error" }[]
+  >([]);
   const [selectedCitation, setSelectedCitation] = React.useState<Citation | null>(null);
   const [showAssets, setShowAssets] = React.useState(false);
 
@@ -1273,10 +1270,29 @@ export default function Generate() {
     const job = jobQ.data;
     if (!job || !jobId) return;
     if (job.status === "done" && job.draft) {
-      setDraft(job.draft as GeneratedDraft);
-      if (jobVariant === "refine") setInstruction("");
+      const next = job.draft as GeneratedDraft;
+      setDraft(next);
+      if (jobVariant === "refine") {
+        setInstruction("");
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            role: "agent",
+            text:
+              next.guardian.status === "pass"
+                ? "Applied. All claims re-cited and the Brand Guardian cleared the revision."
+                : "Applied, but the Brand Guardian flagged the revision — check the findings before exporting.",
+          },
+        ]);
+      }
       setJobId(null);
     } else if (job.status === "error") {
+      if (jobVariant === "refine") {
+        setChatMessages((prev) => [
+          ...prev,
+          { role: "agent", text: job.error ?? "The Hub could not apply that change.", tone: "error" },
+        ]);
+      }
       setJobId(null);
     }
   }, [jobQ.data, jobId, jobVariant]);
@@ -1289,7 +1305,8 @@ export default function Generate() {
 
   const handleGenerate = (v: BriefValues) => {
     if (!roleId) return;
-    setEditing(false);
+    setChatMessages([]);
+    setPendingSelection(null);
     setJobVariant("generate");
     startGenerate.mutate(
       {
@@ -1313,17 +1330,32 @@ export default function Generate() {
 
   const handleRefine = () => {
     if (!draft || !instruction.trim() || !roleId) return;
+    const selection = pendingSelection?.trim() || null;
+    setChatMessages((prev) => [...prev, { role: "user", text: instruction.trim(), selection }]);
+    setPendingSelection(null);
     setJobVariant("refine");
     startRefine.mutate(
-      { data: { draft, instruction, roleId } },
+      { data: { draft, instruction, roleId, selection } },
       { onSuccess: (job) => setJobId(job.id) },
     );
   };
 
   const recheck = (next: GeneratedDraft) => {
+    // Only merge the guardian verdict into the CURRENT draft, and only if the
+    // body has not changed since this check was issued — a slow response must
+    // never overwrite newer typing with a stale snapshot.
+    const issuedSignature = JSON.stringify([next.id, next.umbrella, next.sections.map((s) => s.body)]);
     check.mutate(
       { data: { draft: next } },
-      { onSuccess: (g) => setDraft({ ...next, guardian: g }) },
+      {
+        onSuccess: (g) =>
+          setDraft((curr) => {
+            if (!curr || curr.id !== next.id) return curr;
+            const currSignature = JSON.stringify([curr.id, curr.umbrella, curr.sections.map((s) => s.body)]);
+            if (currSignature !== issuedSignature) return curr;
+            return { ...curr, guardian: g };
+          }),
+      },
     );
   };
 
@@ -1341,10 +1373,33 @@ export default function Generate() {
     setDraft({ ...draft, umbrella: body });
   };
 
-  const finishEditing = () => {
-    setEditing(false);
-    if (draft) recheck(draft);
-  };
+  // Debounced Brand Guardian recheck: the canvas is always live, so any manual
+  // edit re-runs the Guardian shortly after typing pauses.
+  const bodySignature = draft
+    ? JSON.stringify([draft.id, draft.umbrella, draft.sections.map((s) => s.body)])
+    : null;
+  const lastCheckedRef = React.useRef<string | null>(null);
+  const lastDraftIdRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!draft || !bodySignature) {
+      lastCheckedRef.current = null;
+      lastDraftIdRef.current = null;
+      return;
+    }
+    if (lastDraftIdRef.current !== draft.id || lastCheckedRef.current === null) {
+      // New draft arrived (generate/refine/open) — its guardian verdict is fresh.
+      lastDraftIdRef.current = draft.id;
+      lastCheckedRef.current = bodySignature;
+      return;
+    }
+    if (bodySignature === lastCheckedRef.current || busy || check.isPending) return;
+    const t = window.setTimeout(() => {
+      lastCheckedRef.current = bodySignature;
+      recheck(draft);
+    }, 1200);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bodySignature, busy]);
 
   const handleSaveVersion = () => {
     if (!draft) return;
@@ -1536,10 +1591,10 @@ export default function Generate() {
             ) : (
               <DocumentCanvas
                 draft={draft}
-                editing={editing}
                 onSectionChange={updateSection}
                 onUmbrellaChange={updateUmbrella}
                 onOpenCitation={setSelectedCitation}
+                onAskSelection={(passage) => setPendingSelection(passage)}
               />
             )}
           </div>
@@ -1562,13 +1617,6 @@ export default function Generate() {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                     <ButtonSecondary
                       small
-                      onPress={() => (editing ? finishEditing() : setEditing(true))}
-                      StartIcon={editing ? IconCheckRegular : IconEditPencilRegular}
-                    >
-                      {editing ? "Done" : "Edit"}
-                    </ButtonSecondary>
-                    <ButtonSecondary
-                      small
                       onPress={handleSaveVersion}
                       disabled={!canExport || saveVersion.isPending}
                       StartIcon={IconDownloadRegular}
@@ -1579,6 +1627,12 @@ export default function Generate() {
                       Assets
                     </ButtonSecondary>
                   </div>
+                  <Inline space={4} alignItems="center">
+                    <IconEditPencilRegular size={12} color={c.textSecondary} />
+                    <Text1 regular color={c.textSecondary}>
+                      The document is live — click anywhere in it to edit. The Guardian rechecks as you type.
+                    </Text1>
+                  </Inline>
 
                   <Stack space={8}>
                     <FieldLabel>Export</FieldLabel>
@@ -1637,7 +1691,7 @@ export default function Generate() {
                             <ButtonSecondary
                               small
                               onPress={handleMarkReviewed}
-                              disabled={recordReview.isPending || editing}
+                              disabled={recordReview.isPending}
                               StartIcon={IconCheckedRegular}
                             >
                               {recordReview.isPending ? "Recording..." : "Mark review complete"}
@@ -1724,17 +1778,104 @@ export default function Generate() {
                 </Stack>
               </div>
 
-              <div style={{ borderTop: `1px solid ${c.divider}`, backgroundColor: c.backgroundContainer, padding: 16 }}>
+              <div
+                style={{
+                  borderTop: `1px solid ${c.divider}`,
+                  backgroundColor: c.backgroundContainer,
+                  padding: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  maxHeight: 340,
+                }}
+              >
                 <Stack space={8}>
                   <Inline space={8} alignItems="center">
                     <IconRobotRegular size={16} color={c.brand} />
                     <Text2 medium color={c.textSecondary}>
-                      Refine
+                      Edit with the agent
                     </Text2>
                   </Inline>
+                </Stack>
+                {chatMessages.length > 0 && (
+                  <div style={{ overflowY: "auto", margin: "8px 0", flex: 1 }}>
+                    <Stack space={8}>
+                      {chatMessages.map((m, i) => (
+                        <div
+                          key={i}
+                          style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}
+                        >
+                          <div
+                            style={{
+                              maxWidth: "88%",
+                              borderRadius: skinVars.borderRadii.container,
+                              backgroundColor:
+                                m.role === "user" ? c.brand : m.tone === "error" ? c.errorLow : c.brandLow,
+                              padding: "8px 12px",
+                            }}
+                          >
+                            <Stack space={4}>
+                              {m.selection && (
+                                <Text1
+                                  regular
+                                  color={m.role === "user" ? c.textPrimaryInverse : c.textSecondary}
+                                >
+                                  Re: "{m.selection.length > 90 ? `${m.selection.slice(0, 90)}...` : m.selection}"
+                                </Text1>
+                              )}
+                              <Text2
+                                regular
+                                color={
+                                  m.role === "user"
+                                    ? c.textPrimaryInverse
+                                    : m.tone === "error"
+                                      ? c.error
+                                      : c.textPrimary
+                                }
+                              >
+                                {m.text}
+                              </Text2>
+                            </Stack>
+                          </div>
+                        </div>
+                      ))}
+                      {busy && jobVariant === "refine" && (
+                        <Inline space={8} alignItems="center">
+                          <Spinner size={16} />
+                          <Text1 regular color={c.textSecondary}>
+                            Re-composing under governance...
+                          </Text1>
+                        </Inline>
+                      )}
+                    </Stack>
+                  </div>
+                )}
+                <Stack space={8}>
+                  {pendingSelection && (
+                    <div
+                      style={{
+                        borderRadius: skinVars.borderRadii.container,
+                        border: `1px solid ${c.divider}`,
+                        backgroundColor: c.backgroundAlternative,
+                        padding: "8px 12px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <Text1 regular color={c.textSecondary}>
+                          Selected passage: "
+                          {pendingSelection.length > 80 ? `${pendingSelection.slice(0, 80)}...` : pendingSelection}"
+                        </Text1>
+                      </div>
+                      <ButtonLink small onPress={() => setPendingSelection(null)}>
+                        Clear
+                      </ButtonLink>
+                    </div>
+                  )}
                   <TextField
                     name="instruction"
-                    label="Refine instruction"
+                    label={pendingSelection ? "What should change in this passage?" : "Ask for a change"}
                     placeholder="e.g. Tighten the B2B section and add the dividend figure"
                     value={instruction}
                     onChangeValue={setInstruction}
@@ -1742,7 +1883,7 @@ export default function Generate() {
                   />
                   <Inline space={8} alignItems="center">
                     <IconButton
-                      aria-label="Send refine instruction"
+                      aria-label="Send edit instruction"
                       onPress={handleRefine}
                       disabled={!instruction.trim() || busy}
                       Icon={IconSendRegular}
@@ -1751,7 +1892,8 @@ export default function Generate() {
                     <ButtonLink
                       onPress={() => {
                         setDraft(null);
-                        setEditing(false);
+                        setChatMessages([]);
+                        setPendingSelection(null);
                       }}
                       StartIcon={IconRefreshRegular}
                     >

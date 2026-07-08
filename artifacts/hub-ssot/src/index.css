@@ -87,3 +87,69 @@ body {
   color: rgba(0, 0, 0, 0.55);
   font-size: 14px;
 }
+
+/* Canvas document editor (TipTap) */
+.hub-doc-editor-wrap .ProseMirror {
+  outline: none;
+  font-size: 18px;
+  line-height: 1.5;
+  color: inherit;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.hub-doc-editor-wrap .ProseMirror p {
+  margin: 0 0 8px;
+}
+.hub-doc-editor-wrap .ProseMirror p:last-child {
+  margin-bottom: 0;
+}
+.hub-doc-editor-wrap .ProseMirror ul {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+.hub-doc-editor-wrap .ProseMirror li {
+  margin: 2px 0;
+}
+.hub-doc-editor-wrap .ProseMirror li p {
+  margin: 0;
+}
+.hub-doc-editor-wrap .ProseMirror strong {
+  font-weight: 600;
+}
+.hub-doc-editor-wrap {
+  border-radius: 8px;
+  transition: background-color 120ms ease;
+}
+.hub-doc-editor-wrap:focus-within {
+  background-color: rgba(0, 102, 255, 0.04);
+}
+.hub-doc-editor-inverse:focus-within {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Inline citation chips */
+.hub-citation-chip {
+  display: inline-block;
+  padding: 0 8px;
+  margin: 0 2px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  vertical-align: baseline;
+  cursor: pointer;
+  user-select: none;
+  background-color: rgba(0, 102, 255, 0.1);
+  color: #0066ff;
+  white-space: nowrap;
+}
+.hub-citation-chip:hover {
+  background-color: rgba(0, 102, 255, 0.18);
+}
+.hub-doc-editor-inverse .hub-citation-chip {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+.ProseMirror-selectednode.hub-citation-chip {
+  outline: 2px solid rgba(0, 102, 255, 0.5);
+}

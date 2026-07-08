@@ -166,6 +166,16 @@ function gateDestination(draft: GeneratedDraft, destination: ExportDestination):
   }
 }
 
+// The canvas editor stores emphasis as markdown-style markers (**bold**,
+// *italic*) inside the plain-text body. Export renderers are plain-text, so
+// strip the markers to keep exported copy clean.
+function stripEmphasisMarkers(text: string): string {
+  return text
+    .replace(/\*\*\*([^*]+)\*\*\*/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,;:!?]|$)/g, "$1$2");
+}
+
 export function buildExportModel(
   draft: GeneratedDraft,
   destination: ExportDestination,
@@ -190,7 +200,11 @@ export function buildExportModel(
   // braces, fail closed.
   const sections = draft.sections
     .filter((s) => !(external && s.internalOnly))
-    .map((s) => ({ heading: s.heading, body: s.body, internalOnly: s.internalOnly }));
+    .map((s) => ({
+      heading: s.heading,
+      body: stripEmphasisMarkers(s.body),
+      internalOnly: s.internalOnly,
+    }));
   const spokesperson = external
     ? []
     : draft.spokesperson.map((s) => ({
@@ -222,7 +236,7 @@ export function buildExportModel(
     confidentiality: draft.confidentiality,
     destination,
     generatedAt: new Date().toISOString(),
-    umbrella: draft.umbrella ?? null,
+    umbrella: draft.umbrella ? stripEmphasisMarkers(draft.umbrella) : null,
     sections,
     spokesperson,
     charts,

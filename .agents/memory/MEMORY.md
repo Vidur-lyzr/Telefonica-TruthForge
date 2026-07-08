@@ -19,3 +19,5 @@
 - [Refusal error codes](refusal-error-codes.md) — governance refusal responses must return a machine-readable `code` alongside the message; frontends key remediation UX on the code with a message fallback.
 - [GitAgent brain-file YAML pitfalls](gitagent-brain-files.md) — one bad SKILL.md frontmatter silently drops every run to the non-streaming fallback; check server log before debugging SSE.
 - [Streamdown in a no-Tailwind Mística app](streamdown-mistica.md) — rehype-harden blocks custom link protocols; use #hash hrefs for citation chips and own wrapper CSS.
+- [Coverage-ratio query dilution](coverage-ratio-dilution.md) — never fold non-topical text (refine instructions, chat wording) into a coverage-gated retrieval query; give it its own gated pass.
+- [Live-editor async merges](live-editor-async-merges.md) — async verdicts must merge into current state via functional set + body-signature guard, never replace state with a captured snapshot.

@@ -614,6 +614,38 @@ export const QueryKpisResponse = zod.object({
 
 
 /**
+ * Same governed run as /ask, streamed. Emits SSE events as they genuinely happen: `step` (real run milestones — scope resolution, retrieval, permission/conflict checks, tool calls, composition), `token` (the model's own text deltas), then a terminal `result` event carrying the full AskResult (citations always land last), then `done`.
+ * @summary Ask with live progress streaming (Server-Sent Events)
+ */
+
+
+
+export const AskStreamBody = zod.object({
+  "question": zod.string().min(1),
+  "area": zod.string().describe('Comunicación | Marca | Gabinete'),
+  "roleId": zod.string().describe('The active permission scope \/ persona id'),
+  "history": zod.array(zod.object({
+  "role": zod.string().describe('user | assistant'),
+  "content": zod.string()
+})).optional().describe('Prior conversation turns, oldest first.'),
+  "filters": zod.union([zod.object({
+  "market": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "period": zod.string().nullish(),
+  "source": zod.string().nullish(),
+  "axis": zod.string().nullish()
+}).describe('Retrieval scope applied BEFORE retrieval. Absent\/empty means \"all data\".'),zod.null()]).optional(),
+  "attachment": zod.union([zod.object({
+  "name": zod.string(),
+  "content": zod.string(),
+  "ingest": zod.boolean().optional()
+}).describe('Working-context document. Never enters the corpus unless ingest is true.'),zod.null()]).optional()
+})
+
+export const AskStreamResponse = zod.unknown()
+
+
+/**
  * Runs the KPI-scoped agent. Retrieval is seeded from the evidence behind the KPIs in view (internal source chunks and external mentions), permission filtered before the model, and returns a cited answer — or an honest no-evidence / permission-blocked result.
  * @summary Ask a question over the KPIs currently in view
  */
@@ -1853,7 +1885,8 @@ export const RefineDocumentBody = zod.object({
   "approved": zod.boolean().optional()
 }),
   "instruction": zod.string().min(1),
-  "roleId": zod.string()
+  "roleId": zod.string(),
+  "selection": zod.string().nullish().describe('Optional passage of the draft the instruction targets.')
 })
 
 export const RefineDocumentResponse = zod.object({
@@ -3659,7 +3692,8 @@ export const StartRefineJobBody = zod.object({
   "approved": zod.boolean().optional()
 }),
   "instruction": zod.string().min(1),
-  "roleId": zod.string()
+  "roleId": zod.string(),
+  "selection": zod.string().nullish().describe('Optional passage of the draft the instruction targets.')
 })
 
 export const StartRefineJobResponse = zod.object({

@@ -1700,6 +1700,77 @@ export const useQueryKpis = <TError = ErrorType<unknown>,
       return useMutation(getQueryKpisMutationOptions(options));
     }
 
+export const getAskStreamUrl = () => {
+
+
+
+
+  return `/api/ask/stream`
+}
+
+/**
+ * Same governed run as /ask, streamed. Emits SSE events as they genuinely happen: `step` (real run milestones — scope resolution, retrieval, permission/conflict checks, tool calls, composition), `token` (the model's own text deltas), then a terminal `result` event carrying the full AskResult (citations always land last), then `done`.
+ * @summary Ask with live progress streaming (Server-Sent Events)
+ */
+export const askStream = async (askInput: AskInput, options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getAskStreamUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(askInput)
+  }
+);}
+
+
+
+
+export const getAskStreamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askStream>>, TError,{data: BodyType<AskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof askStream>>, TError,{data: BodyType<AskInput>}, TContext> => {
+
+const mutationKey = ['askStream'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof askStream>>, {data: BodyType<AskInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  askStream(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AskStreamMutationResult = NonNullable<Awaited<ReturnType<typeof askStream>>>
+    export type AskStreamMutationBody = BodyType<AskInput>
+    export type AskStreamMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Ask with live progress streaming (Server-Sent Events)
+ */
+export const useAskStream = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askStream>>, TError,{data: BodyType<AskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof askStream>>,
+        TError,
+        {data: BodyType<AskInput>},
+        TContext
+      > => {
+      return useMutation(getAskStreamMutationOptions(options));
+    }
+
 export const getAskKpisUrl = () => {
 
 
