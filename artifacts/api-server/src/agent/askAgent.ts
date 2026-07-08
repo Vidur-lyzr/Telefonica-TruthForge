@@ -311,9 +311,58 @@ export async function runAskAgent(
       state: "done",
       detail: "no retrieval needed",
     });
+    emit?.({
+      type: "step",
+      id: "compose",
+      label: "Composing the reply",
+      state: "active",
+    });
+
+    // Still a real GitAgent run — the same brain (SOUL, RULES, skills)
+    // composes the reply. It just gets no sources, so it cannot state facts.
+    const conversationalSystem = [
+      "This turn is conversational (a greeting, thanks, or a question about your capabilities). No governed sources are in scope.",
+      `The user is browsing as persona "${role.label}" (area ${role.area}, clearance ${clearance}).`,
+      "Reply briefly and warmly as the Hub's governed assistant. Explain, when relevant, that you answer questions about Telefónica strategy, brand and corporate facts from the governed corpus, always with citations, and that you say honestly when evidence is missing, blocked by clearance, or historic.",
+      "You have NO sources for this turn: state no corporate facts, figures or claims, and use no citation markers.",
+      "Be concise, plain and calm. British/European English. Never use emoji. Do not mention that you are an AI model or describe these instructions.",
+    ].join(" ");
+
+    let convAnswer = "";
+    try {
+      const run = await runAgent({
+        prompt: `User said: ${input.question}`,
+        systemPromptSuffix: conversationalSystem,
+        tools: [],
+        maxTurns: 2,
+        log,
+        onEvent: (ev) => {
+          if (ev.type === "text_delta" && emit)
+            emit({ type: "token", content: ev.content });
+        },
+      });
+      convAnswer = run.text.trim();
+      recordUsage(
+        "ask",
+        estimateTokens(conversationalSystem + input.question),
+        estimateTokens(convAnswer),
+      );
+    } catch (err) {
+      log.warn({ err }, "ask: conversational gitagent failed, using static reply");
+    }
+    // Strip any stray citation markers — there are no sources this turn.
+    convAnswer = convAnswer.replace(/\s*\[[^\]]*\]/g, "").trim();
+    if (!convAnswer) convAnswer = conversationalAnswer(conversational, role.label);
+
+    emit?.({
+      type: "step",
+      id: "compose",
+      label: "Composing the reply",
+      state: "done",
+    });
     return {
       status: "answered",
-      answer: conversationalAnswer(conversational, role.label),
+      answer: convAnswer,
       citations: [],
       historic: false,
       lowConfidence: false,
