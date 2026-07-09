@@ -78,7 +78,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Spain",
     brand: "Telefónica",
     source: "Excel",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Internal recap deck summarising the MWC Barcelona keynote for the comms team.",
   },
   {
@@ -94,7 +94,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Group",
     brand: "Telefónica",
     source: "Excel",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Teaser communications ahead of the annual sustainability report launch.",
   },
   {
@@ -110,7 +110,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Brazil",
     brand: "Vivo",
     source: "Jira",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Vivo reaches 25 million fibre-passed homes; milestone note for market comms.",
   },
   {
@@ -158,7 +158,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Group",
     brand: "Telefónica",
     source: "Google Calendar",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Pre-close quiet-period reminder and holding lines for press enquiries.",
   },
   {
@@ -174,7 +174,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Spain",
     brand: "Movistar",
     source: "Asana",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Summer pricing and loyalty campaign for existing Movistar customers in Spain.",
   },
   {
@@ -190,7 +190,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Spain",
     brand: "Movistar",
     source: "Google Calendar",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "On-the-record briefing on fibre rollout and copper retirement progress in Spain.",
   },
   {
@@ -222,7 +222,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Group",
     brand: "Telefónica",
     source: "Confluence",
-    confidentiality: "restricted",
+    confidentiality: "off_the_record",
     description: "Board-restricted checkpoint on the potential in-market consolidation opportunity.",
   },
   {
@@ -238,7 +238,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Germany",
     brand: "O2",
     source: "Asana",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Awareness campaign highlighting expanded O2 5G standalone coverage in Germany.",
   },
   {
@@ -254,7 +254,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Group",
     brand: "Telefónica",
     source: "Google Calendar",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "All-employee town hall on Transform & Grow delivery and the second-half priorities.",
   },
   {
@@ -270,7 +270,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Group",
     brand: "Telefónica",
     source: "Confluence",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Refreshed brand guidelines with updated colour and voice guidance for all markets.",
   },
   {
@@ -286,7 +286,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Germany",
     brand: "O2",
     source: "Asana",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Teaser phase for the O2 brand refresh across German channels.",
   },
   {
@@ -302,7 +302,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "United Kingdom",
     brand: "Telefónica Tech",
     source: "Asana",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Enterprise webinar on managed cyber security for UK B2B prospects.",
   },
   {
@@ -318,7 +318,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Brazil",
     brand: "Vivo",
     source: "Asana",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Campaign promoting Vivo digital services and value bundles in Brazil.",
   },
   {
@@ -334,7 +334,7 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     market: "Spain",
     brand: "Movistar",
     source: "Jira",
-    confidentiality: "internal",
+    confidentiality: "private",
     description: "Regulatory phase gate for the next tranche of copper network retirement in Spain.",
   },
 ];

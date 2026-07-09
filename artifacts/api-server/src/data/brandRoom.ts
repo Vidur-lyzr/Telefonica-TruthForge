@@ -134,7 +134,7 @@ export interface SpellingPref {
 // ---- Templates --------------------------------------------------------------
 // Governed document templates are internal brand-governance material — external
 // personas (public clearance) see them as permission-blocked, not missing.
-const TEMPLATE_CLEARANCE: Clearance = "internal";
+const TEMPLATE_CLEARANCE: Clearance = "private";
 
 export interface BrandTemplateSection {
   key: string;
@@ -374,7 +374,7 @@ export const BRAND_RESOURCES: BrandResource[] = [
     detail:
       "Lead with the Telefónica masterbrand. Sub-brands take sentence case and never introduce a competing colour system. New names route through Brand governance before any external use.",
     format: "Reference sheet",
-    clearance: "internal",
+    clearance: "private",
     validity: "approved",
   },
   {

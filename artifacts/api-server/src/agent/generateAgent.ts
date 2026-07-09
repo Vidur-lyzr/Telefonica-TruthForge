@@ -384,11 +384,11 @@ async function compose(
   // Destination gate on top of the persona gate.
   const permitted = personaPermitted.filter(
     (c) =>
-      CLEARANCE_RANK[resolveDoc(c.docId)?.confidentiality ?? "restricted"] <= bodyRank,
+      CLEARANCE_RANK[resolveDoc(c.docId)?.confidentiality ?? "off_the_record"] <= bodyRank,
   );
   const destinationExcluded = personaPermitted.filter(
     (c) =>
-      CLEARANCE_RANK[resolveDoc(c.docId)?.confidentiality ?? "restricted"] > bodyRank,
+      CLEARANCE_RANK[resolveDoc(c.docId)?.confidentiality ?? "off_the_record"] > bodyRank,
   );
 
   // Visible dual-filter explanation. Clearance exclusions never reveal a title
@@ -399,7 +399,7 @@ async function compose(
   const seenClearance = new Set<string>();
   for (const b of blocked) {
     const doc = resolveDoc(b.docId);
-    const conf = doc?.confidentiality ?? "restricted";
+    const conf = doc?.confidentiality ?? "off_the_record";
     if (seenClearance.has(b.docId)) continue;
     seenClearance.add(b.docId);
     exclusions.push({
@@ -414,7 +414,7 @@ async function compose(
     const doc = resolveDoc(d.docId);
     if (seenDest.has(d.docId)) continue;
     seenDest.add(d.docId);
-    const conf = doc?.confidentiality ?? "restricted";
+    const conf = doc?.confidentiality ?? "off_the_record";
     exclusions.push({
       reason: "destination",
       docTitle: doc?.title ?? d.docId,
@@ -510,7 +510,7 @@ async function compose(
 
   // ---- Charts from data (fail closed on doc access) --------------------------
   let series = querySeries(retrievalQuery).filter(
-    (s) => CLEARANCE_RANK[resolveDoc(s.docId)?.confidentiality ?? "restricted"] <= bodyRank,
+    (s) => CLEARANCE_RANK[resolveDoc(s.docId)?.confidentiality ?? "off_the_record"] <= bodyRank,
   );
   // Financial briefs get a revenue-trend chart by default when accessible.
   const looksFinancial = /result|revenue|financ|earnings|dividend|ebitda/i.test(
@@ -518,7 +518,7 @@ async function compose(
   );
   if (looksFinancial && !series.some((s) => s.id === "series-revenue-trend")) {
     const extra = querySeries("revenue trend").filter(
-      (s) => CLEARANCE_RANK[resolveDoc(s.docId)?.confidentiality ?? "restricted"] <= bodyRank,
+      (s) => CLEARANCE_RANK[resolveDoc(s.docId)?.confidentiality ?? "off_the_record"] <= bodyRank,
     );
     series = [...series, ...extra];
   }

@@ -343,7 +343,7 @@ export const QUARANTINE_DOCS: QuarantineDoc[] = [
     taxonomyVersion: "v4",
     missingFields: ["confidentiality", "owner"],
     receivedAt: "2026-07-07T08:20:00Z",
-    confidentiality: "internal",
+    confidentiality: "private",
   },
   {
     id: "quar-talkwalker-exec",
@@ -363,7 +363,7 @@ export const QUARANTINE_DOCS: QuarantineDoc[] = [
     taxonomyVersion: "v4",
     missingFields: ["title", "owner", "confidentiality"],
     receivedAt: "2026-07-06T16:48:00Z",
-    confidentiality: "internal",
+    confidentiality: "private",
   },
 ];
 
@@ -432,7 +432,7 @@ export const VALIDATION_ITEMS: ValidationItem[] = [
       strategicAxisId: "ax-core",
     },
     metadata: {
-      confidentiality: "internal",
+      confidentiality: "private",
       owner: "Germany Communications",
       country: "Germany",
       brand: "O2",
@@ -506,7 +506,7 @@ export const VALIDATION_ITEMS: ValidationItem[] = [
       strategicAxisId: "ax-core",
     },
     metadata: {
-      confidentiality: "internal",
+      confidentiality: "private",
       owner: "Marca España",
       country: "Spain",
       brand: "Movistar",
