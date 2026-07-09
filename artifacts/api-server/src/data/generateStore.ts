@@ -357,6 +357,16 @@ export function createSchedule(
   return record;
 }
 
+export function removeSchedule(id: string): boolean {
+  const before = schedules.length;
+  schedules = schedules.filter((s) => s.id !== id);
+  if (schedules.length !== before) {
+    persist();
+    return true;
+  }
+  return false;
+}
+
 export function markScheduleRun(id: string): void {
   const s = schedules.find((x) => x.id === id);
   if (s) {

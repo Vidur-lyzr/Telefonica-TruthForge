@@ -24,6 +24,12 @@ import {
   ListPlanningAlertsResponse,
   SchedulePlanningForecastBody,
   SchedulePlanningForecastResponse,
+  ListPlanningForecastSchedulesQueryParams,
+  ListPlanningForecastSchedulesResponse,
+  CreatePlanningForecastScheduleBody,
+  CreatePlanningForecastScheduleResponse,
+  CancelPlanningForecastScheduleBody,
+  CancelPlanningForecastScheduleResponse,
 } from "@workspace/api-zod";
 import { ROLES, type Clearance, type Area } from "../data/corpus";
 import { PLANNING_SOURCES, PLANNING_TODAY } from "../data/planning";
@@ -55,7 +61,14 @@ import {
   touchReviewItem,
   registerScheduledDraft,
   hashDraftContent,
+  listSchedules,
+  createSchedule,
+  removeSchedule,
+  markScheduleRun,
+  type Schedule,
+  type ScheduleFrequency,
 } from "../data/generateStore";
+import type { PlanningForecastResult } from "../agent/planningAgent";
 
 const router: IRouter = Router();
 
@@ -281,6 +294,41 @@ router.get("/planning/alerts", (req, res) => {
   res.json(ListPlanningAlertsResponse.parse(buildAlerts(scopeFor(parsed.data.roleId))));
 });
 
+// Land a generated forecast in the owner's review folder with the same
+// scheduled provenance discipline as the generate engine: the draft cannot be
+// exported or versioned until approved in the review inbox.
+function landForecastInReviewFolder(
+  forecast: PlanningForecastResult,
+  input: { area: string; roleId: string },
+  scheduleId: string,
+  scheduleName: string,
+) {
+  const role = ROLES.find((r) => r.id === input.roleId) ?? ROLES[0];
+  const draft = buildForecastDraft(forecast, input);
+  const item = addReviewItem({
+    scheduleId,
+    scheduleName,
+    reviewFolder: "Planning forecasts",
+    ownerRoleId: role.id,
+    ownerLabel: role.label,
+    draft,
+  });
+  item.draft.origin = "scheduled";
+  item.draft.reviewItemId = item.id;
+  item.draft.approved = false;
+  registerScheduledDraft([item.draft.id, hashDraftContent(item.draft)], item.id);
+  touchReviewItem(item.id);
+  addNotification({
+    kind: "scheduled_draft_ready",
+    reviewItemId: item.id,
+    reviewFolder: "Planning forecasts",
+    ownerRoleId: role.id,
+    ownerLabel: role.label,
+    message: `The 10-day planning forecast landed in "Planning forecasts" and is waiting for review.`,
+  });
+  return item;
+}
+
 router.post("/planning/forecast/schedule", async (req, res) => {
   const parsed = SchedulePlanningForecastBody.safeParse(req.body);
   if (!parsed.success) {
@@ -289,37 +337,165 @@ router.post("/planning/forecast/schedule", async (req, res) => {
   }
   try {
     const forecast = await runPlanningForecast(parsed.data, req.log);
-    const role = ROLES.find((r) => r.id === parsed.data.roleId) ?? ROLES[0];
-    const draft = buildForecastDraft(forecast, parsed.data);
-    const item = addReviewItem({
-      scheduleId: "planning-forecast",
-      scheduleName: "Planning forecast (10 days)",
-      reviewFolder: "Planning forecasts",
-      ownerRoleId: role.id,
-      ownerLabel: role.label,
-      draft,
-    });
-    // Same scheduled provenance discipline as the generate engine: the draft
-    // cannot be exported or versioned until approved in the review inbox.
-    item.draft.origin = "scheduled";
-    item.draft.reviewItemId = item.id;
-    item.draft.approved = false;
-    registerScheduledDraft([item.draft.id, hashDraftContent(item.draft)], item.id);
-    touchReviewItem(item.id);
-    addNotification({
-      kind: "scheduled_draft_ready",
-      reviewItemId: item.id,
-      reviewFolder: "Planning forecasts",
-      ownerRoleId: role.id,
-      ownerLabel: role.label,
-      message: `The 10-day planning forecast landed in "Planning forecasts" and is waiting for review.`,
-    });
-    req.log.info({ reviewItemId: item.id, roleId: role.id }, "planning forecast scheduled to review folder");
+    const item = landForecastInReviewFolder(
+      forecast,
+      parsed.data,
+      "planning-forecast",
+      "Planning forecast (10 days)",
+    );
+    req.log.info(
+      { reviewItemId: item.id, roleId: parsed.data.roleId },
+      "planning forecast scheduled to review folder",
+    );
     res.json(SchedulePlanningForecastResponse.parse({ reviewItem: item, forecast }));
   } catch (err) {
     req.log.error({ err }, "planning-forecast-schedule route failed");
     res.status(500).json({ error: "The Hub could not complete this request." });
   }
+});
+
+// ---- Recurring forecast schedules ------------------------------------------
+// Recurring schedules are stored in the shared governed schedule registry with
+// shape "planning-forecast" so they never collide with Generate's document
+// schedules. The persona's area is captured at creation time in `topic`.
+
+const PLANNING_FORECAST_SHAPE = "planning-forecast";
+const FREQUENCY_MS: Record<ScheduleFrequency, number> = {
+  daily: 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000,
+  monthly: 30 * 24 * 60 * 60 * 1000,
+};
+
+function planningSchedulesFor(roleId: string): Schedule[] {
+  return listSchedules().filter(
+    (s) => s.shape === PLANNING_FORECAST_SHAPE && s.ownerRoleId === roleId,
+  );
+}
+
+function isDue(s: Schedule): boolean {
+  const last = s.lastRunAt ?? s.createdAt;
+  return Date.now() - new Date(last).getTime() >= FREQUENCY_MS[s.frequency];
+}
+
+// Lazy catch-up: any owned schedule whose interval has elapsed is run when the
+// list is read, so recurring drafts keep landing without a resident daemon.
+router.get("/planning/forecast/schedules", async (req, res) => {
+  const parsed = ListPlanningForecastSchedulesQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const { roleId } = parsed.data;
+  try {
+    for (const s of planningSchedulesFor(roleId)) {
+      if (!isDue(s)) continue;
+      // Mark the run BEFORE composing so a slow/failed compose cannot cause a
+      // run storm on every subsequent read.
+      markScheduleRun(s.id);
+      try {
+        const forecast = await runPlanningForecast({ area: s.topic, roleId }, req.log);
+        landForecastInReviewFolder(forecast, { area: s.topic, roleId }, s.id, s.name);
+        req.log.info({ scheduleId: s.id }, "recurring planning forecast run completed");
+      } catch (err) {
+        req.log.error({ err, scheduleId: s.id }, "recurring planning forecast run failed");
+      }
+    }
+    res.json(ListPlanningForecastSchedulesResponse.parse(planningSchedulesFor(roleId)));
+  } catch (err) {
+    req.log.error({ err }, "planning-forecast-schedules route failed");
+    res.status(500).json({ error: "The Hub could not complete this request." });
+  }
+});
+
+router.post("/planning/forecast/schedules/create", async (req, res) => {
+  const parsed = CreatePlanningForecastScheduleBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const { area, roleId, frequency } = parsed.data;
+  if (frequency !== "daily" && frequency !== "weekly" && frequency !== "monthly") {
+    res.status(400).json({ error: "Frequency must be daily, weekly or monthly." });
+    return;
+  }
+  const role = ROLES.find((r) => r.id === roleId);
+  if (!role) {
+    res.status(400).json({ error: "Unknown persona.", code: "unknown_role" });
+    return;
+  }
+  if (planningSchedulesFor(role.id).length > 0) {
+    res.status(409).json({
+      error: "A recurring forecast schedule already exists for this persona. Cancel it first.",
+      code: "schedule_exists",
+    });
+    return;
+  }
+  try {
+    // Compose the first occurrence BEFORE persisting the schedule, so a failed
+    // compose never leaves behind a schedule that skipped its promised first
+    // run and would silently wait a full interval.
+    const forecast = await runPlanningForecast({ area, roleId: role.id }, req.log);
+    const schedule = createSchedule({
+      name: `Recurring 10-day forecast (${frequency})`,
+      shape: PLANNING_FORECAST_SHAPE,
+      topic: area,
+      queries: [],
+      axisIds: [],
+      language: "en",
+      audience: "internal",
+      confidentiality: "internal",
+      frequency,
+      ownerRoleId: role.id,
+      ownerLabel: role.label,
+      reviewFolder: "Planning forecasts",
+    });
+    const item = landForecastInReviewFolder(
+      forecast,
+      { area, roleId: role.id },
+      schedule.id,
+      schedule.name,
+    );
+    markScheduleRun(schedule.id);
+    req.log.info(
+      { scheduleId: schedule.id, reviewItemId: item.id, frequency },
+      "recurring planning forecast schedule created",
+    );
+    res.json(
+      CreatePlanningForecastScheduleResponse.parse({
+        schedule: planningSchedulesFor(role.id).find((s) => s.id === schedule.id) ?? schedule,
+        reviewItem: item,
+        forecast,
+      }),
+    );
+  } catch (err) {
+    req.log.error({ err }, "planning-forecast-schedule-create route failed");
+    res.status(500).json({ error: "The Hub could not complete this request." });
+  }
+});
+
+router.post("/planning/forecast/schedules/cancel", (req, res) => {
+  const parsed = CancelPlanningForecastScheduleBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const { roleId, scheduleId } = parsed.data;
+  const role = ROLES.find((r) => r.id === roleId);
+  if (!role) {
+    res.status(400).json({ error: "Unknown persona.", code: "unknown_role" });
+    return;
+  }
+  const owned = planningSchedulesFor(role.id).some((s) => s.id === scheduleId);
+  if (!owned) {
+    res.status(404).json({
+      error: "No recurring forecast schedule with that id belongs to this persona.",
+      code: "schedule_not_found",
+    });
+    return;
+  }
+  removeSchedule(scheduleId);
+  req.log.info({ scheduleId }, "recurring planning forecast schedule cancelled");
+  res.json(CancelPlanningForecastScheduleResponse.parse({ ok: true }));
 });
 
 router.post("/planning/forecast", async (req, res) => {

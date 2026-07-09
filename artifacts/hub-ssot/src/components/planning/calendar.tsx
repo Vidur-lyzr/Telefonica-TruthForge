@@ -404,8 +404,16 @@ function DayView({
                     </Inline>
                     <Box paddingTop={2}>
                       <Text2 regular color={skinVars.colors.textSecondary}>
-                        {TYPE_LABEL[e.type] ?? e.type} · {e.market} · {e.brand} · {e.owner}
+                        {TYPE_LABEL[e.type] ?? e.type} · {e.area} · {e.market} · {e.brand} ·{" "}
+                        {e.owner}
                       </Text2>
+                    </Box>
+                    <Box paddingTop={2}>
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        {e.startDate}
+                        {e.endDate !== e.startDate ? ` – ${e.endDate}` : ""} · status:{" "}
+                        {e.status.replace("_", " ")} · source: {e.source} (read-only)
+                      </Text1>
                     </Box>
                   </div>
                 </div>

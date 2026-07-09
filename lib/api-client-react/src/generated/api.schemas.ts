@@ -1633,6 +1633,47 @@ export interface PlanningForecastScheduleResult {
   forecast: PlanningForecast;
 }
 
+export interface PlanningRecurringForecastInput {
+  area: string;
+  roleId: string;
+  /** daily | weekly | monthly */
+  frequency: string;
+}
+
+export interface Schedule {
+  id: string;
+  name: string;
+  shape: string;
+  topic: string;
+  queries: string[];
+  axisIds: string[];
+  language: string;
+  audience: string;
+  confidentiality: string;
+  frequency: string;
+  ownerRoleId: string;
+  ownerLabel: string;
+  reviewFolder: string;
+  createdAt: string;
+  /** @nullable */
+  lastRunAt?: string | null;
+}
+
+export interface PlanningRecurringForecastResult {
+  schedule: Schedule;
+  reviewItem: ReviewItem;
+  forecast: PlanningForecast;
+}
+
+export interface PlanningRecurringForecastCancelInput {
+  roleId: string;
+  scheduleId: string;
+}
+
+export interface PlanningRecurringForecastCancelResult {
+  ok: boolean;
+}
+
 export interface HomeCardStat {
   /** generate | kpis | planning | ask */
   app: string;
@@ -1920,25 +1961,6 @@ export interface CreateScheduleInput {
   reviewFolder?: string;
 }
 
-export interface Schedule {
-  id: string;
-  name: string;
-  shape: string;
-  topic: string;
-  queries: string[];
-  axisIds: string[];
-  language: string;
-  audience: string;
-  confidentiality: string;
-  frequency: string;
-  ownerRoleId: string;
-  ownerLabel: string;
-  reviewFolder: string;
-  createdAt: string;
-  /** @nullable */
-  lastRunAt?: string | null;
-}
-
 export interface VersionGovernance {
   confidentiality: string;
   validity: string;
@@ -2218,6 +2240,10 @@ eventId?: string;
 };
 
 export type ListPlanningAlertsParams = {
+roleId: string;
+};
+
+export type ListPlanningForecastSchedulesParams = {
 roleId: string;
 };
 

@@ -77,6 +77,7 @@ import type {
   KpiQueryResult,
   ListPlanningAlertsParams,
   ListPlanningEventsParams,
+  ListPlanningForecastSchedulesParams,
   ListPlanningSyncParams,
   ListRadarParams,
   ListWikiLineageParams,
@@ -101,6 +102,10 @@ import type {
   PlanningMoveSimulation,
   PlanningMutationResult,
   PlanningOverview,
+  PlanningRecurringForecastCancelInput,
+  PlanningRecurringForecastCancelResult,
+  PlanningRecurringForecastInput,
+  PlanningRecurringForecastResult,
   PlanningSimulateInput,
   PlanningSyncRecord,
   PlatformUser,
@@ -3071,6 +3076,231 @@ export const useSchedulePlanningForecast = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getSchedulePlanningForecastMutationOptions(options));
+    }
+
+export const getListPlanningForecastSchedulesUrl = (params: ListPlanningForecastSchedulesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/planning/forecast/schedules?${stringifiedParams}` : `/api/planning/forecast/schedules`
+}
+
+/**
+ * Returns the recurring 10-day-forecast schedules owned by the persona. Any schedule whose interval has elapsed is run on read (a fresh cited forecast lands in the review folder) before the list is returned.
+ * @summary List the persona's recurring forecast schedules
+ */
+export const listPlanningForecastSchedules = async (params: ListPlanningForecastSchedulesParams, options?: RequestInit): Promise<Schedule[]> => {
+
+  return customFetch<Schedule[]>(getListPlanningForecastSchedulesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPlanningForecastSchedulesQueryKey = (params?: ListPlanningForecastSchedulesParams,) => {
+    return [
+    `/api/planning/forecast/schedules`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListPlanningForecastSchedulesQueryOptions = <TData = Awaited<ReturnType<typeof listPlanningForecastSchedules>>, TError = ErrorType<unknown>>(params: ListPlanningForecastSchedulesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanningForecastSchedules>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPlanningForecastSchedulesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlanningForecastSchedules>>> = ({ signal }) => listPlanningForecastSchedules(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPlanningForecastSchedules>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPlanningForecastSchedulesQueryResult = NonNullable<Awaited<ReturnType<typeof listPlanningForecastSchedules>>>
+export type ListPlanningForecastSchedulesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the persona's recurring forecast schedules
+ */
+
+export function useListPlanningForecastSchedules<TData = Awaited<ReturnType<typeof listPlanningForecastSchedules>>, TError = ErrorType<unknown>>(
+ params: ListPlanningForecastSchedulesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlanningForecastSchedules>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPlanningForecastSchedulesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePlanningForecastScheduleUrl = () => {
+
+
+
+
+  return `/api/planning/forecast/schedules/create`
+}
+
+/**
+ * @summary Create a recurring forecast schedule and run its first occurrence
+ */
+export const createPlanningForecastSchedule = async (planningRecurringForecastInput: PlanningRecurringForecastInput, options?: RequestInit): Promise<PlanningRecurringForecastResult> => {
+
+  return customFetch<PlanningRecurringForecastResult>(getCreatePlanningForecastScheduleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planningRecurringForecastInput)
+  }
+);}
+
+
+
+
+export const getCreatePlanningForecastScheduleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlanningForecastSchedule>>, TError,{data: BodyType<PlanningRecurringForecastInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPlanningForecastSchedule>>, TError,{data: BodyType<PlanningRecurringForecastInput>}, TContext> => {
+
+const mutationKey = ['createPlanningForecastSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPlanningForecastSchedule>>, {data: BodyType<PlanningRecurringForecastInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPlanningForecastSchedule(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePlanningForecastScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof createPlanningForecastSchedule>>>
+    export type CreatePlanningForecastScheduleMutationBody = BodyType<PlanningRecurringForecastInput>
+    export type CreatePlanningForecastScheduleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a recurring forecast schedule and run its first occurrence
+ */
+export const useCreatePlanningForecastSchedule = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlanningForecastSchedule>>, TError,{data: BodyType<PlanningRecurringForecastInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPlanningForecastSchedule>>,
+        TError,
+        {data: BodyType<PlanningRecurringForecastInput>},
+        TContext
+      > => {
+      return useMutation(getCreatePlanningForecastScheduleMutationOptions(options));
+    }
+
+export const getCancelPlanningForecastScheduleUrl = () => {
+
+
+
+
+  return `/api/planning/forecast/schedules/cancel`
+}
+
+/**
+ * @summary Cancel a recurring forecast schedule
+ */
+export const cancelPlanningForecastSchedule = async (planningRecurringForecastCancelInput: PlanningRecurringForecastCancelInput, options?: RequestInit): Promise<PlanningRecurringForecastCancelResult> => {
+
+  return customFetch<PlanningRecurringForecastCancelResult>(getCancelPlanningForecastScheduleUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(planningRecurringForecastCancelInput)
+  }
+);}
+
+
+
+
+export const getCancelPlanningForecastScheduleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelPlanningForecastSchedule>>, TError,{data: BodyType<PlanningRecurringForecastCancelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelPlanningForecastSchedule>>, TError,{data: BodyType<PlanningRecurringForecastCancelInput>}, TContext> => {
+
+const mutationKey = ['cancelPlanningForecastSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelPlanningForecastSchedule>>, {data: BodyType<PlanningRecurringForecastCancelInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  cancelPlanningForecastSchedule(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CancelPlanningForecastScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof cancelPlanningForecastSchedule>>>
+    export type CancelPlanningForecastScheduleMutationBody = BodyType<PlanningRecurringForecastCancelInput>
+    export type CancelPlanningForecastScheduleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Cancel a recurring forecast schedule
+ */
+export const useCancelPlanningForecastSchedule = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelPlanningForecastSchedule>>, TError,{data: BodyType<PlanningRecurringForecastCancelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof cancelPlanningForecastSchedule>>,
+        TError,
+        {data: BodyType<PlanningRecurringForecastCancelInput>},
+        TContext
+      > => {
+      return useMutation(getCancelPlanningForecastScheduleMutationOptions(options));
     }
 
 export const getPlanningAskUrl = () => {

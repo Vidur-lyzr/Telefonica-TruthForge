@@ -945,6 +945,69 @@ paths:
               schema:
                 $ref: "#/components/schemas/PlanningForecastScheduleResult"
 
+  /planning/forecast/schedules:
+    get:
+      operationId: listPlanningForecastSchedules
+      tags: [planning]
+      summary: List the persona's recurring forecast schedules
+      description: >
+        Returns the recurring 10-day-forecast schedules owned by the persona.
+        Any schedule whose interval has elapsed is run on read (a fresh cited
+        forecast lands in the review folder) before the list is returned.
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recurring forecast schedules for this persona
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Schedule"
+
+  /planning/forecast/schedules/create:
+    post:
+      operationId: createPlanningForecastSchedule
+      tags: [planning]
+      summary: Create a recurring forecast schedule and run its first occurrence
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningRecurringForecastInput"
+      responses:
+        "200":
+          description: Recurring schedule created; first forecast landed in the review folder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningRecurringForecastResult"
+
+  /planning/forecast/schedules/cancel:
+    post:
+      operationId: cancelPlanningForecastSchedule
+      tags: [planning]
+      summary: Cancel a recurring forecast schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanningRecurringForecastCancelInput"
+      responses:
+        "200":
+          description: Schedule cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanningRecurringForecastCancelResult"
+
   /planning/ask:
     post:
       operationId: planningAsk
@@ -4476,6 +4539,45 @@ components:
           $ref: "#/components/schemas/ReviewItem"
         forecast:
           $ref: "#/components/schemas/PlanningForecast"
+
+    PlanningRecurringForecastInput:
+      type: object
+      required: [area, roleId, frequency]
+      properties:
+        area:
+          type: string
+        roleId:
+          type: string
+        frequency:
+          type: string
+          description: daily | weekly | monthly
+
+    PlanningRecurringForecastResult:
+      type: object
+      required: [schedule, reviewItem, forecast]
+      properties:
+        schedule:
+          $ref: "#/components/schemas/Schedule"
+        reviewItem:
+          $ref: "#/components/schemas/ReviewItem"
+        forecast:
+          $ref: "#/components/schemas/PlanningForecast"
+
+    PlanningRecurringForecastCancelInput:
+      type: object
+      required: [roleId, scheduleId]
+      properties:
+        roleId:
+          type: string
+        scheduleId:
+          type: string
+
+    PlanningRecurringForecastCancelResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
 
     HomeCardStat:
       type: object

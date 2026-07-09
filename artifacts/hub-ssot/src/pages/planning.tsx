@@ -56,6 +56,16 @@ import {
 type FilterKey = "area" | "market" | "brand" | "axis" | "type";
 const ALL = "__all__";
 
+// Period presets narrow the governed query window from today forward. They
+// intersect with the visible calendar range rather than replacing it.
+const PERIOD_OPTIONS = ["7", "14", "30", "90"];
+const PERIOD_LABEL: Record<string, string> = {
+  "7": "Next 7 days",
+  "14": "Next 14 days",
+  "30": "Next 30 days",
+  "90": "Next 90 days",
+};
+
 function FilterDropdown({
   label,
   value,
@@ -142,6 +152,7 @@ export default function Planning() {
     axis: ALL,
     type: ALL,
   });
+  const [period, setPeriod] = React.useState<string>(ALL);
   const [openEvent, setOpenEvent] = React.useState<string | null>(null);
   const [creating, setCreating] = React.useState(false);
   const disconnected = !!overview && overview.sources.length === 0;
@@ -159,18 +170,30 @@ export default function Planning() {
     return { from: toISO(currentAnchor), to: toISO(currentAnchor) };
   }, [view, currentAnchor]);
 
+  // Intersect the visible calendar range with the period preset (today → today
+  // + N days). The server honours from/to, so narrowing happens server-side.
+  const effectiveRange = React.useMemo(() => {
+    if (period === ALL) return range;
+    const from = todayISO;
+    const to = toISO(addDays(parseDate(todayISO), Number(period)));
+    return {
+      from: range.from > from ? range.from : from,
+      to: range.to < to ? range.to : to,
+    };
+  }, [range, period, todayISO]);
+
   const queryFilters = React.useMemo(
     () => ({
       roleId,
-      from: range.from,
-      to: range.to,
+      from: effectiveRange.from,
+      to: effectiveRange.to,
       area: filters.area === ALL ? undefined : filters.area,
       market: filters.market === ALL ? undefined : filters.market,
       brand: filters.brand === ALL ? undefined : filters.brand,
       axis: filters.axis === ALL ? undefined : filters.axis,
       type: filters.type === ALL ? undefined : filters.type,
     }),
-    [roleId, filters, range],
+    [roleId, filters, effectiveRange],
   );
 
   const { data: events, isLoading: eventsLoading } = useListPlanningEvents(queryFilters, {
@@ -341,6 +364,13 @@ export default function Planning() {
                     options={["campaign", "milestone", "event", "publication"]}
                     onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
                     render={(v) => TYPE_LABEL[v] ?? v}
+                  />
+                  <FilterDropdown
+                    label="Period"
+                    value={period}
+                    options={PERIOD_OPTIONS}
+                    onChange={setPeriod}
+                    render={(v) => PERIOD_LABEL[v] ?? v}
                   />
 
                   <div

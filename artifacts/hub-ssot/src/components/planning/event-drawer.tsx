@@ -382,6 +382,11 @@ export function EventDrawer({
                       Write-back log
                     </Text1>
                   </Inline>
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    In the ideal scenario sync is bidirectional — changes made here write back to
+                    the source tool. Write-back is pending confirmation with Telefónica, so each
+                    request below is queued, not yet committed at source.
+                  </Text1>
                   <Stack space={8}>
                     {syncRecords.map((r) => (
                       <div

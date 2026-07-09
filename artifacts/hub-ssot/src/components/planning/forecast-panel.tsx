@@ -1,8 +1,12 @@
 import React from "react";
 import { clearanceLabel } from "@/components/data-center/helpers";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   usePlanningForecast,
   useSchedulePlanningForecast,
+  useListPlanningForecastSchedules,
+  useCreatePlanningForecastSchedule,
+  useCancelPlanningForecastSchedule,
   type Citation,
   type PlanningForecast,
 } from "@workspace/api-client-react";
@@ -57,9 +61,14 @@ function Stat({
   );
 }
 
+const FREQUENCIES = ["daily", "weekly", "monthly"] as const;
+type Frequency = (typeof FREQUENCIES)[number];
+
 export function ForecastPanel() {
   const { area, roleId } = useApp();
+  const queryClient = useQueryClient();
   const [selected, setSelected] = React.useState<Citation | null>(null);
+  const [frequency, setFrequency] = React.useState<Frequency>("weekly");
   const { mutate, isPending, data } = usePlanningForecast();
   const forecast = data as PlanningForecast | undefined;
   const {
@@ -68,6 +77,23 @@ export function ForecastPanel() {
     data: scheduled,
     reset: resetScheduled,
   } = useSchedulePlanningForecast();
+
+  const schedulesKey = ["planning-forecast-schedules", roleId] as const;
+  const { data: recurringSchedules } = useListPlanningForecastSchedules(
+    { roleId },
+    { query: { enabled: !!roleId, queryKey: [...schedulesKey] } },
+  );
+  const activeSchedule = (recurringSchedules ?? [])[0];
+  const invalidateSchedules = () =>
+    void queryClient.invalidateQueries({ queryKey: [...schedulesKey] });
+  const { mutate: createRecurring, isPending: creatingRecurring } =
+    useCreatePlanningForecastSchedule({
+      mutation: { onSuccess: invalidateSchedules },
+    });
+  const { mutate: cancelRecurring, isPending: cancellingRecurring } =
+    useCancelPlanningForecastSchedule({
+      mutation: { onSuccess: invalidateSchedules },
+    });
 
   return (
     <ThemeVariant variant="brand">
@@ -283,6 +309,112 @@ export function ForecastPanel() {
                 )}
               </Stack>
             )}
+
+            {/* Recurring schedule */}
+            <div
+              style={{
+                borderTop: `1px solid ${applyAlpha(skinVars.rawColors.inverse, 0.2)}`,
+                paddingTop: 16,
+              }}
+            >
+              <Stack space={12}>
+                <Text1
+                  medium
+                  color={applyAlpha(skinVars.rawColors.inverse, 0.72)}
+                  transform="uppercase"
+                >
+                  Recurring forecast
+                </Text1>
+                {activeSchedule ? (
+                  <Stack space={8}>
+                    <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.9)}>
+                      {activeSchedule.name} — every{" "}
+                      {activeSchedule.frequency === "daily"
+                        ? "day"
+                        : activeSchedule.frequency === "weekly"
+                          ? "week"
+                          : "month"}
+                      , a fresh cited forecast lands in the "{activeSchedule.reviewFolder}" review
+                      folder for approval.
+                    </Text2>
+                    <Text1 regular color={applyAlpha(skinVars.rawColors.inverse, 0.72)}>
+                      Last run:{" "}
+                      {activeSchedule.lastRunAt
+                        ? new Date(activeSchedule.lastRunAt).toLocaleString("en-GB")
+                        : "not yet"}
+                    </Text1>
+                    <div>
+                      <ButtonPrimary
+                        small
+                        onPress={() =>
+                          cancelRecurring({ data: { roleId, scheduleId: activeSchedule.id } })
+                        }
+                        disabled={cancellingRecurring}
+                      >
+                        {cancellingRecurring ? "Cancelling…" : "Cancel recurring forecast"}
+                      </ButtonPrimary>
+                    </div>
+                  </Stack>
+                ) : (
+                  <Stack space={8}>
+                    <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.8)}>
+                      Receive this forecast on a schedule. Each run lands as an approval-gated
+                      draft in the "Planning forecasts" review folder.
+                    </Text2>
+                    <Inline space={8} alignItems="center" wrap>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          borderRadius: skinVars.borderRadii.button,
+                          border: `1px solid ${applyAlpha(skinVars.rawColors.inverse, 0.4)}`,
+                          padding: 2,
+                        }}
+                      >
+                        {FREQUENCIES.map((f) => (
+                          <Touchable
+                            key={f}
+                            onPress={() => setFrequency(f)}
+                            aria-label={`Frequency ${f}`}
+                          >
+                            <div
+                              style={{
+                                padding: "4px 10px",
+                                borderRadius: skinVars.borderRadii.button,
+                                whiteSpace: "nowrap",
+                                backgroundColor:
+                                  frequency === f
+                                    ? applyAlpha(skinVars.rawColors.inverse, 0.25)
+                                    : "transparent",
+                              }}
+                            >
+                              <Text1
+                                medium
+                                transform="uppercase"
+                                color={
+                                  frequency === f
+                                    ? skinVars.colors.textPrimaryInverse
+                                    : applyAlpha(skinVars.rawColors.inverse, 0.72)
+                                }
+                              >
+                                {f}
+                              </Text1>
+                            </div>
+                          </Touchable>
+                        ))}
+                      </div>
+                      <ButtonPrimary
+                        small
+                        onPress={() => createRecurring({ data: { area, roleId, frequency } })}
+                        disabled={creatingRecurring || !roleId}
+                      >
+                        {creatingRecurring ? "Creating…" : "Create recurring forecast"}
+                      </ButtonPrimary>
+                    </Inline>
+                  </Stack>
+                )}
+              </Stack>
+            </div>
           </Stack>
         </Box>
       </div>
