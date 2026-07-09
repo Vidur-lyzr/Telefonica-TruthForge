@@ -92,7 +92,6 @@ export function createLiveDocs(
   }
   return created;
 }
-
 interface HydrateLogger {
   info: (obj: unknown, msg?: string) => void;
   error: (obj: unknown, msg?: string) => void;

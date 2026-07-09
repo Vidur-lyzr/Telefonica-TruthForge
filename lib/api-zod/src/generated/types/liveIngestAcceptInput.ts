@@ -5,6 +5,8 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { LiveIngestCandidate } from './liveIngestCandidate';
+import type { LiveIngestFilterInput } from './liveIngestFilterInput';
 
 /**
  * Accepts by server-issued candidate id only — the content and the filter provenance are taken from the server's own search results, never from the client, so arbitrary text cannot be injected past the pre-ingest gate.
@@ -12,4 +14,7 @@
 export interface LiveIngestAcceptInput {
   /** @minItems 1 */
   acceptedIds: string[];
+  filter?: LiveIngestFilterInput;
+  /** @minItems 1 */
+  accepted?: LiveIngestCandidate[];
 }

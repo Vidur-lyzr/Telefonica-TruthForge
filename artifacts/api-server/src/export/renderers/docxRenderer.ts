@@ -88,7 +88,52 @@ export async function renderDocx(model: ExportDocumentModel): Promise<Buffer> {
     children.push(h("Umbrella message"), ...body(model.umbrella));
   }
 
+  // Structured Q&A block: rendered in place of the raw Q&A section so each
+  // answer carries its provenance line and, for internal exports, its note.
+  const pushQaBlock = () => {
+    children.push(h(model.qaHeading ?? "Q&A"));
+    for (const item of model.qa) {
+      children.push(
+        new Paragraph({
+          spacing: { before: 160, after: 60 },
+          children: [new TextRun({ text: `Q: ${item.question}`, bold: true, color: NAVY, size: 22, font: FONT })],
+        }),
+        ...body(item.answer),
+      );
+      children.push(
+        meta(
+          item.provenance.length > 0
+            ? `Sources: ${item.provenance
+                .map((p) => [p.docTitle, p.version, p.date, p.owner].filter(Boolean).join(" · "))
+                .join(" | ")}`
+            : "Not covered by approved material — no governed source backs this answer.",
+        ),
+      );
+      if (item.note) {
+        children.push(
+          new Paragraph({
+            spacing: { after: 120 },
+            shading: { type: ShadingType.SOLID, color: "FFF4E5", fill: "FFF4E5" },
+            children: [
+              new TextRun({
+                text: `Internal note — not exportable externally: ${item.note}`,
+                italics: true,
+                color: MUTED,
+                size: 20,
+                font: FONT,
+              }),
+            ],
+          }),
+        );
+      }
+    }
+  };
+
   for (const section of model.sections) {
+    if (section.isQa && model.qa.length > 0) {
+      pushQaBlock();
+      continue;
+    }
     children.push(h(section.heading));
     if (section.internalOnly) {
       children.push(meta("Internal only — not for external distribution."));

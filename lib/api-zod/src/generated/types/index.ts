@@ -175,6 +175,7 @@ export * from './predictions';
 export * from './prohibitedPhrase';
 export * from './proposedClassification';
 export * from './proposedMetadata';
+export * from './qaNote';
 export * from './quarantineDoc';
 export * from './radarItem';
 export * from './refineInput';

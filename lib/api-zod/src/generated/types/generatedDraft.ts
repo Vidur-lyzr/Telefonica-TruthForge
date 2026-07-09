@@ -13,6 +13,7 @@ import type { DraftExclusion } from './draftExclusion';
 import type { DraftParams } from './draftParams';
 import type { DraftSection } from './draftSection';
 import type { GuardianResult } from './guardianResult';
+import type { QaNote } from './qaNote';
 import type { SpokespersonNote } from './spokespersonNote';
 
 export interface GeneratedDraft {
@@ -34,6 +35,8 @@ export interface GeneratedDraft {
   charts: ChartSpec[];
   citations: Citation[];
   disclaimers: DraftDisclaimer[];
+  /** Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination. */
+  qaNotes?: QaNote[];
   axisIds: string[];
   guardian: GuardianResult;
   historic: boolean;

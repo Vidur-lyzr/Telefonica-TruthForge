@@ -22,5 +22,6 @@
 - [Coverage-ratio query dilution](coverage-ratio-dilution.md) — never fold non-topical text (refine instructions, chat wording) into a coverage-gated retrieval query; give it its own gated pass.
 - [Live-editor async merges](live-editor-async-merges.md) — async verdicts must merge into current state via functional set + body-signature guard, never replace state with a captured snapshot.
 - [Lazy schedule runs](lazy-schedule-runs.md) — no-daemon recurring runs: mark-run-before-compose on lazy reads, compose-before-persist on create, 400 on unknown roleId (never fallback).
+- [Q&A internal notes keying](qa-notes-keying.md) — notes keyed by normalized question (survive refine), excluded from content hash, stripped server-side for external exports.
 - [Corpus parallel authoring](corpus-parallel-authoring.md) — unique id prefixes + shared brief let parallel authors scale the corpus collision-free; .gitagent state self-mutates.
 - [Live-ingest persistence](live-ingest-persistence.md) — runtime-ingested docs must hydrate from Qdrant payloads at boot; accept binds to server-issued candidate ids; mirror index updates commit before local taxonomy version.

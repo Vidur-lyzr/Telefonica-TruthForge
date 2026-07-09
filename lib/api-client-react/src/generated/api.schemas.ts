@@ -214,6 +214,11 @@ export interface DraftDisclaimer {
   text: string;
 }
 
+export interface QaNote {
+  question: string;
+  note: string;
+}
+
 /**
  * Character span in the checked text (live checker only)
  */
@@ -284,6 +289,8 @@ export interface GeneratedDraft {
   charts: ChartSpec[];
   citations: Citation[];
   disclaimers: DraftDisclaimer[];
+  /** Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination. */
+  qaNotes?: QaNote[];
   axisIds: string[];
   guardian: GuardianResult;
   historic: boolean;
@@ -674,6 +681,9 @@ export interface LiveIngestSearchResult {
 export interface LiveIngestAcceptInput {
   /** @minItems 1 */
   acceptedIds: string[];
+  filter?: LiveIngestFilterInput;
+  /** @minItems 1 */
+  accepted?: LiveIngestCandidate[];
 }
 
 export type LiveIngestAcceptResultCreatedDocsItem = {

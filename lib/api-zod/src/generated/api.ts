@@ -1506,6 +1506,10 @@ export const SchedulePlanningForecastResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -1724,6 +1728,10 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -2017,6 +2025,10 @@ export const GenerateResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -2139,6 +2151,10 @@ export const RefineDocumentBody = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -2257,6 +2273,10 @@ export const RefineDocumentResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -2376,6 +2396,10 @@ export const CheckDocumentBody = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -2644,6 +2668,10 @@ export const RunScheduleResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -2773,6 +2801,10 @@ export const ListReviewItemsResponseItem = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -2898,6 +2930,10 @@ export const ApproveReviewItemBody = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -3023,6 +3059,10 @@ export const ApproveReviewItemResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -3159,6 +3199,10 @@ export const ListVersionsResponseItem = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -3280,6 +3324,10 @@ export const SaveVersionBody = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -3413,6 +3461,10 @@ export const SaveVersionResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -3534,6 +3586,10 @@ export const ExportDocumentBody = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -3660,6 +3716,10 @@ export const RecordEditorialReviewBody = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -3921,6 +3981,10 @@ export const StartGenerateJobResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -4046,6 +4110,10 @@ export const StartRefineJobBody = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -4169,6 +4237,10 @@ export const StartRefineJobResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -4299,6 +4371,10 @@ export const GetGenerationJobResponse = zod.object({
   "name": zod.string(),
   "text": zod.string()
 })),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
   "axisIds": zod.array(zod.string()),
   "guardian": zod.object({
   "status": zod.string().describe('pass | block'),
@@ -4680,8 +4756,25 @@ export const LiveIngestSearchResponse = zod.object({
 
 
 
+
 export const LiveIngestAcceptBody = zod.object({
-  "acceptedIds": zod.array(zod.string()).min(1)
+  "acceptedIds": zod.array(zod.string()).min(1),
+  "filter": zod.object({
+  "keywords": zod.array(zod.string()),
+  "competitors": zod.array(zod.string()),
+  "executives": zod.array(zod.string()),
+  "topics": zod.array(zod.string())
+}).optional().describe('The editor-defined pre-ingest filter for a live capture run'),
+  "accepted": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "source": zod.string().describe('Publication \/ outlet name'),
+  "url": zod.string().nullish(),
+  "date": zod.string().nullish(),
+  "excerpt": zod.string(),
+  "sentiment": zod.enum(['positive', 'negative', 'mixed', 'neutral']),
+  "matchedTerms": zod.array(zod.string()).describe('Which filter terms this mention matched — why it passed the pre-ingest gate')
+}).describe('A public mention matched by the pre-ingest filter, awaiting human review')).min(1).optional()
 }).describe('Accepts by server-issued candidate id only — the content and the filter provenance are taken from the server\'s own search results, never from the client, so arbitrary text cannot be injected past the pre-ingest gate.\n')
 
 export const LiveIngestAcceptResponse = zod.object({

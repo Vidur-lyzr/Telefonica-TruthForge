@@ -342,17 +342,262 @@ function SectionBlock({
   );
 }
 
+// ---- Q&A structure helpers -----------------------------------------------------
+// The Q&A section body is the single source of truth, stored in canonical
+// "Q: ... / A: ..." blocks (the server rewrites the model output into this
+// format). Parsing and re-serialising here keeps the structured editor, the
+// Guardian checks and the export all reading the same text.
+type QaPair = { question: string; answer: string };
+type QaNote = { question: string; note: string };
+
+const QA_Q_START = /^\s*(?:\*\*)?\s*Q(?:uestion)?\s*\d*\s*(?:\*\*)?\s*[:.)\-–]\s*/i;
+const QA_A_START = /^\s*(?:\*\*)?\s*A(?:nswer)?\s*\d*\s*(?:\*\*)?\s*[:.)\-–]\s*/i;
+
+function parseQaBody(body: string): QaPair[] {
+  const pairs: QaPair[] = [];
+  let question: string[] | null = null;
+  let answer: string[] | null = null;
+  const flush = () => {
+    if (question && answer) {
+      const q = question.join(" ").replace(/\s+/g, " ").trim();
+      const a = answer.join("\n").trim();
+      if (q && a) pairs.push({ question: q, answer: a });
+    }
+    question = null;
+    answer = null;
+  };
+  for (const line of body.split("\n")) {
+    if (QA_Q_START.test(line)) {
+      flush();
+      question = [line.replace(QA_Q_START, "").trim()];
+      answer = null;
+    } else if (QA_A_START.test(line) && question) {
+      answer = [line.replace(QA_A_START, "").trim()];
+    } else if (answer) {
+      answer.push(line.trim());
+    } else if (question) {
+      question.push(line.trim());
+    }
+  }
+  flush();
+  return pairs;
+}
+
+function serializeQaPairs(pairs: QaPair[]): string {
+  return pairs.map((p) => `Q: ${p.question}\nA: ${p.answer}`).join("\n\n");
+}
+
+function normalizeQuestion(q: string): string {
+  return q.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+// ---- Q&A section: per-answer traceability and internal notes -------------------
+function QaBlock({
+  section,
+  citations,
+  notes,
+  onChange,
+  onNotesChange,
+  onOpenCitation,
+  onAskSelection,
+}: {
+  section: DraftSection;
+  citations: Citation[];
+  notes: QaNote[];
+  onChange: (body: string) => void;
+  onNotesChange: (notes: QaNote[]) => void;
+  onOpenCitation: (c: Citation) => void;
+  onAskSelection: (passage: string) => void;
+}) {
+  const items = parseQaBody(section.body);
+  const [editingKey, setEditingKey] = React.useState<string | null>(null);
+  const [noteText, setNoteText] = React.useState("");
+
+  const noteFor = (question: string): QaNote | undefined =>
+    notes.find((n) => normalizeQuestion(n.question) === normalizeQuestion(question));
+
+  const saveNote = (question: string) => {
+    const text = noteText.trim();
+    const rest = notes.filter((n) => normalizeQuestion(n.question) !== normalizeQuestion(question));
+    onNotesChange(text ? [...rest, { question, note: text }] : rest);
+    setEditingKey(null);
+    setNoteText("");
+  };
+
+  const removeNote = (question: string) => {
+    onNotesChange(notes.filter((n) => normalizeQuestion(n.question) !== normalizeQuestion(question)));
+    if (editingKey === normalizeQuestion(question)) setEditingKey(null);
+  };
+
+  const updateAnswer = (idx: number, answer: string) => {
+    const next = items.map((p, i) => (i === idx ? { ...p, answer } : p));
+    onChange(serializeQaPairs(next));
+  };
+
+  return (
+    <Stack space={16}>
+      <Inline space={8} alignItems="center">
+        <Title3>{section.heading}</Title3>
+        {section.internalOnly && (
+          <Tag type="warning" Icon={IconLockClosedRegular}>
+            Internal only
+          </Tag>
+        )}
+      </Inline>
+      {items.map((item, idx) => {
+        const key = normalizeQuestion(item.question);
+        const answerCitations = [
+          ...new Set([...item.answer.matchAll(/S\s*(\d+)/gi)].map((m) => `S${Number(m[1])}`)),
+        ]
+          .map((id) => citations.find((cit) => cit.id === id))
+          .filter((cit): cit is Citation => Boolean(cit));
+        const note = noteFor(item.question);
+        const editing = editingKey === key;
+        return (
+          <div
+            key={key}
+            style={{
+              borderRadius: skinVars.borderRadii.container,
+              border: `1px solid ${c.divider}`,
+              padding: 16,
+            }}
+          >
+            <Stack space={8}>
+              <Text3 medium color={c.textPrimary}>
+                {item.question}
+              </Text3>
+              <RichTextEditor
+                value={item.answer}
+                onChange={(bodyText) => updateAnswer(idx, bodyText)}
+                onOpenCitation={(id) => {
+                  const cit = citations.find((x) => x.id === id);
+                  if (cit) onOpenCitation(cit);
+                }}
+                onAskSelection={onAskSelection}
+                ariaLabel={`Answer: ${item.question}`}
+              />
+              {answerCitations.length > 0 ? (
+                <Stack space={4}>
+                  {answerCitations.map((cit) => (
+                    <Touchable key={cit.id} onPress={() => onOpenCitation(cit)}>
+                      <Inline space={4} alignItems="center" wrap>
+                        <IconDocumentOtherRegular size={12} color={c.textSecondary} />
+                        <Text1 regular color={c.textSecondary}>
+                          {[
+                            cit.docTitle,
+                            cit.version,
+                            cit.validUntil ? `valid until ${cit.validUntil}` : "",
+                            cit.owner,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </Text1>
+                      </Inline>
+                    </Touchable>
+                  ))}
+                </Stack>
+              ) : (
+                <Inline space={4} alignItems="center">
+                  <IconAlertRegular size={12} color={c.warning} />
+                  <Text1 regular color={c.warning}>
+                    Not covered by approved material — this answer carries no governed source.
+                  </Text1>
+                </Inline>
+              )}
+              {editing ? (
+                <Stack space={8}>
+                  <TextField
+                    name={`qaNote-${idx}`}
+                    label="Internal note"
+                    placeholder="Working context for this answer — never exported externally"
+                    value={noteText}
+                    onChangeValue={setNoteText}
+                    multiline
+                    fullWidth
+                  />
+                  <Inline space={8}>
+                    <ButtonPrimary small onPress={() => saveNote(item.question)}>
+                      Save note
+                    </ButtonPrimary>
+                    <ButtonSecondary
+                      small
+                      onPress={() => {
+                        setEditingKey(null);
+                        setNoteText("");
+                      }}
+                    >
+                      Cancel
+                    </ButtonSecondary>
+                  </Inline>
+                </Stack>
+              ) : note ? (
+                <div
+                  style={{
+                    borderRadius: skinVars.borderRadii.container,
+                    border: `1px solid ${applyAlpha(skinVars.rawColors.warning, 0.25)}`,
+                    backgroundColor: c.warningLow,
+                    padding: 12,
+                  }}
+                >
+                  <Stack space={4}>
+                    <Inline space={8} alignItems="center">
+                      <IconLockClosedRegular size={12} color={c.warning} />
+                      <Tag type="warning">Internal — not exportable</Tag>
+                    </Inline>
+                    <Text2 regular color={c.textPrimary}>
+                      {note.note}
+                    </Text2>
+                    <Inline space={8}>
+                      <ButtonLink
+                        small
+                        onPress={() => {
+                          setEditingKey(key);
+                          setNoteText(note.note);
+                        }}
+                      >
+                        Edit note
+                      </ButtonLink>
+                      <ButtonLink small onPress={() => removeNote(item.question)}>
+                        Remove
+                      </ButtonLink>
+                    </Inline>
+                  </Stack>
+                </div>
+              ) : (
+                <Inline space={8}>
+                  <ButtonLink
+                    small
+                    onPress={() => {
+                      setEditingKey(key);
+                      setNoteText("");
+                    }}
+                    StartIcon={IconPenRegular}
+                  >
+                    Add internal note
+                  </ButtonLink>
+                </Inline>
+              )}
+            </Stack>
+          </div>
+        );
+      })}
+    </Stack>
+  );
+}
+
 // ---- The document canvas -----------------------------------------------------
 function DocumentCanvas({
   draft,
   onSectionChange,
   onUmbrellaChange,
+  onQaNotesChange,
   onOpenCitation,
   onAskSelection,
 }: {
   draft: GeneratedDraft;
   onSectionChange: (id: string, body: string) => void;
   onUmbrellaChange: (body: string) => void;
+  onQaNotesChange: (notes: QaNote[]) => void;
   onOpenCitation: (c: Citation) => void;
   onAskSelection: (passage: string) => void;
 }) {
@@ -458,15 +703,28 @@ function DocumentCanvas({
             )}
 
             <Stack space={32}>
-              {visibleSections.map((s) => (
-                <SectionBlock
-                  key={s.id}
-                  section={s}
-                  onChange={(body) => onSectionChange(s.id, body)}
-                  onOpenCitationId={openCitationById}
-                  onAskSelection={onAskSelection}
-                />
-              ))}
+              {visibleSections.map((s) =>
+                s.kind === "qa" && parseQaBody(s.body).length > 0 ? (
+                  <QaBlock
+                    key={s.id}
+                    section={s}
+                    citations={draft.citations}
+                    notes={draft.qaNotes ?? []}
+                    onChange={(body) => onSectionChange(s.id, body)}
+                    onNotesChange={onQaNotesChange}
+                    onOpenCitation={onOpenCitation}
+                    onAskSelection={onAskSelection}
+                  />
+                ) : (
+                  <SectionBlock
+                    key={s.id}
+                    section={s}
+                    onChange={(body) => onSectionChange(s.id, body)}
+                    onOpenCitationId={openCitationById}
+                    onAskSelection={onAskSelection}
+                  />
+                ),
+              )}
             </Stack>
 
             {draft.charts.length > 0 && (
@@ -1533,6 +1791,13 @@ export default function Generate() {
     setDraft({ ...draft, umbrella: body });
   };
 
+  // Internal Q&A notes live on the draft, so they ride along with refine
+  // payloads, saved versions and version restores. They are not part of the
+  // guarded body signature — annotating an answer does not void a review.
+  const updateQaNotes = (qaNotes: QaNote[]) => {
+    setDraft((curr) => (curr ? { ...curr, qaNotes } : curr));
+  };
+
   // Debounced Brand Guardian recheck: the canvas is always live, so any manual
   // edit re-runs the Guardian shortly after typing pauses.
   const bodySignature = draft
@@ -1753,6 +2018,7 @@ export default function Generate() {
                 draft={draft}
                 onSectionChange={updateSection}
                 onUmbrellaChange={updateUmbrella}
+                onQaNotesChange={updateQaNotes}
                 onOpenCitation={setSelectedCitation}
                 onAskSelection={(passage) => setPendingSelection(passage)}
               />

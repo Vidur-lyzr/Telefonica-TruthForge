@@ -2703,6 +2703,13 @@ components:
           minItems: 1
           items:
             type: string
+        filter:
+          $ref: "#/components/schemas/LiveIngestFilterInput"
+        accepted:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/LiveIngestCandidate"
 
     LiveIngestAcceptResult:
       type: object
@@ -4851,6 +4858,15 @@ components:
         internalOnly:
           type: boolean
 
+    QaNote:
+      type: object
+      required: [question, note]
+      properties:
+        question:
+          type: string
+        note:
+          type: string
+
     DraftDisclaimer:
       type: object
       required: [id, name, text]
@@ -4953,6 +4969,14 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DraftDisclaimer"
+        qaNotes:
+          type: array
+          description: >
+            Internal per-answer working notes for the Q&A section, keyed by the
+            question text. Internal only — the export service strips them
+            server-side for any external destination.
+          items:
+            $ref: "#/components/schemas/QaNote"
         axisIds:
           type: array
           items:

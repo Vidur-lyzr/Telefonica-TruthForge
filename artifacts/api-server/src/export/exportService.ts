@@ -21,6 +21,11 @@ import {
   getReviewItem,
   hashDraftContent,
 } from "../data/generateStore";
+import {
+  parseQaBody,
+  provenanceForAnswer,
+  normalizeQuestion,
+} from "../agent/qa";
 import { renderChart, type RenderedChart, type ExportSeries } from "./chartEngine";
 import {
   getExportTemplate,
@@ -45,7 +50,18 @@ export interface ExportDocumentModel {
   destination: ExportDestination;
   generatedAt: string;
   umbrella: string | null;
-  sections: { heading: string; body: string; internalOnly: boolean }[];
+  sections: { heading: string; body: string; internalOnly: boolean; isQa: boolean }[];
+  // Structured Q&A (press shape): per-answer provenance derived from the
+  // server corpus and, for INTERNAL destinations only, the per-answer internal
+  // note. External destinations always receive note: null — stripped here,
+  // server-side, regardless of what the client sent.
+  qa: {
+    question: string;
+    answer: string;
+    provenance: { citationId: string; docTitle: string; version: string; date: string; owner: string }[];
+    note: string | null;
+  }[];
+  qaHeading: string | null;
   spokesperson: { question: string; guidance: string; doNotSay: string | null }[];
   charts: RenderedChart[];
   citations: {
@@ -205,7 +221,26 @@ export function buildExportModel(
       heading: s.heading,
       body: stripEmphasisMarkers(s.body),
       internalOnly: s.internalOnly,
+      isQa: s.kind === "qa",
     }));
+
+  // Structured Q&A: parsed from the gated section body (single source of
+  // truth), provenance re-derived from the draft citations, and internal notes
+  // attached ONLY for internal destinations. External exports never carry a
+  // note, whatever the client submitted.
+  const qaSection = sections.find((s) => s.isQa);
+  const qa = qaSection
+    ? parseQaBody(qaSection.body).map((p) => ({
+        question: p.question,
+        answer: p.answer,
+        provenance: provenanceForAnswer(p.answer, draft.citations),
+        note: external
+          ? null
+          : (draft.qaNotes ?? []).find(
+              (n) => normalizeQuestion(n.question) === normalizeQuestion(p.question),
+            )?.note ?? null,
+      }))
+    : [];
   const spokesperson = external
     ? []
     : draft.spokesperson.map((s) => ({
@@ -238,7 +273,12 @@ export function buildExportModel(
     destination,
     generatedAt: new Date().toISOString(),
     umbrella: draft.umbrella ? stripEmphasisMarkers(draft.umbrella) : null,
+    // The raw Q&A section stays in `sections` (pptx/pdf render it as plain
+    // text and never see notes); the docx renderer skips isQa sections and
+    // renders the structured `qa` block instead — never both.
     sections,
+    qa,
+    qaHeading: qa.length > 0 ? (qaSection?.heading ?? "Q&A") : null,
     spokesperson,
     charts,
     citations: draft.citations.map((c) => ({

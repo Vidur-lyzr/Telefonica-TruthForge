@@ -31,6 +31,7 @@ import {
   type DocShape,
 } from "../data/assets";
 import { runBrandGuardian } from "./brandGuardian";
+import { parseQaBody, serializeQaPairs, normalizeQuestion } from "./qa";
 
 const MODEL = "claude-sonnet-4-6";
 const COVERAGE_MIN = 0.33;
@@ -100,6 +101,15 @@ export interface DraftSection {
   internalOnly: boolean;
 }
 
+// A per-answer internal working note attached to the Q&A. Keyed by the
+// normalised question text so it survives refines that rebuild sections.
+// Never exportable to an external destination — the export service strips
+// these server-side.
+export interface QaNote {
+  question: string;
+  note: string;
+}
+
 export interface DraftDisclaimer {
   id: string;
   name: string;
@@ -156,6 +166,9 @@ export interface GeneratedDraft {
   charts: ChartSpec[];
   citations: DraftCitation[];
   disclaimers: DraftDisclaimer[];
+  // Internal per-answer notes for the Q&A section (press shape). Carried
+  // across refines by question match; stripped from external exports.
+  qaNotes?: QaNote[];
   axisIds: string[];
   guardian: GuardianResult;
   historic: boolean;
@@ -917,6 +930,28 @@ ${jsonShape}${refineBlock}`;
     sections.push(...withoutContact);
   }
 
+  // Canonicalise the Q&A section body into stable "Q: ... / A: ..." blocks so
+  // the editor, the traceability panel and the export all parse the same
+  // format. If the model's output does not parse as a Q&A, the body is left
+  // untouched and the client falls back to plain section rendering.
+  const qaPairs = sections
+    .filter((s) => s.kind === "qa")
+    .flatMap((s) => {
+      const pairs = parseQaBody(s.body);
+      if (pairs.length > 0) s.body = serializeQaPairs(pairs);
+      return pairs;
+    });
+
+  // Internal per-answer notes survive a refine by question match: a note stays
+  // attached as long as its question is still present in the recomposed Q&A.
+  const priorNotes = baseDraft?.qaNotes ?? [];
+  const qaNotes =
+    qaPairs.length > 0
+      ? priorNotes.filter((n) =>
+          qaPairs.some((p) => normalizeQuestion(p.question) === normalizeQuestion(n.question)),
+        )
+      : priorNotes;
+
   // Chart citation ids also need renumbering.
   for (const c of charts) {
     if (c.citationId) {
@@ -1037,6 +1072,7 @@ ${jsonShape}${refineBlock}`;
     charts,
     citations,
     disclaimers,
+    qaNotes,
     axisIds,
     guardian: emptyGuardian,
     historic,

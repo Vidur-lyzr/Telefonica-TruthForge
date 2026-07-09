@@ -250,7 +250,6 @@ export async function scrollLivePayloads(): Promise<Record<string, unknown>[]> {
   }
   return payloads;
 }
-
 export interface CollectionStatus {
   pointsCount: number;
   status: string;

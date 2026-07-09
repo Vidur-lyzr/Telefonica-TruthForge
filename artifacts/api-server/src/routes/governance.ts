@@ -97,7 +97,6 @@ router.post("/governance/retag/apply", async (req, res) => {
       axisEdit: parsed.data.axisEdit ?? null,
       decisions: parsed.data.decisions,
     });
-
     req.log.info({ ...result, qdrant }, "governance: taxonomy version applied");
     res.json(ApplyRetagResponse.parse({ ...result, qdrant }));
   } catch (err) {
