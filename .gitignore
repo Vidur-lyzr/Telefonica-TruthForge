@@ -51,3 +51,7 @@ Thumbs.db
 # Runtime state (governed taxonomy versions)
 .data/
 artifacts/api-server/agent/.gitagent/
+
+# transient agent runtime state
+artifacts/api-server/agent/.gitagent/state.json
+artifacts/api-server/agent/.gitagent/learning/
