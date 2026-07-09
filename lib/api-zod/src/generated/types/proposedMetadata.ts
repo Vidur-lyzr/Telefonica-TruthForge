@@ -7,7 +7,7 @@
  */
 
 export interface ProposedMetadata {
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   confidentiality: string;
   owner: string;
   country: string;

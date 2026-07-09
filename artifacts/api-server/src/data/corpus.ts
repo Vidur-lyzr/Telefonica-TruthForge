@@ -66,6 +66,8 @@ export interface IngestFilter {
 
 export interface CorpusDoc {
   id: string;
+  /** RFP data-universe branch: A = internal, B = external/public, E = SSoT-generated output. */
+  category: "A" | "B" | "E";
   title: string;
   country: string;
   brand: string;
@@ -356,6 +358,7 @@ export const ROLES: Role[] = [
 export const DOCS: CorpusDoc[] = [
   {
     id: "doc-q1-2026-results",
+    category: "A",
     title: "Q1 2026 Results — Financial Highlights",
     country: "Group",
     brand: "Telefónica",
@@ -398,6 +401,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-q4-2025-results",
+    category: "A",
     title: "Q4 2025 Results — Financial Highlights",
     country: "Group",
     brand: "Telefónica",
@@ -428,6 +432,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-q1-2026-press-release",
+    category: "A",
     title: "Q1 2026 Results — Press Release",
     country: "Group",
     brand: "Telefónica",
@@ -458,6 +463,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-q1-2026-ir-factsheet",
+    category: "A",
     title: "Q1 2026 Investor Relations Factsheet",
     country: "Group",
     brand: "Telefónica",
@@ -488,6 +494,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-q1-2026-prelim-finance",
+    category: "A",
     title: "Q1 2026 Preliminary Finance Flash (Pre-Publication)",
     country: "Group",
     brand: "Telefónica",
@@ -517,6 +524,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-hispam-exit",
+    category: "A",
     title: "Hispam Footprint — Spanish America Exit Update",
     country: "Group",
     brand: "Telefónica",
@@ -552,6 +560,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-approved-messaging-q1",
+    category: "A",
     title: "Approved Q1 Messaging — Spokesperson Talking Points",
     country: "Group",
     brand: "Telefónica",
@@ -583,6 +592,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-brand-guidelines-2026",
+    category: "A",
     title: "Telefónica Brand Guidelines 2026",
     country: "Group",
     brand: "Telefónica",
@@ -624,6 +634,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-mwc-2026-keynote",
+    category: "A",
     title: "CEO Keynote — MWC Barcelona 2026",
     country: "Spain",
     brand: "Telefónica",
@@ -659,6 +670,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-sustainability-2025",
+    category: "A",
     title: "Sustainability Report 2025",
     country: "Group",
     brand: "Telefónica",
@@ -694,6 +706,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-tech-b2b-strategy",
+    category: "A",
     title: "Telefónica Tech — B2B Growth Strategy",
     country: "Group",
     brand: "Telefónica Tech",
@@ -729,6 +742,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-5g-deployment",
+    category: "A",
     title: "5G & Fibre Deployment Plan",
     country: "Spain",
     brand: "Movistar",
@@ -764,6 +778,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-ma-project-atlas",
+    category: "A",
     title: "Project Atlas — Potential Transaction Memo",
     country: "Group",
     brand: "Telefónica",
@@ -799,6 +814,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-crisis-playbook",
+    category: "A",
     title: "Crisis Communications Playbook",
     country: "Group",
     brand: "Telefónica",
@@ -834,6 +850,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-media-relations",
+    category: "A",
     title: "Media Relations Guidelines",
     country: "Group",
     brand: "Telefónica",
@@ -863,6 +880,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-germany-o2",
+    category: "A",
     title: "Germany (O2 Telefónica) Market Update",
     country: "Germany",
     brand: "O2",
@@ -891,6 +909,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-brazil-vivo",
+    category: "A",
     title: "Brazil (Vivo) Market Update",
     country: "Brazil",
     brand: "Vivo",
@@ -919,6 +938,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-campaign-mismo-sitio",
+    category: "A",
     title: "Movistar Campaign — 'Mismo sitio, mismo precio'",
     country: "Spain",
     brand: "Movistar",
@@ -948,6 +968,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-townhall-2026",
+    category: "A",
     title: "Employee Town Hall — Spring 2026",
     country: "Group",
     brand: "Telefónica",
@@ -977,6 +998,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-transform-grow-plan",
+    category: "A",
     title: "Transform & Grow — Strategic Plan 2026-2028",
     country: "Group",
     brand: "Telefónica",
@@ -1026,6 +1048,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-chile-sale",
+    category: "A",
     title: "Sale of Chilean Subsidiary — Announcement",
     country: "Chile",
     brand: "Telefónica",
@@ -1075,6 +1098,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-venezuela-note",
+    category: "A",
     title: "Hispanoamérica Disposals — Internal Holding Note",
     country: "Venezuela",
     brand: "Telefónica",
@@ -1123,6 +1147,7 @@ export const DOCS: CorpusDoc[] = [
   // sector reports, legislation. E: SSoT-generated output.
   {
     id: "doc-comms-calendar-2026",
+    category: "A",
     title: "Communication Calendar & Milestones 2026",
     country: "Group",
     brand: "Telefónica",
@@ -1158,6 +1183,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-hr-talento-2026",
+    category: "A",
     title: "Programa Talento 2026 — Personas y Cultura",
     country: "Spain",
     brand: "Telefónica",
@@ -1194,6 +1220,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-customer-nps-q1-2026",
+    category: "A",
     title: "Customer Experience Scorecard — NPS Q1 2026",
     country: "Group",
     brand: "Telefónica",
@@ -1230,6 +1257,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-brand-tracker-q1-2026",
+    category: "B",
     title: "Brand Tracker Wave — Q1 2026 (Research)",
     country: "Group",
     brand: "Telefónica",
@@ -1266,6 +1294,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-new-usp-fibra",
+    category: "A",
     title: "Nuevo USP — Garantía de Fibra Simétrica",
     country: "Spain",
     brand: "Movistar",
@@ -1301,6 +1330,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-social-listening-w27",
+    category: "B",
     title: "Social Listening Digest — Week 27 2026",
     country: "Group",
     brand: "Telefónica",
@@ -1336,6 +1366,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-sic-regulatorio-q2",
+    category: "B",
     title: "SIC — Síntesis Regulatoria Q2 2026",
     country: "Spain",
     brand: "Telefónica",
@@ -1371,6 +1402,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-media-coverage-q2-2026",
+    category: "B",
     title: "Media Coverage Digest — Q2 2026",
     country: "Group",
     brand: "Telefónica",
@@ -1400,6 +1432,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-competitor-study-dt-2026",
+    category: "B",
     title: "Competitor Study — Deutsche Telekom Positioning 2026",
     country: "Germany",
     brand: "O2",
@@ -1435,6 +1468,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-sector-report-gsma-2026",
+    category: "B",
     title: "Sector Report — European Telecoms Outlook 2026 (GSMA-style)",
     country: "Group",
     brand: "Telefónica",
@@ -1464,6 +1498,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-eu-dsa-briefing",
+    category: "B",
     title: "EU Digital Services & AI Act — Compliance Briefing",
     country: "Group",
     brand: "Telefónica",
@@ -1499,6 +1534,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-tkg-novelle-2026",
+    category: "B",
     title: "TKG-Novelle 2026 — Auswirkungen auf O2 Telefónica",
     country: "Germany",
     brand: "O2",
@@ -1534,6 +1570,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-vivo-social-w27",
+    category: "B",
     title: "Escuta Social Vivo — Semana 27 de 2026",
     country: "Brazil",
     brand: "Vivo",
@@ -1569,6 +1606,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-cnmc-datos-q1-2026",
+    category: "B",
     title: "CNMC — Datos del Mercado Español Q1 2026",
     country: "Spain",
     brand: "Movistar",
@@ -1599,6 +1637,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-ssot-weekly-brief-w27",
+    category: "E",
     title: "SSoT Weekly Executive Brief — Week 27 2026",
     country: "Group",
     brand: "Telefónica",
@@ -1628,6 +1667,7 @@ export const DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-research-genz-2026",
+    category: "B",
     title: "Estudio de Audiencias Jóvenes 2026 — Insights",
     country: "Spain",
     brand: "Movistar",
@@ -2216,7 +2256,7 @@ export const DOC_LINEAGE: DocLineage[] = [
       { stage: "Classification", detail: "Classified under Grow the core and Scale B2B & Tech; language en.", at: "2026-04-24T07:12:00Z", actor: "auto-classifier" },
     ],
     validation: [
-      { field: "confidentiality", proposed: "internal", approved: "public", by: "Investor Relations", at: "2026-04-24", status: "corrected" },
+      { field: "confidentiality", proposed: "private", approved: "public", by: "Investor Relations", at: "2026-04-24", status: "corrected" },
       { field: "validity", proposed: "approved", approved: "approved", by: "Investor Relations", at: "2026-04-24", status: "accepted" },
       { field: "axisIds", proposed: "ax-core", approved: "ax-core, ax-b2b", by: "Group Communications", at: "2026-04-24", status: "corrected" },
     ],
@@ -2244,7 +2284,7 @@ export const DOC_LINEAGE: DocLineage[] = [
       { stage: "Classification", detail: "Classified under Responsible growth; marked internal.", at: "2026-01-15T09:03:00Z", actor: "auto-classifier" },
     ],
     validation: [
-      { field: "confidentiality", proposed: "public", approved: "internal", by: "Global Brand Office", at: "2026-01-16", status: "corrected" },
+      { field: "confidentiality", proposed: "public", approved: "private", by: "Global Brand Office", at: "2026-01-16", status: "corrected" },
       { field: "topics", proposed: "brand, logo", approved: "brand, logo, colour, identity, typography, tone", by: "Global Brand Office", at: "2026-01-16", status: "corrected" },
     ],
   },
@@ -2271,7 +2311,7 @@ export const DOC_LINEAGE: DocLineage[] = [
       { stage: "Classification", detail: "Classified under Scale B2B & Tech; marked confidential.", at: "2026-03-18T10:03:00Z", actor: "auto-classifier" },
     ],
     validation: [
-      { field: "confidentiality", proposed: "internal", approved: "confidential", by: "B2B Strategy", at: "2026-03-19", status: "corrected" },
+      { field: "confidentiality", proposed: "private", approved: "confidential", by: "B2B Strategy", at: "2026-03-19", status: "corrected" },
     ],
   },
   {
@@ -2297,7 +2337,7 @@ export const DOC_LINEAGE: DocLineage[] = [
       { stage: "Classification", detail: "Classified under Simplify & digitalise; marked internal.", at: "2026-02-02T09:02:00Z", actor: "auto-classifier" },
     ],
     validation: [
-      { field: "confidentiality", proposed: "internal", approved: "internal", by: "Media Relations", at: "2026-02-03", status: "accepted" },
+      { field: "confidentiality", proposed: "private", approved: "private", by: "Media Relations", at: "2026-02-03", status: "accepted" },
     ],
   },
   {
@@ -2310,7 +2350,7 @@ export const DOC_LINEAGE: DocLineage[] = [
       { stage: "Classification", detail: "Classified under Grow the core; language es; market Spain.", at: "2026-04-18T07:02:00Z", actor: "auto-classifier" },
     ],
     validation: [
-      { field: "confidentiality", proposed: "internal", approved: "confidential", by: "Group Finance", at: "2026-04-19", status: "corrected" },
+      { field: "confidentiality", proposed: "private", approved: "confidential", by: "Group Finance", at: "2026-04-19", status: "corrected" },
       { field: "validity", proposed: "approved", approved: "approved", by: "Group Finance", at: "2026-04-19", status: "accepted" },
     ],
   },

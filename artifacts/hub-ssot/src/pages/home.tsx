@@ -410,7 +410,7 @@ export default function Home() {
   const activeRole = roles?.find((r) => r.id === roleId);
   const clearance = activeRole?.clearance ?? "public";
   const roleArea = activeRole?.area;
-  const leadership = clearance === "confidential" || clearance === "restricted";
+  const leadership = clearance === "confidential" || clearance === "off_the_record";
 
   const axisColor = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -426,7 +426,7 @@ export default function Home() {
   const cardOrder = React.useMemo<AppKey[]>(() => {
     if (roleArea === "Marca") return ["ask", "generate", "kpis", "planning"];
     if (leadership) return ["ask", "kpis", "planning", "generate"];
-    if (clearance === "internal") return ["ask", "planning", "kpis", "generate"];
+    if (clearance === "private") return ["ask", "planning", "kpis", "generate"];
     return ["ask", "kpis", "generate", "planning"];
   }, [roleArea, leadership, clearance]);
 
@@ -441,7 +441,7 @@ export default function Home() {
         return r.kind === "knowledge_event" ? 0 : r.kind === "your_queue" ? 1 : 2;
       if (leadership)
         return r.kind === "external_signal" ? 0 : r.kind === "your_queue" ? 1 : 2;
-      if (clearance === "internal") return r.kind === "your_queue" ? 0 : 1;
+      if (clearance === "private") return r.kind === "your_queue" ? 0 : 1;
       return 0;
     };
     return [...items].sort((a, b) => weight(a) - weight(b)).slice(0, 5);

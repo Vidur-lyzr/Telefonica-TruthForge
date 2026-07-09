@@ -14,6 +14,6 @@ export interface QuarantineDoc {
   taxonomyVersion: string;
   missingFields: string[];
   receivedAt: string;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   confidentiality: string;
 }

@@ -127,9 +127,9 @@ const SHAPE_META: Record<Shape, { name: string; blurb: string }> = {
 // external audiences are held to public.
 const CONFIDENTIALITY_OPTIONS: { value: string; label: string }[] = [
   { value: "public", label: "Public" },
-  { value: "internal", label: "Internal" },
+  { value: "private", label: "Private" },
   { value: "confidential", label: "Confidential" },
-  { value: "restricted", label: "Restricted" },
+  { value: "off_the_record", label: "Off the record" },
 ];
 
 // Shape-aware deliverable formats surfaced in the brief so the engine frames the
@@ -500,7 +500,7 @@ function BriefForm({
   const [audience, setAudience] = React.useState<Audience>("internal");
   const [language, setLanguage] = React.useState("en");
   const [axisIds, setAxisIds] = React.useState<string[]>([]);
-  const [confidentiality, setConfidentiality] = React.useState("internal");
+  const [confidentiality, setConfidentiality] = React.useState("private");
   const [spokesperson, setSpokesperson] = React.useState("");
   const [eventDate, setEventDate] = React.useState("");
   const formatOptions = FORMAT_OPTIONS[shape];
@@ -509,7 +509,7 @@ function BriefForm({
 
   const changeAudience = (a: Audience) => {
     setAudience(a);
-    setConfidentiality(a === "external" ? "public" : "internal");
+    setConfidentiality(a === "external" ? "public" : "private");
   };
 
   React.useEffect(() => {
@@ -553,7 +553,7 @@ function BriefForm({
     if (b.audience === "internal" || b.audience === "external") {
       setAudience(b.audience);
       setConfidentiality(
-        b.confidentiality ?? (b.audience === "external" ? "public" : "internal"),
+        b.confidentiality ?? (b.audience === "external" ? "public" : "private"),
       );
     } else if (b.confidentiality) {
       setConfidentiality(b.confidentiality);
@@ -2254,7 +2254,7 @@ function ScheduledTab({
         frequency,
         ownerRoleId: owner,
         language: "en",
-        confidentiality: audience === "external" ? "public" : "internal",
+        confidentiality: audience === "external" ? "public" : "private",
         reviewFolder: reviewFolder.trim() || "General",
         axisIds,
       },

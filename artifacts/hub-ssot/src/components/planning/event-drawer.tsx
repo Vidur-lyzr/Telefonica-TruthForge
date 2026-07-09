@@ -1,4 +1,5 @@
 import React from "react";
+import { clearanceLabel } from "@/components/data-center/helpers";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetPlanningEvent,
@@ -163,7 +164,7 @@ export function EventDrawer({
                 <Text2 regular color={skinVars.colors.textPrimary}>
                   There is activity in this slot, but it is classified{" "}
                   <Text2 as="span" medium color={skinVars.colors.textPrimary}>
-                    {ev.confidentiality}
+                    {clearanceLabel(ev.confidentiality)}
                   </Text2>{" "}
                   — above your current clearance. The Hub shows the slot as busy without revealing
                   its contents. Switch to a higher-clearance persona or request access.
@@ -192,7 +193,7 @@ export function EventDrawer({
                       {STATUS_STYLE[ev.status]?.label ?? ev.status}
                     </Tag>
                     <Tag type={ev.confidentiality === "public" ? "success" : "error"}>
-                      {ev.confidentiality}
+                      {clearanceLabel(ev.confidentiality)}
                     </Tag>
                   </Inline>
                 </Inline>

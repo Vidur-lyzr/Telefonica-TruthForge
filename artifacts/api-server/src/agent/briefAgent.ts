@@ -35,7 +35,7 @@ function extractJson(text: string): unknown | null {
 const SHAPES: DocShape[] = ["messaging", "press", "multiformat"];
 const LANGUAGES = new Set(["en", "es", "de", "pt"]);
 const AUDIENCES = new Set(["internal", "external"]);
-const CONFIDENTIALITIES = new Set(["public", "internal", "confidential", "restricted"]);
+const CONFIDENTIALITIES = new Set(["public", "private", "confidential", "off_the_record"]);
 
 export interface BriefFields {
   shape: DocShape | null;

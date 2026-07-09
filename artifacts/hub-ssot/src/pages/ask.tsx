@@ -1,4 +1,5 @@
 import React from "react";
+import { clearanceLabel } from "@/components/data-center/helpers";
 import { useLocation, useSearch } from "wouter";
 import {
   useAsk,
@@ -1755,7 +1756,7 @@ function EvidenceChip({
                       {citation.value}
                     </Text1>
                   )}
-                  <Tag type="inactive">{citation.confidentiality}</Tag>
+                  <Tag type="inactive">{clearanceLabel(citation.confidentiality)}</Tag>
                   {citation.conflicting && (
                     <Tag type="warning">conflict</Tag>
                   )}
@@ -1965,7 +1966,7 @@ function CitationDrawer({
           <Tag
             type={citation.confidentiality === "public" ? "inactive" : "error"}
           >
-            {citation.confidentiality}
+            {clearanceLabel(citation.confidentiality)}
           </Tag>
         </Inline>
 

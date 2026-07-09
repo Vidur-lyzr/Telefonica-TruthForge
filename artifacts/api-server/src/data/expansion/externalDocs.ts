@@ -8,6 +8,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ─── Social listening (8) — API feed, near-real-time, public ───
   {
     id: "doc-b-social-es-fibre-outage",
+    category: "B",
     title: "Escucha social ES — Digest semanal de menciones (avería fibra)",
     country: "Spain",
     brand: "Movistar",
@@ -51,6 +52,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-social-es-campaign-praise",
+    category: "B",
     title: "Escucha social ES — Digest semanal (elogios campaña Movistar)",
     country: "Spain",
     brand: "Movistar",
@@ -88,6 +90,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-social-de-o2-mixed",
+    category: "B",
     title: "Social-Listening DE — Wöchentlicher Erwähnungsbericht O2",
     country: "Germany",
     brand: "O2",
@@ -131,6 +134,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-social-uk-o2-positive",
+    category: "B",
     title: "Social listening UK — Weekly O2 mention digest",
     country: "UK",
     brand: "O2",
@@ -168,6 +172,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-social-br-vivo-negative",
+    category: "B",
     title: "Escuta social BR — Digest semanal de menções Vivo",
     country: "Brazil",
     brand: "Vivo",
@@ -205,6 +210,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-social-hispam-mixed",
+    category: "B",
     title: "Escucha social Hispam — Digest regional de menciones",
     country: "Hispam",
     brand: "Movistar",
@@ -242,6 +248,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-social-group-neutral",
+    category: "B",
     title: "Escucha social de grupo — Resumen de menciones entre mercados",
     country: "Group",
     brand: "Telefónica",
@@ -279,6 +286,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-social-de-campaign-positive",
+    category: "B",
     title: "Social-Listening DE — Kampagnen-Erwähnungsbericht O2",
     country: "Germany",
     brand: "O2",
@@ -318,6 +326,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ─── SIC feed (3) — API feed, continuous, public ───
   {
     id: "doc-b-sic-en-brand-index",
+    category: "B",
     title: "SIC feed — Cross-sector brand mention index (EN)",
     country: "Group",
     brand: "Telefónica",
@@ -355,6 +364,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-sic-es-tendencias",
+    category: "B",
     title: "Feed SIC — Índice de tendencias sectoriales (ES)",
     country: "Spain",
     brand: "Movistar",
@@ -392,6 +402,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-sic-de-sektorindex",
+    category: "B",
     title: "SIC-Feed — Sektor-Erwähnungsindex (DE)",
     country: "Germany",
     brand: "O2",
@@ -431,6 +442,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ─── Key media / press (8) — manual/API, public (one restricted) ───
   {
     id: "doc-b-press-en-results-clipping",
+    category: "B",
     title: "Recorte de prensa — 'Telefónica avanza gracias a la convergencia' (ES)",
     country: "Group",
     brand: "Telefónica",
@@ -469,6 +481,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-press-es-espectro",
+    category: "B",
     title: "Recorte de prensa — Subasta de espectro 5G en España (ES)",
     country: "Spain",
     brand: "Movistar",
@@ -506,6 +519,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-press-en-ma-rumour",
+    category: "B",
     title: "Recorte de prensa — Rumor de M&A: consolidación en Hispam (ES)",
     country: "Hispam",
     brand: "Telefónica",
@@ -543,6 +557,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-press-en-de-market",
+    category: "B",
     title: "Pressespiegel — Deutscher Markt: O2-Netzinvestition (DE)",
     country: "Germany",
     brand: "O2",
@@ -580,6 +595,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-press-pt-anatel",
+    category: "B",
     title: "Recorte de imprensa — Vivo e decisão da ANATEL (PT)",
     country: "Brazil",
     brand: "Vivo",
@@ -617,6 +633,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-press-es-resultados",
+    category: "B",
     title: "Recorte de prensa — Resultados y dividendo de Telefónica (ES)",
     country: "Group",
     brand: "Telefónica",
@@ -655,6 +672,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-press-en-editorial-otr",
+    category: "B",
     title: "Editorial guidance (off-the-record) — journalist backgrounder (EN)",
     country: "Group",
     brand: "Telefónica",
@@ -692,6 +710,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-press-en-spectrum-historic",
+    category: "B",
     title: "Press clipping (archive) — 2024 UK spectrum debate (EN)",
     country: "UK",
     brand: "O2",
@@ -731,6 +750,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ─── Competitor studies (5) — PDF/PPT, manual, ad hoc ───
   {
     id: "doc-b-comp-vodafone",
+    category: "B",
     title: "Wettbewerbsanalyse — Konvergenzpositionierung von Vodafone (DE)",
     country: "Group",
     brand: "Telefónica",
@@ -774,6 +794,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-comp-orange-masorange",
+    category: "B",
     title: "Estudio de competencia — Orange y MasOrange en España (ES)",
     country: "Spain",
     brand: "Movistar",
@@ -811,6 +832,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-comp-deutsche-telekom",
+    category: "B",
     title: "Wettbewerbsanalyse — Deutsche Telekom Netzführerschaft (DE)",
     country: "Germany",
     brand: "O2",
@@ -848,6 +870,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-comp-masorange-b2b",
+    category: "B",
     title: "Estudio de competencia — MasOrange en B2B (ES)",
     country: "Spain",
     brand: "Movistar",
@@ -885,6 +908,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-comp-claro-tim-brazil",
+    category: "B",
     title: "Estudo de concorrência — Claro e TIM no Brasil (PT)",
     country: "Brazil",
     brand: "Vivo",
@@ -924,6 +948,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ─── Sector reports (4) — PDF, manual, ad hoc, public ───
   {
     id: "doc-b-sector-en-telco-outlook",
+    category: "B",
     title: "Sector report — European telco outlook 2026 (EN)",
     country: "Group",
     brand: "Telefónica",
@@ -961,6 +986,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-sector-es-fibra",
+    category: "B",
     title: "Informe sectorial — Fibra y banda ancha en España (ES)",
     country: "Spain",
     brand: "Movistar",
@@ -998,6 +1024,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-sector-en-b2b-tech",
+    category: "B",
     title: "Informe sectorial — Gasto en tecnología B2B y empresas 2026 (ES)",
     country: "Group",
     brand: "Telefónica",
@@ -1035,6 +1062,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-sector-de-mobilfunk",
+    category: "B",
     title: "Branchenbericht — Deutscher Mobilfunkmarkt 2026 (DE)",
     country: "Germany",
     brand: "O2",
@@ -1074,6 +1102,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ─── Legislation / regulation (4) — PDF, manual, ad hoc, public ───
   {
     id: "doc-b-legis-eu-ai-act",
+    category: "B",
     title: "Regulatory note — EU AI Act impact on communications (EN)",
     country: "Group",
     brand: "Telefónica",
@@ -1111,6 +1140,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-legis-br-anatel",
+    category: "B",
     title: "Nota regulatória — Decisão da ANATEL sobre qualidade (PT)",
     country: "Brazil",
     brand: "Vivo",
@@ -1148,6 +1178,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-legis-es-audiovisual",
+    category: "B",
     title: "Nota regulatoria — Ley audiovisual en España (ES)",
     country: "Spain",
     brand: "Movistar",
@@ -1185,6 +1216,7 @@ export const EXTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-b-legis-de-tkg",
+    category: "B",
     title: "Regulatorische Notiz — Novelle des TKG in Deutschland (DE)",
     country: "Germany",
     brand: "O2",

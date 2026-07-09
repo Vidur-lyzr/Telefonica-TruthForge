@@ -7,6 +7,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ───────────────────────── Calendar & milestones (5) ─────────────────────────
   {
     id: "doc-a-asana-milestones-q3-2026",
+    category: "A",
     title: "Calendario editorial y hitos — Q3 2026",
     country: "Spain",
     brand: "Telefónica",
@@ -43,6 +44,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-milestones-group-2026",
+    category: "A",
     title: "Seguimiento de hitos de comunicación de grupo 2026",
     country: "Group",
     brand: "Telefónica",
@@ -73,6 +75,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-milestones-o2-de-q3-2026",
+    category: "A",
     title: "O2 Deutschland — Kommunikations-Meilensteine Q3 2026",
     country: "Germany",
     brand: "O2",
@@ -103,6 +106,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-milestones-vivo-br-q3-2026",
+    category: "A",
     title: "Vivo — Calendário de marcos de comunicação Q3 2026",
     country: "Brazil",
     brand: "Vivo",
@@ -133,6 +137,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-milestones-uk-q2-2026",
+    category: "A",
     title: "Telefónica UK — Communications Milestone Plan Q2 2026",
     country: "UK",
     brand: "O2",
@@ -165,6 +170,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ───────────────────────── Results (6) ─────────────────────────
   {
     id: "doc-a-results-spain-q1-2026",
+    category: "A",
     title: "Resultados por mercado — España Q1 2026",
     country: "Spain",
     brand: "Movistar",
@@ -199,6 +205,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-results-germany-q4-2025",
+    category: "A",
     title: "Marktergebnisse — Deutschland Q4 2025",
     country: "Germany",
     brand: "O2",
@@ -233,6 +240,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-results-brazil-q1-2026",
+    category: "A",
     title: "Resultados por mercado — Brasil Q1 2026",
     country: "Brazil",
     brand: "Vivo",
@@ -267,6 +275,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-results-uk-q3-2025",
+    category: "A",
     title: "Market Results — United Kingdom Q3 2025",
     country: "UK",
     brand: "O2",
@@ -298,6 +307,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-results-spain-q2-2026",
+    category: "A",
     title: "Resultados por mercado — España Q2 2026 (preliminar)",
     country: "Spain",
     brand: "Movistar",
@@ -329,6 +339,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-results-group-activity-q1-2026",
+    category: "A",
     title: "Resultados de actividad de grupo — KPIs operativos Q1 2026",
     country: "Group",
     brand: "Telefónica",
@@ -365,6 +376,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ───────────────────────── People / HR (4) ─────────────────────────
   {
     id: "doc-a-hr-headcount-q1-2026",
+    category: "A",
     title: "Cuadro de mando de personas — Plantilla y rotación Q1 2026",
     country: "Group",
     brand: "Telefónica",
@@ -399,6 +411,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-hr-engagement-2026",
+    category: "A",
     title: "Encuesta de compromiso del empleado — España 2026",
     country: "Spain",
     brand: "Telefónica",
@@ -430,6 +443,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-hr-diversity-2026",
+    category: "A",
     title: "Métricas de diversidad e inclusión — Grupo 2026",
     country: "Group",
     brand: "Telefónica",
@@ -461,6 +475,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-hr-personalstruktur-de-2026",
+    category: "A",
     title: "Personalstruktur & Fluktuation — O2 Deutschland 2026",
     country: "Germany",
     brand: "O2",
@@ -494,6 +509,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ───────────────────────── Customer data (4) ─────────────────────────
   {
     id: "doc-a-cx-nps-q1-2026",
+    category: "A",
     title: "Experiencia de cliente — Cuadro de mando de NPS Q1 2026",
     country: "Group",
     brand: "Telefónica",
@@ -528,6 +544,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-cx-churn-q1-2026",
+    category: "A",
     title: "Cuadro de mando de bajas (churn) — España Q1 2026",
     country: "Spain",
     brand: "Movistar",
@@ -559,6 +576,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-cx-complaints-q1-2026",
+    category: "A",
     title: "Reclamações de clientes — Vivo Q1 2026",
     country: "Brazil",
     brand: "Vivo",
@@ -590,6 +608,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-cx-segment-scorecard-2026",
+    category: "A",
     title: "Customer Segment Scorecard — B2B & Consumer 2026",
     country: "Group",
     brand: "Telefónica",
@@ -626,6 +645,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ───────────────────────── Research & positioning (5) ─────────────────────────
   {
     id: "doc-a-research-market-spain-2026",
+    category: "A",
     title: "Estudio de mercado — Percepción de marca en España 2026",
     country: "Spain",
     brand: "Movistar",
@@ -656,6 +676,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-research-competitive-2026",
+    category: "A",
     title: "Estudio de posicionamiento competitivo — Mercados principales 2026",
     country: "Group",
     brand: "Telefónica",
@@ -686,6 +707,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-research-marktstudie-de-2026",
+    category: "A",
     title: "Marktstudie — Netzwahrnehmung Deutschland 2026",
     country: "Germany",
     brand: "O2",
@@ -716,6 +738,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-research-b2b-tech-2026",
+    category: "A",
     title: "B2B Demand Research — Tech & Cyber 2026",
     country: "Group",
     brand: "Telefónica",
@@ -746,6 +769,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-research-pesquisa-br-2026",
+    category: "A",
     title: "Pesquisa de mercado — Posicionamento Vivo Brasil 2026",
     country: "Brazil",
     brand: "Vivo",
@@ -778,6 +802,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ───────────────────────── New USP (3) ─────────────────────────
   {
     id: "doc-a-usp-conexion-entiende-brief",
+    category: "A",
     title: "Nueva USP — 'Conexión que entiende' (brief de posicionamiento)",
     country: "Group",
     brand: "Telefónica",
@@ -814,6 +839,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-usp-conexion-entiende-rollout",
+    category: "A",
     title: "New USP Rollout Plan — 'Conexión que entiende' (Confidential)",
     country: "Group",
     brand: "Telefónica",
@@ -844,6 +870,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-usp-conexion-entiende-messaging",
+    category: "A",
     title: "USP Messaging Framework — 'Conexión que entiende' (Confidential)",
     country: "Spain",
     brand: "Movistar",
@@ -876,6 +903,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ───────────────────────── Communication talking points (5) ─────────────────────────
   {
     id: "doc-a-talking-points-results-q2-2026",
+    category: "A",
     title: "Talking Points — Q2 2026 Results (Approved)",
     country: "Group",
     brand: "Telefónica",
@@ -907,6 +935,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-talking-points-results-q2-2026-old",
+    category: "A",
     title: "Talking Points — Q2 2026 Results (Superseded Draft)",
     country: "Group",
     brand: "Telefónica",
@@ -938,6 +967,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-talking-points-network-es-2026",
+    category: "A",
     title: "Argumentario — Inversión en red (España) Q2 2026",
     country: "Spain",
     brand: "Movistar",
@@ -968,6 +998,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-talking-points-sprechzettel-de-2026",
+    category: "A",
     title: "Sprechzettel — Netzausbau O2 Deutschland Q3 2026",
     country: "Germany",
     brand: "O2",
@@ -998,6 +1029,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-talking-points-sustainability-2026",
+    category: "A",
     title: "Talking Points — Sustainability & Net Zero 2026",
     country: "Group",
     brand: "Telefónica",
@@ -1030,6 +1062,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   // ───────────────────────── Brand guidelines & templates (4) ─────────────────────────
   {
     id: "doc-a-brand-templates-2026",
+    category: "A",
     title: "Plantillas de comunicación corporativa 2026",
     country: "Group",
     brand: "Telefónica",
@@ -1060,6 +1093,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-brand-guidelines-digital-2026",
+    category: "A",
     title: "Digital Brand Guidelines — Social & Web 2026",
     country: "Group",
     brand: "Telefónica",
@@ -1090,6 +1124,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-brand-vorlagen-de-2026",
+    category: "A",
     title: "Markenvorlagen — O2 Deutschland 2026",
     country: "Germany",
     brand: "O2",
@@ -1120,6 +1155,7 @@ export const INTERNAL_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-a-brand-templates-vivo-2026",
+    category: "A",
     title: "Modelos de marca — Vivo Brasil 2026",
     country: "Brazil",
     brand: "Vivo",

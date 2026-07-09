@@ -1,4 +1,5 @@
 import React from "react";
+import { clearanceLabel } from "@/components/data-center/helpers";
 import {
   usePlanningForecast,
   useSchedulePlanningForecast,
@@ -304,7 +305,7 @@ export function ForecastPanel() {
                     </Text2>
                   </div>
                   <Tag type={selected.confidentiality === "public" ? "success" : "error"}>
-                    {selected.confidentiality}
+                    {clearanceLabel(selected.confidentiality)}
                   </Tag>
                 </Inline>
                 <Text6 id={modalTitleId}>{selected.docTitle}</Text6>

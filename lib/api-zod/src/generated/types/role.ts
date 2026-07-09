@@ -9,7 +9,7 @@
 export interface Role {
   id: string;
   label: string;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   clearance: string;
   area: string;
   description: string;

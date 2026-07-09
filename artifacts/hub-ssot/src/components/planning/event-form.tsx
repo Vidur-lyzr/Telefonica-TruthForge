@@ -49,7 +49,7 @@ export function EventForm({
   const [market, setMarket] = React.useState("Spain");
   const [brand, setBrand] = React.useState("Movistar");
   const [source, setSource] = React.useState("Asana");
-  const [confidentiality, setConfidentiality] = React.useState("internal");
+  const [confidentiality, setConfidentiality] = React.useState("private");
   const [description, setDescription] = React.useState("");
 
   const valid =
@@ -238,9 +238,9 @@ export function EventForm({
                 }}
                 options={[
                   { value: "public", text: "Public" },
-                  { value: "internal", text: "Internal" },
+                  { value: "private", text: "Private" },
                   { value: "confidential", text: "Confidential" },
-                  { value: "restricted", text: "Restricted" },
+                  { value: "off_the_record", text: "Off the record" },
                 ]}
                 fullWidth
               />

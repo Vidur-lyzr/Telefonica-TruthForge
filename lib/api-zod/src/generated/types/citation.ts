@@ -28,7 +28,7 @@ export interface Citation {
      * @nullable
      */
   corroboration?: number | null;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   confidentiality: string;
   /** approved | historic | review | superseded */
   validity: string;

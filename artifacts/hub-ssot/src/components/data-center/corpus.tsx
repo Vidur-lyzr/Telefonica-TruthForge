@@ -1,4 +1,5 @@
 import React from "react";
+import { clearanceLabel } from "./helpers";
 import {
   useListDocuments,
   useGetCorpusStats,
@@ -33,6 +34,19 @@ import {
   IconCheckedRegular,
   IconCloseRegular,
 } from "@telefonica/mistica";
+
+function categoryLabel(c: string): string {
+  switch (c) {
+    case "A":
+      return "A · Internal";
+    case "B":
+      return "B · External";
+    case "E":
+      return "E · SSoT output";
+    default:
+      return c;
+  }
+}
 
 function StatCard({
   icon: Icon,
@@ -136,6 +150,9 @@ export default function CorpusArea() {
               onPress={() => setSelectedDocId(doc.id)}
               right={
                 <Inline space={8} alignItems="center">
+                  <Tag type={doc.category === "A" ? "info" : doc.category === "B" ? "active" : "promo"}>
+                    {categoryLabel(doc.category)}
+                  </Tag>
                   {doc.ingestFilter && (
                     <Tag type={doc.ingestFilter.sentiment === "negative" ? "warning" : "info"}>
                       {`filtered · ${doc.ingestFilter.sentiment}`}
@@ -143,7 +160,7 @@ export default function CorpusArea() {
                   )}
                   {doc.version && <Tag type="info">{doc.version}</Tag>}
                   <Tag type={doc.confidentiality === "public" ? "inactive" : "error"}>
-                    {doc.confidentiality}
+                    {clearanceLabel(doc.confidentiality)}
                   </Tag>
                   <Tag type={doc.validity === "approved" ? "success" : "inactive"}>
                     {doc.validity}
@@ -170,15 +187,36 @@ export default function CorpusArea() {
           <Stack space={24}>
             <Stack space={12}>
               <Inline space="between" alignItems="center">
-                <Tag type="info">{docDetail.document.type}</Tag>
+                <Inline space={8} alignItems="center">
+                  <Tag type="info">{docDetail.document.type}</Tag>
+                  <Tag
+                    type={
+                      docDetail.document.category === "A"
+                        ? "info"
+                        : docDetail.document.category === "B"
+                          ? "active"
+                          : "promo"
+                    }
+                  >
+                    {categoryLabel(docDetail.document.category)}
+                  </Tag>
+                </Inline>
                 <Inline space={8} alignItems="center">
                   <Tag type={docDetail.document.validity === "approved" ? "success" : "inactive"}>
                     {docDetail.document.validity}
                   </Tag>
                   <Tag type={docDetail.document.confidentiality === "public" ? "inactive" : "error"}>
-                    {docDetail.document.confidentiality}
+                    {clearanceLabel(docDetail.document.confidentiality)}
                   </Tag>
                 </Inline>
+              </Inline>
+              <Inline space={8} alignItems="center">
+                <IconShieldRegular size={16} color={skinVars.colors.textSecondary} />
+                <Text1 regular color={skinVars.colors.textSecondary}>
+                  Confidentiality "{clearanceLabel(docDetail.document.confidentiality)}" is inherited
+                  from the source sensitivity label ({docDetail.document.connector} — simulated
+                  Purview/MIP), not assigned by hand.
+                </Text1>
               </Inline>
               <Inline space={16} alignItems="center" wrap>
                 <Text2 regular color={skinVars.colors.textPrimary}>

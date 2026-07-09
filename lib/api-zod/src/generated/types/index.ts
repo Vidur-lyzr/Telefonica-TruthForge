@@ -40,6 +40,7 @@ export * from './checkInput';
 export * from './citation';
 export * from './conflictDetail';
 export * from './corpusDocument';
+export * from './corpusDocumentCategory';
 export * from './corpusDocumentDetail';
 export * from './corpusStats';
 export * from './countBucket';

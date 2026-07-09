@@ -5,10 +5,13 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { CorpusDocumentCategory } from './corpusDocumentCategory';
 import type { IngestFilter } from './ingestFilter';
 
 export interface CorpusDocument {
   id: string;
+  /** RFP data-universe branch — A = internal, B = external/public, E = SSoT-generated output */
+  category: CorpusDocumentCategory;
   title: string;
   country: string;
   brand: string;

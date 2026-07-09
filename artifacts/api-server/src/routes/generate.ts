@@ -222,7 +222,7 @@ router.post("/generate/schedules", async (req, res) => {
     axisIds: d.axisIds ?? [],
     language: d.language ?? "en",
     audience: (d.audience as "internal" | "external") ?? "internal",
-    confidentiality: d.confidentiality ?? "internal",
+    confidentiality: d.confidentiality ?? "private",
     frequency: (d.frequency as "daily" | "weekly" | "monthly") ?? "weekly",
     ownerRoleId: d.ownerRoleId,
     ownerLabel: roleLabel(d.ownerRoleId),

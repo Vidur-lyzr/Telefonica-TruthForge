@@ -48,6 +48,7 @@ router.get("/roles", (_req, res) => {
 router.get("/documents", (_req, res) => {
   const items = DOCS.map((d) => ({
     id: d.id,
+    category: d.category,
     title: d.title,
     country: d.country,
     brand: d.brand,
@@ -107,6 +108,7 @@ router.get("/documents/:id", (req, res) => {
   const data = {
     document: {
       id: doc.id,
+      category: doc.category,
       title: doc.title,
       country: doc.country,
       brand: doc.brand,

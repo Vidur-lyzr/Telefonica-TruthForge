@@ -29,7 +29,7 @@ import {
   IconCheckedRegular,
 } from "@telefonica/mistica";
 import { useDataCenter, type UploadedDoc } from "./state";
-import { sourceStatusTagType, sourceStatusLabel } from "./helpers";
+import { sourceStatusTagType, sourceStatusLabel, clearanceLabel } from "./helpers";
 
 type IconType = React.ComponentType<{ size?: number; color?: string }>;
 
@@ -41,14 +41,14 @@ const SOURCE_ICON: Record<string, IconType> = {
 };
 
 const AREAS = ["Comunicación", "Marca", "Gabinete"];
-const CLEARANCES = ["public", "internal", "confidential", "restricted"];
+const CLEARANCES = ["public", "private", "confidential", "off_the_record"];
 
 const emptyUpload = {
   title: "",
   owner: "",
   country: "Group",
   brand: "Telefónica",
-  confidentiality: "internal",
+  confidentiality: "private",
   area: "Comunicación",
 };
 
@@ -275,7 +275,7 @@ export default function SourcesArea() {
                   label="Confidentiality"
                   value={draft.confidentiality}
                   onChangeValue={(v) => setDraft((d) => ({ ...d, confidentiality: v }))}
-                  options={CLEARANCES.map((c) => ({ value: c, text: c }))}
+                  options={CLEARANCES.map((c) => ({ value: c, text: clearanceLabel(c) }))}
                 />
               </div>
               <div style={{ flex: 1 }}>

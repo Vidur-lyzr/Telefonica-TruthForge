@@ -60,18 +60,24 @@ import {
 
 type IconType = (props: { size?: number; color?: string }) => React.ReactElement;
 type Area = "Comunicación" | "Marca" | "Gabinete";
-type Clearance = "public" | "internal" | "confidential" | "restricted";
+type Clearance = "public" | "private" | "confidential" | "off_the_record";
 type ProfileId = "superadmin" | "admin" | "editor" | "audit";
 
 type TagType = "promo" | "info" | "active" | "inactive" | "success" | "warning" | "error";
 
 const AREAS: Area[] = ["Comunicación", "Marca", "Gabinete"];
-const CLEARANCES: Clearance[] = ["public", "internal", "confidential", "restricted"];
+const CLEARANCES: Clearance[] = ["public", "private", "confidential", "off_the_record"];
 const CLEARANCE_RANK: Record<Clearance, number> = {
   public: 0,
-  internal: 1,
+  private: 1,
   confidential: 2,
-  restricted: 3,
+  off_the_record: 3,
+};
+const CLEARANCE_LABEL: Record<Clearance, string> = {
+  public: "Public",
+  private: "Private",
+  confidential: "Confidential",
+  off_the_record: "Off the record",
 };
 
 const PROFILE_ICON: Record<ProfileId, IconType> = {
@@ -85,11 +91,11 @@ function clearanceTagType(c: string): TagType {
   switch (c) {
     case "public":
       return "inactive";
-    case "internal":
+    case "private":
       return "info";
     case "confidential":
       return "warning";
-    case "restricted":
+    case "off_the_record":
       return "error";
     default:
       return "inactive";
@@ -144,7 +150,7 @@ const emptyUserDraft = {
   email: "",
   area: "Comunicación" as Area,
   profileId: "editor" as ProfileId,
-  clearance: "internal" as Clearance,
+  clearance: "private" as Clearance,
 };
 
 export default function AdminPage() {
@@ -234,7 +240,7 @@ export default function AdminPage() {
         action: "Permission change",
         target: userDraft.name,
         kind: "permission",
-        detail: `Set ${userDraft.area} · ${profileLabel[userDraft.profileId] ?? userDraft.profileId} · ${userDraft.clearance} clearance.`,
+        detail: `Set ${userDraft.area} · ${profileLabel[userDraft.profileId] ?? userDraft.profileId} · ${CLEARANCE_LABEL[userDraft.clearance]} clearance.`,
       });
     } else {
       const id = `user-session-${Date.now()}`;
@@ -254,7 +260,7 @@ export default function AdminPage() {
         action: "Registered user",
         target: userDraft.name,
         kind: "user",
-        detail: `New ${profileLabel[userDraft.profileId] ?? userDraft.profileId} in ${userDraft.area} with ${userDraft.clearance} clearance.`,
+        detail: `New ${profileLabel[userDraft.profileId] ?? userDraft.profileId} in ${userDraft.area} with ${CLEARANCE_LABEL[userDraft.clearance]} clearance.`,
       });
     }
     setUserDialogOpen(false);
@@ -354,7 +360,7 @@ export default function AdminPage() {
     owner: "",
     amberPct: "100",
     criticalPct: "92",
-    confidentiality: "internal",
+    confidentiality: "private",
     objectiveId: "",
     axisId: "",
     market: "",
@@ -687,7 +693,7 @@ export default function AdminPage() {
                 {profileLabel[u.profileId] ?? u.profileId}
               </Text2>,
               <Tag type={clearanceTagType(u.clearance)} key={`${u.id}-clearance`}>
-                {u.clearance}
+                {CLEARANCE_LABEL[u.clearance as Clearance] ?? u.clearance}
               </Tag>,
               <ButtonLink small onPress={() => openEdit(u)} key={`${u.id}-edit`}>
                 Edit
@@ -717,7 +723,7 @@ export default function AdminPage() {
                 onChangeValue={setVisibilityUserId}
                 options={(seedUsers ?? []).map((u) => ({
                   value: u.id,
-                  text: `${u.name} — ${u.area} · ${u.clearance}`,
+                  text: `${u.name} — ${u.area} · ${CLEARANCE_LABEL[u.clearance as Clearance] ?? u.clearance}`,
                 }))}
                 fullWidth
               />
@@ -749,7 +755,7 @@ export default function AdminPage() {
                   </Text1>
                 </Stack>,
                 <Tag type={clearanceTagType(r.confidentiality)} key={`${r.docId}-conf`}>
-                  {r.confidentiality}
+                  {CLEARANCE_LABEL[r.confidentiality as Clearance] ?? r.confidentiality}
                 </Tag>,
                 <Text2 regular color={skinVars.colors.textSecondary} key={`${r.docId}-areas`}>
                   {r.areas.length > 0 ? r.areas.join(" / ") : "All areas"}
@@ -883,7 +889,7 @@ export default function AdminPage() {
                   {v.owner}
                 </Text2>,
                 <Tag type={clearanceTagType(v.confidentiality)} key={`${r.id}-conf`}>
-                  {v.confidentiality}
+                  {CLEARANCE_LABEL[v.confidentiality as Clearance] ?? v.confidentiality}
                 </Tag>,
                 <Inline space={8} alignItems="center" key={`${r.id}-actions`}>
                   <ButtonLink small onPress={() => openKpiEdit(r)}>
@@ -988,7 +994,7 @@ export default function AdminPage() {
                   label="Confidentiality tier (max access)"
                   value={userDraft.clearance}
                   onChangeValue={(v) => setUserDraft({ ...userDraft, clearance: v as Clearance })}
-                  options={CLEARANCES.map((c) => ({ value: c, text: c }))}
+                  options={CLEARANCES.map((c) => ({ value: c, text: CLEARANCE_LABEL[c] }))}
                   fullWidth
                 />
 
@@ -1010,7 +1016,7 @@ export default function AdminPage() {
                         </Text2>
                         , this person would see documents in their area up to and including{" "}
                         <Text2 as="span" medium color={skinVars.colors.textPrimary}>
-                          {userDraft.clearance}
+                          {CLEARANCE_LABEL[userDraft.clearance]}
                         </Text2>{" "}
                         sensitivity.
                       </Text2>
@@ -1047,9 +1053,9 @@ export default function AdminPage() {
                 <Text2 regular color={skinVars.colors.textSecondary}>
                   Granting{" "}
                   <Text2 as="span" medium color={skinVars.colors.textPrimary}>
-                    {userDraft.clearance}
+                    {CLEARANCE_LABEL[userDraft.clearance]}
                   </Text2>{" "}
-                  access exposes sensitive material — for example, Finance-DE {userDraft.clearance}{" "}
+                  access exposes sensitive material — for example, Finance-DE {CLEARANCE_LABEL[userDraft.clearance]}{" "}
                   documents — to {userDraft.name || "this user"}. This widens what they can see across
                   their area. Continue?
                 </Text2>
@@ -1136,7 +1142,7 @@ export default function AdminPage() {
                     label="Confidentiality"
                     value={kpiDraft.confidentiality}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, confidentiality: v })}
-                    options={CLEARANCES.map((c) => ({ value: c, text: c }))}
+                    options={CLEARANCES.map((c) => ({ value: c, text: CLEARANCE_LABEL[c] }))}
                     fullWidth
                   />
                 </Grid>
@@ -1372,7 +1378,7 @@ export default function AdminPage() {
                           Target {v.target}
                           {v.unit} · amber below {Math.round(v.thresholds.amberBelow * 100)}% ·
                           critical below {Math.round(v.thresholds.criticalBelow * 100)}% · owner{" "}
-                          {v.owner} · {v.confidentiality}
+                          {v.owner} · {CLEARANCE_LABEL[v.confidentiality as Clearance] ?? v.confidentiality}
                         </Text2>
                         <Text1 regular color={skinVars.colors.textSecondary}>
                           {v.editedBy}: {v.changeNote}

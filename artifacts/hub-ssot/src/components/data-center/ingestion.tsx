@@ -38,7 +38,7 @@ import {
   IconThumbDownRegular,
 } from "@telefonica/mistica";
 import { useDataCenter } from "./state";
-import { clearanceTagType, fieldLabel } from "./helpers";
+import { clearanceTagType, clearanceLabel, fieldLabel } from "./helpers";
 
 type IconType = React.ComponentType<{ size?: number; color?: string }>;
 
@@ -52,7 +52,7 @@ const STAGE_ICON: Record<string, IconType> = {
   validate: IconCheckedRegular,
 };
 
-const CLEARANCES = ["public", "internal", "confidential", "restricted"];
+const CLEARANCES = ["public", "private", "confidential", "off_the_record"];
 
 function sentimentSign(sentiment: string): { label: string; color: string } {
   if (sentiment === "positive") return { label: "+", color: skinVars.colors.success };
@@ -342,7 +342,7 @@ export default function IngestionArea() {
                                 {q.title}
                               </Text2>
                               <Tag type={clearanceTagType(q.confidentiality)}>
-                                {q.confidentiality}
+                                {clearanceLabel(q.confidentiality)}
                               </Tag>
                             </Inline>
                             <Text1 regular color={skinVars.colors.textSecondary}>

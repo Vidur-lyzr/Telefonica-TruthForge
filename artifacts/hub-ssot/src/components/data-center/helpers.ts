@@ -11,14 +11,29 @@ export function clearanceTagType(c: string): TagType {
   switch (c) {
     case "public":
       return "inactive";
-    case "internal":
+    case "private":
       return "info";
     case "confidential":
       return "warning";
-    case "restricted":
+    case "off_the_record":
       return "error";
     default:
       return "inactive";
+  }
+}
+
+export function clearanceLabel(c: string): string {
+  switch (c) {
+    case "public":
+      return "Public";
+    case "private":
+      return "Private";
+    case "confidential":
+      return "Confidential";
+    case "off_the_record":
+      return "Off the record";
+    default:
+      return c;
   }
 }
 

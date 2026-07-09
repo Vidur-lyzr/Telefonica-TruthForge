@@ -185,7 +185,7 @@ export interface Citation {
      * @nullable
      */
   corroboration?: number | null;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   confidentiality: string;
   /** approved | historic | review | superseded */
   validity: string;
@@ -473,7 +473,7 @@ export interface PlatformUser {
   area: string;
   /** superadmin | admin | editor | audit */
   profileId: string;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   clearance: string;
 }
 
@@ -520,11 +520,23 @@ export interface StrategicAxis {
 export interface Role {
   id: string;
   label: string;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   clearance: string;
   area: string;
   description: string;
 }
+
+/**
+ * RFP data-universe branch — A = internal, B = external/public, E = SSoT-generated output
+ */
+export type CorpusDocumentCategory = typeof CorpusDocumentCategory[keyof typeof CorpusDocumentCategory];
+
+
+export const CorpusDocumentCategory = {
+  A: 'A',
+  B: 'B',
+  E: 'E',
+} as const;
 
 export type IngestFilterSentiment = typeof IngestFilterSentiment[keyof typeof IngestFilterSentiment];
 
@@ -549,6 +561,8 @@ export interface IngestFilter {
 
 export interface CorpusDocument {
   id: string;
+  /** RFP data-universe branch — A = internal, B = external/public, E = SSoT-generated output */
+  category: CorpusDocumentCategory;
   title: string;
   country: string;
   brand: string;
@@ -679,7 +693,7 @@ export interface QuarantineDoc {
   taxonomyVersion: string;
   missingFields: string[];
   receivedAt: string;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   confidentiality: string;
 }
 
@@ -697,7 +711,7 @@ export interface ProposedClassification {
 }
 
 export interface ProposedMetadata {
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   confidentiality: string;
   owner: string;
   country: string;
@@ -1934,7 +1948,7 @@ export interface VisibilityRow {
   docId: string;
   title: string;
   type: string;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   confidentiality: string;
   areas: string[];
   visible: boolean;

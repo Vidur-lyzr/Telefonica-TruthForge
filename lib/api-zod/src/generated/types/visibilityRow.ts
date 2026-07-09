@@ -10,7 +10,7 @@ export interface VisibilityRow {
   docId: string;
   title: string;
   type: string;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   confidentiality: string;
   areas: string[];
   visible: boolean;

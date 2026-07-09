@@ -34,7 +34,7 @@ import {
   IconArchiveRegular,
 } from "@telefonica/mistica";
 import { useDataCenter } from "./state";
-import { clearanceTagType, confidenceTagType } from "./helpers";
+import { clearanceTagType, clearanceLabel, confidenceTagType } from "./helpers";
 
 function Dot({ color }: { color: string }) {
   return (
@@ -134,7 +134,7 @@ export default function ValidationArea() {
     if (!editing || !editMeta) return;
     const changed: string[] = [];
     if (editMeta.confidentiality !== editing.metadata.confidentiality)
-      changed.push(`confidentiality → ${editMeta.confidentiality}`);
+      changed.push(`confidentiality → ${clearanceLabel(editMeta.confidentiality)}`);
     if (editMeta.owner !== editing.metadata.owner) changed.push(`owner → ${editMeta.owner}`);
     if (editMeta.country !== editing.metadata.country) changed.push(`country → ${editMeta.country}`);
     if (editMeta.brand !== editing.metadata.brand) changed.push(`brand → ${editMeta.brand}`);
@@ -416,7 +416,7 @@ export default function ValidationArea() {
                             Proposed metadata:
                           </Text1>
                           <Tag type={clearanceTagType(it.metadata.confidentiality)}>
-                            {it.metadata.confidentiality}
+                            {clearanceLabel(it.metadata.confidentiality)}
                           </Tag>
                           <Text2 medium color={skinVars.colors.textPrimary}>
                             {it.metadata.owner}
@@ -533,9 +533,9 @@ export default function ValidationArea() {
               label="Confidentiality"
               value={editMeta.confidentiality}
               onChangeValue={(v) => setEditMeta((m) => (m ? { ...m, confidentiality: v } : m))}
-              options={["public", "internal", "confidential", "restricted"].map((c) => ({
+              options={["public", "private", "confidential", "off_the_record"].map((c) => ({
                 value: c,
-                text: c,
+                text: clearanceLabel(c),
               }))}
             />
             <TextField

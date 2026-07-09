@@ -1,4 +1,5 @@
 import React from "react";
+import { clearanceLabel } from "@/components/data-center/helpers";
 import {
   useQueryKpis,
   useGetKpiDetail,
@@ -460,7 +461,7 @@ function SourceRow({
               )}
               {source.confidentiality && (
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  {source.confidentiality}
+                  {clearanceLabel(source.confidentiality)}
                 </Text1>
               )}
             </Inline>
@@ -508,7 +509,7 @@ function SourceDetailSheet({
                 <Tag type={validityTagType(validity)}>{VALIDITY_LABEL[validity] ?? "Approved"}</Tag>
                 {source.confidentiality && (
                   <Tag type={source.confidentiality === "public" ? "success" : "error"}>
-                    {source.confidentiality}
+                    {clearanceLabel(source.confidentiality)}
                   </Tag>
                 )}
               </Inline>
@@ -1294,7 +1295,7 @@ export default function KpisPage() {
                     JSON.stringify({
                       topic,
                       audience: "internal",
-                      confidentiality: "internal",
+                      confidentiality: "private",
                       kpiContext: {
                         period,
                         area,

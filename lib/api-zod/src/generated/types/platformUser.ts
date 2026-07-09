@@ -14,6 +14,6 @@ export interface PlatformUser {
   area: string;
   /** superadmin | admin | editor | audit */
   profileId: string;
-  /** public | internal | confidential | restricted */
+  /** public | private | confidential | off_the_record */
   clearance: string;
 }

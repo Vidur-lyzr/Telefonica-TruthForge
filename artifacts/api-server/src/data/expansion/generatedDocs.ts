@@ -9,6 +9,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   // Version chain A: networks — superseded v2 → approved v3
   {
     id: "doc-e-tp-networks-v2",
+    category: "E",
     title: "Puntos de discurso — Liderazgo en redes (v2)",
     country: "Spain",
     brand: "Telefónica",
@@ -42,6 +43,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-tp-networks-v3",
+    category: "E",
     title: "Puntos de discurso — Liderazgo en redes (v3)",
     country: "Spain",
     brand: "Telefónica",
@@ -83,6 +85,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   // Version chain B: B2B & Tech — superseded v2 → approved v3
   {
     id: "doc-e-tp-b2b-v2",
+    category: "E",
     title: "Talking Points — B2B & Telefónica Tech (v2)",
     country: "Group",
     brand: "Telefónica",
@@ -116,6 +119,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-tp-b2b-v3",
+    category: "E",
     title: "Talking Points — B2B & Telefónica Tech (v3)",
     country: "Group",
     brand: "Telefónica",
@@ -156,6 +160,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-tp-sustainability-v3",
+    category: "E",
     title: "Sprechpunkte — Verantwortungsvolles Wachstum (v3)",
     country: "Germany",
     brand: "O2",
@@ -190,6 +195,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   // ── Press releases (4) ──────────────────────────────────────────────
   {
     id: "doc-e-pr-fibre-launch",
+    category: "E",
     title: "Nota de prensa (borrador) — Ampliación de fibra rural",
     country: "Spain",
     brand: "Movistar",
@@ -228,6 +234,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-pr-tech-partnership",
+    category: "E",
     title: "Press Release (approved) — Telefónica Tech Cloud Alliance",
     country: "Group",
     brand: "Telefónica",
@@ -266,6 +273,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-pr-vivo-5g",
+    category: "E",
     title: "Comunicado à imprensa (rascunho) — Expansão 5G da Vivo",
     country: "Brazil",
     brand: "Vivo",
@@ -298,6 +306,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-pr-o2-network",
+    category: "E",
     title: "Pressemitteilung (freigegeben) — O2 Netzausbau 2026",
     country: "Germany",
     brand: "O2",
@@ -338,6 +347,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   // ── Q&A packs (4) ───────────────────────────────────────────────────
   {
     id: "doc-e-qa-results-day",
+    category: "E",
     lineageSourceDocIds: ["doc-q1-2026-results", "doc-q1-2026-ir-factsheet", "doc-b-press-es-resultados"],
     title: "Pack de preguntas y respuestas — Día de resultados (confidencial)",
     country: "Group",
@@ -377,6 +387,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-qa-hispam",
+    category: "E",
     title: "Pack de preguntas y respuestas — Salida de Hispam",
     country: "Group",
     brand: "Telefónica",
@@ -409,6 +420,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-qa-ai-ethics",
+    category: "E",
     title: "Q&A Pack (draft) — AI and Responsible Automation",
     country: "Group",
     brand: "Telefónica",
@@ -441,6 +453,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-qa-dividend",
+    category: "E",
     title: "Pack de preguntas y respuestas — Política de dividendo",
     country: "Group",
     brand: "Telefónica",
@@ -475,6 +488,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   // ── Dossiers / reports (5) ──────────────────────────────────────────
   {
     id: "doc-e-report-marketing-performance",
+    category: "E",
     title: "Informe de rendimiento de marketing — Q2 2026",
     country: "Spain",
     brand: "Movistar",
@@ -514,6 +528,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-report-compliance-check",
+    category: "E",
     lineageSourceDocIds: ["doc-b-legis-eu-ai-act", "doc-sic-regulatorio-q2", "doc-q1-2026-results"],
     title: "Informe de verificación de cumplimiento — Gobernanza de comunicación Q2 2026",
     country: "Group",
@@ -552,6 +567,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-dossier-media-exec",
+    category: "E",
     title: "Dossier ejecutivo de medios — Cobertura y sentimiento Q2 2026",
     country: "Group",
     brand: "Telefónica",
@@ -590,6 +606,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-report-competitive",
+    category: "E",
     title: "Wettbewerbsbericht — Deutscher Telekommunikationsmarkt Q2 2026",
     country: "Germany",
     brand: "O2",
@@ -622,6 +639,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-dossier-brand-health",
+    category: "E",
     title: "Dossiê de saúde da marca — Vivo Q2 2026",
     country: "Brazil",
     brand: "Vivo",
@@ -657,6 +675,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   // ── KPI / objective tracking (4) ────────────────────────────────────
   {
     id: "doc-e-kpi-digest-w27",
+    category: "E",
     title: "Resumen semanal de KPIs — Semana 27 (2026)",
     country: "Group",
     brand: "Telefónica",
@@ -690,6 +709,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-kpi-digest-w28",
+    category: "E",
     lineageSourceDocIds: ["doc-a-cx-nps-q1-2026", "doc-b-sic-en-brand-index", "doc-b-social-group-neutral"],
     title: "Resumen semanal de KPIs — Semana 28 (2026)",
     country: "Group",
@@ -723,6 +743,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-kpi-b2b-tracker",
+    category: "E",
     title: "Seguimiento de objetivos — Crecimiento B2B (Semana 28)",
     country: "Group",
     brand: "Telefónica",
@@ -756,6 +777,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-kpi-nps-objective",
+    category: "E",
     title: "Objective Tracker — Customer Experience NPS (Week 28)",
     country: "Group",
     brand: "Telefónica",
@@ -791,6 +813,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   // ── Calendars / planning (3) ────────────────────────────────────────
   {
     id: "doc-e-cal-10day-forecast",
+    category: "E",
     title: "Previsión de comunicación a 10 días — Hub SSoT",
     country: "Group",
     brand: "Telefónica",
@@ -829,6 +852,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-cal-editorial-q3",
+    category: "E",
     lineageSourceDocIds: ["doc-a-asana-milestones-q3-2026", "doc-a-milestones-group-2026", "doc-b-social-es-campaign-praise"],
     title: "Calendario editorial — Plan de comunicación Q3 2026",
     country: "Group",
@@ -861,6 +885,7 @@ export const GENERATED_EXPANSION_DOCS: CorpusDoc[] = [
   },
   {
     id: "doc-e-cal-campaign-plan",
+    category: "E",
     title: "Plan de campañas — Convergencia Movistar Q3 2026",
     country: "Spain",
     brand: "Movistar",

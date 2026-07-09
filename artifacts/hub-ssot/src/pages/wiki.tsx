@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { clearanceLabel } from "@/components/data-center/helpers";
 import {
   useGetWikiGraph,
   useListWikiPages,
@@ -101,7 +102,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 function ConfidentialityBadge({ value }: { value: string }) {
-  return <Tag type={value === "public" ? "success" : "error"}>{value.toUpperCase()}</Tag>;
+  return <Tag type={value === "public" ? "success" : "error"}>{clearanceLabel(value).toUpperCase()}</Tag>;
 }
 
 function ValidityChip({ value }: { value: string }) {
@@ -541,7 +542,7 @@ export default function Wiki() {
                   onChange={(v) => setFilter("confidentiality", v)}
                   options={filterOptions.confidentiality.map((v) => ({
                     value: v,
-                    label: v.charAt(0).toUpperCase() + v.slice(1),
+                    label: clearanceLabel(v),
                   }))}
                 />
                 <FilterSelect
