@@ -50,3 +50,4 @@ Thumbs.db
 
 # Runtime state (governed taxonomy versions)
 .data/
+artifacts/api-server/agent/.gitagent/
