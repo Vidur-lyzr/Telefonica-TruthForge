@@ -448,12 +448,20 @@ export default function Ask() {
   const exportToGenerate = (turn: Turn) => {
     if (!turn.result) return;
     try {
+      const r = turn.result;
       localStorage.setItem(
         GENERATE_DRAFT_KEY,
         JSON.stringify({
           question: turn.question,
-          answer: turn.result.answer,
-          citations: turn.result.citations,
+          answer: r.answer,
+          citations: r.citations,
+          status: r.status,
+          historic: r.historic,
+          historicNote: r.historicNote ?? null,
+          conflictNote: r.conflictNote ?? null,
+          lowConfidence: r.lowConfidence ?? false,
+          lowConfidenceNote: r.lowConfidenceNote ?? null,
+          axisIds: r.axisIds,
         }),
       );
     } catch {

@@ -5,6 +5,7 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { AskSignals } from './askSignals';
 import type { ChartSpec } from './chartSpec';
 import type { Citation } from './citation';
 import type { DraftDisclaimer } from './draftDisclaimer';
@@ -49,4 +50,6 @@ export interface GeneratedDraft {
   /** @nullable */
   reviewItemId?: string | null;
   approved?: boolean;
+  /** Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict / low-confidence / historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories. */
+  askSignals?: null | AskSignals;
 }

@@ -1534,7 +1534,14 @@ export const SchedulePlanningForecastResponse = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 }),
   "forecast": zod.object({
@@ -1691,7 +1698,14 @@ export const GenerateBody = zod.object({
   "source": zod.string().nullish(),
   "initiativeType": zod.string().nullish(),
   "objectiveId": zod.string().nullish()
-})]).optional().describe('Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona\'s clearance (fail closed) before any of it reaches the composer.\n')
+})]).optional().describe('Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona\'s clearance (fail closed) before any of it reaches the composer.\n'),
+  "askContext": zod.union([zod.null(),zod.object({
+  "question": zod.string().describe('The original Ask question.'),
+  "citedDocIds": zod.array(zod.string()).describe('Corpus document ids cited by the Ask answer.'),
+  "status": zod.string().nullish().describe('answered | conflict (display hint only; never trusted for access)'),
+  "historic": zod.boolean().nullish(),
+  "lowConfidence": zod.boolean().nullish()
+})]).optional().describe('Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source\'s accessibility server-side under the CURRENT persona\'s clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself.\n')
 })
 
 export const GenerateResponse = zod.object({
@@ -1798,7 +1812,14 @@ export const GenerateResponse = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 
 
@@ -1913,7 +1934,14 @@ export const RefineDocumentBody = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }),
   "instruction": zod.string().min(1),
   "roleId": zod.string(),
@@ -2024,7 +2052,14 @@ export const RefineDocumentResponse = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 
 
@@ -2136,7 +2171,14 @@ export const CheckDocumentBody = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 })
 
@@ -2397,7 +2439,14 @@ export const RunScheduleResponse = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 })
 
@@ -2519,7 +2568,14 @@ export const ListReviewItemsResponseItem = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 })
 export const ListReviewItemsResponse = zod.array(ListReviewItemsResponseItem)
@@ -2637,7 +2693,14 @@ export const ApproveReviewItemBody = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 })
 
@@ -2755,7 +2818,14 @@ export const ApproveReviewItemResponse = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 })
 
@@ -2884,7 +2954,14 @@ export const ListVersionsResponseItem = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 })
 export const ListVersionsResponse = zod.array(ListVersionsResponseItem)
@@ -2998,7 +3075,14 @@ export const SaveVersionBody = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }),
   "savedBy": zod.string()
 })
@@ -3124,7 +3208,14 @@ export const SaveVersionResponse = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
 })
 
@@ -3238,7 +3329,14 @@ export const ExportDocumentBody = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }),
   "format": zod.enum(['docx', 'pptx', 'pdf']),
   "destination": zod.enum(['internal', 'external']).optional().describe('Export destination. \"external\" strips internal-only material and refuses any non-public content (default internal).\n'),
@@ -3357,7 +3455,14 @@ export const RecordEditorialReviewBody = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }),
   "reviewedBy": zod.string()
 })
@@ -3490,7 +3595,14 @@ export const StartGenerateJobBody = zod.object({
   "source": zod.string().nullish(),
   "initiativeType": zod.string().nullish(),
   "objectiveId": zod.string().nullish()
-})]).optional().describe('Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona\'s clearance (fail closed) before any of it reaches the composer.\n')
+})]).optional().describe('Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona\'s clearance (fail closed) before any of it reaches the composer.\n'),
+  "askContext": zod.union([zod.null(),zod.object({
+  "question": zod.string().describe('The original Ask question.'),
+  "citedDocIds": zod.array(zod.string()).describe('Corpus document ids cited by the Ask answer.'),
+  "status": zod.string().nullish().describe('answered | conflict (display hint only; never trusted for access)'),
+  "historic": zod.boolean().nullish(),
+  "lowConfidence": zod.boolean().nullish()
+})]).optional().describe('Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source\'s accessibility server-side under the CURRENT persona\'s clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself.\n')
 })
 
 export const StartGenerateJobResponse = zod.object({
@@ -3602,7 +3714,14 @@ export const StartGenerateJobResponse = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }).nullish(),
   "error": zod.string().nullish(),
   "createdAt": zod.string()
@@ -3720,7 +3839,14 @@ export const StartRefineJobBody = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }),
   "instruction": zod.string().min(1),
   "roleId": zod.string(),
@@ -3836,7 +3962,14 @@ export const StartRefineJobResponse = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }).nullish(),
   "error": zod.string().nullish(),
   "createdAt": zod.string()
@@ -3959,7 +4092,14 @@ export const GetGenerationJobResponse = zod.object({
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
-  "approved": zod.boolean().optional()
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }).nullish(),
   "error": zod.string().nullish(),
   "createdAt": zod.string()

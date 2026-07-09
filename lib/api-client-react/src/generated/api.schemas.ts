@@ -255,6 +255,16 @@ export interface DraftParams {
   eventDate?: string | null;
 }
 
+export interface AskSignals {
+  question: string;
+  conflict: boolean;
+  lowConfidence: boolean;
+  /** Re-derived server-side from the re-validated handoff sources' validity. */
+  historic: boolean;
+  /** @nullable */
+  note?: string | null;
+}
+
 export interface GeneratedDraft {
   id: string;
   /** drafted | no_evidence | permission_blocked */
@@ -290,6 +300,8 @@ export interface GeneratedDraft {
   /** @nullable */
   reviewItemId?: string | null;
   approved?: boolean;
+  /** Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict / low-confidence / historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories. */
+  askSignals?: null | AskSignals;
 }
 
 export interface GenerationJob {
@@ -1684,6 +1696,22 @@ export interface KpiReportContext {
   objectiveId?: string | null;
 }
 
+export interface AskHandoffContext {
+  /** The original Ask question. */
+  question: string;
+  /** Corpus document ids cited by the Ask answer. */
+  citedDocIds: string[];
+  /**
+     * answered | conflict (display hint only; never trusted for access)
+     * @nullable
+     */
+  status?: string | null;
+  /** @nullable */
+  historic?: boolean | null;
+  /** @nullable */
+  lowConfidence?: boolean | null;
+}
+
 export interface GenerateInput {
   /** messaging | press | multiformat */
   shape: string;
@@ -1712,6 +1740,8 @@ export interface GenerateInput {
   eventDate?: string | null;
   /** Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona's clearance (fail closed) before any of it reaches the composer. */
   kpiContext?: null | KpiReportContext;
+  /** Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source's accessibility server-side under the CURRENT persona's clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself. */
+  askContext?: null | AskHandoffContext;
 }
 
 export interface EditorialReviewInput {

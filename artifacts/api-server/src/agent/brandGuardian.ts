@@ -136,6 +136,37 @@ export function runBrandGuardian(draft: GeneratedDraft): GuardianResult {
     }
   }
 
+  // 6. Ask handoff risk state — a draft that started from an Ask answer with
+  //    conflicting, low-confidence or historic evidence carries that provenance
+  //    as explicit advisories so it stays visible at the export gate.
+  if (draft.askSignals?.conflict) {
+    findings.push({
+      severity: "warning",
+      rule: "ask-conflict",
+      message:
+        "This draft started from an Ask answer where permitted sources conflicted on the figures.",
+      suggestion:
+        "Verify the cited figures against the most recent governed release before export.",
+    });
+  }
+  if (draft.askSignals?.lowConfidence) {
+    findings.push({
+      severity: "warning",
+      rule: "ask-low-confidence",
+      message: "This draft started from an Ask answer marked low confidence (thin corroboration).",
+      suggestion: "Corroborate the key claims with additional governed sources before export.",
+    });
+  }
+  if (draft.askSignals?.historic) {
+    findings.push({
+      severity: "warning",
+      rule: "ask-historic",
+      message:
+        "The Ask answer this draft started from cited historic or superseded material.",
+      suggestion: "Check the current release supersedes these figures before export.",
+    });
+  }
+
   const errorCount = findings.filter((f) => f.severity === "error").length;
   const warnCount = findings.filter((f) => f.severity === "warning").length;
   const status = errorCount > 0 ? "block" : "pass";

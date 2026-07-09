@@ -170,6 +170,20 @@ export interface GeneratedDraft {
   origin?: "manual" | "scheduled";
   reviewItemId?: string | null;
   approved?: boolean;
+  // Risk state carried over from an Ask answer handoff. `historic` is
+  // re-derived server-side from the re-validated handoff sources' validity;
+  // conflict / low-confidence are the Ask engine's own labels, persisted so
+  // the provenance stays visible all the way to export (and mirrored as Brand
+  // Guardian advisories).
+  askSignals?: AskSignals | null;
+}
+
+export interface AskSignals {
+  question: string;
+  conflict: boolean;
+  lowConfidence: boolean;
+  historic: boolean;
+  note?: string | null;
 }
 
 interface Logger {
@@ -198,6 +212,21 @@ export interface GenerateInput {
   // every figure is recomputed server-side under the persona's clearance
   // (fail closed), so a tampered client payload can never smuggle numbers in.
   kpiContext?: KpiReportContext | null;
+  // Structured Ask answer handoff from the Ask page. Only the question, the
+  // cited document IDS and honest status flags travel — never snippets or
+  // answer text. Every cited doc is re-derived from the server corpus under
+  // the CURRENT persona's clearance AND the destination gate (fail closed),
+  // so a stale or tampered payload can never surface content the persona
+  // could not retrieve itself.
+  askContext?: AskHandoffContext | null;
+}
+
+export interface AskHandoffContext {
+  question: string;
+  citedDocIds: string[];
+  status?: string | null;
+  historic?: boolean | null;
+  lowConfidence?: boolean | null;
 }
 
 export interface KpiReportContext {
@@ -330,6 +359,52 @@ async function compose(
   }
   const kpiQueryText = kpiCards.map((k) => k.name).join(" ");
 
+  // ---- Ask answer handoff (re-validated server-side, fail closed) -----------
+  // Only doc IDS travel. Each is re-resolved against the server corpus and
+  // re-gated under BOTH the persona's clearance and the destination rank; a
+  // docId the current persona could not read (or the destination cannot carry)
+  // is dropped and honestly surfaced as an exclusion below. Unknown docIds are
+  // dropped silently (fail closed).
+  const ac = input.askContext ?? null;
+  const askDocIds = new Set<string>();
+  const askExclusions: { docId: string; ex: DraftExclusion }[] = [];
+  if (ac) {
+    for (const docId of [...new Set(ac.citedDocIds)]) {
+      const doc = resolveDoc(docId);
+      if (!doc) continue;
+      const docRank = CLEARANCE_RANK[doc.confidentiality as Clearance] ?? CLEARANCE_RANK.off_the_record;
+      if (docRank > CLEARANCE_RANK[clearance]) {
+        // Above the CURRENT persona's clearance (e.g. persona switched between
+        // pages): never reveal the title, only the classification.
+        askExclusions.push({
+          docId,
+          ex: {
+            reason: "clearance",
+            docTitle: null,
+            confidentiality: doc.confidentiality,
+            note: `A source cited by the Ask answer, classified "${doc.confidentiality}", was excluded: it is above your clearance ("${clearance}").`,
+          },
+        });
+      } else if (docRank > bodyRank) {
+        askExclusions.push({
+          docId,
+          ex: {
+            reason: "destination",
+            docTitle: doc.title,
+            confidentiality: doc.confidentiality,
+            note:
+              audience === "external"
+                ? `"${doc.title}" (${doc.confidentiality}), cited by the Ask answer, was excluded: an external destination may only carry public material.`
+                : `"${doc.title}" (${doc.confidentiality}), cited by the Ask answer, was excluded: it is above the destination confidentiality ("${bodyClearance}").`,
+          },
+        });
+      } else {
+        askDocIds.add(docId);
+      }
+    }
+  }
+  const askQueryText = ac?.question?.trim() ?? "";
+
   // The instruction is deliberately NOT folded into the main retrieval query:
   // coverage is a ratio over query idf mass, so refine wording ("make this more
   // concise") would inflate the denominator and starve every chunk, flipping a
@@ -365,6 +440,19 @@ async function compose(
   // (dual-filtered) rank ever reaches the model: permitted is re-capped below.
   onStage?.("retrieving");
   const retrieved = retrieve({ question: retrievalQuery, clearance, topK: 12 });
+  if (askQueryText && askQueryText !== input.topic) {
+    // Ask handoff: also retrieve for the original question itself (its own
+    // coverage-gated pass, never folded into the main query — coverage is a
+    // ratio, so mixing two texts would dilute both).
+    const extra = retrieve({ question: askQueryText, clearance, topK: 8 });
+    const seen = new Set(retrieved.map((c) => c.chunkId));
+    for (const c of extra) {
+      if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
+        seen.add(c.chunkId);
+        retrieved.push(c);
+      }
+    }
+  }
   if (instruction && baseDraft) {
     // Refine: also retrieve for the instruction itself (e.g. "add the dividend
     // figure") so newly requested material can enter, judged by its own
@@ -386,6 +474,15 @@ async function compose(
     (c) =>
       CLEARANCE_RANK[resolveDoc(c.docId)?.confidentiality ?? "off_the_record"] <= bodyRank,
   );
+  if (askDocIds.size > 0) {
+    // Ask handoff: stable-prioritise chunks from the re-validated cited docs so
+    // the draft is grounded in the same sources the answer cited. This only
+    // reorders material that already passed BOTH gates above — it never adds
+    // anything the persona/destination could not see.
+    permitted.sort(
+      (a, b) => Number(askDocIds.has(b.docId)) - Number(askDocIds.has(a.docId)),
+    );
+  }
   const destinationExcluded = personaPermitted.filter(
     (c) =>
       CLEARANCE_RANK[resolveDoc(c.docId)?.confidentiality ?? "off_the_record"] > bodyRank,
@@ -424,6 +521,14 @@ async function compose(
           ? `"${doc?.title ?? d.docId}" (${conf}) was excluded: an external destination may only carry public material.`
           : `"${doc?.title ?? d.docId}" (${conf}) was excluded: it is above the destination confidentiality ("${bodyClearance}").`,
     });
+  }
+  // Ask-handoff sources the re-validation gate dropped, deduped against docs
+  // retrieval already reported.
+  for (const { docId, ex } of askExclusions) {
+    const seen = ex.reason === "clearance" ? seenClearance : seenDest;
+    if (seen.has(docId)) continue;
+    seen.add(docId);
+    exclusions.push(ex);
   }
 
   if (relevant.length === 0) {
@@ -876,6 +981,35 @@ ${jsonShape}${refineBlock}`;
   const umbrella =
     shape === "press" ? null : rewriteMarkers(parsed?.umbrella ?? "") || null;
 
+  // ---- Ask handoff risk state --------------------------------------------------
+  // Persisted on the draft so the provenance stays visible through export.
+  // `historic` is re-derived server-side from the re-validated handoff docs'
+  // validity (never trusted from the client); conflict / low-confidence are the
+  // Ask engine's own labels, carried through as advisories.
+  let askSignals: AskSignals | null = null;
+  if (ac) {
+    const handoffDocs = [...askDocIds].map((id) => resolveDoc(id));
+    const askHistoric = handoffDocs.some(
+      (d) => d && (d.validity === "historic" || d.validity === "superseded"),
+    );
+    const conflict = ac.status === "conflict";
+    const lowConfidence = ac.lowConfidence === true;
+    const parts: string[] = [];
+    if (conflict) parts.push("the Ask answer found conflicting figures across permitted sources");
+    if (lowConfidence) parts.push("the Ask answer was marked low confidence");
+    if (askHistoric) parts.push("the handed-over sources include historic or superseded material");
+    askSignals = {
+      question: ac.question,
+      conflict,
+      lowConfidence,
+      historic: askHistoric,
+      note:
+        parts.length > 0
+          ? `This draft started from an Ask answer where ${parts.join("; ")}. Verify before export.`
+          : null,
+    };
+  }
+
   const draft: GeneratedDraft = {
     id: baseDraft?.id ?? newId("draft"),
     status: "drafted",
@@ -903,6 +1037,9 @@ ${jsonShape}${refineBlock}`;
     // Any (re)composition invalidates a prior approval; only the inbox approve
     // endpoint may set this back to true.
     approved: false,
+    // A refine has no fresh askContext; the persisted risk state carries over
+    // so the provenance never disappears mid-flow.
+    askSignals: askSignals ?? baseDraft?.askSignals ?? null,
   };
 
   onStage?.("guardian");

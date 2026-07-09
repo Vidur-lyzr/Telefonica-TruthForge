@@ -36,6 +36,7 @@ import {
   type ReviewItem,
   type SavedVersion,
   type KpiReportContext,
+  type AskHandoffContext,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
 import { RichTextEditor } from "@/components/document-editor";
@@ -170,6 +171,24 @@ type BriefValues = {
   spokesperson: string | null;
   eventDate: string | null;
   kpiContext: KpiReportContext | null;
+  askContext: AskHandoffContext | null;
+};
+
+// Ask → Generate handoff payload written by the Ask page under
+// `hub-generate-draft`. Everything here is display-only on this side: the
+// server re-validates every cited docId under the CURRENT persona and the
+// destination gate before any of it can influence a draft.
+type AskDraftHandoff = {
+  question: string;
+  answer: string;
+  citations: Citation[];
+  status?: string;
+  historic?: boolean;
+  historicNote?: string | null;
+  conflictNote?: string | null;
+  lowConfidence?: boolean;
+  lowConfidenceNote?: string | null;
+  axisIds?: string[];
 };
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -381,6 +400,37 @@ function DocumentCanvas({
               </div>
             )}
 
+            {draft.askSignals &&
+              (draft.askSignals.conflict ||
+                draft.askSignals.lowConfidence ||
+                draft.askSignals.historic) && (
+                <div
+                  style={{
+                    borderRadius: skinVars.borderRadii.container,
+                    border: `1px solid ${applyAlpha(skinVars.rawColors.warning, 0.2)}`,
+                    backgroundColor: c.warningLow,
+                    padding: 16,
+                  }}
+                >
+                  <Stack space={8}>
+                    <Inline space={8} alignItems="center" wrap>
+                      <IconAlertRegular size={20} color={c.warning} />
+                      <Text2 medium color={c.warning}>
+                        Started from an Ask answer with flagged evidence
+                      </Text2>
+                      {draft.askSignals.conflict && <Tag type="error">Sources conflict</Tag>}
+                      {draft.askSignals.lowConfidence && <Tag type="warning">Low confidence</Tag>}
+                      {draft.askSignals.historic && <Tag type="warning">Historic source</Tag>}
+                    </Inline>
+                    {draft.askSignals.note && (
+                      <Text1 regular color={c.textSecondary}>
+                        {draft.askSignals.note}
+                      </Text1>
+                    )}
+                  </Stack>
+                </div>
+              )}
+
             {draft.umbrella && (
               <div
                 style={{
@@ -506,6 +556,7 @@ function BriefForm({
   const formatOptions = FORMAT_OPTIONS[shape];
   const [format, setFormat] = React.useState(formatOptions[0].value);
   const [kpiContext, setKpiContext] = React.useState<KpiReportContext | null>(null);
+  const [askDraft, setAskDraft] = React.useState<AskDraftHandoff | null>(null);
 
   const changeAudience = (a: Audience) => {
     setAudience(a);
@@ -535,6 +586,28 @@ function BriefForm({
       if (prefill.confidentiality) setConfidentiality(prefill.confidentiality);
       if (prefill.kpiContext && typeof prefill.kpiContext === "object") {
         setKpiContext(prefill.kpiContext);
+      }
+    } catch {
+      // Malformed handoff payloads are ignored; the form simply starts empty.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Prefill handed over from the Ask page ("Export to Generate"). The payload
+  // is consumed exactly once (removed on read, mirroring the KPI handoff) and
+  // only prefills the brief — the server re-validates every cited source under
+  // the current persona before anything reaches the model.
+  React.useEffect(() => {
+    const raw = localStorage.getItem("hub-generate-draft");
+    if (!raw) return;
+    localStorage.removeItem("hub-generate-draft");
+    try {
+      const d = JSON.parse(raw) as AskDraftHandoff;
+      if (typeof d.question !== "string" || !Array.isArray(d.citations)) return;
+      setAskDraft(d);
+      setTopic(d.question);
+      if (Array.isArray(d.axisIds) && d.axisIds.length > 0) {
+        setAxisIds(d.axisIds.filter((a) => typeof a === "string"));
       }
     } catch {
       // Malformed handoff payloads are ignored; the form simply starts empty.
@@ -605,6 +678,15 @@ function BriefForm({
     spokesperson: spokesperson.trim() || null,
     eventDate: eventDate.trim() || null,
     kpiContext,
+    askContext: askDraft
+      ? {
+          question: askDraft.question,
+          citedDocIds: [...new Set(askDraft.citations.map((ct) => ct.docId))],
+          status: askDraft.status ?? null,
+          historic: askDraft.historic ?? null,
+          lowConfidence: askDraft.lowConfidence ?? null,
+        }
+      : null,
   });
 
   const submitBrief = () => {
@@ -784,6 +866,70 @@ function BriefForm({
                 Governed KPI figures for this selection will be recomputed and injected into the report.
               </Text1>
             </Inline>
+          )}
+          {askDraft && (
+            <Boxed>
+              <Box padding={16}>
+                <Stack space={12}>
+                  <Inline space="between" alignItems="center">
+                    <Inline space={8} alignItems="center">
+                      <IconMessageRegular size={20} color={c.brand} />
+                      <Text2 medium>Ask answer attached</Text2>
+                    </Inline>
+                    <Chip onClose={() => setAskDraft(null)}>Detach</Chip>
+                  </Inline>
+                  {(askDraft.status === "conflict" ||
+                    askDraft.historic ||
+                    askDraft.lowConfidence) && (
+                    <Inline space={8}>
+                      {askDraft.status === "conflict" && <Tag type="error">Sources conflict</Tag>}
+                      {askDraft.historic && <Tag type="warning">Historic source</Tag>}
+                      {askDraft.lowConfidence && <Tag type="warning">Low confidence</Tag>}
+                    </Inline>
+                  )}
+                  {askDraft.status === "conflict" && askDraft.conflictNote && (
+                    <Text1 regular color={c.textSecondary}>
+                      {askDraft.conflictNote}
+                    </Text1>
+                  )}
+                  {askDraft.historic && askDraft.historicNote && (
+                    <Text1 regular color={c.textSecondary}>
+                      {askDraft.historicNote}
+                    </Text1>
+                  )}
+                  {askDraft.lowConfidence && askDraft.lowConfidenceNote && (
+                    <Text1 regular color={c.textSecondary}>
+                      {askDraft.lowConfidenceNote}
+                    </Text1>
+                  )}
+                  <Text1 regular color={c.textSecondary}>
+                    {askDraft.answer.length > 280
+                      ? `${askDraft.answer.slice(0, 280).trimEnd()}…`
+                      : askDraft.answer}
+                  </Text1>
+                  {askDraft.citations.length > 0 && (
+                    <Stack space={4}>
+                      <Text1 medium color={c.textSecondary}>
+                        Cited sources
+                      </Text1>
+                      {[...new Map(askDraft.citations.map((ct) => [ct.docId, ct])).values()].map(
+                        (ct) => (
+                          <Inline space={8} alignItems="center" key={ct.docId}>
+                            <IconDocumentOtherRegular size={16} color={c.textSecondary} />
+                            <Text1 regular>{ct.docTitle}</Text1>
+                          </Inline>
+                        ),
+                      )}
+                    </Stack>
+                  )}
+                  <Text1 regular color={c.textSecondary}>
+                    The engine will re-check every cited source against your current persona and the
+                    destination before drafting; anything you can no longer access is excluded and
+                    reported.
+                  </Text1>
+                </Stack>
+              </Box>
+            </Boxed>
           )}
         </Stack>
 
@@ -1331,6 +1477,7 @@ export default function Generate() {
           spokesperson: v.spokesperson,
           eventDate: v.eventDate,
           kpiContext: v.kpiContext,
+          askContext: v.askContext,
         },
       },
       { onSuccess: (job) => setJobId(job.id) },

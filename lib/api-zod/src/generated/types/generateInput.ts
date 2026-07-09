@@ -5,6 +5,7 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { AskHandoffContext } from './askHandoffContext';
 import type { KpiReportContext } from './kpiReportContext';
 
 export interface GenerateInput {
@@ -35,4 +36,6 @@ export interface GenerateInput {
   eventDate?: string | null;
   /** Structured KPI panel context handed over from the KPIs page. Carries the active filters only — the engine recomputes every figure server-side under the persona's clearance (fail closed) before any of it reaches the composer. */
   kpiContext?: null | KpiReportContext;
+  /** Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source's accessibility server-side under the CURRENT persona's clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself. */
+  askContext?: null | AskHandoffContext;
 }

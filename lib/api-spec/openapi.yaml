@@ -4580,6 +4580,38 @@ components:
           anyOf:
             - type: "null"
             - $ref: "#/components/schemas/KpiReportContext"
+        askContext:
+          description: >
+            Structured Ask answer handoff from the Ask page. Carries the
+            original question, the cited document ids and honest status flags
+            only — never snippets or answer text. The engine re-derives every
+            cited source's accessibility server-side under the CURRENT
+            persona's clearance and the destination gate (fail closed), so a
+            tampered or stale payload can never surface content the persona
+            could not retrieve itself.
+          anyOf:
+            - type: "null"
+            - $ref: "#/components/schemas/AskHandoffContext"
+
+    AskHandoffContext:
+      type: object
+      required: [question, citedDocIds]
+      properties:
+        question:
+          type: string
+          description: The original Ask question.
+        citedDocIds:
+          type: array
+          items:
+            type: string
+          description: Corpus document ids cited by the Ask answer.
+        status:
+          type: ["string", "null"]
+          description: answered | conflict (display hint only; never trusted for access)
+        historic:
+          type: ["boolean", "null"]
+        lowConfidence:
+          type: ["boolean", "null"]
 
     KpiReportContext:
       type: object
@@ -4820,6 +4852,31 @@ components:
           type: ["string", "null"]
         approved:
           type: boolean
+        askSignals:
+          description: >
+            Risk state carried over from an Ask answer handoff and re-derived
+            server-side where possible. Persisted on the draft so conflict /
+            low-confidence / historic provenance stays visible all the way to
+            export, and mirrored as Brand Guardian advisories.
+          anyOf:
+            - type: "null"
+            - $ref: "#/components/schemas/AskSignals"
+
+    AskSignals:
+      type: object
+      required: [question, conflict, lowConfidence, historic]
+      properties:
+        question:
+          type: string
+        conflict:
+          type: boolean
+        lowConfidence:
+          type: boolean
+        historic:
+          type: boolean
+          description: Re-derived server-side from the re-validated handoff sources' validity.
+        note:
+          type: ["string", "null"]
 
     DraftExclusion:
       type: object

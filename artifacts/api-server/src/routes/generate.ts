@@ -105,6 +105,7 @@ router.post("/generate", async (req, res) => {
         spokesperson: parsed.data.spokesperson ?? null,
         eventDate: parsed.data.eventDate ?? null,
         kpiContext: parsed.data.kpiContext ?? null,
+        askContext: parsed.data.askContext ?? null,
       },
       req.log,
     );
@@ -537,6 +538,7 @@ router.post("/generate/jobs", async (req, res) => {
     spokesperson: parsed.data.spokesperson ?? null,
     eventDate: parsed.data.eventDate ?? null,
     kpiContext: parsed.data.kpiContext ?? null,
+    askContext: parsed.data.askContext ?? null,
   };
   const log = req.log;
   void (async () => {
