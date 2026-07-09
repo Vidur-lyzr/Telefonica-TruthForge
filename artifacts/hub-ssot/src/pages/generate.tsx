@@ -860,7 +860,11 @@ function BriefForm({
           {kpiContext && (
             <Inline space={8} alignItems="center">
               <Chip onClose={() => setKpiContext(null)}>
-                {`KPI panel attached: ${kpiContext.area}, ${kpiContext.period}${kpiContext.market ? `, ${kpiContext.market}` : ""}`}
+                {`KPI panel attached: ${kpiContext.area}, ${
+                  kpiContext.period === "custom" && kpiContext.rangeFrom && kpiContext.rangeTo
+                    ? `${kpiContext.rangeFrom} to ${kpiContext.rangeTo}`
+                    : kpiContext.period
+                }${kpiContext.market ? `, ${kpiContext.market}` : ""}`}
               </Chip>
               <Text1 regular color={c.textSecondary}>
                 Governed KPI figures for this selection will be recomputed and injected into the report.

@@ -46,6 +46,7 @@ import {
   IconButton,
   ButtonSecondary,
   Select,
+  DateField,
   Drawer,
   Sheet,
   Spinner,
@@ -69,12 +70,13 @@ import {
   IconUserAccountRegular,
 } from "@telefonica/mistica";
 
-type PeriodType = "week" | "month" | "quarter";
+type PeriodType = "week" | "month" | "quarter" | "custom";
 
 const PERIOD_LABELS: Record<PeriodType, string> = {
   week: "Weekly",
   month: "Monthly",
   quarter: "Quarterly",
+  custom: "Custom range",
 };
 
 const STATUS_LABEL: Record<KpiCardType["status"], string> = {
@@ -619,11 +621,15 @@ function KpiChat({
   heading = "Ask about this KPI",
   intro = "Ask why this metric moved, what is driving it, or how it compares — answered only from the governed evidence behind this KPI, with citations.",
   placeholder = "Why did this move?",
+  rangeFrom = null,
+  rangeTo = null,
 }: {
   kpiIds: string[];
   heading?: string;
   intro?: string;
   placeholder?: string;
+  rangeFrom?: string | null;
+  rangeTo?: string | null;
 }) {
   const { area, roleId } = useApp();
   const [question, setQuestion] = React.useState("");
@@ -634,7 +640,7 @@ function KpiChat({
     if (!question.trim() || !roleId || kpiIds.length === 0) return;
     setAsked(question);
     reset();
-    mutate({ data: { question, area, roleId, kpiIds } });
+    mutate({ data: { question, area, roleId, kpiIds, rangeFrom, rangeTo } });
   };
 
   const result = data as AskResult | undefined;
@@ -852,7 +858,15 @@ function KpiChat({
   );
 }
 
-function DetailDrawerBody({ detail }: { detail: KpiDetail }) {
+function DetailDrawerBody({
+  detail,
+  rangeFrom = null,
+  rangeTo = null,
+}: {
+  detail: KpiDetail;
+  rangeFrom?: string | null;
+  rangeTo?: string | null;
+}) {
   const kpi = detail.kpi;
   const seriesData = detail.series.map((p) => ({ ...p, target: kpi.target }));
   const [selectedSource, setSelectedSource] = React.useState<{
@@ -1066,7 +1080,7 @@ function DetailDrawerBody({ detail }: { detail: KpiDetail }) {
       </div>
 
       <div style={{ flex: "1 1 320px", minWidth: 0, minHeight: 360 }}>
-        <KpiChat kpiIds={[kpi.id]} />
+        <KpiChat kpiIds={[kpi.id]} rangeFrom={rangeFrom} rangeTo={rangeTo} />
       </div>
 
       {selectedSource && (
@@ -1179,6 +1193,8 @@ export default function KpisPage() {
   const { area, roleId } = useApp();
   const [, navigate] = useLocation();
   const [period, setPeriod] = React.useState<PeriodType>("quarter");
+  const [rangeFrom, setRangeFrom] = React.useState("");
+  const [rangeTo, setRangeTo] = React.useState("");
   const [axisId, setAxisId] = React.useState("__all__");
   const [market, setMarket] = React.useState("__all__");
   const [brand, setBrand] = React.useState("__all__");
@@ -1192,13 +1208,22 @@ export default function KpisPage() {
 
   const val = (v: string) => (v === "__all__" ? null : v);
 
+  // A custom range only takes effect once both dates are set and ordered.
+  const customRangeReady = period === "custom" && !!rangeFrom && !!rangeTo && rangeFrom <= rangeTo;
+  const customRangeInvalid = period === "custom" && !!rangeFrom && !!rangeTo && rangeFrom > rangeTo;
+  const activeRangeFrom = customRangeReady ? rangeFrom : null;
+  const activeRangeTo = customRangeReady ? rangeTo : null;
+
   React.useEffect(() => {
     if (!roleId) return;
+    if (period === "custom" && !customRangeReady) return;
     runQuery({
       data: {
         area,
         roleId,
         period,
+        rangeFrom: activeRangeFrom,
+        rangeTo: activeRangeTo,
         axisId: val(axisId),
         market: val(market),
         brand: val(brand),
@@ -1208,7 +1233,7 @@ export default function KpisPage() {
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [area, roleId, period, axisId, market, brand, source, initiativeType, objectiveId]);
+  }, [area, roleId, period, activeRangeFrom, activeRangeTo, axisId, market, brand, source, initiativeType, objectiveId]);
 
   const {
     mutate: fetchAlerts,
@@ -1243,10 +1268,13 @@ export default function KpisPage() {
 
   React.useEffect(() => {
     if (!openId || !roleId) return;
+    if (period === "custom" && !customRangeReady) return;
     resetDetail();
-    fetchDetail({ data: { id: openId, area, roleId, period } });
+    fetchDetail({
+      data: { id: openId, area, roleId, period, rangeFrom: activeRangeFrom, rangeTo: activeRangeTo },
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openId, area, roleId, period]);
+  }, [openId, area, roleId, period, activeRangeFrom, activeRangeTo]);
 
   const kpis = queryData?.kpis ?? [];
   const facets = queryData?.facets;
@@ -1289,7 +1317,11 @@ export default function KpisPage() {
                 onPress={() => {
                   const offTrack = kpis.filter((k) => k.status !== "on-track");
                   const names = kpis.map((k) => k.name).slice(0, 6).join(", ");
-                  const topic = `${PERIOD_LABELS[period]} KPI report for ${area}: ${summary.total} tracked objectives, ${summary.onTrack} on track, ${summary.atRisk} at risk, ${summary.offTrack} off track. Covering ${names}${kpis.length > 6 ? " and others" : ""}.${offTrack.length > 0 ? ` Focus on deviations: ${offTrack.map((k) => k.name).join(", ")}.` : ""}`;
+                  const periodPhrase =
+                    period === "custom" && activeRangeFrom && activeRangeTo
+                      ? `KPI report for ${area} covering ${activeRangeFrom} to ${activeRangeTo}`
+                      : `${PERIOD_LABELS[period]} KPI report for ${area}`;
+                  const topic = `${periodPhrase}: ${summary.total} tracked objectives, ${summary.onTrack} on track, ${summary.atRisk} at risk, ${summary.offTrack} off track. Covering ${names}${kpis.length > 6 ? " and others" : ""}.${offTrack.length > 0 ? ` Focus on deviations: ${offTrack.map((k) => k.name).join(", ")}.` : ""}`;
                   sessionStorage.setItem(
                     "hub-kpi-report-prefill",
                     JSON.stringify({
@@ -1298,6 +1330,8 @@ export default function KpisPage() {
                       confidentiality: "private",
                       kpiContext: {
                         period,
+                        rangeFrom: activeRangeFrom,
+                        rangeTo: activeRangeTo,
                         area,
                         axisId: axisId === "__all__" ? null : axisId,
                         market: market === "__all__" ? null : market,
@@ -1326,9 +1360,54 @@ export default function KpisPage() {
                   }))}
                 />
               </div>
+              {period === "custom" && (
+                <>
+                  <div style={{ minWidth: 170 }}>
+                    <DateField
+                      name="range-from"
+                      label="From"
+                      value={rangeFrom}
+                      onChangeValue={setRangeFrom}
+                    />
+                  </div>
+                  <div style={{ minWidth: 170 }}>
+                    <DateField
+                      name="range-to"
+                      label="To"
+                      value={rangeTo}
+                      onChangeValue={setRangeTo}
+                    />
+                  </div>
+                </>
+              )}
             </Inline>
           </div>
         </Inline>
+
+        {period === "custom" && !customRangeReady && (
+          <div
+            style={{
+              backgroundColor: customRangeInvalid
+                ? applyAlpha(skinVars.rawColors.error, 0.12)
+                : skinVars.colors.backgroundAlternative,
+              border: `1px solid ${skinVars.colors.divider}`,
+              borderRadius: skinVars.borderRadii.container,
+              padding: 12,
+            }}
+          >
+            <Inline space={8} alignItems="center">
+              <IconAlertRegular
+                size={16}
+                color={customRangeInvalid ? skinVars.colors.error : skinVars.colors.textSecondary}
+              />
+              <Text2 regular color={skinVars.colors.textSecondary}>
+                {customRangeInvalid
+                  ? "The start date is after the end date — swap the dates to apply the range."
+                  : "Pick a from and to date to apply the custom range. Cards, drill-downs and the scoped chat will recalculate for that window."}
+              </Text2>
+            </Inline>
+          </div>
+        )}
 
         {kpis.length > 0 && (
           <Grid columns={{ minSize: 160 }} gap={12}>
@@ -1520,6 +1599,8 @@ export default function KpisPage() {
                 <KpiChat
                   key={visibleKpiIds.join(",")}
                   kpiIds={visibleKpiIds}
+                  rangeFrom={activeRangeFrom}
+                  rangeTo={activeRangeTo}
                   heading="Ask about the objectives in view"
                   intro="Ask across every KPI currently on screen — what is on track, what is slipping, and why — answered only from the governed evidence behind them, with citations."
                   placeholder="Which objectives are off track, and why?"
@@ -1607,7 +1688,9 @@ export default function KpisPage() {
               </Inline>
             </Box>
           )}
-          {!detailLoading && detail && <DetailDrawerBody detail={detail} />}
+          {!detailLoading && detail && (
+            <DetailDrawerBody detail={detail} rangeFrom={activeRangeFrom} rangeTo={activeRangeTo} />
+          )}
           {!detailLoading && !detail && (
             <Box paddingY={64}>
               <Stack space={16}>

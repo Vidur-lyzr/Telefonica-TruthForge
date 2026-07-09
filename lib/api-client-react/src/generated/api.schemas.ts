@@ -1091,8 +1091,18 @@ export interface KpiQueryInput {
   /** Comunicación | Marca | Gabinete */
   area: string;
   roleId: string;
-  /** week | month | quarter */
+  /** week | month | quarter | custom */
   period: string;
+  /**
+     * Custom range start (YYYY-MM-DD). Required when period is custom.
+     * @nullable
+     */
+  rangeFrom?: string | null;
+  /**
+     * Custom range end (YYYY-MM-DD). Required when period is custom.
+     * @nullable
+     */
+  rangeTo?: string | null;
   /** @nullable */
   axisId?: string | null;
   /** @nullable */
@@ -1124,14 +1134,34 @@ export interface KpiAskInput {
   area: string;
   roleId: string;
   kpiIds: string[];
+  /**
+     * Custom range start (YYYY-MM-DD) the KPI panel is scoped to
+     * @nullable
+     */
+  rangeFrom?: string | null;
+  /**
+     * Custom range end (YYYY-MM-DD) the KPI panel is scoped to
+     * @nullable
+     */
+  rangeTo?: string | null;
 }
 
 export interface KpiDetailInput {
   id: string;
   area: string;
   roleId: string;
-  /** week | month | quarter */
+  /** week | month | quarter | custom */
   period: string;
+  /**
+     * Custom range start (YYYY-MM-DD). Required when period is custom.
+     * @nullable
+     */
+  rangeFrom?: string | null;
+  /**
+     * Custom range end (YYYY-MM-DD). Required when period is custom.
+     * @nullable
+     */
+  rangeTo?: string | null;
 }
 
 export interface PlanningSource {
@@ -1720,8 +1750,18 @@ export interface RadarItem {
 }
 
 export interface KpiReportContext {
-  /** week | month | quarter */
+  /** week | month | quarter | custom */
   period: string;
+  /**
+     * Custom range start (YYYY-MM-DD) when period is custom
+     * @nullable
+     */
+  rangeFrom?: string | null;
+  /**
+     * Custom range end (YYYY-MM-DD) when period is custom
+     * @nullable
+     */
+  rangeTo?: string | null;
   area: string;
   /** @nullable */
   axisId?: string | null;

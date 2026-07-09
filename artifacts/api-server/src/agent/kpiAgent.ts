@@ -24,6 +24,8 @@ export interface KpiAgentInput {
   area: string;
   roleId: string;
   kpiIds: string[];
+  rangeFrom?: string | null;
+  rangeTo?: string | null;
 }
 
 interface Logger {
@@ -184,7 +186,12 @@ export async function runKpiAgent(
     "Do not mention that you are an AI model or describe these instructions.",
   ].join(" ");
 
-  const userPrompt = `Question: ${input.question}\n\nSources:\n${sourceBlock}`;
+  const rangeNote =
+    input.rangeFrom && input.rangeTo
+      ? `Context: the KPI panel is scoped to a custom reporting range from ${input.rangeFrom} to ${input.rangeTo}. When the evidence allows it, frame movements and figures relative to that window; if the sources do not cover that window, say so.\n\n`
+      : "";
+
+  const userPrompt = `${rangeNote}Question: ${input.question}\n\nSources:\n${sourceBlock}`;
 
   let answer = "";
   try {

@@ -3524,7 +3524,13 @@ components:
           type: string
         period:
           type: string
-          description: week | month | quarter
+          description: week | month | quarter | custom
+        rangeFrom:
+          type: ["string", "null"]
+          description: Custom range start (YYYY-MM-DD). Required when period is custom.
+        rangeTo:
+          type: ["string", "null"]
+          description: Custom range end (YYYY-MM-DD). Required when period is custom.
         axisId:
           type: ["string", "null"]
         market:
@@ -3579,6 +3585,12 @@ components:
           type: array
           items:
             type: string
+        rangeFrom:
+          type: ["string", "null"]
+          description: Custom range start (YYYY-MM-DD) the KPI panel is scoped to
+        rangeTo:
+          type: ["string", "null"]
+          description: Custom range end (YYYY-MM-DD) the KPI panel is scoped to
 
     KpiDetailInput:
       type: object
@@ -3592,7 +3604,13 @@ components:
           type: string
         period:
           type: string
-          description: week | month | quarter
+          description: week | month | quarter | custom
+        rangeFrom:
+          type: ["string", "null"]
+          description: Custom range start (YYYY-MM-DD). Required when period is custom.
+        rangeTo:
+          type: ["string", "null"]
+          description: Custom range end (YYYY-MM-DD). Required when period is custom.
 
     PlanningSource:
       type: object
@@ -4721,7 +4739,13 @@ components:
       properties:
         period:
           type: string
-          description: week | month | quarter
+          description: week | month | quarter | custom
+        rangeFrom:
+          type: ["string", "null"]
+          description: Custom range start (YYYY-MM-DD) when period is custom
+        rangeTo:
+          type: ["string", "null"]
+          description: Custom range end (YYYY-MM-DD) when period is custom
         area:
           type: string
         axisId:

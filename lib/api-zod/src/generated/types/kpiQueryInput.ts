@@ -10,8 +10,18 @@ export interface KpiQueryInput {
   /** Comunicación | Marca | Gabinete */
   area: string;
   roleId: string;
-  /** week | month | quarter */
+  /** week | month | quarter | custom */
   period: string;
+  /**
+     * Custom range start (YYYY-MM-DD). Required when period is custom.
+     * @nullable
+     */
+  rangeFrom?: string | null;
+  /**
+     * Custom range end (YYYY-MM-DD). Required when period is custom.
+     * @nullable
+     */
+  rangeTo?: string | null;
   /** @nullable */
   axisId?: string | null;
   /** @nullable */

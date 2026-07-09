@@ -43,10 +43,29 @@ function clearanceForRole(roleId: string): { clearance: Clearance; area: Area } 
   return { clearance: role.clearance, area: role.area };
 }
 
+// Resolves an optional custom from/to range. Returns undefined when no range is
+// requested, null when the supplied range is invalid (bad dates or from > to).
+function resolveRange(
+  rangeFrom?: string | null,
+  rangeTo?: string | null,
+): { from: Date; to: Date } | null | undefined {
+  if (!rangeFrom && !rangeTo) return undefined;
+  if (!rangeFrom || !rangeTo) return null;
+  const from = new Date(`${rangeFrom}T00:00:00`);
+  const to = new Date(`${rangeTo}T23:59:59.999`);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from > to) return null;
+  return { from, to };
+}
+
 router.post("/kpis/query", async (req, res) => {
   const parsed = QueryKpisBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const range = resolveRange(parsed.data.rangeFrom, parsed.data.rangeTo);
+  if (range === null) {
+    res.status(400).json({ error: "Invalid custom range: both dates are required and from must not be after to.", code: "invalid_range" });
     return;
   }
   try {
@@ -54,7 +73,8 @@ router.post("/kpis/query", async (req, res) => {
     const result = listKpis({
       clearance,
       area: parsed.data.area as Area,
-      period: parsed.data.period as KpiPeriodType,
+      period: (parsed.data.period === "custom" ? "month" : parsed.data.period) as KpiPeriodType,
+      range,
       axisId: parsed.data.axisId ?? undefined,
       market: parsed.data.market ?? undefined,
       brand: parsed.data.brand ?? undefined,
@@ -77,12 +97,18 @@ router.post("/kpis/detail", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  const range = resolveRange(parsed.data.rangeFrom, parsed.data.rangeTo);
+  if (range === null) {
+    res.status(400).json({ error: "Invalid custom range: both dates are required and from must not be after to.", code: "invalid_range" });
+    return;
+  }
   try {
     const { clearance } = clearanceForRole(parsed.data.roleId);
     const detail = getKpiDetail(parsed.data.id, {
       clearance,
       area: parsed.data.area as Area,
-      period: parsed.data.period as KpiPeriodType,
+      period: (parsed.data.period === "custom" ? "month" : parsed.data.period) as KpiPeriodType,
+      range,
     });
     if (!detail) {
       res.status(403).json({ error: "This KPI is not available for your persona." });

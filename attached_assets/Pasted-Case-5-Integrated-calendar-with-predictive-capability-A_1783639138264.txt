@@ -1,0 +1,47 @@
+Case 5 · Integrated calendar with predictive capability
+A single view of the Communication + Brand calendar, unifying heterogeneous sources (Asana, Excel...), with
+predictive capability and a 10-day forecast (integrates Case 3). Explicit challenge from the RFP: integrating
+calendars that today live in different formats/platforms per area.
+Synchronisation (design position): in the ideal scenario it is bidirectional — if the user changes something in the
+SSoT, it is synchronised back with the source (Asana/Excel). *(Query for Telefónica; if not, read-only from the
+source.)*
+1 User flow
+50. The user enters the HOME and clicks the “Planning” app (Block 3).
+51. The system resolves permissions and loads the integrated calendar of Communication + Brand, unifying
+the heterogeneous sources into a single view (Asana, planning Excel, others), in day/week/month views.
+52. Each event/milestone shows: date · area · type (campaign, milestone, event, publication) · owner · status ·
+source of origin (traceability) · Plan axis · market/brand.
+53. The user applies combinable filters: area · market/country · brand · axis · type of action · period. The view is
+recomposed.
+54. The system detects and highlights conflicts/overlaps (two launches on the same day in the same market)
+and activity gaps.
+55. Predictive capability: based on history, the system (a) anticipates workload by period/area, (b) suggests
+optimal dates for new actions avoiding conflicts, (c) predicts future conflicts, (d) cross-references external
+signals (market events, competitor calendar, sector dates) to warn of timing risks/opportunities, and (e)
+predicts delays and timing changes and simulates the cascading effect of changing an action on the rest of
+the plan (which other actions are affected).
+
+Accenture Song · Confidencial · Telefónica — Single Source of Truth (RFP) · Julio 2026
+
+56. 10-day forecast: the user requests (or receives on a schedule) the “forecast for the next 10 days” → this is
+generated via Case 3 with a specific content/format template → Canvas editor → export → save with tags.
+*(If scheduled, it goes through the requesting party’s review folder.)*
+57. The user opens the module’s embedded conversational window (“what do we have next week in
+Germany?”, “is there a conflict if I launch on Tuesday?”) → cited response + actions.
+58. The user creates/edits/moves events (according to permissions); the change is reflected in the integrated
+calendar and synced back with the source of origin (Asana/Excel) — bidirectional (ideal scenario), to be
+confirmed with Telefónica.
+59. Alerts/reminders: notices of upcoming milestones, detected conflicts and plan deviations.
+2 Platform functionalities: integration of heterogeneous calendars (Asana, Excel, others) into a unified view ·
+day/week/month view with filters by area/market/brand/axis/type · detection of conflicts/overlaps and gaps · ⭐
+predictive capability (workload anticipation, optimal date suggestions, conflict prediction, cross-referencing with
+external signals, and delay prediction + cascading effect simulation) · 10-day forecast (integrates Case 3) ·
+embedded conversational window · event editing + bidirectional synchronisation with the source (ideal scenario;
+to be confirmed) · alerts/reminders · permissions by area/confidentiality · traceability of each event to its source.
+3 Data IN: Internal: Asana calendars and milestones, planning Excel by area, campaigns, results/activity, history
+(for prediction). External: market events, competitor calendar/movements, relevant sector dates. Metadata: area,
+market, brand, axis, type, date, owner, confidentiality.
+4 Output: interactive integrated calendar (unified view) with filters and traceability · conflict detection +
+predictive suggestions (optimal dates, timing risks) and simulation of the cascading effect of a change on the rest of
+the plan · 10-day forecast (document via Case 3) · alerts/reminders · conversational insights.
+Live detail in pc4-user-journeys.

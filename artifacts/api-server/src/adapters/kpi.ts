@@ -116,10 +116,20 @@ export interface KpiFacets {
   objectives: { id: string; name: string }[];
 }
 
+// A custom reporting window. Series points carry no explicit dates in the
+// synthetic corpus, so each point of a period series is anchored as a trailing
+// period ending today (the last point is the current week/month/quarter). A
+// custom range selects the points whose anchored date falls inside [from, to].
+export interface KpiRange {
+  from: Date;
+  to: Date;
+}
+
 export interface KpiQueryOptions {
   clearance: Clearance;
   area: Area;
   period: KpiPeriodType;
+  range?: KpiRange | null;
   axisId?: string;
   market?: string;
   brand?: string;
@@ -233,6 +243,100 @@ function periodWord(period: KpiPeriodType): string {
   return period;
 }
 
+// ---- Custom range resolution --------------------------------------------------
+
+interface DatedPoint {
+  date: Date;
+  label: string;
+  value: number;
+}
+
+// Pick the finest granularity whose series can meaningfully cover the span.
+function rangeGranularity(range: KpiRange): KpiPeriodType {
+  const days = (range.to.getTime() - range.from.getTime()) / 86_400_000;
+  if (days <= 120) return "week";
+  if (days <= 740) return "month";
+  return "quarter";
+}
+
+function pointDate(granularity: KpiPeriodType, n: number, i: number): Date {
+  const now = new Date();
+  const back = n - 1 - i;
+  if (granularity === "week") {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    d.setDate(d.getDate() - back * 7);
+    return d;
+  }
+  if (granularity === "month") {
+    return new Date(now.getFullYear(), now.getMonth() - back, 15);
+  }
+  const qMonth = Math.floor(now.getMonth() / 3) * 3;
+  return new Date(now.getFullYear(), qMonth - back * 3, 15);
+}
+
+function pointLabel(granularity: KpiPeriodType, date: Date): string {
+  if (granularity === "week") {
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  }
+  if (granularity === "month") {
+    return date.toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+  }
+  return `Q${Math.floor(date.getMonth() / 3) + 1} ${date.getFullYear()}`;
+}
+
+function seriesInRange(
+  kpi: EffectiveKpiDefinition,
+  range: KpiRange,
+): { granularity: KpiPeriodType; points: DatedPoint[] } {
+  const granularity = rangeGranularity(range);
+  const base = kpi.series[granularity];
+  const n = base.length;
+  const points: DatedPoint[] = [];
+  for (let i = 0; i < n; i++) {
+    const date = pointDate(granularity, n, i);
+    if (date >= range.from && date <= range.to) {
+      points.push({ date, label: pointLabel(granularity, date), value: base[i] });
+    }
+  }
+  return { granularity, points };
+}
+
+function rangeForecast(kpi: EffectiveKpiDefinition, series: number[]): KpiForecast {
+  const n = series.length;
+  if (n < 2) {
+    const current = round(series[n - 1] ?? 0);
+    return {
+      projected: current,
+      target: kpi.target,
+      note:
+        n === 0
+          ? "No governed data points fall inside the selected range, so there is no history to project from."
+          : "The selected range holds a single data point — not enough history to project a trajectory. Widen the range for a forecast.",
+      deviationRisk: false,
+      confidence: round(Math.max(0.5, kpi.confidence - 0.15), 2),
+    };
+  }
+  const current = series[n - 1] ?? 0;
+  const k = Math.min(3, n - 1);
+  const slope = k > 0 ? (current - series[n - 1 - k]) / k : 0;
+  const projected = round(current + slope * 3);
+  const att = attainment(projected, kpi.target, kpi.direction);
+  const deviationRisk = att < 0.98;
+  const unit = kpi.unit;
+  const trend =
+    slope > 0.05 ? "the trend inside the selected range" : slope < -0.05 ? "the decline inside the selected range" : "the flat trend inside the selected range";
+  const note = deviationRisk
+    ? `Projecting forward from the selected range you land at ${projected}${unit} vs the ${kpi.target}${unit} target — deviation risk on ${trend}.`
+    : `Projecting forward from the selected range you land at ${projected}${unit} vs the ${kpi.target}${unit} target — on course given ${trend}.`;
+  return {
+    projected,
+    target: kpi.target,
+    note,
+    deviationRisk,
+    confidence: round(Math.max(0.5, kpi.confidence - 0.05), 2),
+  };
+}
+
 function buildForecast(
   kpi: EffectiveKpiDefinition,
   series: number[],
@@ -265,8 +369,11 @@ function computeCard(
   kpi: EffectiveKpiDefinition,
   period: KpiPeriodType,
   clearance: Clearance,
+  range?: KpiRange | null,
 ): KpiCard {
-  const series = kpi.series[period];
+  const ranged = range ? seriesInRange(kpi, range) : null;
+  const effectivePeriod = ranged ? ranged.granularity : period;
+  const series = ranged ? ranged.points.map((p) => p.value) : kpi.series[period];
   const n = series.length;
   const current = round(series[n - 1] ?? 0);
   const prior = series[n - 2] ?? current;
@@ -296,7 +403,7 @@ function computeCard(
     brand: kpi.brand,
     initiativeType: kpi.initiativeType,
     confidentiality: kpi.confidentiality,
-    periodType: period,
+    periodType: effectivePeriod,
     current,
     target: kpi.target,
     direction: kpi.direction,
@@ -312,7 +419,7 @@ function computeCard(
     historic: historicSource,
     conflict: kpi.sources.some((s) => Boolean(s.conflict)),
     sources,
-    forecast: buildForecast(kpi, series, period),
+    forecast: ranged ? rangeForecast(kpi, series) : buildForecast(kpi, series, period),
     owner: kpi.owner,
     thresholds: kpi.thresholds,
     definitionVersion: kpi.definitionVersion,
@@ -343,17 +450,32 @@ export function listKpis(opts: KpiQueryOptions): KpiQueryResult {
     return true;
   });
 
-  const kpis = filtered.map((k) => computeCard(k, opts.period, opts.clearance));
+  const kpis = filtered.map((k) => computeCard(k, opts.period, opts.clearance, opts.range));
   return { kpis, facets };
 }
 
 export function getKpiDetail(
   id: string,
-  opts: { clearance: Clearance; area: Area; period: KpiPeriodType },
+  opts: { clearance: Clearance; area: Area; period: KpiPeriodType; range?: KpiRange | null },
 ): KpiDetail | null {
   const kpi = getEffectiveKpiDefinition(id);
   if (!kpi || !isVisible(kpi, opts.clearance, opts.area)) return null;
-  const card = computeCard(kpi, opts.period, opts.clearance);
+  const card = computeCard(kpi, opts.period, opts.clearance, opts.range);
+  if (opts.range) {
+    const { granularity, points } = seriesInRange(kpi, opts.range);
+    const series: KpiTimePoint[] = points.map((p) => ({ period: p.label, value: p.value }));
+    // Breakdowns are shares of the headline figure; rescale them so they sum
+    // toward the range's closing value instead of the full-series close.
+    const fullSeries = kpi.series[granularity];
+    const fullCurrent = fullSeries[fullSeries.length - 1] ?? 0;
+    const rangeCurrent = points[points.length - 1]?.value ?? 0;
+    const ratio = fullCurrent !== 0 ? rangeCurrent / fullCurrent : 0;
+    const breakdowns = kpi.breakdowns.map((g) => ({
+      dimension: g.dimension,
+      points: g.points.map((p) => ({ label: p.label, value: round(p.value * ratio) })),
+    }));
+    return { kpi: card, series, breakdowns };
+  }
   const series: KpiTimePoint[] = kpi.series[opts.period].map((value, i) => ({
     period: periodLabel(opts.period, i),
     value,

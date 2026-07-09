@@ -12,4 +12,14 @@ export interface KpiAskInput {
   area: string;
   roleId: string;
   kpiIds: string[];
+  /**
+     * Custom range start (YYYY-MM-DD) the KPI panel is scoped to
+     * @nullable
+     */
+  rangeFrom?: string | null;
+  /**
+     * Custom range end (YYYY-MM-DD) the KPI panel is scoped to
+     * @nullable
+     */
+  rangeTo?: string | null;
 }

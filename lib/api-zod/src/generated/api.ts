@@ -556,7 +556,9 @@ export const ApplyRetagResponse = zod.object({
 export const QueryKpisBody = zod.object({
   "area": zod.string().describe('Comunicación | Marca | Gabinete'),
   "roleId": zod.string(),
-  "period": zod.string().describe('week | month | quarter'),
+  "period": zod.string().describe('week | month | quarter | custom'),
+  "rangeFrom": zod.string().nullish().describe('Custom range start (YYYY-MM-DD). Required when period is custom.'),
+  "rangeTo": zod.string().nullish().describe('Custom range end (YYYY-MM-DD). Required when period is custom.'),
   "axisId": zod.string().nullish(),
   "market": zod.string().nullish(),
   "brand": zod.string().nullish(),
@@ -687,7 +689,9 @@ export const AskKpisBody = zod.object({
   "question": zod.string().min(1),
   "area": zod.string(),
   "roleId": zod.string(),
-  "kpiIds": zod.array(zod.string())
+  "kpiIds": zod.array(zod.string()),
+  "rangeFrom": zod.string().nullish().describe('Custom range start (YYYY-MM-DD) the KPI panel is scoped to'),
+  "rangeTo": zod.string().nullish().describe('Custom range end (YYYY-MM-DD) the KPI panel is scoped to')
 })
 
 export const AskKpisResponse = zod.object({
@@ -770,7 +774,9 @@ export const GetKpiDetailBody = zod.object({
   "id": zod.string(),
   "area": zod.string(),
   "roleId": zod.string(),
-  "period": zod.string().describe('week | month | quarter')
+  "period": zod.string().describe('week | month | quarter | custom'),
+  "rangeFrom": zod.string().nullish().describe('Custom range start (YYYY-MM-DD). Required when period is custom.'),
+  "rangeTo": zod.string().nullish().describe('Custom range end (YYYY-MM-DD). Required when period is custom.')
 })
 
 export const GetKpiDetailResponse = zod.object({
@@ -1921,7 +1927,9 @@ export const GenerateBody = zod.object({
   "spokesperson": zod.string().nullish().describe('Named spokesperson for quotes and spokesperson notes'),
   "eventDate": zod.string().nullish().describe('Event or publication date framing the document'),
   "kpiContext": zod.union([zod.null(),zod.object({
-  "period": zod.string().describe('week | month | quarter'),
+  "period": zod.string().describe('week | month | quarter | custom'),
+  "rangeFrom": zod.string().nullish().describe('Custom range start (YYYY-MM-DD) when period is custom'),
+  "rangeTo": zod.string().nullish().describe('Custom range end (YYYY-MM-DD) when period is custom'),
   "area": zod.string(),
   "axisId": zod.string().nullish(),
   "market": zod.string().nullish(),
@@ -3818,7 +3826,9 @@ export const StartGenerateJobBody = zod.object({
   "spokesperson": zod.string().nullish().describe('Named spokesperson for quotes and spokesperson notes'),
   "eventDate": zod.string().nullish().describe('Event or publication date framing the document'),
   "kpiContext": zod.union([zod.null(),zod.object({
-  "period": zod.string().describe('week | month | quarter'),
+  "period": zod.string().describe('week | month | quarter | custom'),
+  "rangeFrom": zod.string().nullish().describe('Custom range start (YYYY-MM-DD) when period is custom'),
+  "rangeTo": zod.string().nullish().describe('Custom range end (YYYY-MM-DD) when period is custom'),
   "area": zod.string(),
   "axisId": zod.string().nullish(),
   "market": zod.string().nullish(),

@@ -7,8 +7,18 @@
  */
 
 export interface KpiReportContext {
-  /** week | month | quarter */
+  /** week | month | quarter | custom */
   period: string;
+  /**
+     * Custom range start (YYYY-MM-DD) when period is custom
+     * @nullable
+     */
+  rangeFrom?: string | null;
+  /**
+     * Custom range end (YYYY-MM-DD) when period is custom
+     * @nullable
+     */
+  rangeTo?: string | null;
   area: string;
   /** @nullable */
   axisId?: string | null;

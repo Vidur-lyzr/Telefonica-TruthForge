@@ -231,6 +231,8 @@ export interface AskHandoffContext {
 
 export interface KpiReportContext {
   period: string;
+  rangeFrom?: string | null;
+  rangeTo?: string | null;
   area: string;
   axisId?: string | null;
   market?: string | null;
@@ -339,12 +341,19 @@ async function compose(
   const kc = input.kpiContext ?? null;
   if (kc) {
     try {
+      const kcFrom = kc.rangeFrom ? new Date(`${kc.rangeFrom}T00:00:00`) : null;
+      const kcTo = kc.rangeTo ? new Date(`${kc.rangeTo}T23:59:59.999`) : null;
+      const kcRange =
+        kcFrom && kcTo && !Number.isNaN(kcFrom.getTime()) && !Number.isNaN(kcTo.getTime()) && kcFrom <= kcTo
+          ? { from: kcFrom, to: kcTo }
+          : null;
       kpiCards = listKpis({
         clearance: bodyClearance,
         area: kc.area as Parameters<typeof listKpis>[0]["area"],
         period: (["week", "month", "quarter"].includes(kc.period)
           ? kc.period
           : "month") as Parameters<typeof listKpis>[0]["period"],
+        range: kcRange,
         axisId: kc.axisId ?? undefined,
         market: kc.market ?? undefined,
         brand: kc.brand ?? undefined,
@@ -787,7 +796,9 @@ ${quoteBlock}
 Approved boilerplate (use verbatim for the 'boilerplate' section if present):
 ${boiler ? boiler.text : "None available."}${
     kpiBlock
-      ? `\n\nGoverned KPI panel (figures recomputed by the calculation engine for this persona and destination — use these exact numbers, never adjust them):\n${kpiBlock}`
+      ? `\n\nGoverned KPI panel (figures recomputed by the calculation engine for this persona and destination${
+          kc?.rangeFrom && kc?.rangeTo ? `, scoped to the custom reporting range ${kc.rangeFrom} to ${kc.rangeTo}` : ""
+        } — use these exact numbers, never adjust them):\n${kpiBlock}`
       : ""
   }
 
