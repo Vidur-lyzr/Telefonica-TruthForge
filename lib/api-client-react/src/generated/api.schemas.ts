@@ -609,6 +609,75 @@ export interface CorpusDocument {
   lineageSourceDocIds?: string[];
 }
 
+/**
+ * The editor-defined pre-ingest filter for a live capture run
+ */
+export interface LiveIngestFilterInput {
+  keywords: string[];
+  competitors: string[];
+  executives: string[];
+  topics: string[];
+}
+
+export interface LiveIngestSearchInput {
+  filter: LiveIngestFilterInput;
+}
+
+export type LiveIngestCandidateSentiment = typeof LiveIngestCandidateSentiment[keyof typeof LiveIngestCandidateSentiment];
+
+
+export const LiveIngestCandidateSentiment = {
+  positive: 'positive',
+  negative: 'negative',
+  mixed: 'mixed',
+  neutral: 'neutral',
+} as const;
+
+/**
+ * A public mention matched by the pre-ingest filter, awaiting human review
+ */
+export interface LiveIngestCandidate {
+  id: string;
+  title: string;
+  /** Publication / outlet name */
+  source: string;
+  /** @nullable */
+  url?: string | null;
+  /** @nullable */
+  date?: string | null;
+  excerpt: string;
+  sentiment: LiveIngestCandidateSentiment;
+  /** Which filter terms this mention matched — why it passed the pre-ingest gate */
+  matchedTerms: string[];
+}
+
+export interface LiveIngestSearchResult {
+  items: LiveIngestCandidate[];
+  filter: LiveIngestFilterInput;
+}
+
+/**
+ * Accepts by server-issued candidate id only — the content and the filter provenance are taken from the server's own search results, never from the client, so arbitrary text cannot be injected past the pre-ingest gate.
+ */
+export interface LiveIngestAcceptInput {
+  /** @minItems 1 */
+  acceptedIds: string[];
+}
+
+export type LiveIngestAcceptResultCreatedDocsItem = {
+  docId: string;
+  title: string;
+};
+
+export interface LiveIngestAcceptResult {
+  createdDocs: LiveIngestAcceptResultCreatedDocsItem[];
+  upsertedChunks: number;
+  /** Vector point count before ingestion */
+  pointsBefore: number;
+  /** Vector point count after ingestion (grew by upsertedChunks) */
+  pointsAfter: number;
+}
+
 export interface DocumentChunk {
   id: string;
   breadcrumb: string;
@@ -2033,10 +2102,24 @@ export interface RetagApplyInput {
   decisions: RetagDecision[];
 }
 
+/**
+ * Evidence that Apply issued set_payload only — no re-embedding, no re-ingestion
+ */
+export interface RetagQdrantProof {
+  /** Documents whose Qdrant chunk payloads were updated in place */
+  updatedDocs: number;
+  /** Vector point count before Apply */
+  pointsBefore: number;
+  /** Vector point count after Apply (identical — nothing re-embedded) */
+  pointsAfter: number;
+}
+
 export interface RetagApplyResult {
   version: number;
   appliedCount: number;
   rejectedCount: number;
+  /** Proof that the re-tag was a metadata-only Qdrant payload update — vectors untouched */
+  qdrant?: RetagQdrantProof | null;
 }
 
 export type GetCorpusStatsParams = {

@@ -1,0 +1,49 @@
+Case 3 · Generic multi-format document (engine + scheduled)
+Generic generation engine (Cases 1 and 2 are specific applications). Two modes: on-demand and scheduled
+(recurring reports requested by the RFP: calendar forecasts, weekly summaries, half-yearly results).
+1 User flow — ON-DEMAND mode
+23. The user enters the HOME and clicks “Document generation” (Block 1).
+24. The app shows the 3 types; selects “Multi-format document”.
+25. The UI offers two starting options: (a) choose a corporate template from the Brand Room library (with a
+preview), or (b) describe the document in natural language and let the system suggest the most suitable
+template.
+26. Completes (guided chat or form) the parameters: topic/content · axis(es) · audience · language ·
+destination confidentiality · output format(s) (.docx/.pptx/.pdf). Can attach inputs (brief, data, link to
+source).
+27. The system resolves the user’s permissions (area + confidentiality) and narrows the universe of data that
+can be retrieved before searching.
+28. The agent retrieves what the template needs: text passages, figures and Excel tables, and data series for
+charts — via hybrid RAG, each element with its source.
+29. The system generates charts from the retrieved data (not just inserting existing charts): it chooses the
+chart type according to the series, renders it on-brand and cites its source.
+30. The agent composes the document by filling in the template’s structure: cover page, sections, texts with
+cited claims, tables and generated charts, with the tone and style of the Brand Room.
+31. The draft appears in the Canvas-style editor: (a) changes via conversational chat (“refocus section 2”, “use
+the Q1 figure instead of Q4”) and (b) inline editing on text and tables.
+32. When satisfied, selects format(s) and exports (.docx/.pptx/.pdf) with the Telefónica corporate template.
+33. The system saves the version in the SSoT with all the tags, traceable and versioned.
+1 User flow — SCHEDULED mode
+34. An Admin (backend/Administration) creates a “scheduled document”: chooses a template, defines the
+sources/queries feeding it, frequency (weekly on Monday 8:00, after quarterly closing...), language,
+requesting user/area (owner) and the target review folder.
+35. When the temporal trigger is met, the system automatically generates: retrieves updated data, generates
+charts, composes on-brand with citations.
+36. The draft is NOT published: it is placed in the review folder of the requesting user/area and the owner is
+notified (Teams/email).
+37. The requesting user opens the draft in the Canvas editor, adjusts it (chat + inline) and approves it.
+38. Only after approval is it exported/published and the version saved with tags.
+
+Accenture Song · Confidencial · Telefónica — Single Source of Truth (RFP) · Julio 2026
+
+2 Platform functionalities: library of corporate templates (Brand Room) with preview + template suggestion via
+NL description · permission resolution before retrieval · hybrid RAG with data-level citation · ⭐ chart generation
+from data (chart type, on-brand rendering, cited) · template-driven composition (cover page/sections/tables/charts)
+· Canvas-style editing · scheduler for scheduled documents (template·sources·frequency·language·owner·review
+folder) · per-user/area review folder + notification (nothing recurring is published without approval) · multi-format
+export with Telefónica templates · versioned saving with tags · guardrails + human review.
+3 Data IN: any SSoT data according to the template (internal + external), incl. numeric series for charts · Brand
+Room templates · metadata: axis, confidentiality, validity, owner (+ for scheduled: frequency, requesting owner,
+review folder).
+4 Output: any corporate document in .docx/.pptx/.pdf on-brand, with figures, tables and generated charts, all
+cited; on-demand or automated recurring, which goes through the review folder before being published.
+Versioned + tags.

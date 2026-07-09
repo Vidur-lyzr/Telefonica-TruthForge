@@ -4,7 +4,7 @@
 
 import { DOCS, getDoc, type Area, type Clearance } from "../data/corpus";
 import { resolveDocAccess, type BlockedAxis } from "../data/governance";
-import { isLyzrConfigured, lyzrRetrieve } from "./lyzr";
+import { isQdrantConfigured, qdrantRetrieve } from "./qdrant";
 import { tokenize } from "./text";
 
 export interface RetrievedChunk {
@@ -69,11 +69,44 @@ for (const doc of DOCS) {
   }
 }
 avgLen = index.reduce((sum, c) => sum + c.length, 0) / Math.max(index.length, 1);
-const N = index.length;
 
 function idf(term: string): number {
   const df = docFreq.get(term) ?? 0;
-  return Math.log(1 + (N - df + 0.5) / (df + 0.5));
+  const n = index.length;
+  return Math.log(1 + (n - df + 0.5) / (df + 0.5));
+}
+
+// Live-ingested documents (B channel) arrive after module init, so they must
+// be registered into the governed chunk registry explicitly — otherwise the
+// fail-closed Qdrant hit mapping would drop them as unknown material.
+export function registerDocInIndex(doc: (typeof DOCS)[number]): void {
+  for (const chunk of doc.chunks) {
+    if (index.some((c) => c.chunkId === chunk.id)) continue;
+    const haystack = `${doc.title} ${chunk.heading} ${chunk.text} ${doc.topics.join(" ")}`;
+    const terms = tokenize(haystack);
+    const termFreq = new Map<string, number>();
+    for (const t of terms) termFreq.set(t, (termFreq.get(t) ?? 0) + 1);
+    for (const t of new Set(terms)) docFreq.set(t, (docFreq.get(t) ?? 0) + 1);
+    const indexed: IndexedChunk = {
+      chunkId: chunk.id,
+      docId: doc.id,
+      heading: chunk.heading,
+      breadcrumb: chunk.breadcrumb,
+      text: chunk.text,
+      confidentiality: doc.confidentiality,
+      country: doc.country,
+      brand: doc.brand,
+      quarter: doc.quarter,
+      type: doc.type,
+      axisIds: doc.axisIds,
+      terms,
+      termFreq,
+      length: terms.length,
+    };
+    index.push(indexed);
+    chunkById.set(chunk.id, indexed);
+  }
+  avgLen = index.reduce((sum, c) => sum + c.length, 0) / Math.max(index.length, 1);
 }
 
 export interface RetrieveFilters {
@@ -182,20 +215,24 @@ export function resolveDoc(docId: string) {
 
 // ── Governed retrieval front door ───────────────────────────────────────────
 //
-// When the Lyzr KB is configured (LYZR_API_KEY + LYZR_RAG_ID), semantic
-// candidate selection is delegated to the real Lyzr RAG API. Governance stays
-// local and non-negotiable: every Lyzr candidate is mapped back onto the
-// governed chunk registry, and clearance + idf-coverage are recomputed here.
-// Candidates that cannot be mapped to a governed chunk are dropped (fail
-// closed). If Lyzr errors, we fall back to the native engine and say so in
-// the engine detail — never silently.
+// When Qdrant is configured (QDRANT_URL + QDRANT_API_KEY), retrieval runs as
+// a hybrid dense+sparse query against the real Qdrant collection, with the
+// caller's clearance and area injected as payload filters INSIDE the search —
+// early binding: an unpermitted chunk is never returned by Qdrant, so it can
+// never enter the model context. A complementary blocked-side probe returns
+// ids only (never snippets) so refusals can be honestly classified as
+// permission_blocked. Candidates are mapped back onto the governed chunk
+// registry (fail closed: unknown ids are dropped) and idf-coverage is
+// recomputed locally so the no-evidence gate keeps working on fused scores.
+// If Qdrant errors, the failure is surfaced — no silent fallback. The native
+// BM25 engine remains behind the same interface as an explicit dev-only mode
+// used when Qdrant is not configured.
 
 const chunkById = new Map(index.map((c) => [c.chunkId, c]));
-const chunkByText = new Map(index.map((c) => [c.text.trim(), c]));
 
 export interface GovernedRetrieval {
   chunks: RetrievedChunk[];
-  engine: "lyzr" | "native";
+  engine: "qdrant" | "native";
   engineDetail: string;
 }
 
@@ -215,61 +252,86 @@ export async function retrieveGoverned(
   opts: RetrieveOptions,
   log?: RetrieveLogger,
 ): Promise<GovernedRetrieval> {
-  if (isLyzrConfigured()) {
-    try {
-      const candidates = await lyzrRetrieve(opts.question, Math.max(opts.topK ?? 6, 8));
-      const qTerms = tokenize(opts.question);
-      const qSet = new Set(qTerms);
-      const queryIdfMass =
-        Array.from(qSet).reduce((sum, t) => sum + idf(t), 0) || 1;
-      const seen = new Set<string>();
-      const chunks: RetrievedChunk[] = [];
-      let unmapped = 0;
-
-      for (const cand of candidates) {
-        const chunk =
-          (cand.chunkId ? chunkById.get(cand.chunkId) : undefined) ??
-          chunkByText.get(cand.text.trim());
-        if (!chunk) {
-          unmapped += 1;
-          continue; // fail closed: unknown material carries no governance metadata
-        }
-        if (seen.has(chunk.chunkId)) continue;
-        if (!passesFilters(chunk, opts.filters)) continue;
-        seen.add(chunk.chunkId);
-        const access = accessFor(chunk.docId, chunk.confidentiality, opts);
-        chunks.push({
-          chunkId: chunk.chunkId,
-          docId: chunk.docId,
-          score: Number(cand.score.toFixed(4)),
-          coverage: Number(coverageFor(chunk, qSet, queryIdfMass).toFixed(4)),
-          heading: chunk.heading,
-          breadcrumb: chunk.breadcrumb,
-          text: chunk.text,
-          accessible: access.accessible,
-          blockedBy: access.blockedBy,
-        });
-      }
-
-      if (unmapped > 0) {
-        log?.warn(
-          { unmapped },
-          "kb: Lyzr returned candidates not present in the governed registry; dropped (fail closed)",
-        );
-      }
-
-      return {
-        chunks,
-        engine: "lyzr",
-        engineDetail: `Lyzr KB, ${chunks.length} governed candidate${chunks.length === 1 ? "" : "s"}`,
-      };
-    } catch (err) {
-      log?.warn({ err }, "kb: Lyzr retrieve failed; using native engine for this query");
-      const chunks = retrieve(opts);
-      return { chunks, engine: "native", engineDetail: "native BM25 (Lyzr unavailable)" };
-    }
+  if (!isQdrantConfigured()) {
+    // Explicit dev-only mode: Qdrant not configured, native BM25 engine.
+    const chunks = retrieve(opts);
+    return { chunks, engine: "native", engineDetail: "native BM25 (dev mode — Qdrant not configured)" };
   }
 
-  const chunks = retrieve(opts);
-  return { chunks, engine: "native", engineDetail: "native BM25 (Lyzr not configured)" };
+  const limit = Math.max(opts.topK ?? 6, 8);
+  const res = await qdrantRetrieve({
+    question: opts.question,
+    clearance: opts.clearance,
+    area: opts.area ?? null,
+    filters: opts.filters ?? null,
+    limit,
+  });
+
+  const qTerms = tokenize(opts.question);
+  const qSet = new Set(qTerms);
+  const queryIdfMass = Array.from(qSet).reduce((sum, t) => sum + idf(t), 0) || 1;
+
+  const seen = new Set<string>();
+  const chunks: RetrievedChunk[] = [];
+  let unmapped = 0;
+
+  // Permitted candidates: Qdrant already applied clearance + area filters
+  // inside the search. Text and coverage come from the governed registry.
+  for (const hit of res.permitted) {
+    const chunk = chunkById.get(hit.chunkId);
+    if (!chunk) {
+      unmapped += 1;
+      continue; // fail closed: unknown material carries no governance metadata
+    }
+    if (seen.has(chunk.chunkId)) continue;
+    seen.add(chunk.chunkId);
+    chunks.push({
+      chunkId: chunk.chunkId,
+      docId: chunk.docId,
+      score: Number(hit.score.toFixed(4)),
+      coverage: Number(coverageFor(chunk, qSet, queryIdfMass).toFixed(4)),
+      heading: chunk.heading,
+      breadcrumb: chunk.breadcrumb,
+      text: chunk.text,
+      accessible: true,
+      blockedBy: null,
+    });
+  }
+
+  // Blocked-side probe: ids only, used to classify the refusal. The snippet
+  // never leaves the server-side registry lookup below — the agent only sees
+  // accessible=false entries, and the ask route strips text from blocked
+  // chunks before any composition.
+  for (const hit of res.blocked) {
+    const chunk = chunkById.get(hit.chunkId);
+    if (!chunk || seen.has(chunk.chunkId)) continue;
+    seen.add(chunk.chunkId);
+    const access = accessFor(chunk.docId, chunk.confidentiality, opts);
+    if (access.accessible) continue; // trust the local resolver over the probe
+    chunks.push({
+      chunkId: chunk.chunkId,
+      docId: chunk.docId,
+      score: Number(hit.score.toFixed(4)),
+      coverage: Number(coverageFor(chunk, qSet, queryIdfMass).toFixed(4)),
+      heading: chunk.heading,
+      breadcrumb: chunk.breadcrumb,
+      text: chunk.text,
+      accessible: false,
+      blockedBy: access.blockedBy,
+    });
+  }
+
+  if (unmapped > 0) {
+    log?.warn(
+      { unmapped },
+      "kb: Qdrant returned candidates not present in the governed registry; dropped (fail closed)",
+    );
+  }
+
+  const permittedCount = chunks.filter((c) => c.accessible).length;
+  return {
+    chunks,
+    engine: "qdrant",
+    engineDetail: `Qdrant hybrid (dense+sparse, RRF), ${permittedCount} permitted candidate${permittedCount === 1 ? "" : "s"}, clearance/area filtered in-query`,
+  };
 }

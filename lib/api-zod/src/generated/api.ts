@@ -540,7 +540,12 @@ export const ApplyRetagBody = zod.object({
 export const ApplyRetagResponse = zod.object({
   "version": zod.number(),
   "appliedCount": zod.number(),
-  "rejectedCount": zod.number()
+  "rejectedCount": zod.number(),
+  "qdrant": zod.union([zod.object({
+  "updatedDocs": zod.number().describe('Documents whose Qdrant chunk payloads were updated in place'),
+  "pointsBefore": zod.number().describe('Vector point count before Apply'),
+  "pointsAfter": zod.number().describe('Vector point count after Apply (identical — nothing re-embedded)')
+}).describe('Evidence that Apply issued set_payload only — no re-embedding, no re-ingestion'),zod.null()]).optional().describe('Proof that the re-tag was a metadata-only Qdrant payload update — vectors untouched')
 })
 
 
@@ -4251,6 +4256,61 @@ export const GetRelevanceFilterResponse = zod.object({
 })),
   "keptCount": zod.number(),
   "droppedCount": zod.number()
+})
+
+
+/**
+ * Runs a live Perplexity web search restricted to what the editor's filter-before-ingest rule matches (keywords / competitors / executives / topics). Returns candidate mentions with +/- flags for human review — nothing is ingested by this call.
+ * @summary Live public-data (B) capture — Perplexity search constrained by the pre-ingest filter
+ */
+export const LiveIngestSearchBody = zod.object({
+  "filter": zod.object({
+  "keywords": zod.array(zod.string()),
+  "competitors": zod.array(zod.string()),
+  "executives": zod.array(zod.string()),
+  "topics": zod.array(zod.string())
+}).describe('The editor-defined pre-ingest filter for a live capture run')
+})
+
+export const LiveIngestSearchResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "source": zod.string().describe('Publication \/ outlet name'),
+  "url": zod.string().nullish(),
+  "date": zod.string().nullish(),
+  "excerpt": zod.string(),
+  "sentiment": zod.enum(['positive', 'negative', 'mixed', 'neutral']),
+  "matchedTerms": zod.array(zod.string()).describe('Which filter terms this mention matched — why it passed the pre-ingest gate')
+}).describe('A public mention matched by the pre-ingest filter, awaiting human review')),
+  "filter": zod.object({
+  "keywords": zod.array(zod.string()),
+  "competitors": zod.array(zod.string()),
+  "executives": zod.array(zod.string()),
+  "topics": zod.array(zod.string())
+}).describe('The editor-defined pre-ingest filter for a live capture run')
+})
+
+
+/**
+ * Accepted candidates become B-category documents with full provenance metadata and ingest-filter lineage, are chunked, embedded once, and upserted to the vector index like any other governed document.
+ * @summary Ingest reviewer-accepted public mentions as B-category documents
+ */
+
+
+
+export const LiveIngestAcceptBody = zod.object({
+  "acceptedIds": zod.array(zod.string()).min(1)
+}).describe('Accepts by server-issued candidate id only — the content and the filter provenance are taken from the server\'s own search results, never from the client, so arbitrary text cannot be injected past the pre-ingest gate.\n')
+
+export const LiveIngestAcceptResponse = zod.object({
+  "createdDocs": zod.array(zod.object({
+  "docId": zod.string(),
+  "title": zod.string()
+})),
+  "upsertedChunks": zod.number(),
+  "pointsBefore": zod.number().describe('Vector point count before ingestion'),
+  "pointsAfter": zod.number().describe('Vector point count after ingestion (grew by upsertedChunks)')
 })
 
 

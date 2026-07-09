@@ -81,6 +81,10 @@ import type {
   ListRadarParams,
   ListWikiLineageParams,
   ListWikiPagesParams,
+  LiveIngestAcceptInput,
+  LiveIngestAcceptResult,
+  LiveIngestSearchInput,
+  LiveIngestSearchResult,
   NotificationRecord,
   PlanningAlert,
   PlanningAskInput,
@@ -5449,6 +5453,148 @@ export function useGetRelevanceFilter<TData = Awaited<ReturnType<typeof getRelev
 
 
 
+
+export const getLiveIngestSearchUrl = () => {
+
+
+
+
+  return `/api/data/ingest/search`
+}
+
+/**
+ * Runs a live Perplexity web search restricted to what the editor's filter-before-ingest rule matches (keywords / competitors / executives / topics). Returns candidate mentions with +/- flags for human review — nothing is ingested by this call.
+ * @summary Live public-data (B) capture — Perplexity search constrained by the pre-ingest filter
+ */
+export const liveIngestSearch = async (liveIngestSearchInput: LiveIngestSearchInput, options?: RequestInit): Promise<LiveIngestSearchResult> => {
+
+  return customFetch<LiveIngestSearchResult>(getLiveIngestSearchUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(liveIngestSearchInput)
+  }
+);}
+
+
+
+
+export const getLiveIngestSearchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof liveIngestSearch>>, TError,{data: BodyType<LiveIngestSearchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof liveIngestSearch>>, TError,{data: BodyType<LiveIngestSearchInput>}, TContext> => {
+
+const mutationKey = ['liveIngestSearch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof liveIngestSearch>>, {data: BodyType<LiveIngestSearchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  liveIngestSearch(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LiveIngestSearchMutationResult = NonNullable<Awaited<ReturnType<typeof liveIngestSearch>>>
+    export type LiveIngestSearchMutationBody = BodyType<LiveIngestSearchInput>
+    export type LiveIngestSearchMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Live public-data (B) capture — Perplexity search constrained by the pre-ingest filter
+ */
+export const useLiveIngestSearch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof liveIngestSearch>>, TError,{data: BodyType<LiveIngestSearchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof liveIngestSearch>>,
+        TError,
+        {data: BodyType<LiveIngestSearchInput>},
+        TContext
+      > => {
+      return useMutation(getLiveIngestSearchMutationOptions(options));
+    }
+
+export const getLiveIngestAcceptUrl = () => {
+
+
+
+
+  return `/api/data/ingest/accept`
+}
+
+/**
+ * Accepted candidates become B-category documents with full provenance metadata and ingest-filter lineage, are chunked, embedded once, and upserted to the vector index like any other governed document.
+ * @summary Ingest reviewer-accepted public mentions as B-category documents
+ */
+export const liveIngestAccept = async (liveIngestAcceptInput: LiveIngestAcceptInput, options?: RequestInit): Promise<LiveIngestAcceptResult> => {
+
+  return customFetch<LiveIngestAcceptResult>(getLiveIngestAcceptUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(liveIngestAcceptInput)
+  }
+);}
+
+
+
+
+export const getLiveIngestAcceptMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof liveIngestAccept>>, TError,{data: BodyType<LiveIngestAcceptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof liveIngestAccept>>, TError,{data: BodyType<LiveIngestAcceptInput>}, TContext> => {
+
+const mutationKey = ['liveIngestAccept'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof liveIngestAccept>>, {data: BodyType<LiveIngestAcceptInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  liveIngestAccept(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LiveIngestAcceptMutationResult = NonNullable<Awaited<ReturnType<typeof liveIngestAccept>>>
+    export type LiveIngestAcceptMutationBody = BodyType<LiveIngestAcceptInput>
+    export type LiveIngestAcceptMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Ingest reviewer-accepted public mentions as B-category documents
+ */
+export const useLiveIngestAccept = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof liveIngestAccept>>, TError,{data: BodyType<LiveIngestAcceptInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof liveIngestAccept>>,
+        TError,
+        {data: BodyType<LiveIngestAcceptInput>},
+        TContext
+      > => {
+      return useMutation(getLiveIngestAcceptMutationOptions(options));
+    }
 
 export const getListValidationItemsUrl = () => {
 

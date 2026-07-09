@@ -129,6 +129,41 @@
       "outcome": "success",
       "ended_at": "2026-07-08T17:06:57.770Z",
       "skill_used": "answer-cited"
+    },
+    {
+      "id": "17becaf4-bb6f-4aac-996b-85ebefa4b5ae",
+      "objective": "Answer a question about the Atlas programme using governed sources",
+      "steps": [],
+      "attempts": 1,
+      "status": "succeeded",
+      "started_at": "2026-07-09T22:56:09.833Z",
+      "outcome": "success",
+      "ended_at": "2026-07-09T22:56:17.611Z",
+      "skill_used": "answer-cited"
+    },
+    {
+      "id": "abb7c5a5-82c8-43d6-8051-f12e9ca55b6c",
+      "objective": "Answer a natural-language question about the Atlas programme using governed sources",
+      "steps": [],
+      "attempts": 1,
+      "status": "active",
+      "started_at": "2026-07-09T22:56:23.790Z"
+    },
+    {
+      "id": "a00824ee-17e8-49e1-9cb1-7f600ecf8882",
+      "objective": "Answer a governed knowledge question about the Digi-Telefónica fibre optic agreement",
+      "steps": [
+        {
+          "description": "Skill loaded. One source provided. Assessing coverage and composing cited answer.",
+          "timestamp": "2026-07-09T23:04:45.179Z"
+        }
+      ],
+      "attempts": 1,
+      "status": "succeeded",
+      "started_at": "2026-07-09T23:04:40.115Z",
+      "outcome": "success",
+      "ended_at": "2026-07-09T23:04:53.907Z",
+      "skill_used": "answer-cited"
     }
   ]
 }

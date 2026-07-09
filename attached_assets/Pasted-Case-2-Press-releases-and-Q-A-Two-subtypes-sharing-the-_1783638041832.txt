@@ -1,0 +1,30 @@
+Case 2 · Press releases and Q&A
+Two subtypes sharing the same engine: press release (external) and Q&A (spokesperson support).
+Scope: the RFP requests *generating* the release/Q&A; distribution is NOT in scope (the “media” only appears as
+an external source to monitor). The SSoT generates the document; sending it remains with Telefónica’s PR tool.
+1 User flow
+15. On the HOME → “Document generation” app → type 2: Press releases and Q&A.
+16. Selects subtype (press release / Q&A) and audience.
+17. Fills in (chat or UX form): newsworthy fact/topic · Plan axis(es) · angle/key message · spokesperson for the
+quote · date · language · confidentiality.
+18. The agent retrieves from the SSoT: approved facts and figures, key messages, corporate boilerplate, brand
+guidelines — filtered by permissions and confidentiality.
+19. Composes using the subtype’s structure:
+• *Press release*: headline · standfirst · body with cited figures · executive quote · boilerplate · press contact.
+• *Q&A*: anticipated questions + approved answers, each answer with its citation/traceability
+(document·version·date·owner) to give the spokesperson confidence and anchor the SSoT’s grounding. UX
+option: the user can add “internal notes” (flagged, not exportable to the public).
+20. Canvas-style editing: editor + conversational chat for changes + inline editing.
+21. Multi-format export (release: .docx/.pdf on-brand; Q&A: .docx) with Telefónica corporate templates.
+22. Saves the version in the SSoT with tags (versioned and traceable). *(Mandatory editorial review before
+publishing/delivering the release.)*
+2 Platform functionalities: HOME navigation → type 2 → subtype + audience · parameter capture
+incl. spokesperson/date · RAG with citation + permissions/confidentiality filter · library of boilerplate and approved
+quotes · on-brand multi-language release/Q&A templates · Q&A with per-answer citation + internal notes option
+(flagged, non-exportable) · Canvas-style editing · multi-format export · versioned saving with tags · guardrails.
+3 Data IN: Internal: newsworthy fact/topic, Results, Approved talking points/messages, New USP, corporate
+boilerplate, Brand guidelines/templates. External (context): media/press, competition, sector. Metadata: axis,
+confidentiality, validity, owner, date.
+4 Output: on-brand press release (.docx/.pdf) with cited figures, executive quote, boilerplate and contact *(no
+distribution — out of scope)*; spokesperson support Q&A (.docx) with approved questions/answers, each answer
+traced to its source, and optional internal notes flagged by confidentiality. Versioned + tags.

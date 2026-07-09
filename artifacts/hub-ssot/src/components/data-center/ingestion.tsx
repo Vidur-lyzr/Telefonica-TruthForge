@@ -2,8 +2,15 @@ import React from "react";
 import {
   useGetIngestionSnapshot,
   useGetRelevanceFilter,
+  useLiveIngestSearch,
+  useLiveIngestAccept,
 } from "@workspace/api-client-react";
-import type { QuarantineDoc } from "@workspace/api-client-react";
+import type {
+  QuarantineDoc,
+  LiveIngestCandidate,
+  LiveIngestFilterInput,
+  LiveIngestAcceptResult,
+} from "@workspace/api-client-react";
 import {
   Box,
   Stack,
@@ -14,6 +21,9 @@ import {
   Tag,
   ProgressBar,
   ButtonPrimary,
+  ButtonSecondary,
+  Callout,
+  Checkbox,
   TextField,
   Select,
   Drawer,
@@ -58,6 +68,253 @@ function sentimentSign(sentiment: string): { label: string; color: string } {
   if (sentiment === "positive") return { label: "+", color: skinVars.colors.success };
   if (sentiment === "negative") return { label: "−", color: skinVars.colors.error };
   return { label: "·", color: skinVars.colors.textSecondary };
+}
+
+function parseTerms(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
+function LiveCaptureSection() {
+  const [keywords, setKeywords] = React.useState("Telefónica, Movistar");
+  const [competitors, setCompetitors] = React.useState("");
+  const [executives, setExecutives] = React.useState("");
+  const [topics, setTopics] = React.useState("");
+  const [candidates, setCandidates] = React.useState<LiveIngestCandidate[] | null>(null);
+  const [lastFilter, setLastFilter] = React.useState<LiveIngestFilterInput | null>(null);
+  const [selected, setSelected] = React.useState<Record<string, boolean>>({});
+  const [searchError, setSearchError] = React.useState<string | null>(null);
+  const [acceptError, setAcceptError] = React.useState<string | null>(null);
+  const [lastIngest, setLastIngest] = React.useState<LiveIngestAcceptResult | null>(null);
+
+  const searchMutation = useLiveIngestSearch();
+  const acceptMutation = useLiveIngestAccept();
+
+  const filter: LiveIngestFilterInput = {
+    keywords: parseTerms(keywords),
+    competitors: parseTerms(competitors),
+    executives: parseTerms(executives),
+    topics: parseTerms(topics),
+  };
+  const termCount =
+    filter.keywords.length +
+    filter.competitors.length +
+    filter.executives.length +
+    filter.topics.length;
+
+  const selectedCount = (candidates ?? []).filter((c) => selected[c.id]).length;
+
+  async function runSearch() {
+    setSearchError(null);
+    setAcceptError(null);
+    setLastIngest(null);
+    try {
+      const result = await searchMutation.mutateAsync({ data: { filter } });
+      setCandidates(result.items);
+      setLastFilter(result.filter);
+      const seed: Record<string, boolean> = {};
+      result.items.forEach((i) => {
+        seed[i.id] = true;
+      });
+      setSelected(seed);
+    } catch {
+      setSearchError(
+        "The live capture search could not be completed. Nothing has been ingested.",
+      );
+    }
+  }
+
+  async function runAccept() {
+    if (!candidates || !lastFilter) return;
+    const accepted = candidates.filter((c) => selected[c.id]);
+    if (accepted.length === 0) return;
+    setAcceptError(null);
+    try {
+      const result = await acceptMutation.mutateAsync({
+        data: { acceptedIds: accepted.map((c) => c.id) },
+      });
+      setLastIngest(result);
+      setCandidates(null);
+      setSelected({});
+    } catch {
+      setAcceptError("The accepted mentions could not be ingested. The core is unchanged.");
+    }
+  }
+
+  return (
+    <Boxed>
+      <Box padding={24}>
+        <Stack space={24}>
+          <Inline space="between" alignItems="center">
+            <Inline space={8} alignItems="center">
+              <IconAiRegular size={20} color={skinVars.colors.brand} />
+              <Title2>Live public-data capture (B channel)</Title2>
+            </Inline>
+            <Tag type="info">Filter before ingest</Tag>
+          </Inline>
+
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            Define the agreed rule first — keywords, tracked competitors, named executives,
+            priority topics. The live search only surfaces public coverage matching the rule, a
+            human reviews every candidate with its mention flag, and only accepted items enter the
+            knowledge core as external (B) documents with full provenance.
+          </Text2>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+            <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+              <TextField
+                name="live-keywords"
+                label="Keywords (comma-separated)"
+                value={keywords}
+                onChangeValue={setKeywords}
+              />
+            </div>
+            <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+              <TextField
+                name="live-competitors"
+                label="Competitors"
+                value={competitors}
+                onChangeValue={setCompetitors}
+              />
+            </div>
+            <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+              <TextField
+                name="live-executives"
+                label="Executives"
+                value={executives}
+                onChangeValue={setExecutives}
+              />
+            </div>
+            <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+              <TextField
+                name="live-topics"
+                label="Topics"
+                value={topics}
+                onChangeValue={setTopics}
+              />
+            </div>
+          </div>
+
+          <Inline space={12} alignItems="center">
+            <ButtonPrimary
+              small
+              onPress={runSearch}
+              disabled={termCount === 0 || searchMutation.isPending}
+              showSpinner={searchMutation.isPending}
+            >
+              {searchMutation.isPending ? "Searching public coverage" : "Run filtered capture"}
+            </ButtonPrimary>
+            {termCount === 0 && (
+              <Text1 regular color={skinVars.colors.textSecondary}>
+                At least one filter term is required — nothing is captured without a rule.
+              </Text1>
+            )}
+          </Inline>
+
+          {searchError && (
+            <Callout
+              asset={<IconAlertRegular color={skinVars.colors.error} />}
+              title="Capture failed"
+              description={searchError}
+            />
+          )}
+
+          {candidates && candidates.length === 0 && (
+            <Callout
+              asset={<IconSearchRegular color={skinVars.colors.textSecondary} />}
+              title="No matching coverage"
+              description="The live search found no public coverage matching the filter. Nothing was ingested."
+            />
+          )}
+
+          {candidates && candidates.length > 0 && (
+            <Stack space={12}>
+              <Divider />
+              <Inline space="between" alignItems="center">
+                <Title3>{`Candidates — human review (${selectedCount} of ${candidates.length} accepted)`}</Title3>
+                <ButtonSecondary
+                  small
+                  onPress={runAccept}
+                  disabled={selectedCount === 0 || acceptMutation.isPending}
+                  showSpinner={acceptMutation.isPending}
+                >
+                  {acceptMutation.isPending
+                    ? "Embedding and indexing"
+                    : `Ingest ${selectedCount} accepted`}
+                </ButtonSecondary>
+              </Inline>
+              {candidates.map((c) => {
+                const sign = sentimentSign(c.sentiment);
+                return (
+                  <Boxed key={c.id}>
+                    <Box padding={16}>
+                      <Inline space={16} alignItems="center">
+                        <Checkbox
+                          name={`accept-${c.id}`}
+                          checked={selected[c.id] ?? false}
+                          onChange={(checked) =>
+                            setSelected((prev) => ({ ...prev, [c.id]: checked }))
+                          }
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Stack space={4}>
+                            <Inline space={8} alignItems="center" wrap>
+                              <Text2 medium color={skinVars.colors.textPrimary}>
+                                {c.title}
+                              </Text2>
+                              <Text2 medium color={sign.color}>
+                                {sign.label}
+                              </Text2>
+                              <Tag type="inactive">{c.sentiment}</Tag>
+                            </Inline>
+                            <Text1 regular color={skinVars.colors.textSecondary}>
+                              {c.source}
+                              {c.date ? ` · ${c.date}` : ""}
+                            </Text1>
+                            <Text2 regular color={skinVars.colors.textPrimary}>
+                              {c.excerpt}
+                            </Text2>
+                            <Inline space={4} alignItems="center" wrap>
+                              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                                Matched
+                              </Text1>
+                              {c.matchedTerms.map((t) => (
+                                <Tag key={t} type="info">
+                                  {t}
+                                </Tag>
+                              ))}
+                            </Inline>
+                          </Stack>
+                        </div>
+                      </Inline>
+                    </Box>
+                  </Boxed>
+                );
+              })}
+            </Stack>
+          )}
+
+          {acceptError && (
+            <Callout
+              asset={<IconAlertRegular color={skinVars.colors.error} />}
+              title="Ingestion failed"
+              description={acceptError}
+            />
+          )}
+
+          {lastIngest && (
+            <Callout
+              asset={<IconCheckedRegular color={skinVars.colors.success} />}
+              title={`${lastIngest.createdDocs.length} external document${lastIngest.createdDocs.length === 1 ? "" : "s"} ingested into the core`}
+              description={`${lastIngest.createdDocs.map((d) => d.title).join("; ")}. ${lastIngest.upsertedChunks} chunk${lastIngest.upsertedChunks === 1 ? "" : "s"} embedded once and upserted to the vector index (${lastIngest.pointsBefore} points before, ${lastIngest.pointsAfter} after). Ask can cite them immediately; the ingest-filter provenance is on each document in the corpus browser.`}
+            />
+          )}
+        </Stack>
+      </Box>
+    </Boxed>
+  );
 }
 
 function RelevanceFilterSection() {
@@ -196,6 +453,7 @@ export default function IngestionArea() {
 
   return (
     <Stack space={24}>
+      <LiveCaptureSection />
       <RelevanceFilterSection />
 
       <Boxed>

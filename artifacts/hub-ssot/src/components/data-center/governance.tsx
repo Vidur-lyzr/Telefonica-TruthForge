@@ -66,6 +66,7 @@ export default function GovernanceArea() {
     version: number;
     appliedCount: number;
     rejectedCount: number;
+    qdrant?: { updatedDocs: number; pointsBefore: number; pointsAfter: number } | null;
   }>(null);
 
   const overdue = React.useMemo(() => (freshness ?? []).filter((f) => f.overdue), [freshness]);
@@ -203,7 +204,11 @@ export default function GovernanceArea() {
         <Callout
           asset={<IconShieldRegular color={skinVars.colors.success} />}
           title={`Taxonomy version ${lastApplied.version} is live`}
-          description={`${lastApplied.appliedCount} document${lastApplied.appliedCount === 1 ? "" : "s"} re-tagged, ${lastApplied.rejectedCount} proposal${lastApplied.rejectedCount === 1 ? "" : "s"} rejected by human review. The change took effect immediately across retrieval and browsing.`}
+          description={`${lastApplied.appliedCount} document${lastApplied.appliedCount === 1 ? "" : "s"} re-tagged, ${lastApplied.rejectedCount} proposal${lastApplied.rejectedCount === 1 ? "" : "s"} rejected by human review. The change took effect immediately across retrieval and browsing.${
+            lastApplied.qdrant
+              ? ` Qdrant proof: ${lastApplied.qdrant.updatedDocs} document payload${lastApplied.qdrant.updatedDocs === 1 ? "" : "s"} updated in place via set_payload — vector count unchanged (${lastApplied.qdrant.pointsBefore} before, ${lastApplied.qdrant.pointsAfter} after). No re-embedding, no re-ingestion.`
+              : ""
+          }`}
         />
       )}
 
