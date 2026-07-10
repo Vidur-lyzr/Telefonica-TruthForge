@@ -64,6 +64,14 @@ export interface ExportDocumentModel {
   qaHeading: string | null;
   spokesperson: { question: string; guidance: string; doNotSay: string | null }[];
   charts: RenderedChart[];
+  tables: {
+    title: string;
+    unit: string;
+    source: string;
+    citationId: string | null;
+    columns: string[];
+    rows: string[][];
+  }[];
   citations: {
     id: string;
     docTitle: string;
@@ -263,6 +271,23 @@ export function buildExportModel(
       )
     : [];
 
+  // Cited data tables travel with any template that carries data blocks
+  // (table or charts). They come from the same destination-gated series the
+  // charts were built from, so no extra confidentiality gate is needed here.
+  const wantsTables = template.blocks.some(
+    (b) => b.kind === "table" || b.kind === "charts",
+  );
+  const tables = wantsTables
+    ? (draft.tables ?? []).map((t) => ({
+        title: t.title,
+        unit: t.unit,
+        source: t.source,
+        citationId: t.citationId ?? null,
+        columns: t.columns,
+        rows: t.rows,
+      }))
+    : [];
+
   return {
     template,
     title: draft.title,
@@ -281,6 +306,7 @@ export function buildExportModel(
     qaHeading: qa.length > 0 ? (qaSection?.heading ?? "Q&A") : null,
     spokesperson,
     charts,
+    tables,
     citations: draft.citations.map((c) => ({
       id: c.id,
       docTitle: c.docTitle,

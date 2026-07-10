@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AskHandoffContext } from './askHandoffContext';
+import type { BriefAttachments } from './briefAttachments';
 import type { KpiReportContext } from './kpiReportContext';
 
 export interface GenerateInput {
@@ -38,4 +39,6 @@ export interface GenerateInput {
   kpiContext?: null | KpiReportContext;
   /** Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source's accessibility server-side under the CURRENT persona's clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself. */
   askContext?: null | AskHandoffContext;
+  /** User-provided brief attachments (pasted brief/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval. */
+  attachments?: null | BriefAttachments;
 }

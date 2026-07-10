@@ -157,6 +157,59 @@ export async function renderDocx(model: ExportDocumentModel): Promise<Buffer> {
     );
   }
 
+  for (const table of model.tables) {
+    children.push(h(table.title));
+    children.push(
+      meta(
+        `Source: ${table.source}${table.citationId ? ` · cited [${table.citationId}]` : ""}`,
+      ),
+    );
+    const tableRows = [
+      new TableRow({
+        children: table.columns.map(
+          (label) =>
+            new TableCell({
+              shading: { type: ShadingType.SOLID, color: NAVY, fill: NAVY },
+              children: [
+                new Paragraph({
+                  children: [new TextRun({ text: label, bold: true, color: "FFFFFF", size: 18, font: FONT })],
+                }),
+              ],
+            }),
+        ),
+      }),
+      ...table.rows.map(
+        (row) =>
+          new TableRow({
+            children: row.map(
+              (value) =>
+                new TableCell({
+                  children: [
+                    new Paragraph({
+                      children: [new TextRun({ text: value, color: TEXT, size: 18, font: FONT })],
+                    }),
+                  ],
+                }),
+            ),
+          }),
+      ),
+    ];
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.SINGLE, size: 2, color: "DDDDDD" },
+          bottom: { style: BorderStyle.SINGLE, size: 2, color: "DDDDDD" },
+          left: { style: BorderStyle.NONE },
+          right: { style: BorderStyle.NONE },
+          insideHorizontal: { style: BorderStyle.SINGLE, size: 2, color: "DDDDDD" },
+          insideVertical: { style: BorderStyle.NONE },
+        },
+        rows: tableRows,
+      }),
+    );
+  }
+
   if (model.spokesperson.length > 0) {
     children.push(h("Spokesperson guidance (internal only)"));
     for (const note of model.spokesperson) {

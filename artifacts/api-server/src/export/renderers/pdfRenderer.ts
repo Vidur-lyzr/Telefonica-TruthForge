@@ -107,6 +107,55 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
     doc.y += imgH + 12;
   }
 
+  for (const table of model.tables) {
+    heading(doc, table.title);
+    doc
+      .font("Helvetica")
+      .fontSize(9)
+      .fillColor(MUTED)
+      .text(
+        `Source: ${table.source}${table.citationId ? ` · cited [${table.citationId}]` : ""}`,
+        { width: CONTENT_W },
+      );
+    doc.moveDown(0.4);
+    const colW = CONTENT_W / table.columns.length;
+    const rowH = 20;
+    // Header row
+    ensureSpace(doc, rowH * 2);
+    let y = doc.y;
+    doc.rect(MARGIN, y, CONTENT_W, rowH).fill(NAVY);
+    table.columns.forEach((label, i) => {
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(9)
+        .fillColor("#FFFFFF")
+        .text(label, MARGIN + i * colW + 6, y + 6, { width: colW - 12, lineBreak: false });
+    });
+    y += rowH;
+    for (const row of table.rows) {
+      if (y + rowH > doc.page.height - MARGIN - 24) {
+        doc.addPage();
+        y = doc.y;
+      }
+      row.forEach((value, i) => {
+        doc
+          .font(i === 0 ? "Helvetica-Bold" : "Helvetica")
+          .fontSize(9)
+          .fillColor(i === 0 ? NAVY : TEXT)
+          .text(value, MARGIN + i * colW + 6, y + 6, { width: colW - 12, lineBreak: false });
+      });
+      doc
+        .moveTo(MARGIN, y + rowH)
+        .lineTo(MARGIN + CONTENT_W, y + rowH)
+        .strokeColor(DIVIDER)
+        .lineWidth(0.5)
+        .stroke();
+      y += rowH;
+    }
+    doc.y = y + 10;
+    doc.x = MARGIN;
+  }
+
   if (model.spokesperson.length > 0) {
     heading(doc, "Spokesperson guidance (internal only)");
     for (const note of model.spokesperson) {

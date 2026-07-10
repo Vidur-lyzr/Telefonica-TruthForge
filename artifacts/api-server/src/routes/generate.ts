@@ -30,6 +30,7 @@ import {
   BriefChatResponse,
   ListNotificationsResponse,
   MarkNotificationsReadResponse,
+  ListDeliveriesResponse,
 } from "@workspace/api-zod";
 import {
   exportDraft,
@@ -43,6 +44,7 @@ import {
   type GeneratedDraft,
 } from "../agent/generateAgent";
 import { suggestTemplate, captureBrief } from "../agent/briefAgent";
+import { runScheduleNow, ScheduleRunInProgressError } from "../agent/scheduleRunner";
 import { runBrandGuardian } from "../agent/brandGuardian";
 import { ROLES } from "../data/corpus";
 import {
@@ -57,10 +59,8 @@ import {
   listSchedules,
   getSchedule,
   createSchedule,
-  markScheduleRun,
   listReviewItems,
   getReviewItem,
-  addReviewItem,
   approveReviewItem,
   listVersions,
   saveVersion,
@@ -71,6 +71,7 @@ import {
   recordEditorialReview,
   addNotification,
   listNotifications,
+  listDeliveries,
   markNotificationsRead,
   createJob,
   getJob,
@@ -106,6 +107,7 @@ router.post("/generate", async (req, res) => {
         eventDate: parsed.data.eventDate ?? null,
         kpiContext: parsed.data.kpiContext ?? null,
         askContext: parsed.data.askContext ?? null,
+        attachments: parsed.data.attachments ?? null,
       },
       req.log,
     );
@@ -239,50 +241,15 @@ router.post("/generate/schedules/:id/run", async (req, res) => {
     return;
   }
   try {
-    const draft = await runGenerateAgent(
-      {
-        shape: schedule.shape as "messaging" | "press" | "multiformat",
-        topic: schedule.topic,
-        roleId: schedule.ownerRoleId,
-        audience: schedule.audience,
-        language: schedule.language,
-        confidentiality: schedule.confidentiality,
-        axisIds: schedule.axisIds,
-        sourceQueries: schedule.queries,
-      },
-      req.log,
-    );
-    markScheduleRun(schedule.id);
-    const item = addReviewItem({
-      scheduleId: schedule.id,
-      scheduleName: schedule.name,
-      reviewFolder: schedule.reviewFolder,
-      ownerRoleId: schedule.ownerRoleId,
-      ownerLabel: schedule.ownerLabel,
-      draft,
-    });
-    // Stamp scheduled provenance so this draft cannot be exported or versioned
-    // until it is approved in the review inbox. item.draft is the stored ref.
-    item.draft.origin = "scheduled";
-    item.draft.reviewItemId = item.id;
-    item.draft.approved = false;
-    // Server-authoritative lineage: bind this draft's id AND content hash to its
-    // review item so the save/version gate never has to trust client-submitted
-    // provenance — mutating draft.id cannot escape the gate.
-    registerScheduledDraft([item.draft.id, hashDraftContent(item.draft)], item.id);
-    // The provenance stamps above mutated the stored item after addReviewItem
-    // persisted it — write the snapshot again so they survive a restart.
-    touchReviewItem(item.id);
-    addNotification({
-      kind: "scheduled_draft_ready",
-      reviewItemId: item.id,
-      reviewFolder: schedule.reviewFolder,
-      ownerRoleId: schedule.ownerRoleId,
-      ownerLabel: schedule.ownerLabel,
-      message: `"${schedule.name}" produced a new draft in "${schedule.reviewFolder}" and is waiting for review.`,
-    });
+    // Same pipeline the automatic scheduler uses — provenance stamping,
+    // lineage registration, notification and simulated deliveries included.
+    const item = await runScheduleNow(schedule, req.log);
     res.json(RunScheduleResponse.parse(item));
   } catch (err) {
+    if (err instanceof ScheduleRunInProgressError) {
+      res.status(409).json({ error: err.message, code: "run_in_progress" });
+      return;
+    }
     req.log.error({ err }, "run schedule failed");
     res.status(500).json({ error: "The scheduled run could not complete." });
   }
@@ -502,6 +469,12 @@ router.post("/generate/brief-chat", async (req, res) => {
   }
 });
 
+// ---- Simulated deliveries (Teams / email hand-off records) ----------------------
+
+router.get("/generate/deliveries", async (_req, res) => {
+  res.json(ListDeliveriesResponse.parse(listDeliveries()));
+});
+
 // ---- Notifications -------------------------------------------------------------
 
 router.get("/generate/notifications", async (_req, res) => {
@@ -539,6 +512,7 @@ router.post("/generate/jobs", async (req, res) => {
     eventDate: parsed.data.eventDate ?? null,
     kpiContext: parsed.data.kpiContext ?? null,
     askContext: parsed.data.askContext ?? null,
+    attachments: parsed.data.attachments ?? null,
   };
   const log = req.log;
   void (async () => {

@@ -15,6 +15,7 @@ import type { DraftSection } from './draftSection';
 import type { GuardianResult } from './guardianResult';
 import type { QaNote } from './qaNote';
 import type { SpokespersonNote } from './spokespersonNote';
+import type { TableSpec } from './tableSpec';
 
 export interface GeneratedDraft {
   id: string;
@@ -33,6 +34,8 @@ export interface GeneratedDraft {
   sections: DraftSection[];
   spokesperson: SpokespersonNote[];
   charts: ChartSpec[];
+  /** Cited data tables built from governed numeric series permitted for this draft's destination. */
+  tables?: TableSpec[];
   citations: Citation[];
   disclaimers: DraftDisclaimer[];
   /** Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination. */

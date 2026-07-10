@@ -106,6 +106,37 @@ export async function renderPptx(model: ExportDocumentModel): Promise<Buffer> {
     addFooter(s, model);
   }
 
+  // Cited data-table slides
+  for (const table of model.tables) {
+    const s = pptx.addSlide();
+    s.background = { color: "FFFFFF" };
+    s.addShape("rect", { x: 0, y: 0, w: 13.33, h: 0.18, fill: { color: BRAND } });
+    s.addText(table.title, {
+      x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
+    });
+    s.addText(
+      `Source: ${table.source}${table.citationId ? ` · cited [${table.citationId}]` : ""}`,
+      { x: 0.8, y: 1.15, w: 11.6, h: 0.35, fontFace: FONT, fontSize: 12, color: MUTED },
+    );
+    const tRows: PptxGenJS.TableRow[] = [
+      table.columns.map((t) => ({
+        text: t,
+        options: { bold: true, color: "FFFFFF", fill: { color: NAVY }, fontFace: FONT, fontSize: 11 },
+      })),
+      ...table.rows.map((row) =>
+        row.map((value, i) => ({
+          text: value,
+          options: { color: i === 0 ? NAVY : TEXT, bold: i === 0, fontFace: FONT, fontSize: 10 },
+        })),
+      ),
+    ];
+    s.addTable(tRows, {
+      x: 0.8, y: 1.7, w: 11.7,
+      border: { type: "solid", color: "DDDDDD", pt: 0.5 },
+    });
+    addFooter(s, model);
+  }
+
   // Citations slide
   if (model.citations.length > 0) {
     const s = pptx.addSlide();

@@ -58,6 +58,40 @@ export interface Schedule {
   reviewFolder: string;
   createdAt: string;
   lastRunAt: string | null;
+  // When the server-side scheduler will fire this schedule next. Always
+  // derived from (lastRunAt ?? createdAt) + frequency interval.
+  nextRunAt: string | null;
+}
+
+const FREQUENCY_MS: Record<ScheduleFrequency, number> = {
+  daily: 24 * 60 * 60 * 1000,
+  weekly: 7 * 24 * 60 * 60 * 1000,
+  monthly: 30 * 24 * 60 * 60 * 1000,
+};
+
+export function computeNextRunAt(
+  frequency: ScheduleFrequency,
+  from: string,
+): string {
+  const base = Date.parse(from);
+  const interval = FREQUENCY_MS[frequency] ?? FREQUENCY_MS.weekly;
+  return new Date((Number.isNaN(base) ? Date.now() : base) + interval).toISOString();
+}
+
+// A simulated Teams/email delivery to the schedule owner, recorded when a
+// scheduled run lands a draft in the review inbox. No real message is sent.
+export interface DeliveryRecord {
+  id: string;
+  channel: "teams" | "email";
+  recipientRoleId: string;
+  recipientLabel: string;
+  scheduleId: string;
+  scheduleName: string;
+  reviewItemId: string;
+  reviewFolder: string;
+  subject: string;
+  message: string;
+  createdAt: string;
 }
 
 export type ReviewStatus = "pending" | "approved";
@@ -121,6 +155,7 @@ interface PersistedState {
   scheduledDraftIndex: Record<string, string>;
   editorialReviews?: EditorialReview[];
   notifications?: NotificationRecord[];
+  deliveries?: DeliveryRecord[];
   idCounter: number;
 }
 
@@ -129,6 +164,7 @@ let schedules: Schedule[] = [];
 let reviewInbox: ReviewItem[] = [];
 let editorialReviews: EditorialReview[] = [];
 let notifications: NotificationRecord[] = [];
+let deliveries: DeliveryRecord[] = [];
 // Server-authoritative lineage for every draft produced by a schedule. Keyed by
 // BOTH the draft id AND the content hash, so a caller cannot escape the gate by
 // mutating the client-supplied draft.id: the content hash still resolves to the
@@ -147,6 +183,14 @@ function load(): void {
     scheduledDraftIndex = new Map(Object.entries(raw.scheduledDraftIndex ?? {}));
     editorialReviews = Array.isArray(raw.editorialReviews) ? raw.editorialReviews : [];
     notifications = Array.isArray(raw.notifications) ? raw.notifications : [];
+    deliveries = Array.isArray(raw.deliveries) ? raw.deliveries : [];
+    // Migration: schedules persisted before the automatic scheduler existed
+    // have no nextRunAt — derive it so they join the timer without re-creation.
+    for (const s of schedules) {
+      if (!s.nextRunAt) {
+        s.nextRunAt = computeNextRunAt(s.frequency, s.lastRunAt ?? s.createdAt);
+      }
+    }
     idCounter = typeof raw.idCounter === "number" ? raw.idCounter : 0;
     logger.info(
       {
@@ -164,6 +208,7 @@ function load(): void {
     scheduledDraftIndex = new Map();
     editorialReviews = [];
     notifications = [];
+    deliveries = [];
   }
 }
 
@@ -176,6 +221,7 @@ function persist(): void {
       scheduledDraftIndex: Object.fromEntries(scheduledDraftIndex),
       editorialReviews,
       notifications,
+      deliveries,
       idCounter,
     };
     mkdirSync(dirname(STORE_PATH), { recursive: true });
@@ -286,6 +332,26 @@ export function markNotificationsRead(): void {
   if (changed) persist();
 }
 
+// ---- Simulated deliveries -------------------------------------------------------
+
+export function addDelivery(
+  input: Omit<DeliveryRecord, "id" | "createdAt">,
+): DeliveryRecord {
+  const record: DeliveryRecord = {
+    ...input,
+    id: nextId("dlv"),
+    createdAt: new Date().toISOString(),
+  };
+  deliveries.unshift(record);
+  if (deliveries.length > 200) deliveries.length = 200;
+  persist();
+  return record;
+}
+
+export function listDeliveries(): DeliveryRecord[] {
+  return deliveries;
+}
+
 // ---- Version tags --------------------------------------------------------------
 // Deterministic tags come straight from the brief; derived tags are computed
 // from the composed content at save time.
@@ -344,13 +410,15 @@ export function getSchedule(id: string): Schedule | undefined {
 }
 
 export function createSchedule(
-  input: Omit<Schedule, "id" | "createdAt" | "lastRunAt">,
+  input: Omit<Schedule, "id" | "createdAt" | "lastRunAt" | "nextRunAt">,
 ): Schedule {
+  const createdAt = new Date().toISOString();
   const record: Schedule = {
     ...input,
     id: nextId("sch"),
-    createdAt: new Date().toISOString(),
+    createdAt,
     lastRunAt: null,
+    nextRunAt: computeNextRunAt(input.frequency, createdAt),
   };
   schedules.push(record);
   persist();
@@ -371,8 +439,17 @@ export function markScheduleRun(id: string): void {
   const s = schedules.find((x) => x.id === id);
   if (s) {
     s.lastRunAt = new Date().toISOString();
+    s.nextRunAt = computeNextRunAt(s.frequency, s.lastRunAt);
     persist();
   }
+}
+
+// Schedules whose nextRunAt is due (fail closed: missing nextRunAt is not due;
+// the load migration always backfills it).
+export function listDueSchedules(now: Date = new Date()): Schedule[] {
+  return schedules.filter(
+    (s) => s.nextRunAt !== null && Date.parse(s.nextRunAt) <= now.getTime(),
+  );
 }
 
 // ---- Review inbox ------------------------------------------------------------

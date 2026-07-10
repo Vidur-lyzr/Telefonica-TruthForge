@@ -398,6 +398,7 @@ export function buildForecastDraft(
     ],
     spokesperson: [],
     charts: [],
+    tables: [],
     citations: forecast.citations,
     disclaimers: [],
     axisIds,

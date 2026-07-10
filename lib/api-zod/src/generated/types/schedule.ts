@@ -23,4 +23,9 @@ export interface Schedule {
   createdAt: string;
   /** @nullable */
   lastRunAt?: string | null;
+  /**
+     * When the server-side scheduler will fire this schedule next.
+     * @nullable
+     */
+  nextRunAt?: string | null;
 }

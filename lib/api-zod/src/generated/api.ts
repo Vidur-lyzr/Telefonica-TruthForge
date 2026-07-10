@@ -1478,6 +1478,15 @@ export const SchedulePlanningForecastResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -1616,7 +1625,8 @@ export const ListPlanningForecastSchedulesResponseItem = zod.object({
   "ownerLabel": zod.string(),
   "reviewFolder": zod.string(),
   "createdAt": zod.string(),
-  "lastRunAt": zod.string().nullish()
+  "lastRunAt": zod.string().nullish(),
+  "nextRunAt": zod.string().nullish().describe('When the server-side scheduler will fire this schedule next.')
 })
 export const ListPlanningForecastSchedulesResponse = zod.array(ListPlanningForecastSchedulesResponseItem)
 
@@ -1646,7 +1656,8 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "ownerLabel": zod.string(),
   "reviewFolder": zod.string(),
   "createdAt": zod.string(),
-  "lastRunAt": zod.string().nullish()
+  "lastRunAt": zod.string().nullish(),
+  "nextRunAt": zod.string().nullish().describe('When the server-side scheduler will fire this schedule next.')
 }),
   "reviewItem": zod.object({
   "id": zod.string(),
@@ -1700,6 +1711,15 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -1952,7 +1972,11 @@ export const GenerateBody = zod.object({
   "status": zod.string().nullish().describe('answered | conflict (display hint only; never trusted for access)'),
   "historic": zod.boolean().nullish(),
   "lowConfidence": zod.boolean().nullish()
-})]).optional().describe('Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source\'s accessibility server-side under the CURRENT persona\'s clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself.\n')
+})]).optional().describe('Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source\'s accessibility server-side under the CURRENT persona\'s clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself.\n'),
+  "attachments": zod.union([zod.null(),zod.object({
+  "pastedText": zod.string().nullish().describe('Pasted brief or data provided by the user.'),
+  "links": zod.array(zod.string()).optional().describe('Governed source links or references named by the user.')
+})]).optional().describe('User-provided brief attachments (pasted brief\/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval.\n')
 })
 
 export const GenerateResponse = zod.object({
@@ -1997,6 +2021,15 @@ export const GenerateResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -2123,6 +2156,15 @@ export const RefineDocumentBody = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -2245,6 +2287,15 @@ export const RefineDocumentResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -2368,6 +2419,15 @@ export const CheckDocumentBody = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -2536,7 +2596,8 @@ export const ListSchedulesResponseItem = zod.object({
   "ownerLabel": zod.string(),
   "reviewFolder": zod.string(),
   "createdAt": zod.string(),
-  "lastRunAt": zod.string().nullish()
+  "lastRunAt": zod.string().nullish(),
+  "nextRunAt": zod.string().nullish().describe('When the server-side scheduler will fire this schedule next.')
 })
 export const ListSchedulesResponse = zod.array(ListSchedulesResponseItem)
 
@@ -2577,7 +2638,8 @@ export const CreateScheduleResponse = zod.object({
   "ownerLabel": zod.string(),
   "reviewFolder": zod.string(),
   "createdAt": zod.string(),
-  "lastRunAt": zod.string().nullish()
+  "lastRunAt": zod.string().nullish(),
+  "nextRunAt": zod.string().nullish().describe('When the server-side scheduler will fire this schedule next.')
 })
 
 
@@ -2640,6 +2702,15 @@ export const RunScheduleResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -2773,6 +2844,15 @@ export const ListReviewItemsResponseItem = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -2902,6 +2982,15 @@ export const ApproveReviewItemBody = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -3031,6 +3120,15 @@ export const ApproveReviewItemResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -3171,6 +3269,15 @@ export const ListVersionsResponseItem = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -3296,6 +3403,15 @@ export const SaveVersionBody = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -3433,6 +3549,15 @@ export const SaveVersionResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -3558,6 +3683,15 @@ export const ExportDocumentBody = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -3688,6 +3822,15 @@ export const RecordEditorialReviewBody = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -3834,6 +3977,26 @@ export const BriefChatResponse = zod.object({
 
 
 /**
+ * When a scheduled run lands a draft in the review inbox, the Hub records a simulated Teams message and email to the schedule owner. No real message is sent — these records make the hand-off auditable.
+ * @summary Simulated Teams/email delivery records for scheduled drafts
+ */
+export const ListDeliveriesResponseItem = zod.object({
+  "id": zod.string(),
+  "channel": zod.string().describe('teams | email (simulated delivery)'),
+  "recipientRoleId": zod.string(),
+  "recipientLabel": zod.string(),
+  "scheduleId": zod.string(),
+  "scheduleName": zod.string(),
+  "reviewItemId": zod.string(),
+  "reviewFolder": zod.string(),
+  "subject": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string()
+})
+export const ListDeliveriesResponse = zod.array(ListDeliveriesResponseItem)
+
+
+/**
  * @summary Notifications for the scheduled-draft review flow
  */
 export const ListNotificationsResponseItem = zod.object({
@@ -3903,7 +4066,11 @@ export const StartGenerateJobBody = zod.object({
   "status": zod.string().nullish().describe('answered | conflict (display hint only; never trusted for access)'),
   "historic": zod.boolean().nullish(),
   "lowConfidence": zod.boolean().nullish()
-})]).optional().describe('Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source\'s accessibility server-side under the CURRENT persona\'s clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself.\n')
+})]).optional().describe('Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source\'s accessibility server-side under the CURRENT persona\'s clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself.\n'),
+  "attachments": zod.union([zod.null(),zod.object({
+  "pastedText": zod.string().nullish().describe('Pasted brief or data provided by the user.'),
+  "links": zod.array(zod.string()).optional().describe('Governed source links or references named by the user.')
+})]).optional().describe('User-provided brief attachments (pasted brief\/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval.\n')
 })
 
 export const StartGenerateJobResponse = zod.object({
@@ -3953,6 +4120,15 @@ export const StartGenerateJobResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -4082,6 +4258,15 @@ export const StartRefineJobBody = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -4209,6 +4394,15 @@ export const StartRefineJobResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -4343,6 +4537,15 @@ export const GetGenerationJobResponse = zod.object({
   "value": zod.number()
 }))
 })),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),

@@ -74,6 +74,19 @@ export interface ChartSpec {
   points: ChartPoint[];
 }
 
+// A cited data table built from a governed numeric series that passed the
+// destination gate — the tabular twin of ChartSpec, carrying the same
+// citation binding so every row is traceable to a governed source.
+export interface TableSpec {
+  id: string;
+  title: string;
+  unit: string;
+  source: string;
+  citationId?: string | null;
+  columns: string[];
+  rows: string[][];
+}
+
 export interface SpokespersonNote {
   question: string;
   guidance: string;
@@ -164,6 +177,7 @@ export interface GeneratedDraft {
   sections: DraftSection[];
   spokesperson: SpokespersonNote[];
   charts: ChartSpec[];
+  tables: TableSpec[];
   citations: DraftCitation[];
   disclaimers: DraftDisclaimer[];
   // Internal per-answer notes for the Q&A section (press shape). Carried
@@ -232,6 +246,12 @@ export interface GenerateInput {
   // so a stale or tampered payload can never surface content the persona
   // could not retrieve itself.
   askContext?: AskHandoffContext | null;
+  // User-provided brief attachments (pasted brief/data, governed source
+  // links). Injected into the prompt as clearly labeled user-provided context
+  // ONLY — never treated as governed evidence, never citeable, and never
+  // folded into the retrieval query (coverage is a ratio over query idf mass,
+  // so pasted prose would dilute it and starve legitimate sources).
+  attachments?: BriefAttachments | null;
 }
 
 export interface AskHandoffContext {
@@ -240,6 +260,11 @@ export interface AskHandoffContext {
   status?: string | null;
   historic?: boolean | null;
   lowConfidence?: boolean | null;
+}
+
+export interface BriefAttachments {
+  pastedText?: string | null;
+  links?: string[];
 }
 
 export interface KpiReportContext {
@@ -569,6 +594,7 @@ async function compose(
       sections: [],
       spokesperson: [],
       charts: [],
+      tables: [],
       citations: [],
       disclaimers: [],
       axisIds: [],
@@ -612,6 +638,7 @@ async function compose(
       sections: [],
       spokesperson: [],
       charts: [],
+      tables: [],
       citations: [],
       disclaimers: [],
       axisIds: [],
@@ -657,6 +684,20 @@ async function compose(
     source: s.source,
     citationId: docIndexByDoc.has(s.docId) ? `S${docIndexByDoc.get(s.docId)}` : null,
     points: s.points,
+  }));
+
+  // ---- Cited data tables (same permitted series, tabular form) ---------------
+  // Built from the SAME destination-gated series as the charts, so the table
+  // can never carry a figure the chart gate would have excluded. citationId
+  // binds each table to its governed source and is renumbered with the charts.
+  const tables: TableSpec[] = series.slice(0, 2).map((s) => ({
+    id: newId("table"),
+    title: s.label,
+    unit: s.unit,
+    source: s.source,
+    citationId: docIndexByDoc.has(s.docId) ? `S${docIndexByDoc.get(s.docId)}` : null,
+    columns: ["Period", s.unit ? `Value (${s.unit})` : "Value"],
+    rows: s.points.map((p) => [p.label, String(p.value)]),
   }));
 
   // ---- Internal guidance (persona-gated, always internalOnly) ----------------
@@ -749,6 +790,25 @@ async function compose(
     })
     .join("; ");
 
+  // User-provided attachments: labeled context only. Deliberately excluded
+  // from retrievalQuery (see comment on GenerateInput.attachments) and framed
+  // in the prompt as never-citeable background material.
+  const att = input.attachments ?? null;
+  const attachmentParts: string[] = [];
+  const pasted = att?.pastedText?.trim();
+  if (pasted) {
+    attachmentParts.push(`Pasted brief/data from the requester:\n${pasted.slice(0, 4000)}`);
+  }
+  const attLinks = (att?.links ?? []).map((l) => l.trim()).filter(Boolean);
+  if (attLinks.length > 0) {
+    attachmentParts.push(
+      `Governed source references named by the requester (for orientation only — the numbered body sources above remain the only citeable evidence):\n${attLinks
+        .map((l) => `- ${l}`)
+        .join("\n")}`,
+    );
+  }
+  const attachmentBlock = attachmentParts.length ? attachmentParts.join("\n\n") : null;
+
   const refineBlock =
     instruction && baseDraft
       ? `\n\nThis is a REFINE request. Apply this instruction to the existing draft, keeping everything else intact and still cited: "${instruction}".\n\nExisting draft sections (JSON):\n${JSON.stringify(
@@ -816,7 +876,11 @@ ${boiler ? boiler.text : "None available."}${
   }
 
 Internal guidance for spokesperson notes only (do NOT place in the published body):
-${guidanceBlock}
+${guidanceBlock}${
+    attachmentBlock
+      ? `\n\nUser-provided context from the requester (NOT governed evidence — background only. NEVER cite it with [S#] or [G#]; never present its figures or claims as governed facts. Where it conflicts with the numbered body sources, the body sources win; if a point exists only here and no source supports it, either omit it or state honestly that it is not covered by approved material):\n${attachmentBlock}`
+      : ""
+  }
 
 Return the document as JSON in exactly this shape:
 ${jsonShape}${refineBlock}`;
@@ -952,8 +1016,8 @@ ${jsonShape}${refineBlock}`;
         )
       : priorNotes;
 
-  // Chart citation ids also need renumbering.
-  for (const c of charts) {
+  // Chart and table citation ids also need renumbering.
+  for (const c of [...charts, ...tables]) {
     if (c.citationId) {
       const oldN = Number(c.citationId.replace(/\D/g, ""));
       const mapped = oldToNew.get(oldN);
@@ -1070,6 +1134,7 @@ ${jsonShape}${refineBlock}`;
     sections,
     spokesperson,
     charts,
+    tables,
     citations,
     disclaimers,
     qaNotes,

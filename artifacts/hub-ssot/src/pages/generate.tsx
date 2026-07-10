@@ -19,6 +19,7 @@ import {
   useBriefChat,
   useListNotifications,
   useMarkNotificationsRead,
+  useListDeliveries,
   useRecordEditorialReview,
   useExportDocument,
   type GeneratedDraft,
@@ -29,6 +30,8 @@ import {
   type NotificationRecord,
   type DraftSection,
   type ChartSpec,
+  type TableSpec,
+  type BriefAttachments,
   type Citation,
   type GuardianResult,
   type DocumentShape,
@@ -172,6 +175,7 @@ type BriefValues = {
   eventDate: string | null;
   kpiContext: KpiReportContext | null;
   askContext: AskHandoffContext | null;
+  attachments: BriefAttachments | null;
 };
 
 // Ask → Generate handoff payload written by the Ask page under
@@ -303,6 +307,80 @@ function DraftChart({ chart }: { chart: ChartSpec }) {
               </BarChart>
             )}
           </ResponsiveContainer>
+        </Stack>
+      </Box>
+    </Boxed>
+  );
+}
+
+// ---- Cited data table ----------------------------------------------------------
+function DraftTable({ table }: { table: TableSpec }) {
+  return (
+    <Boxed>
+      <Box padding={16}>
+        <Stack space={12}>
+          <Inline space={8} alignItems="center">
+            <div style={{ flex: 1 }}>
+              <Stack space={2}>
+                <Text2 medium color={c.textPrimary}>
+                  {table.title}
+                </Text2>
+                <Text1 regular color={c.textSecondary}>
+                  {table.unit} • {table.source}
+                </Text1>
+              </Stack>
+            </div>
+            {table.citationId && <Tag type="promo">{table.citationId}</Tag>}
+          </Inline>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr>
+                  {table.columns.map((col, i) => (
+                    <th
+                      key={i}
+                      style={{
+                        textAlign: i === 0 ? "left" : "right",
+                        padding: "8px 12px",
+                        backgroundColor: c.backgroundAlternative,
+                        borderBottom: `2px solid ${c.divider}`,
+                      }}
+                    >
+                      <Text1 medium color={c.textSecondary}>
+                        {col}
+                      </Text1>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {table.rows.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((value, ci) => (
+                      <td
+                        key={ci}
+                        style={{
+                          textAlign: ci === 0 ? "left" : "right",
+                          padding: "8px 12px",
+                          borderBottom: `1px solid ${c.divider}`,
+                        }}
+                      >
+                        {ci === 0 ? (
+                          <Text2 medium color={c.textPrimary}>
+                            {value}
+                          </Text2>
+                        ) : (
+                          <Text2 regular color={c.textPrimary}>
+                            {value}
+                          </Text2>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Stack>
       </Box>
     </Boxed>
@@ -735,6 +813,14 @@ function DocumentCanvas({
               </Stack>
             )}
 
+            {(draft.tables ?? []).length > 0 && (
+              <Stack space={16}>
+                {(draft.tables ?? []).map((t) => (
+                  <DraftTable key={t.id} table={t} />
+                ))}
+              </Stack>
+            )}
+
             {draft.citations.length > 0 && (
               <Stack space={16}>
                 <Divider />
@@ -815,6 +901,8 @@ function BriefForm({
   const [format, setFormat] = React.useState(formatOptions[0].value);
   const [kpiContext, setKpiContext] = React.useState<KpiReportContext | null>(null);
   const [askDraft, setAskDraft] = React.useState<AskDraftHandoff | null>(null);
+  const [attachmentText, setAttachmentText] = React.useState("");
+  const [attachmentLinksText, setAttachmentLinksText] = React.useState("");
 
   const changeAudience = (a: Audience) => {
     setAudience(a);
@@ -945,7 +1033,18 @@ function BriefForm({
           lowConfidence: askDraft.lowConfidence ?? null,
         }
       : null,
+    attachments: buildAttachments(),
   });
+
+  const buildAttachments = (): BriefAttachments | null => {
+    const pastedText = attachmentText.trim();
+    const links = attachmentLinksText
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (!pastedText && links.length === 0) return null;
+    return { pastedText: pastedText || null, links };
+  };
 
   const submitBrief = () => {
     if (!askedFollowUp && briefIsThin) {
@@ -967,6 +1066,51 @@ function BriefForm({
     applySuggested(fields);
     setMode("form");
   };
+
+  // Brief attachments panel — shared between the structured form and the
+  // guided chat. Attachments travel as labeled prompt context only: they are
+  // never cited and never enter governed retrieval.
+  const attachmentsPanel = (
+    <div
+      style={{
+        borderRadius: skinVars.borderRadii.container,
+        border: `1px solid ${c.divider}`,
+        backgroundColor: c.backgroundContainer,
+        padding: 20,
+      }}
+    >
+      <Stack space={12}>
+        <Inline space={8} alignItems="center">
+          <IconDocumentOtherRegular size={16} color={c.brand} />
+          <Text2 medium color={c.textPrimary}>
+            Brief attachments (optional)
+          </Text2>
+        </Inline>
+        <TextField
+          name="attachmentText"
+          label="Pasted brief or data"
+          placeholder="Paste an existing brief, notes or figures the engine should be aware of"
+          value={attachmentText}
+          onChangeValue={setAttachmentText}
+          multiline
+          fullWidth
+        />
+        <TextField
+          name="attachmentLinks"
+          label="Source links (one per line)"
+          placeholder={"e.g. https://intranet.telefonica.com/brand/q1-brief"}
+          value={attachmentLinksText}
+          onChangeValue={setAttachmentLinksText}
+          multiline
+          fullWidth
+        />
+        <Text1 regular color={c.textSecondary}>
+          Attachments are given to the engine as background context only. They are never cited and
+          never enter the governed evidence — only approved corpus sources back the draft's claims.
+        </Text1>
+      </Stack>
+    </div>
+  );
 
   return (
     <div style={{ maxWidth: 768, margin: "0 auto", width: "100%" }}>
@@ -1010,7 +1154,10 @@ function BriefForm({
         </div>
 
         {mode === "chat" ? (
-          <GuidedChat onComplete={handleChatComplete} />
+          <Stack space={24}>
+            <GuidedChat onComplete={handleChatComplete} />
+            {attachmentsPanel}
+          </Stack>
         ) : (
         <Stack space={32}>
         <div
@@ -1309,6 +1456,8 @@ function BriefForm({
             ))}
           </Inline>
         </Stack>
+
+        {attachmentsPanel}
 
         {followUp ? (
           <div
@@ -1740,6 +1889,7 @@ export default function Generate() {
           eventDate: v.eventDate,
           kpiContext: v.kpiContext,
           askContext: v.askContext,
+          attachments: v.attachments,
         },
       },
       { onSuccess: (job) => setJobId(job.id) },
@@ -2638,6 +2788,7 @@ function ScheduledTab({
 }) {
   const { roleId } = useApp();
   const { data: axes } = useListAxes();
+  const { data: deliveries } = useListDeliveries();
   const [name, setName] = React.useState("");
   const [topic, setTopic] = React.useState("");
   const [shape, setShape] = React.useState<Shape>("messaging");
@@ -2815,6 +2966,9 @@ function ScheduledTab({
                         <Text1 regular color={c.textSecondary}>
                           Owner: {s.ownerLabel}
                           {s.lastRunAt ? ` • Last run ${new Date(s.lastRunAt).toLocaleString()}` : " • Never run"}
+                          {s.nextRunAt
+                            ? ` • Next automatic run ${new Date(s.nextRunAt).toLocaleString()}`
+                            : ""}
                         </Text1>
                       </Stack>
                     </div>
@@ -2822,6 +2976,43 @@ function ScheduledTab({
                       Run now
                     </ButtonSecondary>
                   </Inline>
+                </Box>
+              </Boxed>
+            ))}
+          </Stack>
+
+          <Stack space={12}>
+            <Stack space={4}>
+              <Title3>Delivery log</Title3>
+              <Text2 regular color={c.textSecondary}>
+                When a scheduled run lands in the review inbox, the Hub records a simulated Teams
+                message and email to the schedule owner. No real message leaves the system.
+              </Text2>
+            </Stack>
+            {(!deliveries || deliveries.length === 0) && (
+              <Text1 regular color={c.textSecondary}>
+                No deliveries yet — they appear here after a scheduled run completes.
+              </Text1>
+            )}
+            {deliveries?.map((d) => (
+              <Boxed key={d.id}>
+                <Box padding={16}>
+                  <Stack space={4}>
+                    <Inline space={8} alignItems="center" wrap>
+                      <Tag type={d.channel === "teams" ? "promo" : "info"}>
+                        {d.channel === "teams" ? "Teams" : "Email"}
+                      </Tag>
+                      <Text2 medium color={c.textPrimary}>
+                        {d.subject}
+                      </Text2>
+                    </Inline>
+                    <Text1 regular color={c.textSecondary}>
+                      To {d.recipientLabel} • {d.scheduleName} • {new Date(d.createdAt).toLocaleString()}
+                    </Text1>
+                    <Text2 regular color={c.textSecondary}>
+                      {d.message}
+                    </Text2>
+                  </Stack>
                 </Box>
               </Boxed>
             ))}

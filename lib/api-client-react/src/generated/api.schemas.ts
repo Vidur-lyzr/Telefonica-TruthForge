@@ -163,6 +163,17 @@ export interface ChartSpec {
   points: ChartPoint[];
 }
 
+export interface TableSpec {
+  id: string;
+  title: string;
+  unit: string;
+  source: string;
+  /** @nullable */
+  citationId?: string | null;
+  columns: string[];
+  rows: string[][];
+}
+
 export interface Citation {
   /** Marker referenced in the answer, e.g. S1 */
   id: string;
@@ -287,6 +298,8 @@ export interface GeneratedDraft {
   sections: DraftSection[];
   spokesperson: SpokespersonNote[];
   charts: ChartSpec[];
+  /** Cited data tables built from governed numeric series permitted for this draft's destination. */
+  tables?: TableSpec[];
   citations: Citation[];
   disclaimers: DraftDisclaimer[];
   /** Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination. */
@@ -1697,6 +1710,11 @@ export interface Schedule {
   createdAt: string;
   /** @nullable */
   lastRunAt?: string | null;
+  /**
+     * When the server-side scheduler will fire this schedule next.
+     * @nullable
+     */
+  nextRunAt?: string | null;
 }
 
 export interface PlanningRecurringForecastResult {
@@ -1803,6 +1821,16 @@ export interface AskHandoffContext {
   lowConfidence?: boolean | null;
 }
 
+export interface BriefAttachments {
+  /**
+     * Pasted brief or data provided by the user.
+     * @nullable
+     */
+  pastedText?: string | null;
+  /** Governed source links or references named by the user. */
+  links?: string[];
+}
+
 export interface GenerateInput {
   /** messaging | press | multiformat */
   shape: string;
@@ -1833,6 +1861,8 @@ export interface GenerateInput {
   kpiContext?: null | KpiReportContext;
   /** Structured Ask answer handoff from the Ask page. Carries the original question, the cited document ids and honest status flags only — never snippets or answer text. The engine re-derives every cited source's accessibility server-side under the CURRENT persona's clearance and the destination gate (fail closed), so a tampered or stale payload can never surface content the persona could not retrieve itself. */
   askContext?: null | AskHandoffContext;
+  /** User-provided brief attachments (pasted brief/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval. */
+  attachments?: null | BriefAttachments;
 }
 
 export interface EditorialReviewInput {
@@ -2009,6 +2039,21 @@ export interface CreateScheduleInput {
   frequency: string;
   ownerRoleId: string;
   reviewFolder?: string;
+}
+
+export interface DeliveryRecord {
+  id: string;
+  /** teams | email (simulated delivery) */
+  channel: string;
+  recipientRoleId: string;
+  recipientLabel: string;
+  scheduleId: string;
+  scheduleName: string;
+  reviewItemId: string;
+  reviewFolder: string;
+  subject: string;
+  message: string;
+  createdAt: string;
 }
 
 export interface VersionGovernance {

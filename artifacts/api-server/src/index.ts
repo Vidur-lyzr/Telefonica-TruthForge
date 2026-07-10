@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { hydrateLiveDocs } from "./data/liveIngest";
+import { startScheduler } from "./agent/scheduleRunner";
 
 const rawPort = process.env["PORT"];
 
@@ -25,4 +26,5 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  startScheduler();
 });

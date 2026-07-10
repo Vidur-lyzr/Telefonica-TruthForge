@@ -38,6 +38,7 @@ import type {
   CorpusStats,
   CreateScheduleInput,
   DataSource,
+  DeliveryRecord,
   DocFreshness,
   DocumentShape,
   EditorialReviewInput,
@@ -4602,6 +4603,84 @@ export const useBriefChat = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getBriefChatMutationOptions(options));
     }
+
+export const getListDeliveriesUrl = () => {
+
+
+
+
+  return `/api/generate/deliveries`
+}
+
+/**
+ * When a scheduled run lands a draft in the review inbox, the Hub records a simulated Teams message and email to the schedule owner. No real message is sent — these records make the hand-off auditable.
+ * @summary Simulated Teams/email delivery records for scheduled drafts
+ */
+export const listDeliveries = async ( options?: RequestInit): Promise<DeliveryRecord[]> => {
+
+  return customFetch<DeliveryRecord[]>(getListDeliveriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListDeliveriesQueryKey = () => {
+    return [
+    `/api/generate/deliveries`
+    ] as const;
+    }
+
+
+export const getListDeliveriesQueryOptions = <TData = Awaited<ReturnType<typeof listDeliveries>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDeliveries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListDeliveriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listDeliveries>>> = ({ signal }) => listDeliveries({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listDeliveries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListDeliveriesQueryResult = NonNullable<Awaited<ReturnType<typeof listDeliveries>>>
+export type ListDeliveriesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Simulated Teams/email delivery records for scheduled drafts
+ */
+
+export function useListDeliveries<TData = Awaited<ReturnType<typeof listDeliveries>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listDeliveries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListDeliveriesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListNotificationsUrl = () => {
 
