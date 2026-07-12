@@ -39,25 +39,28 @@ import SourcesArea from "@/components/data-center/sources";
 import IngestionArea from "@/components/data-center/ingestion";
 import GovernanceArea from "@/components/data-center/governance";
 import CorpusArea from "@/components/data-center/corpus";
+import { useApp } from "@/components/app-provider";
+import { DATA_I18N } from "@/i18n/data";
 
 type AreaId = "validation" | "sources" | "ingestion" | "governance" | "corpus";
 
 type IconType = (props: IconProps) => React.JSX.Element;
 
-const AREAS: {
+const AREA_DEFS: {
   id: AreaId;
-  label: string;
   Icon: IconType;
 }[] = [
-  { id: "validation", label: "Validation queue", Icon: IconShieldRegular },
-  { id: "sources", label: "Sources", Icon: IconDatabaseConnectedRegular },
-  { id: "ingestion", label: "Ingestion", Icon: IconBoxRegular },
-  { id: "governance", label: "Governance", Icon: IconWorldDeviceRegular },
-  { id: "corpus", label: "Corpus", Icon: IconBookRegular },
+  { id: "validation", Icon: IconShieldRegular },
+  { id: "sources", Icon: IconDatabaseConnectedRegular },
+  { id: "ingestion", Icon: IconBoxRegular },
+  { id: "governance", Icon: IconWorldDeviceRegular },
+  { id: "corpus", Icon: IconBookRegular },
 ];
 
 function ActivityDrawer() {
   const { activity } = useDataCenter();
+  const { lang } = useApp();
+  const t = DATA_I18N[lang];
   const [open, setOpen] = React.useState(false);
 
   return (
@@ -67,13 +70,13 @@ function ActivityDrawer() {
         onPress={() => setOpen(true)}
         StartIcon={IconStatusChartRegular}
       >
-        {activity.length > 0 ? `Session activity (${activity.length})` : "Session activity"}
+        {activity.length > 0 ? t.sessionActivityCount(activity.length) : t.sessionActivity}
       </ButtonSecondary>
 
       {open && (
         <Drawer
-          title="Session activity"
-          description="Every documentalist decision made here feeds the platform audit trail. This session is in-memory only for the demo."
+          title={t.sessionActivity}
+          description={t.activityDrawerDesc}
           onClose={() => setOpen(false)}
         >
           {activity.length === 0 ? (
@@ -85,7 +88,7 @@ function ActivityDrawer() {
                   </Circle>
                 </Inline>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  No actions yet this session.
+                  {t.noActionsYet}
                 </Text2>
               </Stack>
             </Box>
@@ -102,7 +105,7 @@ function ActivityDrawer() {
                           </Text2>
                         </div>
                         <Text1 regular color={skinVars.colors.textSecondary}>
-                          {formatTimestamp(a.timestamp)}
+                          {formatTimestamp(a.timestamp, lang)}
                         </Text1>
                       </Inline>
                       <Text1 medium color={skinVars.colors.brand}>
@@ -124,8 +127,10 @@ function ActivityDrawer() {
 }
 
 function DataCenterShell() {
+  const { lang } = useApp();
+  const t = DATA_I18N[lang];
   const [areaIndex, setAreaIndex] = React.useState(0);
-  const area = AREAS[areaIndex].id;
+  const area = AREA_DEFS[areaIndex].id;
 
   const { data: snapshot } = useGetIngestionSnapshot();
   const { data: validationItems } = useListValidationItems();
@@ -153,9 +158,9 @@ function DataCenterShell() {
   };
 
   const statusDescriptionParts: string[] = [];
-  if (openValidations > 0) statusDescriptionParts.push(`${openValidations} in the validation queue`);
-  if (openQuarantine > 0) statusDescriptionParts.push(`${openQuarantine} held in quarantine`);
-  if (overdue > 0) statusDescriptionParts.push(`${overdue} past review SLA`);
+  if (openValidations > 0) statusDescriptionParts.push(t.statusInQueue(openValidations));
+  if (openQuarantine > 0) statusDescriptionParts.push(t.statusInQuarantine(openQuarantine));
+  if (overdue > 0) statusDescriptionParts.push(t.statusPastSla(overdue));
 
   return (
     <ResponsiveLayout>
@@ -164,10 +169,9 @@ function DataCenterShell() {
           <Inline space={16} alignItems="center" wrap>
             <div style={{ flex: 1, minWidth: 240 }}>
               <Stack space={8}>
-                <Text8>Data Center</Text8>
+                <Text8>{t.pageTitle}</Text8>
                 <Text3 regular color={skinVars.colors.textSecondary}>
-                  The documentalist's desk — where sources, ingestion, validation and taxonomy are
-                  governed so every answer rests on trusted ground.
+                  {t.pageSubtitle}
                 </Text3>
               </Stack>
             </div>
@@ -184,15 +188,13 @@ function DataCenterShell() {
             }
             title={
               allClear
-                ? "Everything is caught up"
+                ? t.allCaughtUp
                 : totalBacklog > 0
-                  ? `${totalBacklog} ${totalBacklog === 1 ? "item needs" : "items need"} a documentalist`
-                  : "Corpus needs attention"
+                  ? t.itemsNeedDocumentalist(totalBacklog)
+                  : t.corpusNeedsAttention
             }
             description={
-              allClear
-                ? "Nothing in quarantine, no classifications awaiting a human, and every document within its review SLA."
-                : statusDescriptionParts.join(" · ")
+              allClear ? t.allClearDesc : statusDescriptionParts.join(" · ")
             }
           />
 
@@ -200,10 +202,11 @@ function DataCenterShell() {
             <Tabs
               selectedIndex={areaIndex}
               onChange={setAreaIndex}
-              tabs={AREAS.map((a) => {
+              tabs={AREA_DEFS.map((a) => {
                 const badge = badgeFor(a.id);
+                const label = t.areas[a.id];
                 return {
-                  text: badge !== null ? `${a.label} (${badge})` : a.label,
+                  text: badge !== null ? `${label} (${badge})` : label,
                   Icon: a.Icon,
                 };
               })}

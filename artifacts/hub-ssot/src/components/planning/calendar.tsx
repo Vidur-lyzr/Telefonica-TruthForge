@@ -24,12 +24,12 @@ import {
   startOfMonth,
   startOfWeek,
   toISO,
-  TYPE_LABEL,
+  weekdayShortNames,
 } from "./utils";
+import { useApp } from "@/components/app-provider";
+import { PLANNING_I18N } from "@/i18n/planning";
 
 export type CalendarView = "month" | "week" | "day";
-
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function EventBlock({
   event,
@@ -40,12 +40,11 @@ function EventBlock({
   axes: StrategicAxis[] | undefined;
   onOpen: (id: string) => void;
 }) {
+  const { lang } = useApp();
+  const t = PLANNING_I18N[lang];
   if (event.restricted) {
     return (
-      <Touchable
-        onPress={() => onOpen(event.id)}
-        aria-label="Restricted — outside your clearance or area"
-      >
+      <Touchable onPress={() => onOpen(event.id)} aria-label={t.restrictedAria}>
         <div
           style={{
             width: "100%",
@@ -61,7 +60,7 @@ function EventBlock({
           <IconLockClosedRegular size={12} color={skinVars.colors.textSecondary} />
           <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             <Text1 medium color={skinVars.colors.textSecondary}>
-              Restricted
+              {t.restricted}
             </Text1>
           </div>
         </div>
@@ -73,7 +72,12 @@ function EventBlock({
   return (
     <Touchable
       onPress={() => onOpen(event.id)}
-      aria-label={`${event.title} — ${TYPE_LABEL[event.type] ?? event.type} · ${context} · synced from ${event.source} (read-only)`}
+      aria-label={t.eventAria({
+        title: event.title,
+        type: t.types[event.type] ?? event.type,
+        context,
+        source: event.source,
+      })}
     >
       <div
         style={{
@@ -146,6 +150,9 @@ function MonthView({
   today: Date;
   onOpen: (id: string) => void;
 }) {
+  const { lang } = useApp();
+  const t = PLANNING_I18N[lang];
+  const weekdays = weekdayShortNames(lang);
   const gridStart = startOfWeek(startOfMonth(anchor));
   const gridEnd = endOfWeek(endOfMonth(anchor));
   const days: Date[] = [];
@@ -168,7 +175,7 @@ function MonthView({
           borderBottom: `1px solid ${skinVars.colors.divider}`,
         }}
       >
-        {WEEKDAYS.map((w) => (
+        {weekdays.map((w) => (
           <div key={w} style={{ padding: "8px 12px", textAlign: "center" }}>
             <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
               {w}
@@ -234,7 +241,7 @@ function MonthView({
                 {dayEvents.length > 2 && (
                   <div style={{ padding: "0 4px" }}>
                     <Text1 regular color={skinVars.colors.textSecondary}>
-                      +{dayEvents.length - 2} more
+                      {t.moreCount(dayEvents.length - 2)}
                     </Text1>
                   </div>
                 )}
@@ -260,6 +267,9 @@ function WeekView({
   today: Date;
   onOpen: (id: string) => void;
 }) {
+  const { lang } = useApp();
+  const t = PLANNING_I18N[lang];
+  const weekdays = weekdayShortNames(lang);
   const start = startOfWeek(anchor);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   return (
@@ -290,7 +300,7 @@ function WeekView({
           >
             <Box paddingBottom={8}>
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                {WEEKDAYS[i]}
+                {weekdays[i]}
               </Text1>
               <Text3
                 medium
@@ -327,6 +337,8 @@ function DayView({
   axes: StrategicAxis[] | undefined;
   onOpen: (id: string) => void;
 }) {
+  const { lang } = useApp();
+  const t = PLANNING_I18N[lang];
   const dayEvents = eventsOnDay(events, anchor);
   return (
     <div
@@ -342,14 +354,14 @@ function DayView({
           {dayEvents.length === 0 && (
             <Box paddingY={24}>
               <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
-                No activity scheduled for this day.
+                {t.noActivityDay}
               </Text2>
             </Box>
           )}
           {dayEvents.map((e) => {
             if (e.restricted) {
               return (
-                <Touchable key={e.id} onPress={() => onOpen(e.id)} aria-label="Restricted activity">
+                <Touchable key={e.id} onPress={() => onOpen(e.id)} aria-label={t.restrictedActivity}>
                   <div
                     style={{
                       width: "100%",
@@ -364,7 +376,7 @@ function DayView({
                   >
                     <IconLockClosedRegular size={20} color={skinVars.colors.textSecondary} />
                     <Text2 medium color={skinVars.colors.textSecondary}>
-                      Restricted activity
+                      {t.restrictedActivity}
                     </Text2>
                   </div>
                 </Touchable>
@@ -404,15 +416,16 @@ function DayView({
                     </Inline>
                     <Box paddingTop={2}>
                       <Text2 regular color={skinVars.colors.textSecondary}>
-                        {TYPE_LABEL[e.type] ?? e.type} · {e.area} · {e.market} · {e.brand} ·{" "}
+                        {t.types[e.type] ?? e.type} · {e.area} · {e.market} · {e.brand} ·{" "}
                         {e.owner}
                       </Text2>
                     </Box>
                     <Box paddingTop={2}>
                       <Text1 regular color={skinVars.colors.textSecondary}>
                         {e.startDate}
-                        {e.endDate !== e.startDate ? ` – ${e.endDate}` : ""} · status:{" "}
-                        {e.status.replace("_", " ")} · source: {e.source} (read-only)
+                        {e.endDate !== e.startDate ? ` – ${e.endDate}` : ""} · {t.statusPrefix}{" "}
+                        {t.statuses[e.status] ?? e.status} · {t.sourcePrefix} {e.source} ({t.readOnly}
+                        )
                       </Text1>
                     </Box>
                   </div>

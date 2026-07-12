@@ -21,16 +21,12 @@ import {
   IconRefreshRegular,
   IconAlertRegular,
 } from "@telefonica/mistica";
+import { useApp } from "@/components/app-provider";
+import { ADMIN_I18N, localeFor } from "@/i18n/admin";
 
 type TagType = "promo" | "info" | "active" | "inactive" | "success" | "warning" | "error";
 
 const CLEARANCES = ["public", "private", "confidential", "off_the_record"] as const;
-const CLEARANCE_LABEL: Record<string, string> = {
-  public: "Public",
-  private: "Private",
-  confidential: "Confidential",
-  off_the_record: "Off the record",
-};
 
 function clearanceTagType(c: string): TagType {
   switch (c) {
@@ -47,8 +43,8 @@ function clearanceTagType(c: string): TagType {
   }
 }
 
-function formatTimestamp(ts: string): string {
-  return new Date(ts).toLocaleString(undefined, {
+function formatTimestamp(ts: string, locale: string): string {
+  return new Date(ts).toLocaleString(locale, {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -57,6 +53,10 @@ function formatTimestamp(ts: string): string {
 }
 
 export default function SourceSyncSection() {
+  const { lang } = useApp();
+  const full = ADMIN_I18N[lang];
+  const t = full.sync;
+  const locale = localeFor(lang);
   const syncQ = useGetSourceSyncState();
   const label = useSetSourceLabel();
   const run = useRunSourceSync();
@@ -75,7 +75,7 @@ export default function SourceSyncSection() {
         onSuccess: () => syncQ.refetch(),
         onError: (err) => {
           const data = (err as { data?: { error?: string } | null }).data;
-          setError(data?.error ?? "The label change could not be applied.");
+          setError(data?.error ?? t.labelChangeError);
         },
       },
     );
@@ -87,7 +87,7 @@ export default function SourceSyncSection() {
       onSuccess: () => syncQ.refetch(),
       onError: (err) => {
         const data = (err as { data?: { error?: string } | null }).data;
-        setError(data?.error ?? "The batch sync could not be run.");
+        setError(data?.error ?? t.batchSyncError);
       },
     });
   }
@@ -97,26 +97,23 @@ export default function SourceSyncSection() {
       <Stack space={4}>
         <Inline space={8} alignItems="center">
           <IconRefreshRegular color={skinVars.colors.brand} />
-          <Title3>Source-system sync</Title3>
+          <Title3>{t.title}</Title3>
         </Inline>
         <Text2 regular color={skinVars.colors.textSecondary}>
-          {state?.connector ?? "Simulated source connector"} — change a document's confidentiality
-          in the source system and watch it propagate to retrieval. Upgrades (more restrictive)
-          apply immediately, like a source webhook. Downgrades (less restrictive) wait for the next
-          batch sync run — the index fails closed, never open.
+          {t.intro(state?.connector ?? t.defaultConnector)}
         </Text2>
       </Stack>
 
       {error && (
         <Callout
           asset={<IconAlertRegular color={skinVars.colors.error} />}
-          title="Sync refused"
+          title={t.syncRefused}
           description={error}
         />
       )}
 
       <Table
-        heading={["Document", "Category", "Index enforces", "Source asserts", "Status"]}
+        heading={[t.colDocument, t.colCategory, t.colIndexEnforces, t.colSourceAsserts, t.colStatus]}
         content={(state?.docs ?? []).map((d) => [
           <Stack space={2} key={`${d.docId}-title`}>
             <Text2 medium color={skinVars.colors.textPrimary}>
@@ -130,26 +127,26 @@ export default function SourceSyncSection() {
             {d.category}
           </Tag>,
           <Tag type={clearanceTagType(d.indexLabel)} key={`${d.docId}-index`}>
-            {CLEARANCE_LABEL[d.indexLabel] ?? d.indexLabel}
+            {full.clearanceLabels[d.indexLabel] ?? d.indexLabel}
           </Tag>,
           <Select
             key={`${d.docId}-source`}
             name={`source-label-${d.docId}`}
-            label="Source label"
+            label={t.sourceLabelField}
             value={d.sourceLabel}
             disabled={label.isPending}
             onChangeValue={(v) => {
               if (v !== d.sourceLabel) changeLabel(d.docId, v);
             }}
-            options={CLEARANCES.map((cl) => ({ value: cl, text: CLEARANCE_LABEL[cl] }))}
+            options={CLEARANCES.map((cl) => ({ value: cl, text: full.clearanceLabels[cl] ?? cl }))}
           />,
           d.pending ? (
             <Tag type="warning" key={`${d.docId}-status`}>
-              Pending batch sync
+              {t.pendingBatchSync}
             </Tag>
           ) : (
             <Tag type="success" key={`${d.docId}-status`}>
-              In sync
+              {t.inSync}
             </Tag>
           ),
         ])}
@@ -162,17 +159,15 @@ export default function SourceSyncSection() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <Stack space={4}>
                   <Text2 medium color={skinVars.colors.textPrimary}>
-                    Pending downgrade deltas ({pending.length})
+                    {t.pendingDeltas(pending.length)}
                   </Text2>
                   <Text1 regular color={skinVars.colors.textSecondary}>
-                    {pending.length === 0
-                      ? "Nothing waiting. Downgrades queue here until a batch sync run applies them."
-                      : "These documents are still served under their stricter label until the batch sync runs."}
+                    {pending.length === 0 ? t.nothingWaiting : t.pendingBody}
                   </Text1>
                 </Stack>
               </div>
               <ButtonPrimary small onPress={runSync} disabled={run.isPending || pending.length === 0}>
-                {run.isPending ? "Running sync" : "Run batch sync now"}
+                {run.isPending ? t.runningSync : t.runBatchSyncNow}
               </ButtonPrimary>
             </Inline>
             {pending.map((d) => (
@@ -180,13 +175,13 @@ export default function SourceSyncSection() {
                 <Text2 medium color={skinVars.colors.textPrimary}>
                   {d.docTitle}
                 </Text2>
-                <Tag type={clearanceTagType(d.from)}>{CLEARANCE_LABEL[d.from] ?? d.from}</Tag>
+                <Tag type={clearanceTagType(d.from)}>{full.clearanceLabels[d.from] ?? d.from}</Tag>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  to
+                  {t.to}
                 </Text2>
-                <Tag type={clearanceTagType(d.to)}>{CLEARANCE_LABEL[d.to] ?? d.to}</Tag>
+                <Tag type={clearanceTagType(d.to)}>{full.clearanceLabels[d.to] ?? d.to}</Tag>
                 <Text1 regular color={skinVars.colors.textSecondary}>
-                  requested by {d.requestedBy} · {formatTimestamp(d.requestedAt)}
+                  {t.requestedBy(d.requestedBy, formatTimestamp(d.requestedAt, locale))}
                 </Text1>
               </Inline>
             ))}
@@ -194,15 +189,18 @@ export default function SourceSyncSection() {
               <Stack space={4}>
                 {runs.slice(0, 3).map((r) => (
                   <Text1 regular color={skinVars.colors.textSecondary} key={r.id}>
-                    Batch run {formatTimestamp(r.ranAt)} by {r.actor} — {r.appliedCount} delta
-                    {r.appliedCount === 1 ? "" : "s"} applied.
+                    {t.batchRun(formatTimestamp(r.ranAt, locale), r.actor, r.appliedCount)}
                   </Text1>
                 ))}
                 {applied.slice(0, 5).map((d) => (
                   <Text1 regular color={skinVars.colors.textSecondary} key={d.id}>
-                    {d.docTitle}: {CLEARANCE_LABEL[d.from] ?? d.from} to {CLEARANCE_LABEL[d.to] ?? d.to}{" "}
-                    via {d.mode === "webhook" ? "webhook (immediate)" : "batch sync"}
-                    {d.appliedAt ? ` · ${formatTimestamp(d.appliedAt)}` : ""}
+                    {t.appliedDelta(
+                      d.docTitle,
+                      full.clearanceLabels[d.from] ?? d.from,
+                      full.clearanceLabels[d.to] ?? d.to,
+                      d.mode === "webhook" ? t.modeWebhook : t.modeBatch,
+                      d.appliedAt ? formatTimestamp(d.appliedAt, locale) : "",
+                    )}
                   </Text1>
                 ))}
               </Stack>

@@ -15,8 +15,9 @@ import {
   type WikiEvidenceRef,
   type WikiRelatedPage,
 } from "@workspace/api-client-react";
-import { useApp } from "@/components/app-provider";
+import { useApp, type Lang } from "@/components/app-provider";
 import { KnowledgeGraph } from "@/components/wiki/knowledge-graph";
+import { WIKI_I18N } from "@/i18n/wiki";
 import {
   Box,
   Stack,
@@ -101,8 +102,8 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ConfidentialityBadge({ value }: { value: string }) {
-  return <Tag type={value === "public" ? "success" : "error"}>{clearanceLabel(value).toUpperCase()}</Tag>;
+function ConfidentialityBadge({ value, lang }: { value: string; lang: Lang }) {
+  return <Tag type={value === "public" ? "success" : "error"}>{clearanceLabel(value, lang).toUpperCase()}</Tag>;
 }
 
 function ValidityChip({ value }: { value: string }) {
@@ -175,12 +176,16 @@ function EvidenceRow({ ev, onOpen }: { ev: WikiEvidenceRef; onOpen: () => void }
 }
 
 function FilterSelect({
+  name,
   label,
+  allLabel,
   value,
   onChange,
   options,
 }: {
+  name: string;
   label: string;
+  allLabel: string;
   value: string;
   onChange: (value: string) => void;
   options: { value: string; label: string }[];
@@ -188,12 +193,12 @@ function FilterSelect({
   return (
     <div style={{ width: 150, flexShrink: 0 }}>
       <Select
-        name={`filter-${label}`}
+        name={`filter-${name}`}
         label={label}
         value={value}
         onChangeValue={onChange}
         options={[
-          { value: "all", text: `All ${label.toLowerCase() === "axis" ? "axes" : `${label.toLowerCase()}s`}` },
+          { value: "all", text: allLabel },
           ...options.map((o) => ({ value: o.value, text: o.label })),
         ]}
       />
@@ -281,7 +286,8 @@ function PositionText({
 }
 
 export default function Wiki() {
-  const { roleId } = useApp();
+  const { roleId, lang } = useApp();
+  const t = WIKI_I18N[lang];
   const axisColors = useAxisColors();
   const [tab, setTab] = React.useState<Tab>("map");
 
@@ -452,9 +458,9 @@ export default function Wiki() {
   };
 
   const tabs = [
-    { id: "map" as Tab, label: "Map", Icon: IconShareRegular },
-    { id: "pages" as Tab, label: "Pages", Icon: IconBookRegular },
-    { id: "sources" as Tab, label: "Sources", Icon: IconDocumentsRegular },
+    { id: "map" as Tab, label: t.tabs.map, Icon: IconShareRegular },
+    { id: "pages" as Tab, label: t.tabs.pages, Icon: IconBookRegular },
+    { id: "sources" as Tab, label: t.tabs.sources, Icon: IconDocumentsRegular },
   ];
   const tabIndex = tabs.findIndex((t) => t.id === tab);
 
@@ -471,18 +477,17 @@ export default function Wiki() {
         <Inline space={24} alignItems="flex-start" wrap>
           <div style={{ flex: 1, minWidth: 280 }}>
             <Stack space={4}>
-              <Title2 as="h1">Knowledge Wiki</Title2>
+              <Title2 as="h1">{t.title}</Title2>
               <Text2 regular color={MUTED}>
-                The compiled corporate memory. Every page, figure and claim is
-                traced to governed sources and filtered to your clearance.
+                {t.subtitle}
               </Text2>
             </Stack>
           </div>
           {stats && (
             <Inline space={12} alignItems="center">
-              <StatTile value={stats.factsResolved} label="Facts resolved" />
-              <StatTile value={stats.conflictsSettled} label="Conflicts settled" />
-              <StatTile value={stats.pagesRefined} label="Pages refined" />
+              <StatTile value={stats.factsResolved} label={t.stats.factsResolved} />
+              <StatTile value={stats.conflictsSettled} label={t.stats.conflictsSettled} />
+              <StatTile value={stats.pagesRefined} label={t.stats.pagesRefined} />
               <Eyebrow>{stats.windowLabel}</Eyebrow>
             </Inline>
           )}
@@ -516,37 +521,47 @@ export default function Wiki() {
               >
                 <Inline space={4} alignItems="center">
                   <IconArrowUpDownRegular size={14} color={MUTED} />
-                  <Eyebrow>Filter</Eyebrow>
+                  <Eyebrow>{t.filter.label}</Eyebrow>
                 </Inline>
                 <FilterSelect
-                  label="Axis"
+                  name="axis"
+                  label={t.filter.axis}
+                  allLabel={t.filter.allAxes}
                   value={filters.axis}
                   onChange={(v) => setFilter("axis", v)}
                   options={filterOptions.axis}
                 />
                 <FilterSelect
-                  label="Market"
+                  name="market"
+                  label={t.filter.market}
+                  allLabel={t.filter.allMarkets}
                   value={filters.market}
                   onChange={(v) => setFilter("market", v)}
                   options={filterOptions.market.map((v) => ({ value: v, label: v }))}
                 />
                 <FilterSelect
-                  label="Brand"
+                  name="brand"
+                  label={t.filter.brand}
+                  allLabel={t.filter.allBrands}
                   value={filters.brand}
                   onChange={(v) => setFilter("brand", v)}
                   options={filterOptions.brand.map((v) => ({ value: v, label: v }))}
                 />
                 <FilterSelect
-                  label="Clearance"
+                  name="confidentiality"
+                  label={t.filter.clearance}
+                  allLabel={t.filter.allClearances}
                   value={filters.confidentiality}
                   onChange={(v) => setFilter("confidentiality", v)}
                   options={filterOptions.confidentiality.map((v) => ({
                     value: v,
-                    label: clearanceLabel(v),
+                    label: clearanceLabel(v, lang),
                   }))}
                 />
                 <FilterSelect
-                  label="Language"
+                  name="language"
+                  label={t.filter.language}
+                  allLabel={t.filter.allLanguages}
                   value={filters.language}
                   onChange={(v) => setFilter("language", v)}
                   options={filterOptions.language.map((v) => ({
@@ -556,12 +571,12 @@ export default function Wiki() {
                 />
                 {activeFilterCount > 0 && (
                   <ButtonLink onPress={clearFilters}>
-                    {`Clear (${activeFilterCount})`}
+                    {t.filter.clear(activeFilterCount)}
                   </ButtonLink>
                 )}
                 <div style={{ marginLeft: "auto" }}>
                   <Text2 regular color={MUTED}>
-                    {`${filteredGraph.nodes.length} nodes`}
+                    {t.filter.nodes(filteredGraph.nodes.length)}
                   </Text2>
                 </div>
               </div>
@@ -601,8 +616,7 @@ export default function Wiki() {
                         </div>
                       </Inline>
                       <Text2 regular color={MUTED}>
-                        No governed material matches these filters. Clear a filter to
-                        widen the view.
+                        {t.filter.empty}
                       </Text2>
                     </Stack>
                   </div>
@@ -620,7 +634,7 @@ export default function Wiki() {
                   }}
                 >
                   <Stack space={4}>
-                    <Eyebrow>Legend</Eyebrow>
+                    <Eyebrow>{t.legend.title}</Eyebrow>
                     <Inline space={8} alignItems="center">
                       <span
                         style={{
@@ -632,7 +646,7 @@ export default function Wiki() {
                         }}
                       />
                       <Text1 regular color={NAVY}>
-                        Axis / page
+                        {t.legend.axisPage}
                       </Text1>
                     </Inline>
                     <Inline space={8} alignItems="center">
@@ -646,7 +660,7 @@ export default function Wiki() {
                         }}
                       />
                       <Text1 regular color={NAVY}>
-                        Figure / entity
+                        {t.legend.figureEntity}
                       </Text1>
                     </Inline>
                     <Inline space={8} alignItems="center">
@@ -661,7 +675,7 @@ export default function Wiki() {
                       />
                       <IconLockClosedRegular size={12} color={NAVY} />
                       <Text1 regular color={NAVY}>
-                        Restricted
+                        {t.legend.restricted}
                       </Text1>
                     </Inline>
                     <Inline space={8} alignItems="center">
@@ -669,7 +683,7 @@ export default function Wiki() {
                         <line x1="0" y1="3" x2="24" y2="3" stroke={BLUE} strokeWidth="2" />
                       </svg>
                       <Text1 regular color={NAVY}>
-                        Citation
+                        {t.legend.citation}
                       </Text1>
                     </Inline>
                     <Inline space={8} alignItems="center">
@@ -685,7 +699,7 @@ export default function Wiki() {
                         />
                       </svg>
                       <Text1 regular color={NAVY}>
-                        Relationship
+                        {t.legend.relationship}
                       </Text1>
                     </Inline>
                   </Stack>
@@ -708,10 +722,10 @@ export default function Wiki() {
                   <Stack space={16}>
                     <Inline space={0} alignItems="center">
                       <div style={{ flex: 1 }}>
-                        <Eyebrow>{selectedNode.kind.replace("_", " ")}</Eyebrow>
+                        <Eyebrow>{t.nodeKind[selectedNode.kind] ?? selectedNode.kind.replace("_", " ")}</Eyebrow>
                       </div>
                       <IconButton
-                        aria-label="Close"
+                        aria-label={t.panel.close}
                         onPress={() => setSelectedNodeId(null)}
                         Icon={IconCloseRegular}
                       />
@@ -724,7 +738,7 @@ export default function Wiki() {
                     </Inline>
                     <Inline space={8} wrap>
                       {selectedNode.confidentiality && (
-                        <ConfidentialityBadge value={selectedNode.confidentiality} />
+                        <ConfidentialityBadge value={selectedNode.confidentiality} lang={lang} />
                       )}
                       {selectedNode.validity && <ValidityChip value={selectedNode.validity} />}
                     </Inline>
@@ -751,7 +765,7 @@ export default function Wiki() {
 
                     {selectedNode.figure && selectedNode.figure.sources.length > 0 && (
                       <Stack space={8}>
-                        <Eyebrow>Agreeing sources</Eyebrow>
+                        <Eyebrow>{t.panel.agreeingSources}</Eyebrow>
                         {selectedNode.figure.sources.map((s) => (
                           <Touchable
                             key={s.docId}
@@ -796,7 +810,7 @@ export default function Wiki() {
                                 <IconFileTextRegular size={14} color={BLUE} />
                               )}
                               <Text2 regular color={NAVY} truncate>
-                                {s.locked ? "Restricted source" : s.docTitle}
+                                {s.locked ? t.panel.restrictedSource : s.docTitle}
                               </Text2>
                             </span>
                             <span
@@ -842,7 +856,7 @@ export default function Wiki() {
                       >
                         <IconShieldRegular size={16} color={MUTED} />
                         <Text2 regular color={MUTED}>
-                          This node is above your clearance. Only its existence is shown.
+                          {t.panel.restrictedNode}
                         </Text2>
                       </div>
                     )}
@@ -852,7 +866,7 @@ export default function Wiki() {
                         onPress={() => setOpenPageId(selectedNode.pageId ?? null)}
                         EndIcon={IconArrowRightRegular}
                       >
-                        Open compiled page
+                        {t.panel.openCompiledPage}
                       </ButtonPrimary>
                     )}
                     {selectedNode.docId && !selectedNode.locked && (
@@ -868,7 +882,7 @@ export default function Wiki() {
                         }}
                         EndIcon={IconDocumentsRegular}
                       >
-                        Inspect source
+                        {t.panel.inspectSource}
                       </ButtonSecondary>
                     )}
                   </Stack>
@@ -892,8 +906,7 @@ export default function Wiki() {
                       </div>
                     </Inline>
                     <Text2 regular color={MUTED}>
-                      Select any node to inspect its governance, figures and links.
-                      Drag nodes to explore the web of corporate memory.
+                      {t.panel.empty}
                     </Text2>
                   </Stack>
                 </div>
@@ -945,7 +958,7 @@ export default function Wiki() {
                         </div>
                         {p.refined && !p.locked && (
                           <Tag type="promo" Icon={IconStarRegular}>
-                            Refined
+                            {t.refined}
                           </Tag>
                         )}
                       </Inline>
@@ -956,7 +969,7 @@ export default function Wiki() {
                       <Inline space={8} alignItems="center">
                         <div style={{ flex: 1 }}>
                           <Inline space={8} alignItems="center">
-                            <ConfidentialityBadge value={p.confidentiality} />
+                            <ConfidentialityBadge value={p.confidentiality} lang={lang} />
                             <ValidityChip value={p.validity} />
                           </Inline>
                         </div>
@@ -1018,13 +1031,13 @@ export default function Wiki() {
                         </Text2>
                         <Text1 regular color={MUTED} truncate>
                           {l.locked
-                            ? "Restricted — above your clearance"
-                            : `${l.sourceFile ?? ""} • ${l.chunkCount ?? 0} chunks • ${l.owner}`}
+                            ? t.sourceRestricted
+                            : `${l.sourceFile ?? ""} • ${t.chunks(l.chunkCount ?? 0)} • ${l.owner}`}
                         </Text1>
                       </Stack>
                     </div>
                     <Inline space={8} alignItems="center">
-                      <ConfidentialityBadge value={l.confidentiality} />
+                      <ConfidentialityBadge value={l.confidentiality} lang={lang} />
                       <ValidityChip value={l.validity} />
                     </Inline>
                   </Touchable>
@@ -1055,14 +1068,14 @@ export default function Wiki() {
             >
               <TextField
                 name="ask"
-                label="Ask the compiled memory"
+                label={t.ask.label}
                 value={question}
                 onChangeValue={setQuestion}
                 fullWidth
               />
             </div>
             <IconButton
-              aria-label="Ask"
+              aria-label={t.ask.aria}
               Icon={IconSendRegular}
               onPress={handleAsk}
               disabled={!question.trim() || searching || !roleId}
@@ -1074,7 +1087,7 @@ export default function Wiki() {
       {/* Search results drawer */}
       {searchOpen && (
         <Drawer
-          title="Compiled memory"
+          title={t.search.title}
           description={question}
           onClose={() => setSearchOpen(false)}
           onDismiss={() => setSearchOpen(false)}
@@ -1090,7 +1103,7 @@ export default function Wiki() {
                   </div>
                 </Inline>
                 <Text2 medium color={NAVY} textAlign="center">
-                  Searching compiled pages...
+                  {t.search.searching}
                 </Text2>
               </Stack>
             </Box>
@@ -1111,7 +1124,7 @@ export default function Wiki() {
                   <IconAlertRegular size={24} color={skinVars.colors.warning} />
                   <Stack space={4}>
                     <Text3 medium color={NAVY}>
-                      No Evidence Found
+                      {t.search.noEvidence}
                     </Text3>
                     <Text2 regular color={NAVY}>
                       {searchResult.answer}
@@ -1133,7 +1146,7 @@ export default function Wiki() {
                   <IconShieldRegular size={24} color={skinVars.colors.error} />
                   <Stack space={4}>
                     <Text3 medium color={NAVY}>
-                      Permission Restricted
+                      {t.search.permissionRestricted}
                     </Text3>
                     <Text2 regular color={NAVY}>
                       {searchResult.answer}
@@ -1170,7 +1183,7 @@ export default function Wiki() {
                     >
                       <IconWaitClockRegular size={20} color={skinVars.colors.warning} />
                       <Text2 medium color={NAVY}>
-                        This answer draws on historic or superseded material.
+                        {t.search.historic}
                       </Text2>
                     </div>
                   )}
@@ -1184,7 +1197,7 @@ export default function Wiki() {
 
                   {searchResult.wikiLinks.length > 0 && (
                     <Inline space={8} alignItems="center" wrap>
-                      <Eyebrow>Pages:</Eyebrow>
+                      <Eyebrow>{t.search.pages}</Eyebrow>
                       {searchResult.wikiLinks.map((w) => (
                         <Touchable
                           key={w.id}
@@ -1219,7 +1232,7 @@ export default function Wiki() {
                       <Divider />
                       <Inline space={8} alignItems="center">
                         <IconFileTextRegular size={16} color={MUTED} />
-                        <Eyebrow>Evidence</Eyebrow>
+                        <Eyebrow>{t.search.evidence}</Eyebrow>
                       </Inline>
                       {searchResult.evidence.map((ev, i) => (
                         <EvidenceRow key={i} ev={ev} onOpen={() => setSnippet(ev)} />
@@ -1236,14 +1249,14 @@ export default function Wiki() {
       {/* Page detail drawer */}
       {openPageId && (
         <Drawer
-          title={pageQuery.data?.page?.title ?? "Compiled page"}
+          title={pageQuery.data?.page?.title ?? t.page.fallbackTitle}
           onClose={() => setOpenPageId(null)}
           onDismiss={() => setOpenPageId(null)}
         >
           {pageQuery.isLoading && (
             <Box paddingY={40}>
               <Text2 regular color={MUTED} textAlign="center">
-                Loading page...
+                {t.page.loading}
               </Text2>
             </Box>
           )}
@@ -1260,12 +1273,12 @@ export default function Wiki() {
               <IconLockClosedRegular size={24} color={skinVars.colors.error} />
               <Stack space={4}>
                 <Text3 medium color={NAVY}>
-                  Restricted page
+                  {t.page.restrictedTitle}
                 </Text3>
                 <Text2 regular color={NAVY}>
-                  {`This compiled page requires ${(
-                    pageQuery.data.requiredClearance ?? ""
-                  ).toUpperCase()} clearance.`}
+                  {t.page.requiresClearance(
+                    (pageQuery.data.requiredClearance ?? "").toUpperCase(),
+                  )}
                 </Text2>
               </Stack>
             </div>
@@ -1274,11 +1287,11 @@ export default function Wiki() {
             <Stack space={24}>
               <Stack space={8}>
                 <Inline space={8} alignItems="center" wrap>
-                  <ConfidentialityBadge value={pageQuery.data.page.confidentiality} />
+                  <ConfidentialityBadge value={pageQuery.data.page.confidentiality} lang={lang} />
                   <ValidityChip value={pageQuery.data.page.validity} />
                   {pageQuery.data.page.refined && (
                     <Tag type="promo" Icon={IconStarRegular}>
-                      Refined
+                      {t.refined}
                     </Tag>
                   )}
                 </Inline>
@@ -1297,7 +1310,7 @@ export default function Wiki() {
               >
                 <Stack space={8}>
                   <Text1 medium transform="uppercase" color={BLUE}>
-                    Position
+                    {t.page.position}
                   </Text1>
                   <PositionText
                     text={pageQuery.data.page.position}
@@ -1311,7 +1324,7 @@ export default function Wiki() {
 
               {pageQuery.data.page.resolvedFacts.length > 0 && (
                 <Stack space={12}>
-                  <Eyebrow>Resolved facts</Eyebrow>
+                  <Eyebrow>{t.page.resolvedFacts}</Eyebrow>
                   {pageQuery.data.page.resolvedFacts.map((f) => (
                     <div
                       key={f.id}
@@ -1340,7 +1353,7 @@ export default function Wiki() {
                         <Text1 regular color={MUTED}>
                           {f.resolution}
                         </Text1>
-                        <Eyebrow>{`Current: ${f.currentDocTitle} • Historic: ${f.historicDocTitle}`}</Eyebrow>
+                        <Eyebrow>{t.page.currentHistoric(f.currentDocTitle, f.historicDocTitle)}</Eyebrow>
                       </Stack>
                     </div>
                   ))}
@@ -1351,7 +1364,7 @@ export default function Wiki() {
                 <Stack space={12}>
                   <Inline space={8} alignItems="center">
                     <IconFileTextRegular size={16} color={MUTED} />
-                    <Eyebrow>Evidence</Eyebrow>
+                    <Eyebrow>{t.page.evidence}</Eyebrow>
                   </Inline>
                   {pageQuery.data.page.evidence.map((ev, i) => (
                     <EvidenceRow key={i} ev={ev} onOpen={() => setSnippet(ev)} />
@@ -1361,7 +1374,7 @@ export default function Wiki() {
 
               {pageQuery.data.page.openItems.length > 0 && (
                 <Stack space={8}>
-                  <Eyebrow>Open items & watch list</Eyebrow>
+                  <Eyebrow>{t.page.openItems}</Eyebrow>
                   {pageQuery.data.page.openItems.map((o) => (
                     <div
                       key={o.id}
@@ -1374,7 +1387,7 @@ export default function Wiki() {
                         borderRadius: RADIUS,
                       }}
                     >
-                      <Tag type={o.kind === "open" ? "warning" : "info"}>{o.kind}</Tag>
+                      <Tag type={o.kind === "open" ? "warning" : "info"}>{t.openItemKind[o.kind] ?? o.kind}</Tag>
                       <Stack space={2}>
                         <Text2 regular color={NAVY}>
                           {o.text}
@@ -1388,7 +1401,7 @@ export default function Wiki() {
 
               {pageQuery.data.page.relatedPages.length > 0 && (
                 <Stack space={8}>
-                  <Eyebrow>Related pages</Eyebrow>
+                  <Eyebrow>{t.page.relatedPages}</Eyebrow>
                   <Inline space={8} wrap>
                     {pageQuery.data.page.relatedPages.map((rel) => (
                       <Touchable
@@ -1423,7 +1436,7 @@ export default function Wiki() {
 
               {pageQuery.data.page.changeLog.length > 0 && (
                 <Stack space={8}>
-                  <Eyebrow>Change log</Eyebrow>
+                  <Eyebrow>{t.page.changeLog}</Eyebrow>
                   <Stack space={8}>
                     {pageQuery.data.page.changeLog.map((c) => (
                       <Inline key={c.id} space={12} alignItems="flex-start">
@@ -1457,19 +1470,19 @@ export default function Wiki() {
       {openLineageDoc && (
         <Drawer
           title={openLineageDoc.title}
-          description={`${openLineageDoc.sourceFile} • ${openLineageDoc.taxonomyVersion} • ${openLineageDoc.chunkCount} chunks`}
+          description={`${openLineageDoc.sourceFile} • ${openLineageDoc.taxonomyVersion} • ${t.chunks(openLineageDoc.chunkCount ?? 0)}`}
           onClose={() => setOpenLineageDoc(null)}
           onDismiss={() => setOpenLineageDoc(null)}
         >
           <Stack space={24}>
             <Inline space={8} alignItems="center">
-              <ConfidentialityBadge value={openLineageDoc.confidentiality} />
+              <ConfidentialityBadge value={openLineageDoc.confidentiality} lang={lang} />
               <ValidityChip value={openLineageDoc.validity} />
             </Inline>
 
             {openLineageDoc.ingestion && openLineageDoc.ingestion.length > 0 && (
               <Stack space={12}>
-                <Eyebrow>Ingestion lineage</Eyebrow>
+                <Eyebrow>{t.lineage.ingestion}</Eyebrow>
                 <div
                   style={{
                     position: "relative",
@@ -1519,7 +1532,7 @@ export default function Wiki() {
 
             {openLineageDoc.validation && openLineageDoc.validation.length > 0 && (
               <Stack space={12}>
-                <Eyebrow>Human validation</Eyebrow>
+                <Eyebrow>{t.lineage.humanValidation}</Eyebrow>
                 {openLineageDoc.validation.map((v, i) => (
                   <div
                     key={i}
@@ -1538,7 +1551,7 @@ export default function Wiki() {
                           </Text2>
                         </div>
                         <Tag type={v.status === "accepted" ? "success" : "warning"}>
-                          {v.status}
+                          {t.validationStatus[v.status] ?? v.status}
                         </Tag>
                       </Inline>
                       <Inline space={12} alignItems="center">
@@ -1587,7 +1600,7 @@ export default function Wiki() {
               </div>
               <Inline space={8} alignItems="center">
                 <ValidityChip value={snippet.validity} />
-                <ConfidentialityBadge value={snippet.confidentiality} />
+                <ConfidentialityBadge value={snippet.confidentiality} lang={lang} />
               </Inline>
             </Inline>
             <div
@@ -1599,7 +1612,7 @@ export default function Wiki() {
               }}
             >
               <Stack space={12}>
-                <Eyebrow>Extracted snippet</Eyebrow>
+                <Eyebrow>{t.snippet.extracted}</Eyebrow>
                 <Text3 regular color={NAVY}>
                   {`"${snippet.snippet}"`}
                 </Text3>

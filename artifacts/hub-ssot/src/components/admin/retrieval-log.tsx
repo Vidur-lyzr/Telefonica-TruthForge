@@ -21,6 +21,8 @@ import {
   skinVars,
   IconSearchRegular,
 } from "@telefonica/mistica";
+import { useApp } from "@/components/app-provider";
+import { ADMIN_I18N, localeFor } from "@/i18n/admin";
 
 type TagType = "promo" | "info" | "active" | "inactive" | "success" | "warning" | "error";
 
@@ -40,8 +42,8 @@ function statusTagType(s: string | null): TagType {
   }
 }
 
-function formatTimestamp(ts: string): string {
-  return new Date(ts).toLocaleString(undefined, {
+function formatTimestamp(ts: string, locale: string): string {
+  return new Date(ts).toLocaleString(locale, {
     day: "2-digit",
     month: "short",
     hour: "2-digit",
@@ -51,6 +53,9 @@ function formatTimestamp(ts: string): string {
 }
 
 export default function RetrievalLogSection() {
+  const { lang } = useApp();
+  const t = ADMIN_I18N[lang].log;
+  const locale = localeFor(lang);
   const [docInput, setDocInput] = React.useState("");
   const [roleInput, setRoleInput] = React.useState("");
   const [applied, setApplied] = React.useState<{ docId?: string; roleId?: string }>({});
@@ -77,33 +82,32 @@ export default function RetrievalLogSection() {
       <Stack space={4}>
         <Inline space={8} alignItems="center">
           <IconSearchRegular color={skinVars.colors.brand} />
-          <Title3>Retrieval audit log</Title3>
+          <Title3>{t.title}</Title3>
         </Inline>
         <Text2 regular color={skinVars.colors.textSecondary}>
-          Every retrieval the agents ran: who asked, under which governance filter, which chunks
-          were considered and which were blocked. Ids and scores only — never chunk text.
+          {t.intro}
         </Text2>
       </Stack>
 
       <Inline space={12} alignItems="flex-end" wrap>
         <TextField
           name="retrieval-doc-filter"
-          label="Filter by document id"
+          label={t.filterDocId}
           value={docInput}
           onChangeValue={setDocInput}
         />
         <TextField
           name="retrieval-role-filter"
-          label="Filter by persona id"
+          label={t.filterPersonaId}
           value={roleInput}
           onChangeValue={setRoleInput}
         />
         <ButtonSecondary small onPress={applyFilters}>
-          Apply
+          {t.apply}
         </ButtonSecondary>
         {(applied.docId || applied.roleId) && (
           <ButtonLink small onPress={clearFilters}>
-            Clear
+            {t.clear}
           </ButtonLink>
         )}
       </Inline>
@@ -112,15 +116,13 @@ export default function RetrievalLogSection() {
         <Boxed>
           <Box padding={24}>
             <Text2 regular color={skinVars.colors.textSecondary}>
-              {applied.docId || applied.roleId
-                ? "No retrievals match these filters."
-                : "No retrievals logged yet. Ask a question in Ask or generate a draft and the events will appear here."}
+              {applied.docId || applied.roleId ? t.noMatch : t.noneYet}
             </Text2>
           </Box>
         </Boxed>
       ) : (
         <Table
-          heading={["When", "Surface", "Persona", "Outcome", "Query", "Retrieval"]}
+          heading={[t.colWhen, t.colSurface, t.colPersona, t.colOutcome, t.colQuery, t.colRetrieval]}
           content={entries.map((e) => {
             const hits = e.events.reduce((n, ev) => n + ev.hits.length, 0);
             const blocked = e.events.reduce(
@@ -129,14 +131,14 @@ export default function RetrievalLogSection() {
             );
             return [
               <Text2 regular color={skinVars.colors.textSecondary} key={`${e.id}-when`}>
-                {formatTimestamp(e.timestamp)}
+                {formatTimestamp(e.timestamp, locale)}
               </Text2>,
               <Tag type={e.surface === "ask" ? "info" : "promo"} key={`${e.id}-surface`}>
-                {e.surface}
+                {t.surfaceLabels[e.surface] ?? e.surface}
               </Tag>,
               <Stack space={2} key={`${e.id}-persona`}>
                 <Text2 medium color={skinVars.colors.textPrimary}>
-                  {e.roleLabel ?? "System"}
+                  {e.roleLabel ?? t.system}
                 </Text2>
                 <Text1 regular color={skinVars.colors.textSecondary}>
                   {e.clearance}
@@ -144,18 +146,18 @@ export default function RetrievalLogSection() {
                 </Text1>
               </Stack>,
               <Tag type={statusTagType(e.status)} key={`${e.id}-status`}>
-                {e.status ?? "in flight"}
+                {e.status ? (t.statusLabels[e.status] ?? e.status) : t.inFlight}
               </Tag>,
               <Text2 regular color={skinVars.colors.textSecondary} key={`${e.id}-query`}>
                 {e.events[0]?.query ?? ""}
               </Text2>,
               <Inline space={8} alignItems="center" key={`${e.id}-hits`}>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  {hits} hit{hits === 1 ? "" : "s"}
-                  {blocked > 0 ? ` · ${blocked} blocked` : ""}
+                  {t.hits(hits)}
+                  {blocked > 0 ? t.blockedCount(blocked) : ""}
                 </Text2>
                 <ButtonLink small onPress={() => setDetail(e)}>
-                  Detail
+                  {t.detail}
                 </ButtonLink>
               </Inline>,
             ];
@@ -169,11 +171,15 @@ export default function RetrievalLogSection() {
             <Box paddingBottom={24}>
               <Stack space={16}>
                 <Stack space={4}>
-                  <Title2>Retrieval detail</Title2>
+                  <Title2>{t.retrievalDetail}</Title2>
                   <Text2 regular color={skinVars.colors.textSecondary}>
-                    {detail.roleLabel ?? "System"} · {detail.clearance}
-                    {detail.area ? ` · ${detail.area}` : ""} · {formatTimestamp(detail.timestamp)} ·
-                    outcome {detail.status ?? "in flight"}
+                    {t.detailSubtitle(
+                      detail.roleLabel ?? t.system,
+                      detail.clearance,
+                      detail.area ?? "",
+                      formatTimestamp(detail.timestamp, locale),
+                      detail.status ? (t.statusLabels[detail.status] ?? detail.status) : t.inFlight,
+                    )}
                   </Text2>
                 </Stack>
                 {detail.events.map((ev, i) => (
@@ -187,10 +193,10 @@ export default function RetrievalLogSection() {
                           </Text2>
                         </Inline>
                         <Text1 regular color={skinVars.colors.textSecondary}>
-                          Filter: {ev.filterExpr}
+                          {t.filterPrefix(ev.filterExpr)}
                         </Text1>
                         <Table
-                          heading={["Chunk", "Document", "Score", "Access"]}
+                          heading={[t.colChunk, ADMIN_I18N[lang].colDocument, t.colScore, t.colAccessHdr]}
                           content={ev.hits.map((h) => [
                             <Text1 regular color={skinVars.colors.textSecondary} key={`${h.chunkId}-c`}>
                               {h.chunkId}
@@ -202,7 +208,7 @@ export default function RetrievalLogSection() {
                               {h.score.toFixed(3)}
                             </Text1>,
                             <Tag type={h.accessible ? "success" : "error"} key={`${h.chunkId}-a`}>
-                              {h.accessible ? "Permitted" : "Blocked"}
+                              {h.accessible ? t.permitted : t.blocked}
                             </Tag>,
                           ])}
                         />

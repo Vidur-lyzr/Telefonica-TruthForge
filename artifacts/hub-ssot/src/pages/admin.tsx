@@ -15,7 +15,8 @@ import {
   KpiDefinitionVersion,
   KpiSourceConfig,
 } from "@workspace/api-client-react";
-import { useApp } from "@/components/app-provider";
+import { useApp, type Lang } from "@/components/app-provider";
+import { ADMIN_I18N, localeFor } from "@/i18n/admin";
 import CostModelSection from "@/components/admin/cost-model";
 import SourceSyncSection from "@/components/admin/source-sync";
 import RetrievalLogSection from "@/components/admin/retrieval-log";
@@ -132,10 +133,10 @@ function auditTagType(k: string): TagType {
   }
 }
 
-function formatTimestamp(iso: string) {
+function formatTimestamp(iso: string, lang: Lang) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("en-GB", {
+  return d.toLocaleString(localeFor(lang), {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -156,6 +157,8 @@ const emptyUserDraft = {
 };
 
 export default function AdminPage() {
+  const { lang } = useApp();
+  const t = ADMIN_I18N[lang];
   const { data: profiles } = useListAdminProfiles();
   const { data: seedUsers } = useListPlatformUsers();
   const { data: seedSchedules } = useListScheduledDocuments();
@@ -541,12 +544,10 @@ export default function AdminPage() {
       <Stack space={32}>
         {/* Header */}
         <Stack space={8}>
-          <Title2>Administration</Title2>
+          <Title2>{t.title}</Title2>
           <div style={{ maxWidth: 768 }}>
             <Text3 regular color={skinVars.colors.textSecondary}>
-              Run the platform without a vendor: register users, assign profiles, manage permissions
-              by area and confidentiality, and schedule recurring documents. This is the backend that
-              proves the platform is operable after implementation.
+              {t.intro}
             </Text3>
           </div>
         </Stack>
@@ -565,7 +566,7 @@ export default function AdminPage() {
               <Inline space={8} alignItems="center">
                 <IconShieldCheckedOkRegular color={skinVars.colors.inverse} />
                 <Text3 medium color={skinVars.colors.inverse}>
-                  Access = area × confidentiality
+                  {t.accessBanner}
                 </Text3>
               </Inline>
             </div>
@@ -575,14 +576,13 @@ export default function AdminPage() {
                   <Box padding={20}>
                     <Stack space={4}>
                       <Text1 medium color={skinVars.colors.brand} transform="uppercase">
-                        Set here
+                        {t.setHere}
                       </Text1>
                       <Text3 medium color={skinVars.colors.textPrimary}>
-                        Who you are
+                        {t.whoYouAre}
                       </Text3>
                       <Text2 regular color={skinVars.colors.textSecondary}>
-                        User → area (Comunicación / Marca / Gabinete) and profile. Managed on this
-                        page.
+                        {t.whoYouAreBody}
                       </Text2>
                     </Stack>
                   </Box>
@@ -591,14 +591,13 @@ export default function AdminPage() {
                   <Box padding={20}>
                     <Stack space={4}>
                       <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                        Inherited
+                        {t.inherited}
                       </Text1>
                       <Text3 medium color={skinVars.colors.textPrimary}>
-                        How sensitive the content is
+                        {t.howSensitive}
                       </Text3>
                       <Text2 regular color={skinVars.colors.textSecondary}>
-                        Confidentiality label inherited from each document's Microsoft sensitivity
-                        label — not set here.
+                        {t.howSensitiveBody}
                       </Text2>
                     </Stack>
                   </Box>
@@ -608,16 +607,15 @@ export default function AdminPage() {
                     <Stack space={4}>
                       <Inline space={4} alignItems="center">
                         <Text1 medium color={skinVars.colors.brand} transform="uppercase">
-                          Effective access
+                          {t.effectiveAccess}
                         </Text1>
                         <IconArrowLineRightRegular size={14} color={skinVars.colors.brand} />
                       </Inline>
                       <Text3 medium color={skinVars.colors.textPrimary}>
-                        What each person sees
+                        {t.whatEachSees}
                       </Text3>
                       <Text2 regular color={skinVars.colors.textSecondary}>
-                        Enforced at the index (early-binding) — the model never sees a chunk the user
-                        cannot access.
+                        {t.whatEachSeesBody}
                       </Text2>
                     </Stack>
                   </Box>
@@ -631,7 +629,7 @@ export default function AdminPage() {
         <Stack space={16}>
           <Inline space={8} alignItems="center">
             <IconLayersRegular color={skinVars.colors.brand} />
-            <Title3>Access profiles</Title3>
+            <Title3>{t.accessProfiles}</Title3>
           </Inline>
           <Grid columns={4} gap={16}>
             {(profiles ?? []).map((p) => {
@@ -661,8 +659,7 @@ export default function AdminPage() {
             })}
           </Grid>
           <Text2 regular color={skinVars.colors.textSecondary}>
-            Profiles can be added or unified as the organisation evolves — the four above are the RFP
-            baseline, not a fixed ceiling.
+            {t.profilesNote}
           </Text2>
         </Stack>
 
@@ -671,14 +668,14 @@ export default function AdminPage() {
           <Inline space="between" alignItems="center">
             <Inline space={8} alignItems="center">
               <IconUserAccountRegular color={skinVars.colors.brand} />
-              <Title3>Platform users</Title3>
+              <Title3>{t.platformUsers}</Title3>
             </Inline>
             <ButtonPrimary small onPress={openRegister} StartIcon={IconAddUserRegular}>
-              Register user
+              {t.registerUser}
             </ButtonPrimary>
           </Inline>
           <Table
-            heading={["Name", "Area", "Profile", "Confidentiality tier", ""]}
+            heading={[t.colName, t.colArea, t.colProfile, t.colConfidentialityTier, ""]}
             content={users.map((u) => [
               <Stack space={2} key={`${u.id}-name`}>
                 <Text2 medium color={skinVars.colors.textPrimary}>
@@ -695,10 +692,10 @@ export default function AdminPage() {
                 {profileLabel[u.profileId] ?? u.profileId}
               </Text2>,
               <Tag type={clearanceTagType(u.clearance)} key={`${u.id}-clearance`}>
-                {CLEARANCE_LABEL[u.clearance as Clearance] ?? u.clearance}
+                {t.clearanceLabels[u.clearance] ?? u.clearance}
               </Tag>,
               <ButtonLink small onPress={() => openEdit(u)} key={`${u.id}-edit`}>
-                Edit
+                {t.edit}
               </ButtonLink>,
             ])}
           />
@@ -710,22 +707,25 @@ export default function AdminPage() {
             <Stack space={4}>
               <Inline space={8} alignItems="center">
                 <IconEyeRegular color={skinVars.colors.brand} />
-                <Title3>Document visibility by user</Title3>
+                <Title3>{t.visibilityTitle}</Title3>
               </Inline>
               <Text2 regular color={skinVars.colors.textSecondary}>
-                Resolved live by the same access engine that filters retrieval — area and
-                confidentiality intersect, and every blocked row names which axis blocks it.
+                {t.visibilityIntro}
               </Text2>
             </Stack>
             <div style={{ minWidth: 260 }}>
               <Select
                 name="visibility-user"
-                label="Inspect user"
+                label={t.inspectUser}
                 value={effectiveVisibilityUserId}
                 onChangeValue={setVisibilityUserId}
                 options={(seedUsers ?? []).map((u) => ({
                   value: u.id,
-                  text: `${u.name} — ${u.area} · ${CLEARANCE_LABEL[u.clearance as Clearance] ?? u.clearance}`,
+                  text: t.userSelectOption(
+                    u.name,
+                    u.area,
+                    t.clearanceLabels[u.clearance] ?? u.clearance,
+                  ),
                 }))}
                 fullWidth
               />
@@ -736,17 +736,21 @@ export default function AdminPage() {
               variant="default"
               asset={<IconShieldCheckedOkRegular color={skinVars.colors.brand} />}
               title=""
-              description={`${visibility.user.name} can see ${visibility.visibleCount} of ${visibility.totalCount} governed documents. The rest never reach the model for this user.`}
+              description={t.visibilitySummary(
+                visibility.user.name,
+                visibility.visibleCount,
+                visibility.totalCount,
+              )}
             />
           )}
           {visibilityLoading && !visibility && (
             <Text2 regular color={skinVars.colors.textSecondary}>
-              Resolving visibility…
+              {t.resolvingVisibility}
             </Text2>
           )}
           {visibility && (
             <Table
-              heading={["Document", "Confidentiality", "Area scope", "Access", "Why"]}
+              heading={[t.colDocument, t.colConfidentiality, t.colAreaScope, t.colAccess, t.colWhy]}
               content={visibility.rows.map((r) => [
                 <Stack space={2} key={`${r.docId}-doc`}>
                   <Text2 medium color={skinVars.colors.textPrimary}>
@@ -757,16 +761,18 @@ export default function AdminPage() {
                   </Text1>
                 </Stack>,
                 <Tag type={clearanceTagType(r.confidentiality)} key={`${r.docId}-conf`}>
-                  {CLEARANCE_LABEL[r.confidentiality as Clearance] ?? r.confidentiality}
+                  {t.clearanceLabels[r.confidentiality] ?? r.confidentiality}
                 </Tag>,
                 <Text2 regular color={skinVars.colors.textSecondary} key={`${r.docId}-areas`}>
-                  {r.areas.length > 0 ? r.areas.join(" / ") : "All areas"}
+                  {r.areas.length > 0 ? r.areas.join(" / ") : t.allAreas}
                 </Text2>,
                 <Tag
                   type={r.visible ? "success" : r.blockedBy === "clearance" ? "error" : "warning"}
                   key={`${r.docId}-access`}
                 >
-                  {r.visible ? "visible" : `blocked · ${r.blockedBy}`}
+                  {r.visible
+                    ? t.visible
+                    : t.blockedBy(t.blockedAxisLabels[r.blockedBy ?? ""] ?? r.blockedBy)}
                 </Tag>,
                 <Text1 regular color={skinVars.colors.textSecondary} key={`${r.docId}-why`}>
                   {r.explanation}
@@ -781,28 +787,28 @@ export default function AdminPage() {
           <Inline space="between" alignItems="center">
             <Inline space={8} alignItems="center">
               <IconCalendarRegular color={skinVars.colors.brand} />
-              <Title3>Scheduled documents</Title3>
+              <Title3>{t.scheduledDocuments}</Title3>
             </Inline>
             <ButtonPrimary small onPress={() => setScheduleDialogOpen(true)} StartIcon={IconCalendarRegular}>
-              Schedule document
+              {t.scheduleDocument}
             </ButtonPrimary>
           </Inline>
           <Callout
             variant="default"
             asset={<IconFolderRegular color={skinVars.colors.brand} />}
             title=""
-            description="Human gate: every generated document lands in the owner's review folder and never auto-publishes. A person always reviews before anything is released."
+            description={t.humanGate}
           />
           {orphanedCount > 0 && (
             <Callout
               variant="default"
               asset={<IconAlertRegular color={skinVars.colors.error} />}
               title=""
-              description={`${orphanedCount} schedule${orphanedCount > 1 ? "s are" : " is"} orphaned — the source document is missing. These are flagged rather than run silently, so no output is generated from a broken source.`}
+              description={t.orphanWarning(orphanedCount)}
             />
           )}
           <Table
-            heading={["Template", "Frequency", "Language(s)", "Owner", "Review folder", "Status"]}
+            heading={[t.colTemplate, t.colFrequency, t.colLanguages, t.colOwner, t.colReviewFolder, t.colStatus]}
             content={schedules.map((s) => [
               <Stack space={2} key={`${s.id}-template`}>
                 <Text2 medium color={skinVars.colors.textPrimary}>
@@ -810,20 +816,20 @@ export default function AdminPage() {
                 </Text2>
                 {s.status === "orphaned" ? (
                   <Text1 medium color={skinVars.colors.error}>
-                    Source missing: {s.sourceDocId}
+                    {t.sourceMissing(s.sourceDocId ?? "")}
                   </Text1>
                 ) : s.sourceTitle ? (
                   <Text1 regular color={skinVars.colors.textSecondary}>
-                    Source: {s.sourceTitle}
+                    {t.sourcePrefix(s.sourceTitle)}
                   </Text1>
                 ) : (
                   <Text1 regular color={skinVars.colors.textSecondary}>
-                    No bound source
+                    {t.noBoundSource}
                   </Text1>
                 )}
               </Stack>,
               <Text2 regular color={skinVars.colors.textSecondary} key={`${s.id}-freq`}>
-                {s.frequency}
+                {t.frequencyOptions[s.frequency] ?? s.frequency}
               </Text2>,
               <Inline space={4} wrap key={`${s.id}-langs`}>
                 {s.languages.map((l) => (
@@ -839,7 +845,7 @@ export default function AdminPage() {
                 {s.reviewFolder}
               </Text2>,
               <Tag type={scheduleTagType(s.status)} key={`${s.id}-status`}>
-                {s.status}
+                {t.scheduleStatusLabels[s.status] ?? s.status}
               </Tag>,
             ])}
           />
@@ -850,19 +856,17 @@ export default function AdminPage() {
           <Inline space="between" alignItems="center">
             <Inline space={8} alignItems="center">
               <IconTargetRegular size={20} color={skinVars.colors.brand} />
-              <Title3>KPI definitions</Title3>
+              <Title3>{t.kpiDefinitions}</Title3>
             </Inline>
             <ButtonPrimary small onPress={openKpiCreate} StartIcon={IconTargetRegular}>
-              New KPI
+              {t.newKpi}
             </ButtonPrimary>
           </Inline>
           <Text2 regular color={skinVars.colors.textSecondary}>
-            The governed KPI catalogue behind the KPIs page. Every edit appends a new version —
-            nothing is overwritten — and the calculation engine picks up the latest definition on
-            the next query. Thresholds drive amber/critical status and the alert trail.
+            {t.kpiIntro}
           </Text2>
           <Table
-            heading={["KPI", "Version", "Target", "Amber below", "Critical below", "Owner", "Confidentiality", ""]}
+            heading={[t.colKpi, t.colVersion, t.colTarget, t.colAmberBelow, t.colCriticalBelow, t.colOwner, t.colConfidentiality, ""]}
             content={(kpiDefs ?? []).map((r) => {
               const v = latestOf(r);
               return [
@@ -891,14 +895,14 @@ export default function AdminPage() {
                   {v.owner}
                 </Text2>,
                 <Tag type={clearanceTagType(v.confidentiality)} key={`${r.id}-conf`}>
-                  {CLEARANCE_LABEL[v.confidentiality as Clearance] ?? v.confidentiality}
+                  {t.clearanceLabels[v.confidentiality] ?? v.confidentiality}
                 </Tag>,
                 <Inline space={8} alignItems="center" key={`${r.id}-actions`}>
                   <ButtonLink small onPress={() => openKpiEdit(r)}>
-                    Edit
+                    {t.edit}
                   </ButtonLink>
                   <ButtonLink small onPress={() => setKpiHistoryId(r.id)}>
-                    History
+                    {t.history}
                   </ButtonLink>
                 </Inline>,
               ];
@@ -920,18 +924,17 @@ export default function AdminPage() {
           <Stack space={4}>
             <Inline space={8} alignItems="center">
               <IconListRegular color={skinVars.colors.brand} />
-              <Title3>Audit trail</Title3>
+              <Title3>{t.auditTrail}</Title3>
             </Inline>
             <Text2 regular color={skinVars.colors.textSecondary}>
-              Read-only — this is exactly what the Audit profile sees: every permission change and
-              scheduled run, with actor, target and time.
+              {t.auditIntro}
             </Text2>
           </Stack>
           <Table
-            heading={["When", "Actor", "Action", "Target", "Detail"]}
+            heading={[t.colWhen, t.colActor, t.colAction, t.colTargetHdr, t.colDetail]}
             content={auditEntries.map((a) => [
               <Text2 regular color={skinVars.colors.textSecondary} key={`${a.id}-when`}>
-                {formatTimestamp(a.timestamp)}
+                {formatTimestamp(a.timestamp, lang)}
               </Text2>,
               <Text2 medium color={skinVars.colors.textPrimary} key={`${a.id}-actor`}>
                 {a.actor}
@@ -957,23 +960,22 @@ export default function AdminPage() {
             <Box paddingBottom={24}>
               <Stack space={16}>
                 <Stack space={4}>
-                  <Title2>{editingUserId ? "Edit user" : "Register user"}</Title2>
+                  <Title2>{editingUserId ? t.editUser : t.registerUser}</Title2>
                   <Text2 regular color={skinVars.colors.textSecondary}>
-                    Set who the person is — area and profile. Confidentiality is enforced at the
-                    index from inherited document labels.
+                    {t.userDialogIntro}
                   </Text2>
                 </Stack>
                 <Grid columns={2} gap={16}>
                   <TextField
                     name="user-name"
-                    label="Name"
+                    label={t.colName}
                     value={userDraft.name}
                     onChangeValue={(v) => setUserDraft({ ...userDraft, name: v })}
                     fullWidth
                   />
                   <TextField
                     name="user-email"
-                    label="Email"
+                    label={t.fieldEmail}
                     value={userDraft.email}
                     onChangeValue={(v) => setUserDraft({ ...userDraft, email: v })}
                     fullWidth
@@ -982,7 +984,7 @@ export default function AdminPage() {
                 <Grid columns={2} gap={16}>
                   <Select
                     name="user-area"
-                    label="Area"
+                    label={t.colArea}
                     value={userDraft.area}
                     onChangeValue={(v) => setUserDraft({ ...userDraft, area: v as Area })}
                     options={AREAS.map((a) => ({ value: a, text: a }))}
@@ -990,7 +992,7 @@ export default function AdminPage() {
                   />
                   <Select
                     name="user-profile"
-                    label="Profile"
+                    label={t.colProfile}
                     value={userDraft.profileId}
                     onChangeValue={(v) => setUserDraft({ ...userDraft, profileId: v as ProfileId })}
                     options={(profiles ?? []).map((p) => ({ value: p.id, text: p.label }))}
@@ -999,10 +1001,10 @@ export default function AdminPage() {
                 </Grid>
                 <Select
                   name="user-clearance"
-                  label="Confidentiality tier (max access)"
+                  label={t.confidentialityTierMax}
                   value={userDraft.clearance}
                   onChangeValue={(v) => setUserDraft({ ...userDraft, clearance: v as Clearance })}
-                  options={CLEARANCES.map((c) => ({ value: c, text: CLEARANCE_LABEL[c] }))}
+                  options={CLEARANCES.map((c) => ({ value: c, text: t.clearanceLabels[c] ?? c }))}
                   fullWidth
                 />
 
@@ -1011,26 +1013,25 @@ export default function AdminPage() {
                   <Box padding={16}>
                     <Stack space={8}>
                       <Text1 medium color={skinVars.colors.brand} transform="uppercase">
-                        Effective access preview
+                        {t.effectiveAccessPreview}
                       </Text1>
                       <Text2 regular color={skinVars.colors.textSecondary}>
-                        In{" "}
+                        {t.previewIn}
                         <Text2 as="span" medium color={skinVars.colors.textPrimary}>
                           {userDraft.area}
                         </Text2>
-                        , as{" "}
+                        {t.previewAs}
                         <Text2 as="span" medium color={skinVars.colors.textPrimary}>
                           {profileLabel[userDraft.profileId] ?? userDraft.profileId}
                         </Text2>
-                        , this person would see documents in their area up to and including{" "}
+                        {t.previewMid}
                         <Text2 as="span" medium color={skinVars.colors.textPrimary}>
-                          {CLEARANCE_LABEL[userDraft.clearance]}
-                        </Text2>{" "}
-                        sensitivity.
+                          {t.clearanceLabels[userDraft.clearance] ?? userDraft.clearance}
+                        </Text2>
+                        {t.previewSuffix}
                       </Text2>
                       <Text1 regular color={skinVars.colors.textSecondary}>
-                        Applied at retrieval (early-binding). Higher-sensitivity documents stay
-                        invisible.
+                        {t.appliedAtRetrieval}
                       </Text1>
                     </Stack>
                   </Box>
@@ -1038,9 +1039,9 @@ export default function AdminPage() {
 
                 <Inline space={16} alignItems="center">
                   <ButtonPrimary disabled={!draftValid} onPress={handleSaveUser}>
-                    {editingUserId ? "Save changes" : "Register user"}
+                    {editingUserId ? t.saveChanges : t.registerUser}
                   </ButtonPrimary>
-                  <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
+                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>
             </Box>
@@ -1056,20 +1057,22 @@ export default function AdminPage() {
               <Stack space={16}>
                 <Inline space={8} alignItems="center">
                   <IconAlertRegular color={skinVars.colors.warning} />
-                  <Title2>Confirm elevated access</Title2>
+                  <Title2>{t.confirmElevated}</Title2>
                 </Inline>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Granting{" "}
+                  {t.elevatedPre}
                   <Text2 as="span" medium color={skinVars.colors.textPrimary}>
-                    {CLEARANCE_LABEL[userDraft.clearance]}
-                  </Text2>{" "}
-                  access exposes sensitive material — for example, Finance-DE {CLEARANCE_LABEL[userDraft.clearance]}{" "}
-                  documents — to {userDraft.name || "this user"}. This widens what they can see across
-                  their area. Continue?
+                    {t.clearanceLabels[userDraft.clearance] ?? userDraft.clearance}
+                  </Text2>
+                  {t.elevatedMid1}
+                  {t.clearanceLabels[userDraft.clearance] ?? userDraft.clearance}
+                  {t.elevatedMid2}
+                  {userDraft.name || t.thisUser}
+                  {t.elevatedPost}
                 </Text2>
                 <Inline space={16} alignItems="center">
-                  <ButtonPrimary onPress={commitUser}>Grant access</ButtonPrimary>
-                  <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
+                  <ButtonPrimary onPress={commitUser}>{t.grantAccess}</ButtonPrimary>
+                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>
             </Box>
@@ -1084,23 +1087,23 @@ export default function AdminPage() {
             <Box paddingBottom={24}>
               <Stack space={16}>
                 <Stack space={4}>
-                  <Title2>{kpiCreateMode ? "New KPI definition" : "Edit KPI definition"}</Title2>
+                  <Title2>{kpiCreateMode ? t.newKpiDefinition : t.editKpiDefinition}</Title2>
                   <Text2 regular color={skinVars.colors.textSecondary}>
                     {kpiCreateMode
-                      ? "Creates version 1 of a new governed KPI. The calculation engine starts tracking it immediately."
-                      : `Saving appends version ${(kpiEditRecord?.latestVersion ?? 0) + 1}. Earlier versions stay in the history and the calculation engine uses the latest definition.`}
+                      ? t.kpiCreateIntro
+                      : t.kpiEditIntro((kpiEditRecord?.latestVersion ?? 0) + 1)}
                   </Text2>
                 </Stack>
                 <TextField
                   name="kpi-name"
-                  label="Name"
+                  label={t.colName}
                   value={kpiDraft.name}
                   onChangeValue={(v) => setKpiDraft({ ...kpiDraft, name: v })}
                   fullWidth
                 />
                 <TextField
                   name="kpi-description"
-                  label="Description"
+                  label={t.fieldDescription}
                   value={kpiDraft.description}
                   onChangeValue={(v) => setKpiDraft({ ...kpiDraft, description: v })}
                   fullWidth
@@ -1108,14 +1111,14 @@ export default function AdminPage() {
                 <Grid columns={2} gap={16}>
                   <TextField
                     name="kpi-target"
-                    label="Target"
+                    label={t.colTarget}
                     value={kpiDraft.target}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, target: v })}
                     fullWidth
                   />
                   <TextField
                     name="kpi-unit"
-                    label="Unit"
+                    label={t.fieldUnit}
                     value={kpiDraft.unit}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, unit: v })}
                     fullWidth
@@ -1124,14 +1127,14 @@ export default function AdminPage() {
                 <Grid columns={2} gap={16}>
                   <TextField
                     name="kpi-amber"
-                    label="Amber below (% of target)"
+                    label={t.fieldAmber}
                     value={kpiDraft.amberPct}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, amberPct: v })}
                     fullWidth
                   />
                   <TextField
                     name="kpi-critical"
-                    label="Critical below (% of target)"
+                    label={t.fieldCritical}
                     value={kpiDraft.criticalPct}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, criticalPct: v })}
                     fullWidth
@@ -1140,35 +1143,35 @@ export default function AdminPage() {
                 <Grid columns={2} gap={16}>
                   <TextField
                     name="kpi-owner"
-                    label="Owner (notified on threshold alerts)"
+                    label={t.fieldOwner}
                     value={kpiDraft.owner}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, owner: v })}
                     fullWidth
                   />
                   <Select
                     name="kpi-confidentiality"
-                    label="Confidentiality"
+                    label={t.fieldConfidentiality}
                     value={kpiDraft.confidentiality}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, confidentiality: v })}
-                    options={CLEARANCES.map((c) => ({ value: c, text: CLEARANCE_LABEL[c] }))}
+                    options={CLEARANCES.map((c) => ({ value: c, text: t.clearanceLabels[c] ?? c }))}
                     fullWidth
                   />
                 </Grid>
                 <Grid columns={2} gap={16}>
                   <Select
                     name="kpi-objective"
-                    label="Objective"
+                    label={t.fieldObjective}
                     value={kpiDraft.objectiveId}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, objectiveId: v })}
                     options={(kpiOptions?.objectives ?? []).map((o) => ({
                       value: o.id,
-                      text: `${o.name} (${o.area})`,
+                      text: t.objectiveOption(o.name, o.area),
                     }))}
                     fullWidth
                   />
                   <Select
                     name="kpi-axis"
-                    label="Strategic axis"
+                    label={t.fieldAxis}
                     value={kpiDraft.axisId}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, axisId: v })}
                     options={(kpiOptions?.axes ?? []).map((a) => ({ value: a.id, text: a.name }))}
@@ -1178,7 +1181,7 @@ export default function AdminPage() {
                 <Grid columns={2} gap={16}>
                   <Select
                     name="kpi-market"
-                    label="Market"
+                    label={t.fieldMarket}
                     value={kpiDraft.market}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, market: v })}
                     options={(kpiOptions?.markets ?? []).map((m) => ({ value: m, text: m }))}
@@ -1186,7 +1189,7 @@ export default function AdminPage() {
                   />
                   <Select
                     name="kpi-brand"
-                    label="Brand"
+                    label={t.fieldBrand}
                     value={kpiDraft.brand}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, brand: v })}
                     options={(kpiOptions?.brands ?? []).map((b) => ({ value: b, text: b }))}
@@ -1196,21 +1199,21 @@ export default function AdminPage() {
                 <Grid columns={2} gap={16}>
                   <Select
                     name="kpi-initiative-type"
-                    label="Initiative type"
+                    label={t.fieldInitiativeType}
                     value={kpiDraft.initiativeType}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, initiativeType: v })}
-                    options={(kpiOptions?.initiativeTypes ?? []).map((t) => ({ value: t, text: t }))}
+                    options={(kpiOptions?.initiativeTypes ?? []).map((it) => ({ value: it, text: it }))}
                     fullWidth
                   />
                   <Select
                     name="kpi-direction"
-                    label="Direction"
+                    label={t.fieldDirection}
                     value={kpiDraft.direction}
                     onChangeValue={(v) => setKpiDraft({ ...kpiDraft, direction: v })}
                     options={(kpiOptions?.directions ?? ["higher-better", "lower-better"]).map(
                       (dir) => ({
                         value: dir,
-                        text: dir === "higher-better" ? "Higher is better" : "Lower is better",
+                        text: dir === "higher-better" ? t.directionHigher : t.directionLower,
                       }),
                     )}
                     fullWidth
@@ -1218,7 +1221,7 @@ export default function AdminPage() {
                 </Grid>
                 <Stack space={8}>
                   <Text2 medium color={skinVars.colors.textPrimary}>
-                    Visible to areas
+                    {t.visibleToAreas}
                   </Text2>
                   <Inline space={16} alignItems="center">
                     {(kpiOptions?.areas ?? []).map((area) => (
@@ -1236,22 +1239,21 @@ export default function AdminPage() {
                   </Inline>
                   {kpiDraft.areas.length === 0 && (
                     <Text1 regular color={skinVars.colors.error}>
-                      Select at least one area.
+                      {t.selectAtLeastOneArea}
                     </Text1>
                   )}
                 </Stack>
                 <Stack space={8}>
                   <Inline space="between" alignItems="center">
                     <Text2 medium color={skinVars.colors.textPrimary}>
-                      Sources and weights
+                      {t.sourcesAndWeights}
                     </Text2>
                     <ButtonLink small onPress={addKpiSource}>
-                      Add source
+                      {t.addSource}
                     </ButtonLink>
                   </Inline>
                   <Text1 regular color={skinVars.colors.textSecondary}>
-                    Weights (0–1) set how much each source contributes to the blended figure.
-                    Sources linked to a governed document keep their document link.
+                    {t.weightsHelp}
                   </Text1>
                   {kpiDraft.sources.map((s, idx) => (
                     <Boxed key={s.id}>
@@ -1259,30 +1261,30 @@ export default function AdminPage() {
                         <Stack space={12}>
                           <Inline space="between" alignItems="center">
                             <Inline space={8} alignItems="center">
-                              <Tag type={s.kind === "internal" ? "info" : "inactive"}>{s.kind}</Tag>
+                              <Tag type={s.kind === "internal" ? "info" : "inactive"}>{t.sourceKindLabels[s.kind] ?? s.kind}</Tag>
                               {s.docId && (
                                 <Text1 regular color={skinVars.colors.textSecondary}>
-                                  Linked document: {s.docId}
+                                  {t.linkedDocument(s.docId)}
                                 </Text1>
                               )}
                             </Inline>
                             {kpiDraft.sources.length > 1 && (
                               <ButtonLink small onPress={() => removeKpiSource(idx)}>
-                                Remove
+                                {t.remove}
                               </ButtonLink>
                             )}
                           </Inline>
                           <Grid columns={2} gap={16}>
                             <TextField
                               name={`kpi-source-label-${idx}`}
-                              label="Label"
+                              label={t.fieldLabel}
                               value={s.label}
                               onChangeValue={(v) => updateKpiSource(idx, { label: v })}
                               fullWidth
                             />
                             <TextField
                               name={`kpi-source-weight-${idx}`}
-                              label="Weight (0–1)"
+                              label={t.fieldWeight}
                               value={String(s.weight)}
                               onChangeValue={(v) =>
                                 updateKpiSource(idx, { weight: Number(v) })
@@ -1293,7 +1295,7 @@ export default function AdminPage() {
                           {!s.docId && (
                             <TextField
                               name={`kpi-source-note-${idx}`}
-                              label="Note (optional)"
+                              label={t.fieldNoteOptional}
                               value={s.note ?? ""}
                               onChangeValue={(v) => updateKpiSource(idx, { note: v || null })}
                               fullWidth
@@ -1305,13 +1307,13 @@ export default function AdminPage() {
                   ))}
                   {!kpiSourcesValid && (
                     <Text1 regular color={skinVars.colors.error}>
-                      Each source needs a label and a weight between 0 and 1.
+                      {t.sourcesInvalid}
                     </Text1>
                   )}
                 </Stack>
                 <TextField
                   name="kpi-change-note"
-                  label="Change note (required)"
+                  label={t.fieldChangeNote}
                   value={kpiDraft.changeNote}
                   onChangeValue={(v) => setKpiDraft({ ...kpiDraft, changeNote: v })}
                   fullWidth
@@ -1322,10 +1324,10 @@ export default function AdminPage() {
                     onPress={commitKpiDefinition}
                   >
                     {kpiCreateMode
-                      ? "Create KPI"
-                      : `Save as v${(kpiEditRecord?.latestVersion ?? 0) + 1}`}
+                      ? t.createKpi
+                      : t.saveAsVersion((kpiEditRecord?.latestVersion ?? 0) + 1)}
                   </ButtonPrimary>
-                  <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
+                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>
             </Box>
@@ -1340,10 +1342,9 @@ export default function AdminPage() {
             <Box paddingBottom={24}>
               <Stack space={16}>
                 <Stack space={4}>
-                  <Title2>Version history</Title2>
+                  <Title2>{t.versionHistory}</Title2>
                   <Text2 regular color={skinVars.colors.textSecondary}>
-                    {latestOf(kpiHistoryRecord).name} — every definition change, newest first.
-                    Nothing is deleted.
+                    {t.historyIntro(latestOf(kpiHistoryRecord).name)}
                   </Text2>
                 </Stack>
                 {[...kpiHistoryRecord.versions]
@@ -1368,7 +1369,7 @@ export default function AdminPage() {
                               v.version === kpiHistoryRecord.latestVersion ? "success" : "inactive"
                             }
                           >
-                            {`v${v.version}${v.version === kpiHistoryRecord.latestVersion ? " · live" : ""}`}
+                            {`v${v.version}${v.version === kpiHistoryRecord.latestVersion ? ` · ${t.live}` : ""}`}
                           </Tag>
                           <Text2 medium color={skinVars.colors.textPrimary}>
                             {v.name}
@@ -1377,16 +1378,20 @@ export default function AdminPage() {
                             <Inline space={4} alignItems="center">
                               <IconTimeRegular size={12} color={skinVars.colors.textSecondary} />
                               <Text1 regular color={skinVars.colors.textSecondary}>
-                                {formatTimestamp(v.editedAt)}
+                                {formatTimestamp(v.editedAt, lang)}
                               </Text1>
                             </Inline>
                           </div>
                         </Inline>
                         <Text2 regular color={skinVars.colors.textSecondary}>
-                          Target {v.target}
-                          {v.unit} · amber below {Math.round(v.thresholds.amberBelow * 100)}% ·
-                          critical below {Math.round(v.thresholds.criticalBelow * 100)}% · owner{" "}
-                          {v.owner} · {CLEARANCE_LABEL[v.confidentiality as Clearance] ?? v.confidentiality}
+                          {t.versionSummary(
+                            v.target,
+                            v.unit,
+                            Math.round(v.thresholds.amberBelow * 100),
+                            Math.round(v.thresholds.criticalBelow * 100),
+                            v.owner,
+                            t.clearanceLabels[v.confidentiality] ?? v.confidentiality,
+                          )}
                         </Text2>
                         <Text1 regular color={skinVars.colors.textSecondary}>
                           {v.editedBy}: {v.changeNote}
@@ -1407,15 +1412,14 @@ export default function AdminPage() {
             <Box paddingBottom={24}>
               <Stack space={16}>
                 <Stack space={4}>
-                  <Title2>Schedule document</Title2>
+                  <Title2>{t.scheduleDialogTitle}</Title2>
                   <Text2 regular color={skinVars.colors.textSecondary}>
-                    Define a recurring document. Output always lands in the review folder and never
-                    auto-publishes.
+                    {t.scheduleDialogIntro}
                   </Text2>
                 </Stack>
                 <TextField
                   name="sched-template"
-                  label="Template"
+                  label={t.fieldTemplate}
                   value={scheduleDraft.template}
                   onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, template: v })}
                   fullWidth
@@ -1423,18 +1427,18 @@ export default function AdminPage() {
                 <Grid columns={2} gap={16}>
                   <Select
                     name="sched-frequency"
-                    label="Frequency"
+                    label={t.fieldFrequency}
                     value={scheduleDraft.frequency}
                     onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, frequency: v })}
                     options={["Daily", "Weekly", "Monthly", "Quarterly"].map((f) => ({
                       value: f,
-                      text: f,
+                      text: t.frequencyOptions[f] ?? f,
                     }))}
                     fullWidth
                   />
                   <TextField
                     name="sched-langs"
-                    label="Language(s)"
+                    label={t.colLanguages}
                     value={scheduleDraft.languages}
                     onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, languages: v })}
                     fullWidth
@@ -1442,23 +1446,23 @@ export default function AdminPage() {
                 </Grid>
                 <TextField
                   name="sched-owner"
-                  label="Owner"
+                  label={t.colOwner}
                   value={scheduleDraft.owner}
                   onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, owner: v })}
                   fullWidth
                 />
                 <TextField
                   name="sched-folder"
-                  label="Review folder"
+                  label={t.fieldReviewFolder}
                   value={scheduleDraft.reviewFolder}
                   onChangeValue={(v) => setScheduleDraft({ ...scheduleDraft, reviewFolder: v })}
                   fullWidth
                 />
                 <Inline space={16} alignItems="center">
                   <ButtonPrimary disabled={!scheduleValid} onPress={commitSchedule}>
-                    Create schedule
+                    {t.createSchedule}
                   </ButtonPrimary>
-                  <ButtonSecondary onPress={closeModal}>Cancel</ButtonSecondary>
+                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>
             </Box>

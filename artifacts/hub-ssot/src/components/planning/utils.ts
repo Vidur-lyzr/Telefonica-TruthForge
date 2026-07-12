@@ -1,5 +1,7 @@
 import type { StrategicAxis } from "@workspace/api-client-react";
 import { skinVars } from "@telefonica/mistica";
+import type { Lang } from "../app-provider";
+import { localeFor, PLANNING_I18N } from "../../i18n/planning";
 
 // Dates are governed as plain YYYY-MM-DD strings. Parse in local time (no TZ
 // shift) so calendar cells line up with the anchor date exactly.
@@ -55,20 +57,30 @@ export function isWithin(day: Date, startISO: string, endISO: string): boolean {
   return t >= parseDate(startISO).getTime() && t <= parseDate(endISO).getTime();
 }
 
-export function formatDay(iso: string): string {
-  return parseDate(iso).toLocaleDateString("en-GB", {
+export function formatDay(iso: string, lang: Lang = "EN"): string {
+  return parseDate(iso).toLocaleDateString(localeFor(lang), {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
 }
 
-export function formatDayShort(iso: string): string {
-  return parseDate(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+export function formatDayShort(iso: string, lang: Lang = "EN"): string {
+  return parseDate(iso).toLocaleDateString(localeFor(lang), { day: "numeric", month: "short" });
 }
 
-export function formatMonthTitle(date: Date): string {
-  return date.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+export function formatMonthTitle(date: Date, lang: Lang = "EN"): string {
+  return date.toLocaleDateString(localeFor(lang), { month: "long", year: "numeric" });
+}
+
+// Monday-first short weekday names for the active language, via Intl.
+// 2024-01-01 is a Monday, so we format seven consecutive days from it.
+export function weekdayShortNames(lang: Lang): string[] {
+  const fmt = new Intl.DateTimeFormat(localeFor(lang), { weekday: "short" });
+  return Array.from({ length: 7 }, (_, i) => {
+    const label = fmt.format(new Date(2024, 0, 1 + i));
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  });
 }
 
 export function axisColor(axes: StrategicAxis[] | undefined, axisId: string): string {
@@ -76,23 +88,20 @@ export function axisColor(axes: StrategicAxis[] | undefined, axisId: string): st
   return axis?.color || skinVars.colors.brand;
 }
 
-export function axisName(axes: StrategicAxis[] | undefined, axisId: string): string {
-  return axes?.find((a) => a.id === axisId)?.name || "Unassigned axis";
+export function axisName(
+  axes: StrategicAxis[] | undefined,
+  axisId: string,
+  lang: Lang = "EN",
+): string {
+  return axes?.find((a) => a.id === axisId)?.name || PLANNING_I18N[lang].unassignedAxis;
 }
-
-export const TYPE_LABEL: Record<string, string> = {
-  campaign: "Campaign",
-  milestone: "Milestone",
-  event: "Event",
-  publication: "Publication",
-};
 
 export type TagTone = "promo" | "info" | "active" | "inactive" | "success" | "warning" | "error";
 
-export const STATUS_STYLE: Record<string, { label: string; type: TagTone }> = {
-  planned: { label: "Planned", type: "inactive" },
-  in_progress: { label: "In progress", type: "info" },
-  live: { label: "Live", type: "success" },
-  done: { label: "Done", type: "inactive" },
-  at_risk: { label: "At risk", type: "warning" },
+export const STATUS_TONE: Record<string, TagTone> = {
+  planned: "inactive",
+  in_progress: "info",
+  live: "success",
+  done: "inactive",
+  at_risk: "warning",
 };

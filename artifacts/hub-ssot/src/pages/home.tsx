@@ -12,6 +12,7 @@ import {
   SuggestedQuery,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { HOME_I18N, type HomeStrings, type AppKey } from "@/i18n/home";
 import telefonicaLogo from "@/assets/telefonica-logo.png";
 import {
   Box,
@@ -49,95 +50,38 @@ import {
   IconTimeRegular,
 } from "@telefonica/mistica";
 
-type AppKey = "generate" | "kpis" | "planning" | "ask";
-
 type IconType = React.ComponentType<{ size?: number; color?: string }>;
 
-const CARD_META: Record<
-  AppKey,
-  { title: string; path: string; icon: IconType; blurb: string }
-> = {
-  generate: {
-    title: "Generate",
-    path: "/generate",
-    icon: IconAiRegular,
-    blurb: "Draft governed communications with cited evidence.",
-  },
-  kpis: {
-    title: "KPIs",
-    path: "/kpis",
-    icon: IconBarChartRegular,
-    blurb: "Track the metrics that back every corporate claim.",
-  },
-  planning: {
-    title: "Planning",
-    path: "/planning",
-    icon: IconCalendarRegular,
-    blurb: "See what is scheduled and where plans collide.",
-  },
-  ask: {
-    title: "Ask",
-    path: "/ask",
-    icon: IconChatRegular,
-    blurb: "Question the corpus and get cited, honest answers.",
-  },
+const CARD_ICON: Record<AppKey, { path: string; icon: IconType }> = {
+  generate: { path: "/generate", icon: IconAiRegular },
+  kpis: { path: "/kpis", icon: IconBarChartRegular },
+  planning: { path: "/planning", icon: IconCalendarRegular },
+  ask: { path: "/ask", icon: IconChatRegular },
 };
 
-const RADAR_KIND_META: Record<string, { label: string; icon: IconType }> = {
-  external_signal: { label: "External signal", icon: IconAntennaRegular },
-  knowledge_event: { label: "Knowledge event", icon: IconBookRegular },
-  your_queue: { label: "Your queue", icon: IconListRegular },
+const RADAR_KIND_ICON: Record<string, IconType> = {
+  external_signal: IconAntennaRegular,
+  knowledge_event: IconBookRegular,
+  your_queue: IconListRegular,
 };
 
-// Language-aware front-door copy. The corpus is multilingual (ES/EN/DE/PT), so
-// the hero adapts to the reader's browser language and falls back to English.
-type Lang = "es" | "en" | "de" | "pt";
-
-const COPY: Record<Lang, { placeholder: string; honesty: string; subtitle: string }> = {
-  es: {
-    placeholder: "Pregunta lo que quieras sobre Telefónica…",
-    honesty: "Las respuestas citan su fuente. Si no hay evidencia, lo diré.",
-    subtitle:
-      "Haz una pregunta y obtén una respuesta respaldada por evidencia citada y gobernada — o una respuesta honesta de sin-evidencia, permiso o fuente histórica.",
-  },
-  en: {
-    placeholder: "Ask anything about Telefónica…",
-    honesty: "Answers cite their source. If there's no evidence, I'll say so.",
-    subtitle:
-      "Ask a question and get an answer backed by cited, governed evidence — or an honest no-evidence, permission, or historic-source response.",
-  },
-  de: {
-    placeholder: "Frag alles über Telefónica…",
-    honesty: "Antworten nennen ihre Quelle. Ohne Beleg sage ich es ehrlich.",
-    subtitle:
-      "Stelle eine Frage und erhalte eine Antwort mit zitierten, geprüften Belegen — oder eine ehrliche Antwort ohne Beleg, mit Berechtigungshinweis oder historischer Quelle.",
-  },
-  pt: {
-    placeholder: "Pergunte qualquer coisa sobre a Telefónica…",
-    honesty: "As respostas citam a fonte. Se não houver evidência, eu direi.",
-    subtitle:
-      "Faça uma pergunta e receba uma resposta apoiada por evidência citada e governada — ou uma resposta honesta de sem-evidência, permissão ou fonte histórica.",
-  },
-};
-
-
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, rt: HomeStrings["relTime"]): string {
   const then = new Date(iso).getTime();
   const diffMs = Date.now() - then;
   const mins = Math.round(diffMs / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return rt.justNow;
+  if (mins < 60) return rt.minutes(mins);
   const hours = Math.round(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return rt.hours(hours);
   const days = Math.round(hours / 24);
-  return `${days}d ago`;
+  return rt.days(days);
 }
 
 function HeroAskBar({
-  lang,
+  t,
   suggestions,
 }: {
-  lang: Lang;
+  t: HomeStrings;
   suggestions: SuggestedQuery[];
 }) {
   const { roleId } = useApp();
@@ -162,7 +106,7 @@ function HeroAskBar({
   }, [prompts.length, text]);
 
   const rotatingPrompt = prompts.length > 0 ? prompts[rotation % prompts.length] : "";
-  const placeholder = rotatingPrompt || COPY[lang].placeholder;
+  const placeholder = rotatingPrompt || t.hero.placeholder;
 
   const submit = (value?: string) => {
     const q = (value ?? text).trim();
@@ -192,7 +136,7 @@ function HeroAskBar({
           onChangeValue={setText}
           endIcon={
             <IconButton
-              aria-label="Ask"
+              aria-label={t.askAria}
               onPress={() => submit(text.trim() ? text : rotatingPrompt)}
               disabled={disabled}
               Icon={IconSendRegular}
@@ -206,7 +150,7 @@ function HeroAskBar({
         <Inline space={8} alignItems="center">
           <IconShieldCheckedOkRegular size={16} color={skinVars.colors.brand} />
           <Text2 regular color={skinVars.colors.textSecondary}>
-            {COPY[lang].honesty}
+            {t.hero.honesty}
           </Text2>
         </Inline>
       </div>
@@ -218,19 +162,22 @@ function AppCard({
   stat,
   loading,
   axisColor,
+  t,
 }: {
   stat?: HomeCardStat;
   loading: boolean;
   axisColor?: string;
+  t: HomeStrings;
 }) {
   const [, navigate] = useLocation();
   const key = (stat?.app ?? "ask") as AppKey;
-  const meta = CARD_META[key] ?? CARD_META.ask;
+  const meta = CARD_ICON[key] ?? CARD_ICON.ask;
+  const app = t.apps[key] ?? t.apps.ask;
   const Icon = meta.icon;
   const warning = stat?.tone === "warning";
 
   return (
-    <Touchable onPress={() => navigate(meta.path)} aria-label={meta.title}>
+    <Touchable onPress={() => navigate(meta.path)} aria-label={app.title}>
       <Boxed>
         <Box padding={16}>
           <Inline space={12} alignItems="center">
@@ -247,7 +194,7 @@ function AppCard({
                   color={skinVars.colors.textSecondary}
                   transform="uppercase"
                 >
-                  {meta.title}
+                  {app.title}
                 </Text1>
                 {loading || !stat ? (
                   <SkeletonLine width="60%" />
@@ -273,10 +220,20 @@ function AppCard({
   );
 }
 
-function RadarRow({ item, axisColor }: { item: RadarItem; axisColor?: string }) {
+function RadarRow({
+  item,
+  axisColor,
+  t,
+}: {
+  item: RadarItem;
+  axisColor?: string;
+  t: HomeStrings;
+}) {
   const [, navigate] = useLocation();
-  const meta = RADAR_KIND_META[item.kind] ?? RADAR_KIND_META.knowledge_event;
-  const Icon = meta.icon;
+  const Icon = RADAR_KIND_ICON[item.kind] ?? RADAR_KIND_ICON.knowledge_event;
+  const label =
+    t.radarKind[item.kind as keyof HomeStrings["radarKind"]] ??
+    t.radarKind.knowledge_event;
   const warning = item.tone === "warning";
 
   return (
@@ -293,7 +250,7 @@ function RadarRow({ item, axisColor }: { item: RadarItem; axisColor?: string }) 
             <Stack space={4}>
               <Inline space={8} alignItems="center">
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  {meta.label}
+                  {label}
                 </Text1>
                 <Text1 regular color={skinVars.colors.textSecondary}>
                   ·
@@ -301,7 +258,7 @@ function RadarRow({ item, axisColor }: { item: RadarItem; axisColor?: string }) 
                 <Inline space={4} alignItems="center">
                   <IconTimeRegular size={12} color={skinVars.colors.textSecondary} />
                   <Text1 regular color={skinVars.colors.textSecondary} transform="uppercase">
-                    {relativeTime(item.timestamp)}
+                    {relativeTime(item.timestamp, t.relTime)}
                   </Text1>
                 </Inline>
               </Inline>
@@ -382,7 +339,8 @@ function HealthStat({
 }
 
 export default function Home() {
-  const { roleId, area, lang: globalLang } = useApp();
+  const { roleId, area, lang } = useApp();
+  const t = HOME_I18N[lang];
   const [, navigate] = useLocation();
   const params = React.useMemo(
     () => (roleId ? { roleId, area } : undefined),
@@ -397,8 +355,6 @@ export default function Home() {
   const { data: axes } = useListAxes();
   const { data: roles } = useListRoles();
   const { data: suggestions } = useListSuggestions();
-
-  const lang = globalLang.toLowerCase() as Lang;
 
   const activeRole = roles?.find((r) => r.id === roleId);
   const clearance = activeRole?.clearance ?? "public";
@@ -449,7 +405,9 @@ export default function Home() {
   // rather than render zero-value metrics that read like a broken dashboard.
   const corpusEmpty = !statsLoad && (stats?.totalDocuments ?? 0) === 0;
 
-  const lastUpdated = stats?.lastUpdated ? relativeTime(stats.lastUpdated) : "—";
+  const lastUpdated = stats?.lastUpdated
+    ? relativeTime(stats.lastUpdated, t.relTime)
+    : t.emptyValue;
   const languages = (stats?.byLanguage ?? [])
     .map((l) => l.key.toUpperCase())
     .join(" · ");
@@ -459,10 +417,10 @@ export default function Home() {
       <Inline space="between" alignItems="center">
         <Inline space={8} alignItems="center">
           <IconAntennaRegular size={20} color={skinVars.colors.brand} />
-          <Title2>Radar</Title2>
+          <Title2>{t.radar}</Title2>
         </Inline>
         <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-          What changed for you
+          {t.whatChanged}
         </Text1>
       </Inline>
 
@@ -492,7 +450,7 @@ export default function Home() {
             {radarItems.map((item, i) => (
               <React.Fragment key={item.id}>
                 {i > 0 && <Divider />}
-                <RadarRow item={item} axisColor={axisColor(item.axisId)} />
+                <RadarRow item={item} axisColor={axisColor(item.axisId)} t={t} />
               </React.Fragment>
             ))}
           </Stack>
@@ -506,11 +464,10 @@ export default function Home() {
               </Inline>
               <Stack space={4}>
                 <Text3 medium color={skinVars.colors.textPrimary}>
-                  Your radar is calm
+                  {t.radarCalmTitle}
                 </Text3>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Nothing needs your attention right now. Ask a question to explore the governed
-                  corpus.
+                  {t.radarCalmBody}
                 </Text2>
               </Stack>
             </Stack>
@@ -524,7 +481,7 @@ export default function Home() {
     <Stack space={16}>
       <Inline space={8} alignItems="center">
         <IconShieldCheckedOkRegular size={20} color={skinVars.colors.brand} />
-        <Title2>Knowledge health</Title2>
+        <Title2>{t.knowledgeHealth}</Title2>
       </Inline>
 
       <Boxed>
@@ -532,15 +489,15 @@ export default function Home() {
           <Stack space={24}>
             <HealthStat
               icon={IconDataCheckedRegular}
-              label="Sources you can cite"
-              value={`${stats?.totalDocuments ?? 0} documents`}
+              label={t.sourcesYouCanCite}
+              value={t.documents(stats?.totalDocuments ?? 0)}
               loading={statsLoad}
             />
             <Divider />
             <Stack space={8}>
               <Inline space="between" alignItems="center">
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  Validated
+                  {t.validated}
                 </Text1>
                 {!statsLoad && (
                   <Text2 medium color={skinVars.colors.textPrimary}>
@@ -560,14 +517,14 @@ export default function Home() {
             <Divider />
             <HealthStat
               icon={IconWorldDeviceRegular}
-              label="Languages"
-              value={languages || "—"}
+              label={t.languages}
+              value={languages || t.emptyValue}
               loading={statsLoad}
             />
             <Divider />
             <HealthStat
               icon={IconTimeRegular}
-              label="Last updated"
+              label={t.lastUpdated}
               value={lastUpdated}
               loading={statsLoad}
             />
@@ -581,10 +538,10 @@ export default function Home() {
                   <div>
                     <Stack space={2}>
                       <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                        Quarantined
+                        {t.quarantined}
                       </Text1>
                       <Text3 medium color={skinVars.colors.textPrimary}>
-                        {stats?.quarantined} held from answers
+                        {t.heldFromAnswers(stats?.quarantined ?? 0)}
                       </Text3>
                     </Stack>
                   </div>
@@ -592,10 +549,10 @@ export default function Home() {
               </>
             )}
             <Divider />
-            <Touchable onPress={() => navigate("/data")} aria-label="Browse the governed corpus">
+            <Touchable onPress={() => navigate("/data")} aria-label={t.browseCorpus}>
               <Inline space={8} alignItems="center">
                 <Text2 medium color={skinVars.colors.brand}>
-                  Browse the governed corpus
+                  {t.browseCorpus}
                 </Text2>
                 <IconArrowLineUpRegular size={16} color={skinVars.colors.brand} />
               </Inline>
@@ -622,15 +579,15 @@ export default function Home() {
                   />
                 </div>
                 <div style={{ textAlign: "center" }}>
-                  <Text6>Welcome back</Text6>
+                  <Text6>{t.welcomeBack}</Text6>
                 </div>
                 <div style={{ textAlign: "center" }}>
                   <Text2 regular color={skinVars.colors.textSecondary}>
-                    {COPY[lang].subtitle}
+                    {t.hero.subtitle}
                   </Text2>
                 </div>
               </Stack>
-              <HeroAskBar lang={lang} suggestions={suggestions ?? []} />
+              <HeroAskBar t={t} suggestions={suggestions ?? []} />
             </Stack>
           </div>
 
@@ -644,10 +601,9 @@ export default function Home() {
                     </Circle>
                   </Inline>
                   <Stack space={8}>
-                    <Title2>No governed sources yet</Title2>
+                    <Title2>{t.noSourcesTitle}</Title2>
                     <Text2 regular color={skinVars.colors.textSecondary}>
-                      Hub SSoT answers only from a governed knowledge core. Connect your first
-                      document to start getting cited, permission-aware answers.
+                      {t.noSourcesBody}
                     </Text2>
                   </Stack>
                   <Inline space={0}>
@@ -655,7 +611,7 @@ export default function Home() {
                       onPress={() => navigate("/data")}
                       EndIcon={IconArrowLineUpRegular}
                     >
-                      Connect the first document
+                      {t.connectFirstDocument}
                     </ButtonPrimary>
                   </Inline>
                 </Stack>
@@ -693,6 +649,7 @@ export default function Home() {
                       stat={stat}
                       loading={summaryLoad}
                       axisColor={axisColor(stat?.axisId)}
+                      t={t}
                     />
                   );
                 })}

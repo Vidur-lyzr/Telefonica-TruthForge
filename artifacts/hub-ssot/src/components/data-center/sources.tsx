@@ -29,7 +29,9 @@ import {
   IconCheckedRegular,
 } from "@telefonica/mistica";
 import { useDataCenter, type UploadedDoc } from "./state";
-import { sourceStatusTagType, sourceStatusLabel, clearanceLabel } from "./helpers";
+import { sourceStatusTagType, sourceStatusLabel, clearanceLabel, localeFor } from "./helpers";
+import { useApp } from "../app-provider";
+import { DATA_I18N } from "../../i18n/data";
 
 type IconType = React.ComponentType<{ size?: number; color?: string }>;
 
@@ -66,6 +68,9 @@ function SourceMeta({ label, value }: { label: string; value: string }) {
 }
 
 export default function SourcesArea() {
+  const { lang } = useApp();
+  const t = DATA_I18N[lang];
+  const s2 = t.sources;
   const { data: sources } = useListDataSources();
   const { uploads, addUpload } = useDataCenter();
 
@@ -110,14 +115,11 @@ export default function SourcesArea() {
             <Inline space={8} alignItems="center">
               <IconDatabaseConnectedRegular size={20} color={skinVars.colors.inverse} />
               <Text3 medium color={skinVars.colors.textPrimaryInverse}>
-                Sources feed the core before the model ever runs
+                {s2.bannerTitle}
               </Text3>
             </Inline>
             <Text2 regular color={skinVars.colors.textSecondaryInverse}>
-              Quality starts here, not at the model. External sources are filtered before ingestion —
-              by keywords, tracked competitors, named executives and priority topics — so only
-              relevant mentions ever enter the knowledge core. Internal documents arrive with the
-              sensitivity label that becomes their governed confidentiality tier.
+              {s2.bannerDesc}
             </Text2>
           </Stack>
         </Box>
@@ -166,21 +168,21 @@ export default function SourcesArea() {
                     <Divider />
 
                     <Inline space="between">
-                      <SourceMeta label="Documents" value={s.docCount.toLocaleString("en-GB")} />
-                      <SourceMeta label="Cadence" value={s.cadence} />
-                      <SourceMeta label="Last sync" value={s.lastSync ?? "—"} />
+                      <SourceMeta label={s2.documents} value={s.docCount.toLocaleString(localeFor(lang))} />
+                      <SourceMeta label={s2.cadence} value={s.cadence} />
+                      <SourceMeta label={s2.lastSync} value={s.lastSync ?? "—"} />
                     </Inline>
 
                     {s.status === "manual" && (
                       <ButtonPrimary small onPress={() => setDialogOpen(true)}>
-                        Manual upload
+                        {s2.manualUpload}
                       </ButtonPrimary>
                     )}
                     {s.status === "to_configure" && (
                       <Inline space={8} alignItems="center">
                         <IconSettingsRegular size={16} color={skinVars.colors.warning} />
                         <Text2 medium color={skinVars.colors.warning}>
-                          Connector planned — no documents ingested yet.
+                          {s2.connectorPlanned}
                         </Text2>
                       </Inline>
                     )}
@@ -196,7 +198,7 @@ export default function SourcesArea() {
         <Stack space={16}>
           <Inline space={8} alignItems="center">
             <IconCheckedRegular size={20} color={skinVars.colors.success} />
-            <Title2>Added this session</Title2>
+            <Title2>{s2.addedThisSession}</Title2>
           </Inline>
           <Boxed>
             <Box padding={16}>
@@ -214,7 +216,7 @@ export default function SourcesArea() {
                             {u.owner} · {u.country} · {u.brand}
                           </Text1>
                         </Stack>
-                        <Tag type="promo">Queued to intake</Tag>
+                        <Tag type="promo">{s2.queuedToIntake}</Tag>
                       </Inline>
                     </Box>
                   </React.Fragment>
@@ -227,26 +229,26 @@ export default function SourcesArea() {
 
       {dialogOpen && (
         <Drawer
-          title="Manual upload"
-          description="Mandatory metadata is captured up front so the document never enters the pipeline underspecified. This is session-only for the demo."
+          title={s2.uploadTitle}
+          description={s2.uploadDesc}
           onClose={() => setDialogOpen(false)}
           button={{
-            text: "Add to intake",
+            text: s2.addToIntake,
             onPress: commitUpload,
             disabled: !draftValid,
           }}
-          secondaryButton={{ text: "Cancel", onPress: () => setDialogOpen(false) }}
+          secondaryButton={{ text: s2.cancel, onPress: () => setDialogOpen(false) }}
         >
           <Stack space={16}>
             <TextField
               name="up-title"
-              label="Title"
+              label={s2.title}
               value={draft.title}
               onChangeValue={(v) => setDraft((d) => ({ ...d, title: v }))}
             />
             <TextField
               name="up-owner"
-              label="Owner"
+              label={s2.owner}
               value={draft.owner}
               onChangeValue={(v) => setDraft((d) => ({ ...d, owner: v }))}
             />
@@ -254,7 +256,7 @@ export default function SourcesArea() {
               <div style={{ flex: 1 }}>
                 <TextField
                   name="up-country"
-                  label="Country"
+                  label={s2.country}
                   value={draft.country}
                   onChangeValue={(v) => setDraft((d) => ({ ...d, country: v }))}
                 />
@@ -262,7 +264,7 @@ export default function SourcesArea() {
               <div style={{ flex: 1 }}>
                 <TextField
                   name="up-brand"
-                  label="Brand"
+                  label={s2.brand}
                   value={draft.brand}
                   onChangeValue={(v) => setDraft((d) => ({ ...d, brand: v }))}
                 />
@@ -272,16 +274,16 @@ export default function SourcesArea() {
               <div style={{ flex: 1 }}>
                 <Select
                   name="up-confidentiality"
-                  label="Confidentiality"
+                  label={s2.confidentiality}
                   value={draft.confidentiality}
                   onChangeValue={(v) => setDraft((d) => ({ ...d, confidentiality: v }))}
-                  options={CLEARANCES.map((c) => ({ value: c, text: clearanceLabel(c) }))}
+                  options={CLEARANCES.map((c) => ({ value: c, text: clearanceLabel(c, lang) }))}
                 />
               </div>
               <div style={{ flex: 1 }}>
                 <Select
                   name="up-area"
-                  label="Area"
+                  label={s2.area}
                   value={draft.area}
                   onChangeValue={(v) => setDraft((d) => ({ ...d, area: v }))}
                   options={AREAS.map((a) => ({ value: a, text: a }))}

@@ -5,6 +5,7 @@ import {
   type StrategicAxis,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { PLANNING_I18N } from "@/i18n/planning";
 import {
   Sheet,
   Box,
@@ -36,7 +37,8 @@ export function EventForm({
   onClose: () => void;
   onCreated: (eventId: string) => void;
 }) {
-  const { roleId, area } = useApp();
+  const { roleId, area, lang } = useApp();
+  const t = PLANNING_I18N[lang];
   const queryClient = useQueryClient();
   const { mutate, isPending, error, reset } = useCreatePlanningEvent();
 
@@ -62,7 +64,7 @@ export function EventForm({
     endDate >= startDate;
 
   const serverError = error
-    ? (error.data?.error ?? "The calendar could not accept this activity.")
+    ? (error.data?.error ?? t.formErrorFallback)
     : null;
 
   const submit = () => {
@@ -102,16 +104,15 @@ export function EventForm({
         <Box paddingX={24} paddingBottom={32} paddingTop={16}>
           <Stack space={24}>
             <Stack space={8}>
-              <Text5 id={modalTitleId}>New activity</Text5>
+              <Text5 id={modalTitleId}>{t.newActivity}</Text5>
               <Text2 regular color={skinVars.colors.textSecondary}>
-                Created in the {area} area at your clearance. The change is written back to the
-                source system and appears as pending until that system confirms it.
+                {t.formIntro(area)}
               </Text2>
             </Stack>
 
             <TextField
               name="title"
-              label="Title"
+              label={t.fieldTitle}
               value={title}
               onChangeValue={(v) => {
                 reset();
@@ -129,20 +130,20 @@ export function EventForm({
             >
               <DateField
                 name="startDate"
-                label="Start date"
+                label={t.fieldStartDate}
                 value={startDate}
                 onChangeValue={setStartDate}
                 fullWidth
               />
               <DateField
                 name="endDate"
-                label="End date"
+                label={t.fieldEndDate}
                 value={endDate}
                 onChangeValue={setEndDate}
                 error={!!endDate && !!startDate && endDate < startDate}
                 helperText={
                   endDate && startDate && endDate < startDate
-                    ? "The end date cannot be before the start date."
+                    ? t.endBeforeStart
                     : undefined
                 }
                 fullWidth
@@ -158,20 +159,20 @@ export function EventForm({
             >
               <Select
                 name="type"
-                label="Type"
+                label={t.fieldType}
                 value={type}
                 onChangeValue={setType}
                 options={[
-                  { value: "campaign", text: "Campaign" },
-                  { value: "milestone", text: "Milestone" },
-                  { value: "event", text: "Event" },
-                  { value: "publication", text: "Publication" },
+                  { value: "campaign", text: t.types.campaign },
+                  { value: "milestone", text: t.types.milestone },
+                  { value: "event", text: t.types.event },
+                  { value: "publication", text: t.types.publication },
                 ]}
                 fullWidth
               />
               <Select
                 name="axis"
-                label="Strategic axis"
+                label={t.fieldAxis}
                 value={axisId}
                 onChangeValue={setAxisId}
                 options={(axes ?? []).map((a) => ({ value: a.id, text: a.name }))}
@@ -188,15 +189,15 @@ export function EventForm({
             >
               <TextField
                 name="owner"
-                label="Owner"
-                placeholder="e.g. Prensa Madrid"
+                label={t.fieldOwner}
+                placeholder={t.ownerPlaceholder}
                 value={owner}
                 onChangeValue={setOwner}
                 fullWidth
               />
               <TextField
                 name="market"
-                label="Market"
+                label={t.fieldMarket}
                 value={market}
                 onChangeValue={setMarket}
                 fullWidth
@@ -212,14 +213,14 @@ export function EventForm({
             >
               <TextField
                 name="brand"
-                label="Brand"
+                label={t.fieldBrand}
                 value={brand}
                 onChangeValue={setBrand}
                 fullWidth
               />
               <Select
                 name="source"
-                label="Source system"
+                label={t.fieldSource}
                 value={source}
                 onChangeValue={setSource}
                 options={SOURCES.map((s) => ({ value: s, text: s }))}
@@ -230,31 +231,31 @@ export function EventForm({
             <Stack space={8}>
               <Select
                 name="confidentiality"
-                label="Confidentiality"
+                label={t.fieldConfidentiality}
                 value={confidentiality}
                 onChangeValue={(v) => {
                   reset();
                   setConfidentiality(v);
                 }}
                 options={[
-                  { value: "public", text: "Public" },
-                  { value: "private", text: "Private" },
-                  { value: "confidential", text: "Confidential" },
-                  { value: "off_the_record", text: "Off the record" },
+                  { value: "public", text: t.confidentialityOptions.public },
+                  { value: "private", text: t.confidentialityOptions.private },
+                  { value: "confidential", text: t.confidentialityOptions.confidential },
+                  { value: "off_the_record", text: t.confidentialityOptions.off_the_record },
                 ]}
                 fullWidth
               />
               <Inline space={4} alignItems="center">
                 <IconLockClosedRegular size={12} color={skinVars.colors.textSecondary} />
                 <Text1 regular color={skinVars.colors.textSecondary}>
-                  You can only create activity at or below your own clearance.
+                  {t.clearanceHint}
                 </Text1>
               </Inline>
             </Stack>
 
             <TextField
               name="description"
-              label="Description"
+              label={t.fieldDescription}
               value={description}
               onChangeValue={setDescription}
               multiline
@@ -277,10 +278,10 @@ export function EventForm({
 
             <Inline space={16}>
               <ButtonPrimary onPress={submit} disabled={!valid || isPending || !roleId}>
-                {isPending ? "Creating…" : "Create activity"}
+                {isPending ? t.creating : t.createActivity}
               </ButtonPrimary>
               <ButtonSecondary onPress={closeModal} disabled={isPending}>
-                Cancel
+                {t.cancel}
               </ButtonSecondary>
             </Inline>
           </Stack>

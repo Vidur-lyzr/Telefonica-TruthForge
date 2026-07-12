@@ -35,7 +35,8 @@ import {
   IconShuffleRegular,
   IconTimeRegular,
 } from "@telefonica/mistica";
-import { axisColor, axisName, formatDay, formatDayShort, STATUS_STYLE, TYPE_LABEL } from "./utils";
+import { axisColor, axisName, formatDay, formatDayShort, STATUS_TONE } from "./utils";
+import { PLANNING_I18N } from "@/i18n/planning";
 
 export function EventDrawer({
   eventId,
@@ -46,7 +47,8 @@ export function EventDrawer({
   axes: StrategicAxis[] | undefined;
   onClose: () => void;
 }) {
-  const { roleId } = useApp();
+  const { roleId, lang } = useApp();
+  const t = PLANNING_I18N[lang];
   const queryClient = useQueryClient();
   const { data, isLoading } = useGetPlanningEvent(
     { id: eventId ?? "", roleId },
@@ -96,7 +98,7 @@ export function EventDrawer({
   if (!eventId) return null;
 
   const moveErrorText = moveError
-    ? (moveError.data?.error ?? "The calendar could not apply this move.")
+    ? (moveError.data?.error ?? t.moveErrorFallback)
     : null;
 
   const runSimulation = () => {
@@ -133,7 +135,7 @@ export function EventDrawer({
               <Inline space={12} alignItems="center">
                 <Spinner size={24} />
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Loading event…
+                  {t.loadingEvent}
                 </Text2>
               </Inline>
             </Box>
@@ -145,13 +147,14 @@ export function EventDrawer({
                 <Inline space={8} alignItems="center">
                   <IconLockClosedRegular size={20} color={skinVars.colors.error} />
                   <Text1 medium color={skinVars.colors.error} transform="uppercase">
-                    Restricted
+                    {t.restricted}
                   </Text1>
                 </Inline>
-                <Text5 id={modalTitleId}>Blocked activity</Text5>
+                <Text5 id={modalTitleId}>{t.blockedActivity}</Text5>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  {formatDay(ev.startDate)}
-                  {ev.endDate !== ev.startDate ? ` – ${formatDay(ev.endDate)}` : ""} · {ev.market}
+                  {formatDay(ev.startDate, lang)}
+                  {ev.endDate !== ev.startDate ? ` – ${formatDay(ev.endDate, lang)}` : ""} ·{" "}
+                  {ev.market}
                 </Text2>
               </Stack>
               <div
@@ -162,12 +165,11 @@ export function EventDrawer({
                 }}
               >
                 <Text2 regular color={skinVars.colors.textPrimary}>
-                  There is activity in this slot, but it is classified{" "}
+                  {t.restrictedNoteBefore}{" "}
                   <Text2 as="span" medium color={skinVars.colors.textPrimary}>
                     {clearanceLabel(ev.confidentiality)}
                   </Text2>{" "}
-                  — above your current clearance. The Hub shows the slot as busy without revealing
-                  its contents. Switch to a higher-clearance persona or request access.
+                  {t.restrictedNoteAfter}
                 </Text2>
               </div>
             </Stack>
@@ -185,12 +187,12 @@ export function EventDrawer({
                     }}
                   >
                     <Text1 medium color={skinVars.colors.textPrimaryInverse} transform="uppercase">
-                      {TYPE_LABEL[ev.type] ?? ev.type}
+                      {t.types[ev.type] ?? ev.type}
                     </Text1>
                   </div>
                   <Inline space={8} alignItems="center">
-                    <Tag type={STATUS_STYLE[ev.status]?.type ?? "inactive"}>
-                      {STATUS_STYLE[ev.status]?.label ?? ev.status}
+                    <Tag type={STATUS_TONE[ev.status] ?? "inactive"}>
+                      {t.statuses[ev.status] ?? ev.status}
                     </Tag>
                     <Tag type={ev.confidentiality === "public" ? "success" : "error"}>
                       {clearanceLabel(ev.confidentiality)}
@@ -199,8 +201,8 @@ export function EventDrawer({
                 </Inline>
                 <Text5 id={modalTitleId}>{ev.title}</Text5>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  {formatDay(ev.startDate)}
-                  {ev.endDate !== ev.startDate ? ` – ${formatDay(ev.endDate)}` : ""}
+                  {formatDay(ev.startDate, lang)}
+                  {ev.endDate !== ev.startDate ? ` – ${formatDay(ev.endDate, lang)}` : ""}
                 </Text2>
               </Stack>
 
@@ -209,20 +211,20 @@ export function EventDrawer({
               </Text3>
 
               <Grid columns={{ minSize: 160 }} gap={16}>
-                <Meta Icon={IconLocationRegular} label="Market">
+                <Meta Icon={IconLocationRegular} label={t.metaMarket}>
                   {ev.market}
                 </Meta>
-                <Meta Icon={IconAntennaRegular} label="Brand">
+                <Meta Icon={IconAntennaRegular} label={t.metaBrand}>
                   {ev.brand}
                 </Meta>
-                <Meta Icon={IconUserAccountRegular} label="Owner">
+                <Meta Icon={IconUserAccountRegular} label={t.metaOwner}>
                   {ev.owner}
                 </Meta>
-                <Meta label="Source">{ev.source}</Meta>
-                <Meta label="Area">{ev.area}</Meta>
+                <Meta label={t.metaSource}>{ev.source}</Meta>
+                <Meta label={t.metaArea}>{ev.area}</Meta>
                 <Stack space={4}>
                   <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                    Axis
+                    {t.metaAxis}
                   </Text1>
                   <Inline space={8} alignItems="center">
                     <div
@@ -234,7 +236,7 @@ export function EventDrawer({
                       }}
                     />
                     <Text2 medium color={skinVars.colors.textPrimary}>
-                      {axisName(axes, ev.axisId)}
+                      {axisName(axes, ev.axisId, lang)}
                     </Text2>
                   </Inline>
                 </Stack>
@@ -253,18 +255,18 @@ export function EventDrawer({
                     <Inline space={8} alignItems="center">
                       <IconWarningRegular size={20} color={skinVars.colors.warning} />
                       <Text1 medium color={skinVars.colors.warning} transform="uppercase">
-                        Timing conflict
+                        {t.timingConflict}
                       </Text1>
                     </Inline>
                     <Text2 regular color={skinVars.colors.textPrimary}>
-                      This clashes in the same market and window with:
+                      {t.clashesWith}
                     </Text2>
                     <Stack space={8}>
                       {data.conflictsWith.map((c) => (
                         <Text2 key={c.id} medium color={skinVars.colors.textPrimary}>
                           {c.title}{" "}
                           <Text2 as="span" regular color={skinVars.colors.textSecondary}>
-                            ({c.brand} · {TYPE_LABEL[c.type] ?? c.type})
+                            ({c.brand} · {t.types[c.type] ?? c.type})
                           </Text2>
                         </Text2>
                       ))}
@@ -286,12 +288,12 @@ export function EventDrawer({
                     <Inline space={8} alignItems="center">
                       <IconShuffleRegular size={16} color={skinVars.colors.brand} />
                       <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                        Move this activity
+                        {t.moveActivity}
                       </Text1>
                     </Inline>
                     {!moveOpen && (
                       <ButtonSecondary small onPress={() => setMoveOpen(true)}>
-                        Pick a new date
+                        {t.pickNewDate}
                       </ButtonSecondary>
                     )}
                   </Inline>
@@ -299,14 +301,13 @@ export function EventDrawer({
                   {moveOpen && (
                     <Stack space={16}>
                       <Text2 regular color={skinVars.colors.textSecondary}>
-                        Choose a new start date and simulate the impact before committing. The
-                        duration is preserved and the change is written back to {ev.source}.
+                        {t.moveInstructions(ev.source)}
                       </Text2>
                       <Inline space={16} alignItems="center" wrap>
                         <div style={{ minWidth: 200 }}>
                           <DateField
                             name="toStart"
-                            label="New start date"
+                            label={t.newStartDate}
                             value={toStart}
                             onChangeValue={(v) => {
                               setToStart(v);
@@ -321,7 +322,7 @@ export function EventDrawer({
                           onPress={runSimulation}
                           disabled={!toStart || simulating}
                         >
-                          {simulating ? "Simulating…" : "Simulate impact"}
+                          {simulating ? t.simulating : t.simulateImpact}
                         </ButtonSecondary>
                       </Inline>
 
@@ -347,7 +348,7 @@ export function EventDrawer({
                           onPress={confirmMove}
                           disabled={!toStart || applying || !simulation}
                         >
-                          {applying ? "Moving…" : "Confirm move"}
+                          {applying ? t.moving : t.confirmMove}
                         </ButtonPrimary>
                         <ButtonSecondary
                           small
@@ -359,13 +360,12 @@ export function EventDrawer({
                           }}
                           disabled={applying}
                         >
-                          Cancel
+                          {t.cancel}
                         </ButtonSecondary>
                       </Inline>
                       {!simulation && (
                         <Text1 regular color={skinVars.colors.textSecondary}>
-                          Simulate the impact first — the Hub only commits moves it has shown you
-                          the consequences of.
+                          {t.simulateFirst}
                         </Text1>
                       )}
                     </Stack>
@@ -379,13 +379,11 @@ export function EventDrawer({
                   <Inline space={8} alignItems="center">
                     <IconTimeRegular size={16} color={skinVars.colors.textSecondary} />
                     <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                      Write-back log
+                      {t.writeBackLog}
                     </Text1>
                   </Inline>
                   <Text1 regular color={skinVars.colors.textSecondary}>
-                    In the ideal scenario sync is bidirectional — changes made here write back to
-                    the source tool. Write-back is pending confirmation with Telefónica, so each
-                    request below is queued, not yet committed at source.
+                    {t.writeBackNote}
                   </Text1>
                   <Stack space={8}>
                     {syncRecords.map((r) => (
@@ -402,13 +400,13 @@ export function EventDrawer({
                             <Text1 medium color={skinVars.colors.textPrimary} transform="uppercase">
                               {r.action} · {r.source}
                             </Text1>
-                            <Tag type="warning">Pending confirmation</Tag>
+                            <Tag type="warning">{t.pendingConfirmation}</Tag>
                           </Inline>
                           <Text1 regular color={skinVars.colors.textSecondary}>
                             {r.detail}
                           </Text1>
                           <Text1 regular color={skinVars.colors.textSecondary}>
-                            Requested by {r.requestedBy} · {formatDayShort(r.requestedAt.slice(0, 10))}
+                            {t.requestedBy(r.requestedBy, formatDayShort(r.requestedAt.slice(0, 10), lang))}
                           </Text1>
                         </Stack>
                       </div>
@@ -425,6 +423,8 @@ export function EventDrawer({
 }
 
 function SimulationResult({ simulation }: { simulation: PlanningMoveSimulation }) {
+  const { lang } = useApp();
+  const t = PLANNING_I18N[lang];
   const hasIssues =
     simulation.newConflicts.length > 0 ||
     simulation.nearMisses.length > 0 ||
@@ -448,24 +448,24 @@ function SimulationResult({ simulation }: { simulation: PlanningMoveSimulation }
     >
       <Stack space={12}>
         <Text2 medium color={skinVars.colors.textPrimary}>
-          {formatDayShort(simulation.fromStart)} → {formatDayShort(simulation.toStart)} (ends{" "}
-          {formatDayShort(simulation.toEnd)})
+          {formatDayShort(simulation.fromStart, lang)} → {formatDayShort(simulation.toStart, lang)}{" "}
+          {t.endsAt(formatDayShort(simulation.toEnd, lang))}
         </Text2>
         <Text2 regular color={skinVars.colors.textPrimary}>
           {simulation.verdict}
         </Text2>
 
         {simulation.resolved.length > 0 && (
-          <ImpactList label="Resolves" items={simulation.resolved.map((i) => i.note)} />
+          <ImpactList label={t.impactResolves} items={simulation.resolved.map((i) => i.note)} />
         )}
         {simulation.newConflicts.length > 0 && (
-          <ImpactList label="New conflicts" items={simulation.newConflicts.map((i) => i.note)} />
+          <ImpactList label={t.impactNewConflicts} items={simulation.newConflicts.map((i) => i.note)} />
         )}
         {simulation.nearMisses.length > 0 && (
-          <ImpactList label="Near misses" items={simulation.nearMisses.map((i) => i.note)} />
+          <ImpactList label={t.impactNearMisses} items={simulation.nearMisses.map((i) => i.note)} />
         )}
         {simulation.signalWarnings.length > 0 && (
-          <ImpactList label="External signals" items={simulation.signalWarnings.map((i) => i.note)} />
+          <ImpactList label={t.impactExternalSignals} items={simulation.signalWarnings.map((i) => i.note)} />
         )}
       </Stack>
     </div>

@@ -23,6 +23,12 @@ export interface ChromeStrings {
     scopeLine: (area: string) => string;
     filters: string;
   };
+  a11y: {
+    mainNavigation: string;
+    goHome: string;
+    expandMenu: string;
+    collapseMenu: string;
+  };
 }
 
 export const UI: Record<Lang, ChromeStrings> = {
@@ -45,6 +51,12 @@ export const UI: Record<Lang, ChromeStrings> = {
       scopeLine: (area) => `Scope: ${area} · answers are cited, permission-aware and honest`,
       filters: "Filters",
     },
+    a11y: {
+      mainNavigation: "Main navigation",
+      goHome: "Go to Home",
+      expandMenu: "Expand menu",
+      collapseMenu: "Collapse menu",
+    },
   },
   ES: {
     navGroups: { workspace: "Espacio de trabajo", knowledge: "Conocimiento", backend: "Backend" },
@@ -64,6 +76,12 @@ export const UI: Record<Lang, ChromeStrings> = {
       assistant: "Asistente gobernado",
       scopeLine: (area) => `Ámbito: ${area} · respuestas citadas, con permisos y honestas`,
       filters: "Filtros",
+    },
+    a11y: {
+      mainNavigation: "Navegación principal",
+      goHome: "Ir al inicio",
+      expandMenu: "Expandir menú",
+      collapseMenu: "Contraer menú",
     },
   },
   DE: {
@@ -85,6 +103,12 @@ export const UI: Record<Lang, ChromeStrings> = {
       scopeLine: (area) => `Bereich: ${area} · Antworten sind zitiert, berechtigungsbewusst und ehrlich`,
       filters: "Filter",
     },
+    a11y: {
+      mainNavigation: "Hauptnavigation",
+      goHome: "Zur Startseite",
+      expandMenu: "Menü ausklappen",
+      collapseMenu: "Menü einklappen",
+    },
   },
   PT: {
     navGroups: { workspace: "Espaço de trabalho", knowledge: "Conhecimento", backend: "Backend" },
@@ -104,6 +128,12 @@ export const UI: Record<Lang, ChromeStrings> = {
       assistant: "Assistente governado",
       scopeLine: (area) => `Escopo: ${area} · respostas citadas, cientes de permissões e honestas`,
       filters: "Filtros",
+    },
+    a11y: {
+      mainNavigation: "Navegação principal",
+      goHome: "Ir para o início",
+      expandMenu: "Expandir menu",
+      collapseMenu: "Recolher menu",
     },
   },
 };

@@ -1,5 +1,7 @@
 import React from "react";
-import { clearanceLabel } from "./helpers";
+import { clearanceLabel, validityLabel } from "./helpers";
+import { useApp } from "../app-provider";
+import { DATA_I18N } from "../../i18n/data";
 import {
   useListDocuments,
   useGetCorpusStats,
@@ -35,19 +37,6 @@ import {
   IconCloseRegular,
 } from "@telefonica/mistica";
 
-function categoryLabel(c: string): string {
-  switch (c) {
-    case "A":
-      return "A · Internal";
-    case "B":
-      return "B · External";
-    case "E":
-      return "E · SSoT output";
-    default:
-      return c;
-  }
-}
-
 function StatCard({
   icon: Icon,
   iconColor,
@@ -81,6 +70,9 @@ function StatCard({
 }
 
 export default function CorpusArea() {
+  const { lang } = useApp();
+  const t = DATA_I18N[lang];
+  const c = t.corpus;
   const { data: stats } = useGetCorpusStats();
   const { data: documents } = useListDocuments();
   const [selectedDocId, setSelectedDocId] = React.useState<string | null>(null);
@@ -88,6 +80,16 @@ export default function CorpusArea() {
   const { data: docDetail, isLoading: isLoadingDetail } = useGetDocument(selectedDocId || "", {
     query: { enabled: !!selectedDocId, queryKey: ["document", selectedDocId] },
   });
+
+  const categoryLabel = React.useCallback(
+    (cat: string) =>
+      cat === "A" ? c.categoryA : cat === "B" ? c.categoryB : cat === "E" ? c.categoryE : cat,
+    [c],
+  );
+  const sentimentLabel = React.useCallback(
+    (s: string) => t.sentiment[s] ?? s,
+    [t],
+  );
 
   const titleOf = React.useCallback(
     (docId: string) => documents?.find((d) => d.id === docId)?.title ?? docId,
@@ -102,7 +104,7 @@ export default function CorpusArea() {
             icon={IconDatabaseRegular}
             iconColor={skinVars.colors.brand}
             iconBackground={skinVars.colors.brandLow}
-            label="Total documents"
+            label={c.totalDocuments}
             value={stats?.totalDocuments || 0}
           />
         </GridItem>
@@ -111,7 +113,7 @@ export default function CorpusArea() {
             icon={IconCheckedRegular}
             iconColor={skinVars.colors.success}
             iconBackground={skinVars.colors.successLow}
-            label="Total chunks"
+            label={c.totalChunks}
             value={stats?.totalChunks || 0}
           />
         </GridItem>
@@ -120,7 +122,7 @@ export default function CorpusArea() {
             icon={IconWorldDeviceRegular}
             iconColor={skinVars.colors.warning}
             iconBackground={skinVars.colors.warningLow}
-            label="Countries"
+            label={c.countries}
             value={stats?.byCountry?.length || 0}
           />
         </GridItem>
@@ -129,7 +131,7 @@ export default function CorpusArea() {
             icon={IconShieldRegular}
             iconColor={skinVars.colors.error}
             iconBackground={skinVars.colors.errorLow}
-            label="Needs review"
+            label={c.needsReview}
             value={stats?.quarantined || 0}
           />
         </GridItem>
@@ -138,7 +140,7 @@ export default function CorpusArea() {
       <Stack space={16}>
         <Inline space={8} alignItems="center">
           <IconDocumentOtherRegular size={20} color={skinVars.colors.brand} />
-          <Title2>Governed corpus</Title2>
+          <Title2>{c.governedCorpus}</Title2>
         </Inline>
 
         <BoxedRowList>
@@ -146,7 +148,13 @@ export default function CorpusArea() {
             <BoxedRow
               key={doc.id}
               title={doc.title}
-              description={`${doc.brand} · ${doc.chunkCount} chunks · ${doc.sourceFormat} · via ${doc.connector} · ${doc.language.toUpperCase()}`}
+              description={c.rowDesc(
+                doc.brand,
+                doc.chunkCount,
+                doc.sourceFormat,
+                doc.connector,
+                doc.language.toUpperCase(),
+              )}
               onPress={() => setSelectedDocId(doc.id)}
               right={
                 <Inline space={8} alignItems="center">
@@ -155,15 +163,15 @@ export default function CorpusArea() {
                   </Tag>
                   {doc.ingestFilter && (
                     <Tag type={doc.ingestFilter.sentiment === "negative" ? "warning" : "info"}>
-                      {`filtered · ${doc.ingestFilter.sentiment}`}
+                      {c.filteredSentiment(sentimentLabel(doc.ingestFilter.sentiment))}
                     </Tag>
                   )}
                   {doc.version && <Tag type="info">{doc.version}</Tag>}
                   <Tag type={doc.confidentiality === "public" ? "inactive" : "error"}>
-                    {clearanceLabel(doc.confidentiality)}
+                    {clearanceLabel(doc.confidentiality, lang)}
                   </Tag>
                   <Tag type={doc.validity === "approved" ? "success" : "inactive"}>
-                    {doc.validity}
+                    {validityLabel(doc.validity, lang)}
                   </Tag>
                 </Inline>
               }
@@ -175,7 +183,7 @@ export default function CorpusArea() {
       {selectedDocId && (
         <Drawer
           onClose={() => setSelectedDocId(null)}
-          title={docDetail?.document.title ?? "Document"}
+          title={docDetail?.document.title ?? c.documentFallback}
         >
         {isLoadingDetail ? (
           <Box paddingY={40}>
@@ -203,19 +211,20 @@ export default function CorpusArea() {
                 </Inline>
                 <Inline space={8} alignItems="center">
                   <Tag type={docDetail.document.validity === "approved" ? "success" : "inactive"}>
-                    {docDetail.document.validity}
+                    {validityLabel(docDetail.document.validity, lang)}
                   </Tag>
                   <Tag type={docDetail.document.confidentiality === "public" ? "inactive" : "error"}>
-                    {clearanceLabel(docDetail.document.confidentiality)}
+                    {clearanceLabel(docDetail.document.confidentiality, lang)}
                   </Tag>
                 </Inline>
               </Inline>
               <Inline space={8} alignItems="center">
                 <IconShieldRegular size={16} color={skinVars.colors.textSecondary} />
                 <Text1 regular color={skinVars.colors.textSecondary}>
-                  Confidentiality "{clearanceLabel(docDetail.document.confidentiality)}" is inherited
-                  from the source sensitivity label ({docDetail.document.connector} — simulated
-                  Purview/MIP), not assigned by hand.
+                  {c.confidentialityInherited(
+                    clearanceLabel(docDetail.document.confidentiality, lang),
+                    docDetail.document.connector,
+                  )}
                 </Text1>
               </Inline>
               <Inline space={16} alignItems="center" wrap>
@@ -223,27 +232,27 @@ export default function CorpusArea() {
                   {docDetail.document.country} • {docDetail.document.brand}
                 </Text2>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Owner: {docDetail.document.owner}
+                  {c.owner(docDetail.document.owner)}
                 </Text2>
               </Inline>
               <Inline space={16} alignItems="center" wrap>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Format: {docDetail.document.sourceFormat}
+                  {c.format(docDetail.document.sourceFormat)}
                 </Text2>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Source: {docDetail.document.connector}
+                  {c.source(docDetail.document.connector)}
                 </Text2>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Language: {docDetail.document.language.toUpperCase()}
+                  {c.language(docDetail.document.language.toUpperCase())}
                 </Text2>
                 {docDetail.document.frequency && (
                   <Text2 regular color={skinVars.colors.textSecondary}>
-                    Refresh: {docDetail.document.frequency}
+                    {c.refresh(docDetail.document.frequency)}
                   </Text2>
                 )}
                 {docDetail.document.version && (
                   <Text2 regular color={skinVars.colors.textSecondary}>
-                    Version: {docDetail.document.version}
+                    {c.version(docDetail.document.version)}
                   </Text2>
                 )}
               </Inline>
@@ -254,11 +263,11 @@ export default function CorpusArea() {
                   <Box padding={16}>
                     <Stack space={8}>
                       <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                        Version lineage
+                        {c.versionLineage}
                       </Text1>
                       {docDetail.document.supersededBy && (
                         <Inline space={8} alignItems="center" wrap>
-                          <Tag type="warning">superseded by</Tag>
+                          <Tag type="warning">{c.supersededBy}</Tag>
                           <Touchable onPress={() => setSelectedDocId(docDetail.document.supersededBy!)}>
                             <Text2 medium color={skinVars.colors.textLink}>
                               {titleOf(docDetail.document.supersededBy)}
@@ -268,7 +277,7 @@ export default function CorpusArea() {
                       )}
                       {docDetail.document.supersedes && (
                         <Inline space={8} alignItems="center" wrap>
-                          <Tag type="success">replaces</Tag>
+                          <Tag type="success">{c.replaces}</Tag>
                           <Touchable onPress={() => setSelectedDocId(docDetail.document.supersedes!)}>
                             <Text2 medium color={skinVars.colors.textLink}>
                               {titleOf(docDetail.document.supersedes)}
@@ -279,7 +288,7 @@ export default function CorpusArea() {
                       {(docDetail.document.lineageSourceDocIds ?? []).length > 0 && (
                         <Stack space={4}>
                           <Text1 regular color={skinVars.colors.textSecondary}>
-                            Generated from governed sources:
+                            {c.generatedFrom}
                           </Text1>
                           {(docDetail.document.lineageSourceDocIds ?? []).map((srcId) => (
                             <Touchable key={srcId} onPress={() => setSelectedDocId(srcId)}>
@@ -299,25 +308,24 @@ export default function CorpusArea() {
                   <Box padding={16}>
                     <Stack space={8}>
                       <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                        Pre-ingest filter match · {docDetail.document.ingestFilter.sentiment} mentions
+                        {c.filterMatch(sentimentLabel(docDetail.document.ingestFilter.sentiment))}
                       </Text1>
                       <Inline space={8} alignItems="center" wrap>
                         {docDetail.document.ingestFilter.keywords.map((k) => (
-                          <Tag key={`kw-${k}`} type="info">{`keyword: ${k}`}</Tag>
+                          <Tag key={`kw-${k}`} type="info">{c.keyword(k)}</Tag>
                         ))}
                         {docDetail.document.ingestFilter.competitors.map((k) => (
-                          <Tag key={`co-${k}`} type="warning">{`competitor: ${k}`}</Tag>
+                          <Tag key={`co-${k}`} type="warning">{c.competitor(k)}</Tag>
                         ))}
                         {docDetail.document.ingestFilter.executives.map((k) => (
-                          <Tag key={`ex-${k}`} type="active">{`executive: ${k}`}</Tag>
+                          <Tag key={`ex-${k}`} type="active">{c.executive(k)}</Tag>
                         ))}
                         {docDetail.document.ingestFilter.topics.map((k) => (
-                          <Tag key={`to-${k}`} type="inactive">{`topic: ${k}`}</Tag>
+                          <Tag key={`to-${k}`} type="inactive">{c.topic(k)}</Tag>
                         ))}
                       </Inline>
                       <Text1 regular color={skinVars.colors.textSecondary}>
-                        Only material matching the configured keyword, competitor, executive and
-                        topic filters was ingested — never a raw dump.
+                        {c.filterNote}
                       </Text1>
                     </Stack>
                   </Box>
@@ -337,7 +345,7 @@ export default function CorpusArea() {
 
             <Stack space={16}>
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                Document chunks ({docDetail.chunks.length})
+                {c.chunksCount(docDetail.chunks.length)}
               </Text1>
               <Stack space={12}>
                 {docDetail.chunks.map((chunk) => (
@@ -368,7 +376,7 @@ export default function CorpusArea() {
                   <IconCloseRegular size={28} color={skinVars.colors.error} />
                 </Circle>
               </Inline>
-              <Title3>Failed to load document</Title3>
+              <Title3>{c.failedToLoad}</Title3>
             </Stack>
           </Box>
         )}

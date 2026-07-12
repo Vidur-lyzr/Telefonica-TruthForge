@@ -41,10 +41,16 @@ import {
 } from "@telefonica/mistica";
 import { useDataCenter } from "./state";
 import { formatDate } from "./helpers";
+import { useApp } from "../app-provider";
+import { DATA_I18N } from "../../i18n/data";
 
 type Step = 0 | 1 | 2 | 3;
 
 export default function GovernanceArea() {
+  const { lang } = useApp();
+  const t = DATA_I18N[lang];
+  const G = t.governance;
+  const W = G.wizard;
   const { data: axes, refetch: refetchAxes } = useListAxes();
   const { data: freshness } = useListDocumentFreshness();
   const { data: taxonomy, refetch: refetchTaxonomy } = useGetTaxonomyState();
@@ -107,9 +113,7 @@ export default function GovernanceArea() {
       result.proposals.forEach((p) => (initial[p.docId] = true));
       setDecisions(initial);
     } catch {
-      setProposeError(
-        "The re-tagging engine could not produce proposals. Nothing has been changed.",
-      );
+      setProposeError(W.proposeError);
     }
   }
 
@@ -120,8 +124,8 @@ export default function GovernanceArea() {
     try {
       const result = await applyMutation.mutateAsync({
         data: {
-          actor: "You (documentalist)",
-          note: `Renamed "${proposal.fromName}" to "${proposal.toName}" and re-classified the affected documents.`,
+          actor: W.actor,
+          note: W.applyNote(proposal.fromName, proposal.toName),
           axisEdit: {
             axisId: proposal.axisId,
             name: proposal.toName,
@@ -137,24 +141,25 @@ export default function GovernanceArea() {
       });
       setLastApplied(result);
       runReclassification(
-        `Renamed "${proposal.fromName}" to "${proposal.toName}". Applied taxonomy version ${result.version}: ${result.appliedCount} accepted, ${result.rejectedCount} rejected by human review — no re-embedding, no redeploy.`,
+        W.reclassifiedDetail(
+          proposal.fromName,
+          proposal.toName,
+          result.version,
+          result.appliedCount,
+          result.rejectedCount,
+        ),
       );
       await Promise.all([refetchAxes(), refetchTaxonomy()]);
       setWizardOpen(false);
       resetWizard();
     } catch {
-      setApplyError("The taxonomy version could not be applied. Nothing has been changed.");
+      setApplyError(W.applyError);
     } finally {
       setApplying(false);
     }
   }
 
-  const stepLabels = [
-    "Edit taxonomy",
-    "Review mapping",
-    "Assisted re-classify",
-    "Human validation",
-  ];
+  const stepLabels = W.steps;
 
   const proposing = proposeMutation.isPending;
 
@@ -172,12 +177,12 @@ export default function GovernanceArea() {
               <Inline space={8} alignItems="center">
                 <IconWorldDeviceRegular size={20} color={skinVars.colors.inverse} />
                 <Text3 medium color={skinVars.colors.textPrimaryInverse}>
-                  Taxonomy is configuration, not code
+                  {G.bannerTitle}
                 </Text3>
               </Inline>
               <Inline space={12} alignItems="center">
                 {taxonomy && (
-                  <Tag type="info">{`Taxonomy v${taxonomy.activeVersion}`}</Tag>
+                  <Tag type="info">{G.taxonomyVersion(taxonomy.activeVersion)}</Tag>
                 )}
                 <ButtonSecondary
                   small
@@ -186,15 +191,12 @@ export default function GovernanceArea() {
                     setWizardOpen(true);
                   }}
                 >
-                  Re-classify
+                  {G.reclassify}
                 </ButtonSecondary>
               </Inline>
             </Inline>
             <Text2 regular color={skinVars.colors.textSecondaryInverse}>
-              The strategic axes below are the shared vocabulary every document is mapped to. When
-              the strategy shifts, a documentalist updates the taxonomy and re-classifies the corpus
-              against it — a governed configuration change, not an engineering release. No
-              re-embedding, no IT ticket, no redeploy.
+              {G.bannerDesc}
             </Text2>
           </Stack>
         </Box>
@@ -203,12 +205,8 @@ export default function GovernanceArea() {
       {lastApplied && (
         <Callout
           asset={<IconShieldRegular color={skinVars.colors.success} />}
-          title={`Taxonomy version ${lastApplied.version} is live`}
-          description={`${lastApplied.appliedCount} document${lastApplied.appliedCount === 1 ? "" : "s"} re-tagged, ${lastApplied.rejectedCount} proposal${lastApplied.rejectedCount === 1 ? "" : "s"} rejected by human review. The change took effect immediately across retrieval and browsing.${
-            lastApplied.qdrant
-              ? ` Qdrant proof: ${lastApplied.qdrant.updatedDocs} document payload${lastApplied.qdrant.updatedDocs === 1 ? "" : "s"} updated in place via set_payload — vector count unchanged (${lastApplied.qdrant.pointsBefore} before, ${lastApplied.qdrant.pointsAfter} after). No re-embedding, no re-ingestion.`
-              : ""
-          }`}
+          title={G.liveTitle(lastApplied.version)}
+          description={G.liveDesc(lastApplied.appliedCount, lastApplied.rejectedCount, lastApplied.qdrant)}
         />
       )}
 
@@ -227,7 +225,7 @@ export default function GovernanceArea() {
                 <Stack space={4}>
                   <Inline space="between" alignItems="center">
                     <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                      Axis {i + 1}
+                      {G.axis(i + 1)}
                     </Text1>
                     <IconWorldDeviceRegular size={16} color={axis.color} />
                   </Inline>
@@ -250,14 +248,13 @@ export default function GovernanceArea() {
         <Stack space={16}>
           <Inline space={8} alignItems="center">
             <IconListRegular size={20} color={skinVars.colors.brand} />
-            <Title2>Taxonomy version history</Title2>
+            <Title2>{G.historyTitle}</Title2>
           </Inline>
           <Text2 regular color={skinVars.colors.textSecondary}>
-            Every applied re-classification is a persisted, versioned configuration change with an
-            actor and a note — the audit trail of the vocabulary itself.
+            {G.historyDesc}
           </Text2>
           <Table
-            heading={["Version", "When", "Actor", "Change", "Documents re-tagged"]}
+            heading={G.historyHeadings}
             columnTextAlign={["left", "left", "left", "left", "right"]}
             content={[...taxonomy.versions]
               .sort((a, b) => b.version - a.version)
@@ -266,10 +263,10 @@ export default function GovernanceArea() {
                   type={v.version === taxonomy.activeVersion ? "success" : "inactive"}
                   key={`${v.version}-v`}
                 >
-                  {`v${v.version}${v.version === taxonomy.activeVersion ? " · active" : ""}`}
+                  {v.version === taxonomy.activeVersion ? G.versionActive(v.version) : G.version(v.version)}
                 </Tag>,
                 <Text2 regular color={skinVars.colors.textPrimary} key={`${v.version}-w`}>
-                  {formatDate(v.createdAt)}
+                  {formatDate(v.createdAt, lang)}
                 </Text2>,
                 <Text2 regular color={skinVars.colors.textSecondary} key={`${v.version}-a`}>
                   {v.actor}
@@ -289,11 +286,11 @@ export default function GovernanceArea() {
         <Inline space="between" alignItems="center">
           <Inline space={8} alignItems="center">
             <IconTimeRegular size={20} color={skinVars.colors.brand} />
-            <Title2>Freshness and review SLA</Title2>
+            <Title2>{G.freshnessTitle}</Title2>
           </Inline>
           <Inline space={12} alignItems="center">
             <Text2 regular color={skinVars.colors.textSecondary}>
-              {compliancePct}% within SLA
+              {G.withinSla(compliancePct)}
             </Text2>
             <div style={{ width: 128 }}>
               <ProgressBar progressPercent={compliancePct} color={skinVars.colors.success} />
@@ -302,21 +299,19 @@ export default function GovernanceArea() {
         </Inline>
 
         <Text2 regular color={skinVars.colors.textSecondary}>
-          Every governed document carries a review SLA. Once it lapses, the document is flagged for a
-          refresh so answers are never quietly built on stale ground — the honest "historic source"
-          state depends on this discipline.
+          {G.freshnessDesc}
         </Text2>
 
         {overdue.length > 0 && (
           <Callout
             asset={<IconAlertRegular color={skinVars.colors.warning} />}
-            title={`${overdue.length} ${overdue.length === 1 ? "document is" : "documents are"} past review SLA`}
-            description="These are due a refresh."
+            title={G.pastSla(overdue.length)}
+            description={G.dueRefresh}
           />
         )}
 
         <Table
-          heading={["Document", "Owner", "Last reviewed", "SLA", "Status"]}
+          heading={G.freshnessHeadings}
           columnTextAlign={["left", "left", "left", "left", "right"]}
           content={(freshness ?? []).map((f) => [
             <Text2 medium color={skinVars.colors.textPrimary} key={`${f.docId}-t`}>
@@ -326,14 +321,14 @@ export default function GovernanceArea() {
               {f.owner}
             </Text2>,
             <Text2 regular color={skinVars.colors.textPrimary} key={`${f.docId}-r`}>
-              {formatDate(f.lastReviewed)}
+              {formatDate(f.lastReviewed, lang)}
             </Text2>,
             <Text2 regular color={skinVars.colors.textSecondary} key={`${f.docId}-s`}>
-              every {f.slaMonths} mo
+              {G.everyMonths(f.slaMonths)}
             </Text2>,
             <Inline space={0} alignItems="center" key={`${f.docId}-st`}>
               <Tag type={f.overdue ? "warning" : "success"}>
-                {`${f.monthsSinceReview} mo · ${f.overdue ? "overdue" : "on track"}`}
+                {G.monthsStatus(f.monthsSinceReview, f.overdue)}
               </Tag>
             </Inline>,
           ])}
@@ -342,24 +337,24 @@ export default function GovernanceArea() {
 
       {wizardOpen && (
         <Drawer
-          title="Re-classify against the taxonomy"
-          description="A four-step governed change. Nothing is re-embedded or redeployed — the taxonomy is edited, the corpus is re-classified against it with model assistance, and a human validates every proposal before it becomes a new persisted version."
+          title={W.title}
+          description={W.desc}
           onClose={() => setWizardOpen(false)}
           button={
             step === 0
               ? {
-                  text: "Continue",
+                  text: W.continue,
                   onPress: () => void startProposal(),
                   disabled: renameTo.trim().length === 0 || !selectedAxis,
                 }
               : step < 3
                 ? {
-                    text: "Continue",
+                    text: W.continue,
                     onPress: () => setStep((s) => (s + 1) as Step),
                     disabled: proposing || !proposal,
                   }
                 : {
-                    text: applying ? "Applying…" : "Confirm and apply",
+                    text: applying ? W.applying : W.confirmApply,
                     onPress: () => void finishWizard(),
                     disabled: applying || !proposal,
                   }
@@ -367,11 +362,11 @@ export default function GovernanceArea() {
           secondaryButton={
             step > 0
               ? {
-                  text: "Back",
+                  text: W.back,
                   onPress: () => setStep((s) => (s - 1) as Step),
                   disabled: applying,
                 }
-              : { text: "Cancel", onPress: () => setWizardOpen(false) }
+              : { text: W.cancel, onPress: () => setWizardOpen(false) }
           }
         >
           <Stack space={24}>
@@ -411,12 +406,11 @@ export default function GovernanceArea() {
             {step === 0 && (
               <Stack space={16}>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Rename or refine a strategic axis. This mirrors a strategy shift — for example
-                  folding a legacy theme into a current strategic axis.
+                  {W.step0Desc}
                 </Text2>
                 <Select
                   name="retag-axis"
-                  label="Axis to edit"
+                  label={W.axisToEdit}
                   value={effectiveAxisId}
                   onChangeValue={setAxisId}
                   options={(axes ?? []).map((a) => ({ value: a.id, text: a.name }))}
@@ -424,14 +418,14 @@ export default function GovernanceArea() {
                 />
                 <TextField
                   name="renameTo"
-                  label="New name"
+                  label={W.newName}
                   value={renameTo}
                   onChangeValue={setRenameTo}
                   fullWidth
                 />
                 <TextField
                   name="newDescription"
-                  label="New description (optional)"
+                  label={W.newDescription}
                   value={newDescription}
                   onChangeValue={setNewDescription}
                   fullWidth
@@ -444,8 +438,7 @@ export default function GovernanceArea() {
                 {proposing && (
                   <Stack space={12}>
                     <Text2 regular color={skinVars.colors.textSecondary}>
-                      Building the mapping table and asking the engine to re-classify each affected
-                      document against the edited axis…
+                      {W.building}
                     </Text2>
                     <ProgressBar progressPercent={66} color={skinVars.colors.brand} />
                   </Stack>
@@ -453,16 +446,14 @@ export default function GovernanceArea() {
                 {proposeError && (
                   <Callout
                     asset={<IconAlertRegular color={skinVars.colors.error} />}
-                    title="Proposal failed"
+                    title={W.proposalFailed}
                     description={proposeError}
                   />
                 )}
                 {proposal && (
                   <Stack space={12}>
                     <Text2 regular color={skinVars.colors.textSecondary}>
-                      {proposal.affectedCount}{" "}
-                      {proposal.affectedCount === 1 ? "document currently maps" : "documents currently map"}{" "}
-                      to "{proposal.fromName}". They will be reviewed against the new definition.
+                      {W.affected(proposal.affectedCount, proposal.fromName)}
                     </Text2>
                     <Boxed>
                       <Box padding={16}>
@@ -490,17 +481,17 @@ export default function GovernanceArea() {
                   </Circle>
                   <Tag type={proposal.engine === "llm" ? "success" : "warning"}>
                     {proposal.engine === "llm"
-                      ? "Model-assisted zero-shot"
-                      : "Deterministic fallback"}
+                      ? W.engineLlm
+                      : W.engineFallback}
                   </Tag>
                 </Inline>
                 <Text2 regular color={skinVars.colors.textSecondary}>
                   {proposal.engine === "llm"
-                    ? `The engine classified each of the ${proposal.affectedCount} affected documents zero-shot against the edited axis. Existing embeddings are reused — this is a metadata re-mapping, not a re-index.`
-                    : `The model was unavailable, so each of the ${proposal.affectedCount} affected documents keeps its current mapping under the renamed label — clearly labelled, never silent. A human still validates every row.`}
+                    ? W.engineLlmDesc(proposal.affectedCount)
+                    : W.engineFallbackDesc(proposal.affectedCount)}
                 </Text2>
                 <Table
-                  heading={["Document", "Proposal", "Confidence"]}
+                  heading={W.proposalHeadings}
                   columnTextAlign={["left", "left", "right"]}
                   content={proposal.proposals.map((p) => [
                     <Text2 medium color={skinVars.colors.textPrimary} key={`${p.docId}-d`}>
@@ -524,13 +515,13 @@ export default function GovernanceArea() {
               <Stack space={12}>
                 <Callout
                   asset={<IconShieldRegular color={skinVars.colors.brand} />}
-                  title="A human confirms every re-classification before it becomes live"
-                  description="Untick any proposal to reject it — rejected documents keep their current tags. Nothing is applied automatically."
+                  title={W.humanConfirmTitle}
+                  description={W.humanConfirmDesc}
                 />
                 {applyError && (
                   <Callout
                     asset={<IconAlertRegular color={skinVars.colors.error} />}
-                    title="Apply failed"
+                    title={W.applyFailed}
                     description={applyError}
                   />
                 )}
@@ -554,8 +545,8 @@ export default function GovernanceArea() {
                               </Text2>
                               <Text1 regular color={skinVars.colors.textSecondary}>
                                 {keepsAxis
-                                  ? `Stays under "${proposal.toName}"`
-                                  : `Leaves "${proposal.toName}"`}{" "}
+                                  ? W.staysUnder(proposal.toName)
+                                  : W.leaves(proposal.toName)}{" "}
                                 · {p.rationale}
                               </Text1>
                             </Stack>
@@ -566,8 +557,7 @@ export default function GovernanceArea() {
                   })}
                 </Stack>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  {acceptedCount} of {proposal.proposals.length} proposals accepted. Confirm to
-                  apply as a new persisted taxonomy version — the change takes effect immediately.
+                  {W.accepted(acceptedCount, proposal.proposals.length)}
                 </Text2>
               </Stack>
             )}

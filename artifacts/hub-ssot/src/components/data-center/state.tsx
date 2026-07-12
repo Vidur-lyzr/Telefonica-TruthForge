@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useMemo, useState } from "react";
 import type { ProposedMetadata } from "@workspace/api-client-react";
+import { useApp } from "../app-provider";
+import { DATA_I18N } from "../../i18n/data";
 
 export type ValidationAction = "approved" | "edited" | "rejected";
 
@@ -58,6 +60,8 @@ function nowIso() {
 }
 
 export function DataCenterProvider({ children }: { children: React.ReactNode }) {
+  const { lang } = useApp();
+  const a = DATA_I18N[lang].activity;
   const [resolvedValidations, setResolvedValidations] = useState<
     Record<string, ValidationAction>
   >({});
@@ -80,33 +84,37 @@ export function DataCenterProvider({ children }: { children: React.ReactNode }) 
       resolveValidation: (id, action, target, detail) => {
         setResolvedValidations((prev) => ({ ...prev, [id]: action }));
         const label =
-          action === "approved" ? "Validated" : action === "edited" ? "Corrected" : "Rejected";
-        pushActivity(`${label} classification`, target, detail);
+          action === "approved"
+            ? a.validatedClassification
+            : action === "edited"
+              ? a.correctedClassification
+              : a.rejectedClassification;
+        pushActivity(label, target, detail);
       },
       resolvedConflicts,
       resolveConflict: (id, target, detail) => {
         setResolvedConflicts((prev) => ({ ...prev, [id]: true }));
         setResolvedValidations((prev) => ({ ...prev, [id]: "edited" }));
-        pushActivity("Resolved source conflict", target, detail);
+        pushActivity(a.resolvedConflict, target, detail);
       },
       releasedQuarantine,
       releaseQuarantine: (id, target, detail) => {
         setReleasedQuarantine((prev) => ({ ...prev, [id]: true }));
-        pushActivity("Released from quarantine", target, detail);
+        pushActivity(a.releasedFromQuarantine, target, detail);
       },
       uploads,
       addUpload: (doc) => {
         setUploads((prev) => [...prev, doc]);
-        pushActivity("Manual upload", doc.title, `Added via guided form from ${doc.source}.`);
+        pushActivity(a.manualUpload, doc.title, a.addedViaForm(doc.source));
       },
       reclassifyRuns,
       runReclassification: (detail) => {
         setReclassifyRuns((n) => n + 1);
-        pushActivity("Re-classified corpus", "Taxonomy configuration", detail);
+        pushActivity(a.reclassifiedCorpus, a.taxonomyConfiguration, detail);
       },
       activity,
     }),
-    [resolvedValidations, resolvedConflicts, releasedQuarantine, uploads, reclassifyRuns, activity],
+    [resolvedValidations, resolvedConflicts, releasedQuarantine, uploads, reclassifyRuns, activity, a],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

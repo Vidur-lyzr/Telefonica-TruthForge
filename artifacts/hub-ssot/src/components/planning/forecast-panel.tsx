@@ -11,6 +11,7 @@ import {
   type PlanningForecast,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { PLANNING_I18N, localeFor } from "@/i18n/planning";
 import {
   Sheet,
   ThemeVariant,
@@ -65,7 +66,8 @@ const FREQUENCIES = ["daily", "weekly", "monthly"] as const;
 type Frequency = (typeof FREQUENCIES)[number];
 
 export function ForecastPanel() {
-  const { area, roleId } = useApp();
+  const { area, roleId, lang } = useApp();
+  const t = PLANNING_I18N[lang];
   const queryClient = useQueryClient();
   const [selected, setSelected] = React.useState<Citation | null>(null);
   const [frequency, setFrequency] = React.useState<Frequency>("weekly");
@@ -109,7 +111,7 @@ export function ForecastPanel() {
               <Inline space={8} alignItems="center">
                 <IconAiRegular size={20} color={skinVars.colors.textPrimaryInverse} />
                 <Text2 medium color={skinVars.colors.textPrimaryInverse} transform="uppercase">
-                  10-day forecast
+                  {t.forecastTitle}
                 </Text2>
               </Inline>
               <ButtonPrimary
@@ -120,14 +122,13 @@ export function ForecastPanel() {
                 }}
                 disabled={isPending || !roleId}
               >
-                {isPending ? "Generating…" : forecast ? "Refresh" : "Generate"}
+                {isPending ? t.generating : forecast ? t.refresh : t.generate}
               </ButtonPrimary>
             </Inline>
 
             {!forecast && !isPending && (
               <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.8)}>
-                Generate a cited outlook of what is live, upcoming, and at risk in the next 10 days —
-                scoped to your persona.
+                {t.forecastIntro}
               </Text2>
             )}
 
@@ -135,7 +136,7 @@ export function ForecastPanel() {
               <Inline space={12} alignItems="center">
                 <IconAiRegular size={20} color={skinVars.colors.textPrimaryInverse} />
                 <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.85)}>
-                  Composing forecast from governed activity…
+                  {t.composingForecast}
                 </Text2>
               </Inline>
             )}
@@ -143,7 +144,7 @@ export function ForecastPanel() {
             {forecast && !isPending && (
               <Stack space={16}>
                 <Text1 regular color={applyAlpha(skinVars.rawColors.inverse, 0.72)}>
-                  {formatDay(forecast.rangeStart)} – {formatDay(forecast.rangeEnd)}
+                  {formatDay(forecast.rangeStart, lang)} – {formatDay(forecast.rangeEnd, lang)}
                 </Text1>
 
                 {forecast.status === "no_activity" ? (
@@ -173,7 +174,7 @@ export function ForecastPanel() {
                         padding: "12px 0",
                       }}
                     >
-                      <Stat value={forecast.highlights.liveCount} label="Live" tone="success" />
+                      <Stat value={forecast.highlights.liveCount} label={t.statLive} tone="success" />
                       <div
                         style={{
                           width: 1,
@@ -183,7 +184,7 @@ export function ForecastPanel() {
                       />
                       <Stat
                         value={forecast.highlights.conflictCount}
-                        label="Conflicts"
+                        label={t.statConflicts}
                         tone="warning"
                       />
                       <div
@@ -193,7 +194,7 @@ export function ForecastPanel() {
                           backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.2),
                         }}
                       />
-                      <Stat value={forecast.highlights.riskCount} label="Risks" tone="warning" />
+                      <Stat value={forecast.highlights.riskCount} label={t.statRisks} tone="warning" />
                     </div>
 
                     <Stack space={8}>
@@ -216,7 +217,7 @@ export function ForecastPanel() {
                             color={skinVars.colors.textPrimaryInverse}
                             transform="uppercase"
                           >
-                            Cited activity
+                            {t.citedActivity}
                           </Text1>
                         </Inline>
                         <div style={{ display: "flex", overflowX: "auto", gap: 8, paddingBottom: 8 }}>
@@ -224,7 +225,7 @@ export function ForecastPanel() {
                             <div key={i} style={{ flexShrink: 0, width: 220 }}>
                               <Touchable
                                 onPress={() => setSelected(c)}
-                                aria-label={`Citation ${c.id}: ${c.docTitle}`}
+                                aria-label={t.evidenceAria(c.id, c.docTitle)}
                               >
                                 <div
                                   style={{
@@ -291,9 +292,10 @@ export function ForecastPanel() {
                         }}
                       >
                         <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.9)}>
-                          Sent to the "{scheduled.reviewItem.reviewFolder}" review folder as "
-                          {scheduled.reviewItem.draft.title}". It is waiting for approval in
-                          Generate.
+                          {t.scheduledNote(
+                            scheduled.reviewItem.reviewFolder,
+                            scheduled.reviewItem.draft.title,
+                          )}
                         </Text2>
                       </div>
                     ) : (
@@ -302,7 +304,7 @@ export function ForecastPanel() {
                         onPress={() => schedule({ data: { area, roleId } })}
                         disabled={scheduling || !roleId}
                       >
-                        {scheduling ? "Scheduling…" : "Schedule to review folder"}
+                        {scheduling ? t.scheduling : t.scheduleToReview}
                       </ButtonPrimary>
                     )}
                   </Stack>
@@ -323,25 +325,28 @@ export function ForecastPanel() {
                   color={applyAlpha(skinVars.rawColors.inverse, 0.72)}
                   transform="uppercase"
                 >
-                  Recurring forecast
+                  {t.recurringForecast}
                 </Text1>
                 {activeSchedule ? (
                   <Stack space={8}>
                     <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.9)}>
-                      {activeSchedule.name} — every{" "}
-                      {activeSchedule.frequency === "daily"
-                        ? "day"
-                        : activeSchedule.frequency === "weekly"
-                          ? "week"
-                          : "month"}
-                      , a fresh cited forecast lands in the "{activeSchedule.reviewFolder}" review
-                      folder for approval.
+                      {t.recurringActive(
+                        activeSchedule.name,
+                        t.freqEvery[
+                          (activeSchedule.frequency === "daily" ||
+                          activeSchedule.frequency === "weekly" ||
+                          activeSchedule.frequency === "monthly"
+                            ? activeSchedule.frequency
+                            : "monthly") as "daily" | "weekly" | "monthly"
+                        ],
+                        activeSchedule.reviewFolder,
+                      )}
                     </Text2>
                     <Text1 regular color={applyAlpha(skinVars.rawColors.inverse, 0.72)}>
-                      Last run:{" "}
+                      {t.lastRun}{" "}
                       {activeSchedule.lastRunAt
-                        ? new Date(activeSchedule.lastRunAt).toLocaleString("en-GB")
-                        : "not yet"}
+                        ? new Date(activeSchedule.lastRunAt).toLocaleString(localeFor(lang))
+                        : t.notYet}
                     </Text1>
                     <div>
                       <ButtonPrimary
@@ -351,15 +356,14 @@ export function ForecastPanel() {
                         }
                         disabled={cancellingRecurring}
                       >
-                        {cancellingRecurring ? "Cancelling…" : "Cancel recurring forecast"}
+                        {cancellingRecurring ? t.cancelling : t.cancelRecurring}
                       </ButtonPrimary>
                     </div>
                   </Stack>
                 ) : (
                   <Stack space={8}>
                     <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.8)}>
-                      Receive this forecast on a schedule. Each run lands as an approval-gated
-                      draft in the "Planning forecasts" review folder.
+                      {t.recurringIntro}
                     </Text2>
                     <Inline space={8} alignItems="center" wrap>
                       <div
@@ -375,7 +379,7 @@ export function ForecastPanel() {
                           <Touchable
                             key={f}
                             onPress={() => setFrequency(f)}
-                            aria-label={`Frequency ${f}`}
+                            aria-label={t.frequencyAria(t.frequencies[f])}
                           >
                             <div
                               style={{
@@ -397,7 +401,7 @@ export function ForecastPanel() {
                                     : applyAlpha(skinVars.rawColors.inverse, 0.72)
                                 }
                               >
-                                {f}
+                                {t.frequencies[f]}
                               </Text1>
                             </div>
                           </Touchable>
@@ -408,7 +412,7 @@ export function ForecastPanel() {
                         onPress={() => createRecurring({ data: { area, roleId, frequency } })}
                         disabled={creatingRecurring || !roleId}
                       >
-                        {creatingRecurring ? "Creating…" : "Create recurring forecast"}
+                        {creatingRecurring ? t.creating : t.createRecurring}
                       </ButtonPrimary>
                     </Inline>
                   </Stack>

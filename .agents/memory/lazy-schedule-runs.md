@@ -10,6 +10,6 @@ Recurring schedules in this no-daemon demo run lazily when their list endpoint i
 - On CREATE, compose the first occurrence BEFORE persisting the schedule; otherwise a failed compose leaves a schedule with lastRunAt=null that silently waits a full interval, breaking the "runs immediately" promise.
 - Never fall back unknown roleIds to ROLES[0] — reject with 400 `unknown_role`. Silent fallback created/cancelled schedules under the wrong persona.
 
-**Why:** Architect review caught both the persona-fallback scoping defect and the non-atomic create during Case 5 recurring forecasts.
+**Why:** Architect review caught both the persona-fallback scoping defect and the non-atomic create while building the recurring planning forecasts feature.
 
 **How to apply:** Any future recurring/scheduled feature (KPI digests, brand reports) sharing the generateStore schedule registry.

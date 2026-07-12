@@ -7,6 +7,7 @@ import {
   type PlanningAskResult,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { PLANNING_I18N } from "@/i18n/planning";
 import {
   Sheet,
   Box,
@@ -32,16 +33,12 @@ import {
   IconArrowRightRegular,
 } from "@telefonica/mistica";
 
-const PROMPTS = [
-  "What is live in Spain over the next two weeks?",
-  "Are there any timing conflicts I should know about?",
-  "What Movistar activity is planned this summer?",
-];
-
 function EvidenceChip({ citation, onOpen }: { citation: Citation; onOpen: () => void }) {
+  const { lang } = useApp();
+  const t = PLANNING_I18N[lang];
   return (
     <div style={{ flexShrink: 0, width: 280 }}>
-      <Touchable onPress={onOpen} aria-label={`Citation ${citation.id}: ${citation.docTitle}`}>
+      <Touchable onPress={onOpen} aria-label={t.evidenceAria(citation.id, citation.docTitle)}>
         <div
           style={{
             display: "flex",
@@ -87,7 +84,8 @@ function EvidenceChip({ citation, onOpen }: { citation: Citation; onOpen: () => 
 }
 
 export function PlanningChat() {
-  const { area, roleId } = useApp();
+  const { area, roleId, lang } = useApp();
+  const t = PLANNING_I18N[lang];
   const [question, setQuestion] = React.useState("");
   const [selected, setSelected] = React.useState<Citation | null>(null);
   const { data: axes } = useListAxes();
@@ -120,7 +118,7 @@ export function PlanningChat() {
           <Inline space={8} alignItems="center">
             <IconSearchRegular size={16} color={skinVars.colors.brand} />
             <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-              Ask the calendar
+              {t.askCalendar}
             </Text1>
           </Inline>
 
@@ -128,9 +126,9 @@ export function PlanningChat() {
             {!result && !isPending && (
               <Stack space={8}>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Every answer is scoped to your persona and cited to governed activity.
+                  {t.chatIntro}
                 </Text2>
-                {PROMPTS.map((p) => (
+                {t.prompts.map((p) => (
                   <Touchable key={p} onPress={() => ask(p)} aria-label={p}>
                     <div
                       style={{
@@ -159,7 +157,7 @@ export function PlanningChat() {
                 <Inline space={12} alignItems="center">
                   <Spinner size={20} />
                   <Text2 medium color={skinVars.colors.textPrimary}>
-                    Accessing governed calendar…
+                    {t.accessingCalendar}
                   </Text2>
                 </Inline>
               </Box>
@@ -194,7 +192,7 @@ export function PlanningChat() {
                       <IconAlertRegular size={20} color={skinVars.colors.warning} />
                       <Stack space={4}>
                         <Text2 medium color={skinVars.colors.textPrimary}>
-                          No evidence found
+                          {t.noEvidence}
                         </Text2>
                         <Text2 regular color={skinVars.colors.textPrimary}>
                           {result.answer}
@@ -216,7 +214,7 @@ export function PlanningChat() {
                       <IconShieldRegular size={20} color={skinVars.colors.error} />
                       <Stack space={4}>
                         <Text2 medium color={skinVars.colors.textPrimary}>
-                          Permission restricted
+                          {t.permissionRestricted}
                         </Text2>
                         <Text2 regular color={skinVars.colors.textPrimary}>
                           {result.answer}
@@ -278,7 +276,7 @@ export function PlanningChat() {
                       >
                         <Stack space={8}>
                           <Text1 medium color={skinVars.colors.brand} transform="uppercase">
-                            Suggested next steps
+                            {t.suggestedNextSteps}
                           </Text1>
                           {result.suggestedActions.map((a, i) => (
                             <Text2 key={i} regular color={skinVars.colors.textPrimary}>
@@ -295,7 +293,7 @@ export function PlanningChat() {
                           <Inline space={8} alignItems="center">
                             <IconFileTextRegular size={14} color={skinVars.colors.textSecondary} />
                             <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                              Evidence
+                              {t.evidence}
                             </Text1>
                           </Inline>
                           <div style={{ display: "flex", overflowX: "auto", gap: 12, paddingBottom: 8 }}>
@@ -321,13 +319,13 @@ export function PlanningChat() {
             <Inline space={8} alignItems="center" expand={0}>
               <TextField
                 name="planning-question"
-                label="Ask about this calendar…"
+                label={t.askPlaceholder}
                 value={question}
                 onChangeValue={setQuestion}
                 fullWidth
               />
               <IconButton
-                aria-label="Send"
+                aria-label={t.send}
                 Icon={IconSendRegular}
                 onPress={() => ask(question)}
                 disabled={!question.trim() || isPending || !roleId}
@@ -351,7 +349,7 @@ export function PlanningChat() {
                     }}
                   >
                     <Text2 medium color={skinVars.colors.brand}>
-                      Citation [{selected.id}]
+                      {t.citationLabel(selected.id)}
                     </Text2>
                   </div>
                   <Tag type={selected.confidentiality === "public" ? "success" : "error"}>
@@ -372,7 +370,7 @@ export function PlanningChat() {
                 >
                   <Stack space={12}>
                     <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                      Extracted snippet
+                      {t.extractedSnippet}
                     </Text1>
                     <Text3 regular color={skinVars.colors.textPrimary}>
                       "{selected.snippet}"
@@ -382,7 +380,7 @@ export function PlanningChat() {
                 <Grid columns={{ minSize: 140 }} gap={16}>
                   <Stack space={4}>
                     <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                      Owner
+                      {t.owner}
                     </Text1>
                     <Text2 medium color={skinVars.colors.textPrimary}>
                       {selected.owner}
@@ -390,7 +388,7 @@ export function PlanningChat() {
                   </Stack>
                   <Stack space={4}>
                     <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                      Confidence
+                      {t.confidence}
                     </Text1>
                     <Text2 medium color={skinVars.colors.textPrimary}>
                       {Math.round(selected.confidence * 100)}%
@@ -399,7 +397,7 @@ export function PlanningChat() {
                   {selected.country && (
                     <Stack space={4}>
                       <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                        Market
+                        {t.market}
                       </Text1>
                       <Text2 medium color={skinVars.colors.textPrimary}>
                         {selected.country}

@@ -20,6 +20,8 @@ import {
   IconCreditBalanceEuroRegular,
   IconDataCheckedRegular,
 } from "@telefonica/mistica";
+import { useApp } from "@/components/app-provider";
+import { ADMIN_I18N, localeFor } from "@/i18n/admin";
 
 // The PC5 cost model: three blocks (one-time implementation, platform licence
 // by seat bracket, usage/token consumption by seat bracket) driven by a live
@@ -92,6 +94,9 @@ function CostBlock({
 }
 
 export default function CostModelSection() {
+  const { lang } = useApp();
+  const t = ADMIN_I18N[lang].cost;
+  const locale = localeFor(lang);
   const { data: usage } = useGetUsageMeter({
     query: { queryKey: ["usage-meter"] },
   });
@@ -134,13 +139,10 @@ export default function CostModelSection() {
       <Stack space={4}>
         <Inline space={8} alignItems="center">
           <IconCreditBalanceEuroRegular color={skinVars.colors.brand} />
-          <Title3>Cost model</Title3>
+          <Title3>{t.title}</Title3>
         </Inline>
         <Text2 regular color={skinVars.colors.textSecondary}>
-          Three blocks — one-time implementation, platform licence and usage —
-          driven by the seat bracket and editable assumptions. All prices are
-          illustrative: the RFP marks real figures as pending. The usage block
-          is grounded in this platform's own metered agent calls.
+          {t.intro}
         </Text2>
       </Stack>
 
@@ -150,15 +152,25 @@ export default function CostModelSection() {
         title=""
         description={
           observedCalls > 0
-            ? `Live estimator input: ${observedCalls.toLocaleString("en-GB")} metered agent call${observedCalls === 1 ? "" : "s"} totalling ${observedTokens.toLocaleString("en-GB")} tokens since ${new Date(usage?.since ?? "").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })} — an average of ${avgTokensPerCall.toLocaleString("en-GB")} tokens per interaction.`
-            : "No agent calls metered yet — the estimator uses a stated default of 1,500 tokens per interaction until real usage accumulates."
+            ? t.liveEstimatorInput(
+                observedCalls,
+                observedCalls.toLocaleString(locale),
+                observedTokens.toLocaleString(locale),
+                new Date(usage?.since ?? "").toLocaleDateString(locale, {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                }),
+                avgTokensPerCall.toLocaleString(locale),
+              )
+            : t.noCalls
         }
       />
 
       {/* Seat bracket selector */}
       <Inline space={8} alignItems="center" wrap>
         <Text2 medium color={skinVars.colors.textPrimary}>
-          Seats
+          {t.seats}
         </Text2>
         {SEAT_BRACKETS.map((s) => (
           <div
@@ -186,33 +198,39 @@ export default function CostModelSection() {
           </div>
         ))}
         {discount > 0 && (
-          <Tag type="success">{`volume discount ${Math.round(discount * 100)}%`}</Tag>
+          <Tag type="success">{t.volumeDiscountTag(Math.round(discount * 100))}</Tag>
         )}
       </Inline>
 
       {/* Three cost blocks */}
       <Grid columns={3} gap={16}>
         <CostBlock
-          label="Block 1 · Set-up"
-          cadence={runOnly ? `amortised / ${amortYears} yr` : "one-time"}
-          amount={runOnly ? `${eur(amortisedSetup)} / yr` : eur(setupFee)}
+          label={t.block1Label}
+          cadence={runOnly ? t.cadenceAmortised(amortYears) : t.cadenceOneTime}
+          amount={runOnly ? t.perYear(eur(amortisedSetup)) : eur(setupFee)}
           detail={
             runOnly
-              ? `Run-only packaging: the ${eur(setupFee)} implementation is folded into the annual fee across ${amortYears} year${amortYears === 1 ? "" : "s"}.`
-              : "Implementation, ingestion of the governed corpus, connectors and go-live. Paid once."
+              ? t.block1DetailAmort(eur(setupFee), amortYears)
+              : t.block1Detail
           }
         />
         <CostBlock
-          label="Block 2 · Platform"
-          cadence="annual"
-          amount={`${eur(platformAnnual)} / yr`}
-          detail={`${seats} seats at ${eur(perSeatMonthly)}/seat/month${discount > 0 ? `, less ${Math.round(discount * 100)}% volume discount` : ""}.`}
+          label={t.block2Label}
+          cadence={t.cadenceAnnual}
+          amount={t.perYear(eur(platformAnnual))}
+          detail={t.block2Detail(seats, eur(perSeatMonthly), Math.round(discount * 100))}
         />
         <CostBlock
-          label="Block 3 · Usage"
-          cadence="annual"
-          amount={`${eur(usageAnnual)} / yr`}
-          detail={`${seats} seats making ${interactions} interactions/month at about ${avgTokensPerCall.toLocaleString("en-GB")} tokens each — roughly ${(tokensPerYear / 1_000_000).toLocaleString("en-GB", { maximumFractionDigits: 1 })}M tokens/year at ${eur(pricePerMTokens)} per million.`}
+          label={t.block3Label}
+          cadence={t.cadenceAnnual}
+          amount={t.perYear(eur(usageAnnual))}
+          detail={t.block3Detail(
+            seats,
+            interactions,
+            avgTokensPerCall.toLocaleString(locale),
+            (tokensPerYear / 1_000_000).toLocaleString(locale, { maximumFractionDigits: 1 }),
+            eur(pricePerMTokens),
+          )}
           highlight={observedCalls > 0}
         />
       </Grid>
@@ -223,16 +241,16 @@ export default function CostModelSection() {
           <Inline space="between" alignItems="center">
             <Stack space={4}>
               <Text2 medium color={skinVars.colors.textPrimary}>
-                {runOnly ? "Annual fee (run-only)" : "First year total"}
+                {runOnly ? t.totalRunOnlyTitle : t.totalFirstYearTitle}
               </Text2>
               <Text1 regular color={skinVars.colors.textSecondary}>
                 {runOnly
-                  ? "No upfront payment — set-up amortised into the annual fee."
-                  : `Set-up plus first annual platform and usage. From year two: ${eur(platformAnnual + usageAnnual)} / yr.`}
+                  ? t.totalRunOnlySub
+                  : t.totalFirstYearSub(eur(platformAnnual + usageAnnual))}
               </Text1>
             </Stack>
             <Text5 color={skinVars.colors.brand}>
-              {runOnly ? `${eur(annualTotal)} / yr` : eur(firstYearTotal)}
+              {runOnly ? t.perYear(eur(annualTotal)) : eur(firstYearTotal)}
             </Text5>
           </Inline>
         </Box>
@@ -244,11 +262,11 @@ export default function CostModelSection() {
           <Stack space={16}>
             <Inline space="between" alignItems="center">
               <Text2 medium color={skinVars.colors.textPrimary}>
-                Assumptions (editable, illustrative)
+                {t.assumptions}
               </Text2>
               <Checkbox name="run-only" checked={runOnly} onChange={setRunOnly}>
                 <Text2 regular color={skinVars.colors.textPrimary}>
-                  Run-only packaging (no upfront set-up)
+                  {t.runOnlyCheckbox}
                 </Text2>
               </Checkbox>
             </Inline>
@@ -256,35 +274,35 @@ export default function CostModelSection() {
             <Grid columns={3} gap={16}>
               <TextField
                 name="setup-fee"
-                label="Set-up fee (EUR, one-time)"
+                label={t.fieldSetupFee}
                 value={a.setupFee}
                 onChangeValue={set("setupFee")}
                 fullWidth
               />
               <TextField
                 name="per-seat"
-                label="Licence per seat (EUR/month)"
+                label={t.fieldPerSeat}
                 value={a.perSeatMonthly}
                 onChangeValue={set("perSeatMonthly")}
                 fullWidth
               />
               <TextField
                 name="token-price"
-                label="Price per 1M tokens (EUR)"
+                label={t.fieldTokenPrice}
                 value={a.pricePerMTokens}
                 onChangeValue={set("pricePerMTokens")}
                 fullWidth
               />
               <TextField
                 name="interactions"
-                label="Interactions per user / month"
+                label={t.fieldInteractions}
                 value={a.interactionsPerUserMonth}
                 onChangeValue={set("interactionsPerUserMonth")}
                 fullWidth
               />
               <TextField
                 name="amort-years"
-                label="Amortisation period (years)"
+                label={t.fieldAmortYears}
                 value={a.amortYears}
                 onChangeValue={set("amortYears")}
                 disabled={!runOnly}
@@ -292,12 +310,7 @@ export default function CostModelSection() {
               />
             </Grid>
             <Text1 regular color={skinVars.colors.textSecondary}>
-              Volume discounts by bracket are fixed for the illustration: 50
-              seats 0%, 100 seats 5%, 150 seats 10%, 200 seats 15%. Tokens per
-              interaction come from the live meter above, never from a manual
-              entry. Where the provider does not report exact token counts, the
-              meter records a conservative estimate, so treat the usage figure
-              as indicative rather than invoice-precise.
+              {t.assumptionsNote}
             </Text1>
           </Stack>
         </Box>

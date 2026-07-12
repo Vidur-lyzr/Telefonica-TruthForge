@@ -15,6 +15,7 @@ import {
   type GuardianFinding,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { BRAND_I18N } from "@/i18n/brand";
 import {
   Box,
   Boxed,
@@ -55,11 +56,11 @@ import {
 type IconType = (props: { size?: number; color?: string }) => React.ReactElement;
 type TabId = "templates" | "tone" | "resources" | "guardian";
 
-const TABS: { id: TabId; label: string; icon: IconType }[] = [
-  { id: "templates", label: "Templates", icon: IconFileTextRegular },
-  { id: "tone", label: "Tone of voice", icon: IconChatRegular },
-  { id: "resources", label: "Resources", icon: IconLibraryRegular },
-  { id: "guardian", label: "Brand Guardian", icon: IconShieldCheckedOkRegular },
+const TABS: { id: TabId; icon: IconType }[] = [
+  { id: "templates", icon: IconFileTextRegular },
+  { id: "tone", icon: IconChatRegular },
+  { id: "resources", icon: IconLibraryRegular },
+  { id: "guardian", icon: IconShieldCheckedOkRegular },
 ];
 
 // ---- Shared pieces ----------------------------------------------------------
@@ -75,12 +76,14 @@ function IntroLine({ children }: { children: React.ReactNode }) {
 }
 
 function Loading() {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   return (
     <Box paddingY={64}>
       <Inline space={12} alignItems="center">
         <Spinner />
         <Text2 regular color={skinVars.colors.textSecondary}>
-          Loading…
+          {t.loading}
         </Text2>
       </Inline>
     </Box>
@@ -94,28 +97,34 @@ function ClearanceBadge({ clearance }: { clearance: string }) {
 }
 
 function ValidityBadge({ validity }: { validity: string }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   const type = validity === "approved" ? "success" : validity === "review" ? "warning" : "inactive";
-  return <Tag type={type}>{validity}</Tag>;
+  return <Tag type={type}>{t.validity(validity)}</Tag>;
 }
 
-function BlockedNote({ count, noun }: { count: number; noun: string }) {
+function BlockedNote({ count, noun }: { count: number; noun: "template" | "resource" }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   return (
     <Callout
       variant="default"
       asset={<IconLockClosedRegular color={skinVars.colors.warning} />}
       title=""
-      description={`${count} ${noun}${count === 1 ? "" : "s"} hidden by your persona's clearance.`}
+      description={t.blockedNote(count, noun)}
     />
   );
 }
 
-function PermissionBlocked({ count, noun }: { count: number; noun: string }) {
+function PermissionBlocked({ count, noun }: { count: number; noun: "template" | "resource" }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   return (
     <Callout
       variant="default"
       asset={<IconLockClosedRegular color={skinVars.colors.error} />}
-      title="Permission blocked"
-      description={`${count} ${noun}${count === 1 ? " is" : "s are"} governed above your persona's clearance. Switch to a higher-clearance persona to view ${count === 1 ? "it" : "them"}.`}
+      title={t.permissionBlockedTitle}
+      description={t.permissionBlocked(count, noun)}
     />
   );
 }
@@ -136,9 +145,11 @@ function TemplateMeta({ label, value }: { label: string; value: string }) {
 }
 
 function TemplateCard({ t, onOpen }: { t: BrandTemplateSummary; onOpen: () => void }) {
+  const { lang } = useApp();
+  const s = BRAND_I18N[lang];
   return (
     <Boxed>
-      <Touchable onPress={onOpen} aria-label={`Open template ${t.name}`}>
+      <Touchable onPress={onOpen} aria-label={s.openTemplateAria(t.name)}>
         <Box padding={24}>
           <Stack space={16}>
             <Inline space={12} alignItems="center">
@@ -153,10 +164,10 @@ function TemplateCard({ t, onOpen }: { t: BrandTemplateSummary; onOpen: () => vo
               <Tag type="info">{t.shape}</Tag>
             </Inline>
             <Grid columns={2} gap={12}>
-              <TemplateMeta label="Owner" value={t.owner} />
-              <TemplateMeta label="Format" value={t.format} />
-              <TemplateMeta label="Version" value={t.version} />
-              <TemplateMeta label="Sections" value={String(t.sectionCount)} />
+              <TemplateMeta label={s.meta.owner} value={t.owner} />
+              <TemplateMeta label={s.meta.format} value={t.format} />
+              <TemplateMeta label={s.meta.version} value={t.version} />
+              <TemplateMeta label={s.meta.sections} value={String(t.sectionCount)} />
             </Grid>
             <Divider />
             <Inline space="between" alignItems="center">
@@ -166,7 +177,7 @@ function TemplateCard({ t, onOpen }: { t: BrandTemplateSummary; onOpen: () => vo
               </Inline>
               <Inline space={4} alignItems="center">
                 <Text2 medium color={skinVars.colors.textLink}>
-                  View structure
+                  {s.viewStructure}
                 </Text2>
                 <IconArrowLineRightRegular size={16} color={skinVars.colors.textLink} />
               </Inline>
@@ -179,6 +190,8 @@ function TemplateCard({ t, onOpen }: { t: BrandTemplateSummary; onOpen: () => vo
 }
 
 function TemplateDetail({ templateId, roleId }: { templateId: string; roleId?: string }) {
+  const { lang } = useApp();
+  const tx = BRAND_I18N[lang];
   const { data, isLoading } = useGetBrandTemplate(
     roleId ? { templateId, roleId } : { templateId },
   );
@@ -188,9 +201,9 @@ function TemplateDetail({ templateId, roleId }: { templateId: string; roleId?: s
     return (
       <Stack space={16}>
         <Stack space={4}>
-          <Title2>Template</Title2>
+          <Title2>{tx.templateFallbackName}</Title2>
           <Text2 regular color={skinVars.colors.textSecondary}>
-            Governed brand template
+            {tx.governedBrandTemplate}
           </Text2>
         </Stack>
         <PermissionBlocked count={1} noun="template" />
@@ -212,16 +225,16 @@ function TemplateDetail({ templateId, roleId }: { templateId: string; roleId?: s
         <ValidityBadge validity={t.validity} />
       </Inline>
       <Grid columns={2} gap={12}>
-        <TemplateMeta label="Owner" value={t.owner} />
-        <TemplateMeta label="Format" value={t.format} />
-        <TemplateMeta label="Version" value={t.version} />
+        <TemplateMeta label={tx.meta.owner} value={t.owner} />
+        <TemplateMeta label={tx.meta.format} value={t.format} />
+        <TemplateMeta label={tx.meta.version} value={t.version} />
       </Grid>
       <Text2 regular color={skinVars.colors.textSecondary}>
         {t.description}
       </Text2>
       <Stack space={8}>
         <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-          Section structure
+          {tx.sectionStructure}
         </Text1>
         <Stack space={8}>
           {t.sections.map((s, i) => (
@@ -238,7 +251,7 @@ function TemplateDetail({ templateId, roleId }: { templateId: string; roleId?: s
                     <Text2 regular color={skinVars.colors.textSecondary}>
                       · {s.kind}
                     </Text2>
-                    {s.perAxis && <Tag type="inactive">per axis</Tag>}
+                    {s.perAxis && <Tag type="inactive">{tx.perAxis}</Tag>}
                   </Inline>
                 </Inline>
               </Box>
@@ -251,7 +264,7 @@ function TemplateDetail({ templateId, roleId }: { templateId: string; roleId?: s
           <Box padding={16}>
             <Stack space={8}>
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                Required disclaimers
+                {tx.requiredDisclaimers}
               </Text1>
               <Stack space={8}>
                 {t.disclaimers.map((d) => (
@@ -272,17 +285,15 @@ function TemplateDetail({ templateId, roleId }: { templateId: string; roleId?: s
 }
 
 function TemplatesArea({ roleId }: { roleId?: string }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   const { data, isLoading } = useGetBrandTemplates(roleId ? { roleId } : undefined);
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   if (isLoading) return <Loading />;
   if (!data) return null;
   return (
     <Stack space={24}>
-      <IntroLine>
-        Governed document blueprints — each with its owner, format, version and validity. Select a
-        template to see the section structure and required disclaimers every published document must
-        follow.
-      </IntroLine>
+      <IntroLine>{t.templatesIntro}</IntroLine>
       {data.templates.length === 0 ? (
         <PermissionBlocked count={data.blockedCount} noun="template" />
       ) : (
@@ -344,21 +355,23 @@ function PrincipleCard({ p }: { p: TonePrinciple }) {
 }
 
 function RulesPanel({ rules }: { rules: BrandRule[] }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   return (
     <Boxed>
       <Box padding={24}>
         <Stack space={16}>
           <Stack space={4}>
-            <Title3>Hard rules</Title3>
+            <Title3>{t.hardRules}</Title3>
             <Text2 regular color={skinVars.colors.textSecondary}>
-              Enforced automatically by the Brand Guardian.
+              {t.hardRulesSub}
             </Text2>
           </Stack>
           <Stack space={12}>
             {rules.map((r) => (
               <Inline key={r.id} space={12} alignItems="center">
                 <Tag type={r.severity === "error" ? "error" : "warning"}>
-                  {r.severity === "error" ? "blocks" : "advises"}
+                  {r.severity === "error" ? t.ruleSeverity.error : t.ruleSeverity.warning}
                 </Tag>
                 <Stack space={2}>
                   <Text2 medium color={skinVars.colors.textPrimary}>
@@ -378,14 +391,16 @@ function RulesPanel({ rules }: { rules: BrandRule[] }) {
 }
 
 function ProhibitedPanel({ prohibited }: { prohibited: ProhibitedPhrase[] }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   return (
     <Boxed>
       <Box padding={24}>
         <Stack space={16}>
           <Stack space={4}>
-            <Title3>Prohibited claims</Title3>
+            <Title3>{t.prohibitedClaims}</Title3>
             <Text2 regular color={skinVars.colors.textSecondary}>
-              Unapproved superlatives and the approved rewrite to use instead.
+              {t.prohibitedSub}
             </Text2>
           </Stack>
           <Stack space={12}>
@@ -413,14 +428,16 @@ function ProhibitedPanel({ prohibited }: { prohibited: ProhibitedPhrase[] }) {
 }
 
 function SpellingPanel({ spelling }: { spelling: SpellingPref[] }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   return (
     <Boxed>
       <Box padding={24}>
         <Stack space={16}>
           <Stack space={4}>
-            <Title3>European English</Title3>
+            <Title3>{t.europeanEnglish}</Title3>
             <Text2 regular color={skinVars.colors.textSecondary}>
-              Preferred spellings across every surface.
+              {t.europeanEnglishSub}
             </Text2>
           </Stack>
           <Inline space={8} wrap>
@@ -447,14 +464,14 @@ function SpellingPanel({ spelling }: { spelling: SpellingPref[] }) {
 }
 
 function ToneArea() {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   const { data, isLoading } = useGetBrandTone();
   if (isLoading) return <Loading />;
   if (!data) return null;
   return (
     <Stack space={32}>
-      <IntroLine>
-        How Telefónica sounds — six principles the Brand Guardian and every drafter work to.
-      </IntroLine>
+      <IntroLine>{t.toneIntro}</IntroLine>
       <Grid columns={3} gap={24}>
         {data.principles.map((p) => (
           <PrincipleCard key={p.id} p={p} />
@@ -473,18 +490,20 @@ function ToneArea() {
 
 // ---- Resources --------------------------------------------------------------
 
-const CATEGORY_META: Record<string, { label: string; icon: IconType }> = {
-  identity: { label: "Identity", icon: IconImageRegular },
-  messaging: { label: "Messaging", icon: IconChatRegular },
-  legal: { label: "Legal", icon: IconBalanceRegular },
-  reference: { label: "Reference", icon: IconBookRegular },
+const CATEGORY_META: Record<string, { icon: IconType }> = {
+  identity: { icon: IconImageRegular },
+  messaging: { icon: IconChatRegular },
+  legal: { icon: IconBalanceRegular },
+  reference: { icon: IconBookRegular },
 };
-const CATEGORY_ORDER = ["identity", "messaging", "legal", "reference"];
+const CATEGORY_ORDER = ["identity", "messaging", "legal", "reference"] as const;
 
 function ResourceCard({ r, onOpen }: { r: BrandResource; onOpen: () => void }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   return (
     <Boxed>
-      <Touchable onPress={onOpen} aria-label={`Open resource ${r.name}`}>
+      <Touchable onPress={onOpen} aria-label={t.openResourceAria(r.name)}>
         <Box padding={20}>
           <Stack space={8}>
             <Inline space={8} alignItems="center">
@@ -512,15 +531,15 @@ function ResourceCard({ r, onOpen }: { r: BrandResource; onOpen: () => void }) {
 }
 
 function ResourcesArea({ roleId }: { roleId?: string }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   const { data, isLoading } = useGetBrandResources(roleId ? { roleId } : undefined);
   const [selected, setSelected] = React.useState<BrandResource | null>(null);
   if (isLoading) return <Loading />;
   if (!data) return null;
   return (
     <Stack space={24}>
-      <IntroLine>
-        Governed brand assets — filtered to what your persona's clearance permits.
-      </IntroLine>
+      <IntroLine>{t.resourcesIntro}</IntroLine>
       {data.blockedCount > 0 && <BlockedNote count={data.blockedCount} noun="resource" />}
       {data.resources.length === 0 ? (
         <PermissionBlocked count={data.blockedCount} noun="resource" />
@@ -534,7 +553,7 @@ function ResourcesArea({ roleId }: { roleId?: string }) {
             <Stack key={cat} space={12}>
               <Inline space={8} alignItems="center">
                 <Icon size={18} color={skinVars.colors.brand} />
-                <Title3>{meta.label}</Title3>
+                <Title3>{t.categories[cat]}</Title3>
               </Inline>
               <Grid columns={3} gap={16}>
                 {items.map((r) => (
@@ -583,6 +602,8 @@ const GUARDIAN_SAMPLE =
   "We are the number one operator in Europe. Our new color program reached 12% growth last year.";
 
 function GuardianVerdict({ result }: { result: GuardianResult }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   const pass = result.status === "pass";
   return (
     <div
@@ -604,7 +625,7 @@ function GuardianVerdict({ result }: { result: GuardianResult }) {
             <Text2 medium color={skinVars.colors.textPrimary}>
               Brand Guardian
             </Text2>
-            <Tag type={pass ? "success" : "error"}>{pass ? "On brand" : "Needs work"}</Tag>
+            <Tag type={pass ? "success" : "error"}>{pass ? t.onBrand : t.needsWork}</Tag>
           </Inline>
           <Text2 regular color={skinVars.colors.textSecondary}>
             {result.summary}
@@ -622,7 +643,9 @@ function GuardianVerdict({ result }: { result: GuardianResult }) {
                 >
                   <Stack space={4}>
                     <Inline space={8} alignItems="center">
-                      <Tag type={f.severity === "error" ? "error" : "warning"}>{f.severity}</Tag>
+                      <Tag type={f.severity === "error" ? "error" : "warning"}>
+                        {f.severity === "error" ? t.findingSeverity.error : t.findingSeverity.warning}
+                      </Tag>
                       <Text2 medium color={skinVars.colors.textPrimary}>
                         {f.rule}
                       </Text2>
@@ -632,7 +655,7 @@ function GuardianVerdict({ result }: { result: GuardianResult }) {
                     </Text2>
                     {f.suggestion && (
                       <Text2 medium color={skinVars.colors.textLink}>
-                        Fix: {f.suggestion}
+                        {t.fixPrefix} {f.suggestion}
                       </Text2>
                     )}
                   </Stack>
@@ -701,6 +724,8 @@ function HighlightedText({ text, findings }: { text: string; findings: GuardianF
 }
 
 function GuardianArea() {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
   const [text, setText] = React.useState("");
   const [checked, setChecked] = React.useState<{ text: string; result: GuardianResult } | null>(
     null,
@@ -717,18 +742,14 @@ function GuardianArea() {
   return (
     <div style={{ maxWidth: 768 }}>
       <Stack space={24}>
-        <IntroLine>
-          Paste any copy — a caption, an intro, a tweet — and the Brand Guardian checks it against the
-          same rules that gate document export. Every violation is flagged inline. Deterministic, and
-          no text leaves the governed core.
-        </IntroLine>
+        <IntroLine>{t.guardianIntro}</IntroLine>
         <Boxed>
           <Box padding={24}>
             <Stack space={16}>
               <TextField
                 multiline
                 name="guardian-text"
-                label="Paste copy to check"
+                label={t.pasteLabel}
                 value={text}
                 onChangeValue={(v) => setText(v)}
                 fullWidth
@@ -740,7 +761,7 @@ function GuardianArea() {
                   StartIcon={IconShieldCheckedOkRegular}
                   showSpinner={check.isPending}
                 >
-                  {check.isPending ? "Checking…" : "Run Brand Guardian"}
+                  {check.isPending ? t.checking : t.runGuardian}
                 </ButtonPrimary>
                 <ButtonLink
                   onPress={() => {
@@ -748,7 +769,7 @@ function GuardianArea() {
                     setChecked(null);
                   }}
                 >
-                  Load a sample
+                  {t.loadSample}
                 </ButtonLink>
                 {(text || checked) && (
                   <ButtonLink
@@ -757,7 +778,7 @@ function GuardianArea() {
                       setChecked(null);
                     }}
                   >
-                    Clear
+                    {t.clear}
                   </ButtonLink>
                 )}
               </Inline>
@@ -771,7 +792,7 @@ function GuardianArea() {
                 <Inline space={12} alignItems="center" wrap>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                      Checked text
+                      {t.checkedText}
                     </Text1>
                   </div>
                   <Inline space={12} alignItems="center">
@@ -786,7 +807,7 @@ function GuardianArea() {
                         }}
                       />
                       <Text1 regular color={skinVars.colors.textSecondary}>
-                        Blocks
+                        {t.legendBlocks}
                       </Text1>
                     </Inline>
                     <Inline space={8} alignItems="center">
@@ -800,7 +821,7 @@ function GuardianArea() {
                         }}
                       />
                       <Text1 regular color={skinVars.colors.textSecondary}>
-                        Advises
+                        {t.legendAdvises}
                       </Text1>
                     </Inline>
                   </Inline>
@@ -819,10 +840,11 @@ function GuardianArea() {
 // ---- Page -------------------------------------------------------------------
 
 export default function BrandPage() {
-  const { roleId } = useApp();
+  const { roleId, lang } = useApp();
+  const t = BRAND_I18N[lang];
   const [tab, setTab] = React.useState<TabId>("templates");
   const scopedRole = roleId || undefined;
-  const selectedIndex = TABS.findIndex((t) => t.id === tab);
+  const selectedIndex = TABS.findIndex((tb) => tb.id === tab);
 
   return (
     <Box padding={24}>
@@ -834,9 +856,7 @@ export default function BrandPage() {
           <Title2>Brand Room</Title2>
           <div style={{ maxWidth: 640 }}>
             <Text3 regular color={skinVars.colors.textSecondary}>
-              The brand team's control room — governed templates, the tone of voice every drafter
-              follows, corporate resources, and a live Brand Guardian that checks copy before it
-              ships.
+              {t.intro}
             </Text3>
           </div>
         </Stack>
@@ -844,7 +864,7 @@ export default function BrandPage() {
         <Tabs
           selectedIndex={selectedIndex < 0 ? 0 : selectedIndex}
           onChange={(index) => setTab(TABS[index].id)}
-          tabs={TABS.map((t) => ({ text: t.label, Icon: t.icon }))}
+          tabs={TABS.map((tb) => ({ text: t.tabs[tb.id], Icon: tb.icon }))}
         />
 
         <div>

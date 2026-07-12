@@ -48,7 +48,9 @@ import {
   IconThumbDownRegular,
 } from "@telefonica/mistica";
 import { useDataCenter } from "./state";
-import { clearanceTagType, clearanceLabel, fieldLabel } from "./helpers";
+import { clearanceTagType, clearanceLabel, fieldLabel, localeFor } from "./helpers";
+import { useApp } from "../app-provider";
+import { DATA_I18N } from "../../i18n/data";
 
 type IconType = React.ComponentType<{ size?: number; color?: string }>;
 
@@ -78,6 +80,9 @@ function parseTerms(raw: string): string[] {
 }
 
 function LiveCaptureSection() {
+  const { lang } = useApp();
+  const t = DATA_I18N[lang];
+  const L = t.ingestion.live;
   const [keywords, setKeywords] = React.useState("Telefónica, Movistar");
   const [competitors, setCompetitors] = React.useState("");
   const [executives, setExecutives] = React.useState("");
@@ -120,9 +125,7 @@ function LiveCaptureSection() {
       });
       setSelected(seed);
     } catch {
-      setSearchError(
-        "The live capture search could not be completed. Nothing has been ingested.",
-      );
+      setSearchError(L.searchError);
     }
   }
 
@@ -139,7 +142,7 @@ function LiveCaptureSection() {
       setCandidates(null);
       setSelected({});
     } catch {
-      setAcceptError("The accepted mentions could not be ingested. The core is unchanged.");
+      setAcceptError(L.acceptError);
     }
   }
 
@@ -150,23 +153,20 @@ function LiveCaptureSection() {
           <Inline space="between" alignItems="center">
             <Inline space={8} alignItems="center">
               <IconAiRegular size={20} color={skinVars.colors.brand} />
-              <Title2>Live public-data capture (B channel)</Title2>
+              <Title2>{L.title}</Title2>
             </Inline>
-            <Tag type="info">Filter before ingest</Tag>
+            <Tag type="info">{L.filterBeforeIngest}</Tag>
           </Inline>
 
           <Text2 regular color={skinVars.colors.textSecondary}>
-            Define the agreed rule first — keywords, tracked competitors, named executives,
-            priority topics. The live search only surfaces public coverage matching the rule, a
-            human reviews every candidate with its mention flag, and only accepted items enter the
-            knowledge core as external (B) documents with full provenance.
+            {L.desc}
           </Text2>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
             <div style={{ flex: "1 1 220px", minWidth: 0 }}>
               <TextField
                 name="live-keywords"
-                label="Keywords (comma-separated)"
+                label={L.keywords}
                 value={keywords}
                 onChangeValue={setKeywords}
               />
@@ -174,7 +174,7 @@ function LiveCaptureSection() {
             <div style={{ flex: "1 1 220px", minWidth: 0 }}>
               <TextField
                 name="live-competitors"
-                label="Competitors"
+                label={L.competitors}
                 value={competitors}
                 onChangeValue={setCompetitors}
               />
@@ -182,7 +182,7 @@ function LiveCaptureSection() {
             <div style={{ flex: "1 1 220px", minWidth: 0 }}>
               <TextField
                 name="live-executives"
-                label="Executives"
+                label={L.executives}
                 value={executives}
                 onChangeValue={setExecutives}
               />
@@ -190,7 +190,7 @@ function LiveCaptureSection() {
             <div style={{ flex: "1 1 220px", minWidth: 0 }}>
               <TextField
                 name="live-topics"
-                label="Topics"
+                label={L.topics}
                 value={topics}
                 onChangeValue={setTopics}
               />
@@ -204,11 +204,11 @@ function LiveCaptureSection() {
               disabled={termCount === 0 || searchMutation.isPending}
               showSpinner={searchMutation.isPending}
             >
-              {searchMutation.isPending ? "Searching public coverage" : "Run filtered capture"}
+              {searchMutation.isPending ? L.searching : L.runCapture}
             </ButtonPrimary>
             {termCount === 0 && (
               <Text1 regular color={skinVars.colors.textSecondary}>
-                At least one filter term is required — nothing is captured without a rule.
+                {L.atLeastOne}
               </Text1>
             )}
           </Inline>
@@ -216,7 +216,7 @@ function LiveCaptureSection() {
           {searchError && (
             <Callout
               asset={<IconAlertRegular color={skinVars.colors.error} />}
-              title="Capture failed"
+              title={L.captureFailed}
               description={searchError}
             />
           )}
@@ -224,8 +224,8 @@ function LiveCaptureSection() {
           {candidates && candidates.length === 0 && (
             <Callout
               asset={<IconSearchRegular color={skinVars.colors.textSecondary} />}
-              title="No matching coverage"
-              description="The live search found no public coverage matching the filter. Nothing was ingested."
+              title={L.noMatchTitle}
+              description={L.noMatchDesc}
             />
           )}
 
@@ -233,7 +233,7 @@ function LiveCaptureSection() {
             <Stack space={12}>
               <Divider />
               <Inline space="between" alignItems="center">
-                <Title3>{`Candidates — human review (${selectedCount} of ${candidates.length} accepted)`}</Title3>
+                <Title3>{L.candidatesTitle(selectedCount, candidates.length)}</Title3>
                 <ButtonSecondary
                   small
                   onPress={runAccept}
@@ -241,8 +241,8 @@ function LiveCaptureSection() {
                   showSpinner={acceptMutation.isPending}
                 >
                   {acceptMutation.isPending
-                    ? "Embedding and indexing"
-                    : `Ingest ${selectedCount} accepted`}
+                    ? L.embedding
+                    : L.ingestAccepted(selectedCount)}
                 </ButtonSecondary>
               </Inline>
               {candidates.map((c) => {
@@ -267,7 +267,7 @@ function LiveCaptureSection() {
                               <Text2 medium color={sign.color}>
                                 {sign.label}
                               </Text2>
-                              <Tag type="inactive">{c.sentiment}</Tag>
+                              <Tag type="inactive">{t.sentiment[c.sentiment] ?? c.sentiment}</Tag>
                             </Inline>
                             <Text1 regular color={skinVars.colors.textSecondary}>
                               {c.source}
@@ -278,7 +278,7 @@ function LiveCaptureSection() {
                             </Text2>
                             <Inline space={4} alignItems="center" wrap>
                               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                                Matched
+                                {L.matched}
                               </Text1>
                               {c.matchedTerms.map((t) => (
                                 <Tag key={t} type="info">
@@ -299,7 +299,7 @@ function LiveCaptureSection() {
           {acceptError && (
             <Callout
               asset={<IconAlertRegular color={skinVars.colors.error} />}
-              title="Ingestion failed"
+              title={L.ingestionFailed}
               description={acceptError}
             />
           )}
@@ -307,8 +307,13 @@ function LiveCaptureSection() {
           {lastIngest && (
             <Callout
               asset={<IconCheckedRegular color={skinVars.colors.success} />}
-              title={`${lastIngest.createdDocs.length} external document${lastIngest.createdDocs.length === 1 ? "" : "s"} ingested into the core`}
-              description={`${lastIngest.createdDocs.map((d) => d.title).join("; ")}. ${lastIngest.upsertedChunks} chunk${lastIngest.upsertedChunks === 1 ? "" : "s"} embedded once and upserted to the vector index (${lastIngest.pointsBefore} points before, ${lastIngest.pointsAfter} after). Ask can cite them immediately; the ingest-filter provenance is on each document in the corpus browser.`}
+              title={L.ingestedTitle(lastIngest.createdDocs.length)}
+              description={L.ingestedDesc(
+                lastIngest.createdDocs.map((d) => d.title).join("; "),
+                lastIngest.upsertedChunks,
+                lastIngest.pointsBefore,
+                lastIngest.pointsAfter,
+              )}
             />
           )}
         </Stack>
@@ -318,6 +323,9 @@ function LiveCaptureSection() {
 }
 
 function RelevanceFilterSection() {
+  const { lang } = useApp();
+  const t = DATA_I18N[lang];
+  const R = t.ingestion.relevance;
   const { data: filter } = useGetRelevanceFilter();
   if (!filter) return null;
 
@@ -328,18 +336,16 @@ function RelevanceFilterSection() {
           <Inline space="between" alignItems="center">
             <Inline space={8} alignItems="center">
               <IconSearchRegular size={20} color={skinVars.colors.brand} />
-              <Title2>Pre-ingestion relevance filter</Title2>
+              <Title2>{R.title}</Title2>
             </Inline>
             <Inline space={8} alignItems="center">
-              <Tag type="success">{`${filter.keptCount} kept`}</Tag>
-              <Tag type="inactive">{`${filter.droppedCount} dropped`}</Tag>
+              <Tag type="success">{R.kept(filter.keptCount)}</Tag>
+              <Tag type="inactive">{R.dropped(filter.droppedCount)}</Tag>
             </Inline>
           </Inline>
 
           <Text2 regular color={skinVars.colors.textSecondary}>
-            External mentions are screened against agreed rules before ingestion — keywords,
-            tracked competitors, named executives and priority topics. Dropped mentions never
-            reach the knowledge core.
+            {R.desc}
           </Text2>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -371,7 +377,7 @@ function RelevanceFilterSection() {
           <Divider />
 
           <Stack space={12}>
-            <Title3>Recent decisions</Title3>
+            <Title3>{R.recentDecisions}</Title3>
             {filter.mentions.map((m) => {
               const sign = sentimentSign(m.sentiment);
               const kept = m.decision === "kept";
@@ -396,14 +402,14 @@ function RelevanceFilterSection() {
                       </Text2>
                       <Text1 regular color={skinVars.colors.textSecondary}>
                         {m.source}
-                        {m.matchedRule ? ` · matched ${m.matchedRule}` : " · no rule matched"}
+                        {m.matchedRule ? ` · ${R.matchedRule(m.matchedRule)}` : ` · ${R.noRuleMatched}`}
                       </Text1>
                     </Stack>
                   </div>
                   <Text2 medium color={sign.color}>
                     {sign.label}
                   </Text2>
-                  <Tag type={kept ? "success" : "inactive"}>{m.decision}</Tag>
+                  <Tag type={kept ? "success" : "inactive"}>{t.decision[m.decision] ?? m.decision}</Tag>
                 </Inline>
               );
             })}
@@ -415,6 +421,10 @@ function RelevanceFilterSection() {
 }
 
 export default function IngestionArea() {
+  const { lang } = useApp();
+  const t = DATA_I18N[lang];
+  const P = t.ingestion.pipeline;
+  const Q = t.ingestion.quarantine;
   const { data: snapshot } = useGetIngestionSnapshot();
   const { releasedQuarantine, releaseQuarantine } = useDataCenter();
 
@@ -442,11 +452,11 @@ export default function IngestionArea() {
 
   function commitRelease() {
     if (!active) return;
-    const filled = active.missingFields.map((f) => fieldLabel(f)).join(", ");
+    const filled = active.missingFields.map((f) => fieldLabel(f, lang)).join(", ");
     releaseQuarantine(
       active.id,
       active.title,
-      `Completed ${filled}. Re-entered the pipeline at ${active.stage}.`,
+      Q.releasedDetail(filled, active.stage),
     );
     setActive(null);
   }
@@ -462,11 +472,11 @@ export default function IngestionArea() {
             <Inline space="between" alignItems="center">
               <Inline space={8} alignItems="center">
                 <IconBoxRegular size={20} color={skinVars.colors.brand} />
-                <Title2>The seven-stage pipeline</Title2>
+                <Title2>{P.title}</Title2>
               </Inline>
               <Inline space={8} alignItems="center">
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Taxonomy
+                  {P.taxonomy}
                 </Text2>
                 <Tag type="info">{snapshot?.taxonomyVersion ?? "—"}</Tag>
               </Inline>
@@ -493,11 +503,11 @@ export default function IngestionArea() {
                                 <Icon size={16} color={skinVars.colors.brand} />
                               </Circle>
                               <Text2 medium color={skinVars.colors.textPrimary}>
-                                {stage.count.toLocaleString("en-GB")}
+                                {stage.count.toLocaleString(localeFor(lang))}
                               </Text2>
                             </Inline>
                             <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                              Stage {i + 1}
+                              {P.stage(i + 1)}
                             </Text1>
                             <Text2 medium color={skinVars.colors.textPrimary}>
                               {stage.name}
@@ -531,7 +541,7 @@ export default function IngestionArea() {
                 <Stack space={8}>
                   <Inline space="between" alignItems="center">
                     <Text2 medium color={skinVars.colors.textPrimary}>
-                      Validated and live in the core
+                      {P.validatedLive}
                     </Text2>
                     <Text2 medium color={skinVars.colors.success}>
                       {snapshot?.validatedPct ?? 0}%
@@ -542,8 +552,7 @@ export default function IngestionArea() {
                     color={skinVars.colors.success}
                   />
                   <Text1 regular color={skinVars.colors.textSecondary}>
-                    Nothing reaches the model until it passes validation. The remainder is held in
-                    quarantine below — never silently dropped, never silently guessed.
+                    {P.validatedNote}
                   </Text1>
                 </Stack>
               </Box>
@@ -561,8 +570,8 @@ export default function IngestionArea() {
           )}
           <Title2>
             {openItems.length > 0
-              ? `Quarantine — ${openItems.length} held for a documentalist`
-              : "Quarantine clear"}
+              ? Q.titleOpen(openItems.length)
+              : Q.titleClear}
           </Title2>
         </Inline>
 
@@ -575,19 +584,17 @@ export default function IngestionArea() {
                     <IconArchiveRegular size={28} color={skinVars.colors.success} />
                   </Circle>
                 </Inline>
-                <Title3>Nothing waiting</Title3>
+                <Title3>{Q.nothingWaiting}</Title3>
                 <Text2 regular color={skinVars.colors.textSecondary}>
                   {releasedCount > 0
-                    ? `You cleared ${releasedCount} ${releasedCount === 1 ? "document" : "documents"} this session. Each re-entered the pipeline where it left off.`
-                    : "Every ingested document has the metadata the core requires."}
+                    ? Q.clearedThisSession(releasedCount)
+                    : Q.everyDocHasMeta}
                 </Text2>
               </Stack>
             ) : (
               <Stack space={16}>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  These documents stalled because a required field is missing or their taxonomy
-                  version is behind. They are held — not dropped — so the core is never polluted.
-                  Complete the metadata to release them.
+                  {Q.stalledNote}
                 </Text2>
                 {openItems.map((q) => (
                   <Boxed key={q.id}>
@@ -600,26 +607,26 @@ export default function IngestionArea() {
                                 {q.title}
                               </Text2>
                               <Tag type={clearanceTagType(q.confidentiality)}>
-                                {clearanceLabel(q.confidentiality)}
+                                {clearanceLabel(q.confidentiality, lang)}
                               </Tag>
                             </Inline>
                             <Text1 regular color={skinVars.colors.textSecondary}>
-                              {q.source} · held at {q.stage} stage · taxonomy {q.taxonomyVersion}
+                              {Q.heldAt(q.source, q.stage, String(q.taxonomyVersion))}
                             </Text1>
                             <Inline space={8} alignItems="center" wrap>
                               <Text1 medium color={skinVars.colors.error} transform="uppercase">
-                                Missing
+                                {Q.missing}
                               </Text1>
                               {q.missingFields.map((f) => (
                                 <Tag key={f} type="error">
-                                  {fieldLabel(f)}
+                                  {fieldLabel(f, lang)}
                                 </Tag>
                               ))}
                             </Inline>
                           </Stack>
                         </div>
                         <ButtonPrimary small onPress={() => openResolve(q)}>
-                          Resolve
+                          {Q.resolve}
                         </ButtonPrimary>
                       </Inline>
                     </Box>
@@ -633,15 +640,15 @@ export default function IngestionArea() {
 
       {active && (
         <Drawer
-          title="Resolve quarantine"
-          description={`${active.title} — complete the required metadata. Once released, the document re-enters the pipeline at the ${active.stage} stage. Session-only for the demo.`}
+          title={Q.resolveTitle}
+          description={Q.resolveDesc(active.title, active.stage)}
           onClose={() => setActive(null)}
           button={{
-            text: "Release to pipeline",
+            text: Q.releaseToPipeline,
             onPress: commitRelease,
             disabled: !allFilled,
           }}
-          secondaryButton={{ text: "Cancel", onPress: () => setActive(null) }}
+          secondaryButton={{ text: Q.cancel, onPress: () => setActive(null) }}
         >
           <Stack space={16}>
             {active.missingFields.map((f) =>
@@ -649,16 +656,16 @@ export default function IngestionArea() {
                 <Select
                   key={f}
                   name={f}
-                  label={fieldLabel(f)}
+                  label={fieldLabel(f, lang)}
                   value={fixes[f] ?? ""}
                   onChangeValue={(v) => setFixes((prev) => ({ ...prev, [f]: v }))}
-                  options={CLEARANCES.map((c) => ({ value: c, text: c }))}
+                  options={CLEARANCES.map((c) => ({ value: c, text: clearanceLabel(c, lang) }))}
                 />
               ) : (
                 <TextField
                   key={f}
                   name={f}
-                  label={fieldLabel(f)}
+                  label={fieldLabel(f, lang)}
                   value={fixes[f] ?? ""}
                   onChangeValue={(v) => setFixes((prev) => ({ ...prev, [f]: v }))}
                 />

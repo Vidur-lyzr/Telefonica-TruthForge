@@ -112,7 +112,7 @@ function Sidebar({
 
   return (
     <nav
-      aria-label="Main navigation"
+      aria-label={UI[lang].a11y.mainNavigation}
       style={{
         width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED,
         flexShrink: 0,
@@ -135,11 +135,11 @@ function Sidebar({
             padding: collapsed ? "16px 8px" : "16px 16px",
           }}
         >
-          <Touchable onPress={() => navigate("/")} aria-label="Go to Home">
+          <Touchable onPress={() => navigate("/")} aria-label={UI[lang].a11y.goHome}>
             <Logo type={collapsed ? "isotype" : "imagotype"} size={collapsed ? 40 : 48} />
           </Touchable>
           <IconButton
-            aria-label={collapsed ? "Expand menu" : "Collapse menu"}
+            aria-label={collapsed ? UI[lang].a11y.expandMenu : UI[lang].a11y.collapseMenu}
             onPress={onToggle}
             Icon={collapsed ? IconChevronRightDoubleRegular : IconChevronLeftDoubleRegular}
             small

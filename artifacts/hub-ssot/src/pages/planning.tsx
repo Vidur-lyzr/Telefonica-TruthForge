@@ -50,8 +50,8 @@ import {
   startOfWeek,
   toISO,
   formatDay,
-  TYPE_LABEL,
 } from "@/components/planning/utils";
+import { PLANNING_I18N, localeFor } from "@/i18n/planning";
 
 type FilterKey = "area" | "market" | "brand" | "axis" | "type";
 const ALL = "__all__";
@@ -59,12 +59,6 @@ const ALL = "__all__";
 // Period presets narrow the governed query window from today forward. They
 // intersect with the visible calendar range rather than replacing it.
 const PERIOD_OPTIONS = ["7", "14", "30", "90"];
-const PERIOD_LABEL: Record<string, string> = {
-  "7": "Next 7 days",
-  "14": "Next 14 days",
-  "30": "Next 30 days",
-  "90": "Next 90 days",
-};
 
 function FilterDropdown({
   label,
@@ -72,12 +66,16 @@ function FilterDropdown({
   options,
   onChange,
   render,
+  allLabel,
+  filterWord,
 }: {
   label: string;
   value: string;
   options: string[];
   onChange: (v: string) => void;
   render?: (v: string) => React.ReactNode;
+  allLabel: string;
+  filterWord: string;
 }) {
   return (
     <Inline space={8} alignItems="center">
@@ -86,7 +84,7 @@ function FilterDropdown({
       </Text1>
       <Menu
         renderTarget={({ ref, onPress }) => (
-          <Touchable ref={ref} onPress={onPress} aria-label={`${label} filter`}>
+          <Touchable ref={ref} onPress={onPress} aria-label={`${label} ${filterWord}`}>
             <div
               style={{
                 display: "flex",
@@ -100,7 +98,7 @@ function FilterDropdown({
               }}
             >
               <Text2 medium color={skinVars.colors.textPrimary}>
-                {value === ALL ? "All" : render ? render(value) : value}
+                {value === ALL ? allLabel : render ? render(value) : value}
               </Text2>
               <IconChevronDownRegular size={14} color={skinVars.colors.textSecondary} />
             </div>
@@ -110,7 +108,7 @@ function FilterDropdown({
           <div ref={ref} className={className}>
             <MenuSection>
               <MenuItem
-                label="All"
+                label={allLabel}
                 controlType="checkbox"
                 checked={value === ALL}
                 onPress={() => onChange(ALL)}
@@ -133,7 +131,8 @@ function FilterDropdown({
 }
 
 export default function Planning() {
-  const { roleId } = useApp();
+  const { roleId, lang } = useApp();
+  const t = PLANNING_I18N[lang];
   const { data: overview } = useGetPlanningOverview(
     { roleId },
     { query: { enabled: !!roleId, queryKey: ["planning-overview", roleId] } },
@@ -223,16 +222,17 @@ export default function Planning() {
   }, [eventList, axes]);
 
   const rangeLabel = React.useMemo(() => {
-    if (view === "month") return formatMonthTitle(currentAnchor);
+    if (view === "month") return formatMonthTitle(currentAnchor, lang);
     if (view === "week") {
       const start = startOfWeek(currentAnchor);
       const end = addDays(start, 6);
-      return `${start.toLocaleDateString("en-GB", { day: "numeric", month: "short" })} – ${end.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`;
+      return `${start.toLocaleDateString(localeFor(lang), { day: "numeric", month: "short" })} – ${end.toLocaleDateString(localeFor(lang), { day: "numeric", month: "short", year: "numeric" })}`;
     }
     return formatDay(
       `${currentAnchor.getFullYear()}-${String(currentAnchor.getMonth() + 1).padStart(2, "0")}-${String(currentAnchor.getDate()).padStart(2, "0")}`,
+      lang,
     );
-  }, [view, currentAnchor]);
+  }, [view, currentAnchor, lang]);
 
   const step = (dir: number) => {
     if (view === "month")
@@ -247,10 +247,9 @@ export default function Planning() {
           <Inline space={16} alignItems="center" wrap>
             <div style={{ flex: 1, minWidth: 240 }}>
               <Stack space={4}>
-                <Title1 as="h1">Unified planning</Title1>
+                <Title1 as="h1">{t.title}</Title1>
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  Governed calendar across Communication and Brand — every block scoped to your
-                  persona.
+                  {t.subtitle}
                 </Text2>
               </Stack>
             </div>
@@ -259,7 +258,7 @@ export default function Planning() {
                 <Inline space={8} alignItems="center">
                   <IconLayersRegular size={14} color={skinVars.colors.textSecondary} />
                   <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                    Sources
+                    {t.sourcesLabel}
                   </Text1>
                 </Inline>
                 {overview.sources.map((s) => (
@@ -280,7 +279,7 @@ export default function Planning() {
                       {s.name}
                     </Text1>
                     <Text1 regular color={skinVars.colors.textSecondary} transform="uppercase">
-                      {s.status === "read_only" ? "read-only" : s.status}
+                      {s.status === "read_only" ? t.readOnly : s.status}
                     </Text1>
                   </div>
                 ))}
@@ -302,13 +301,13 @@ export default function Planning() {
                   <Inline space={12} alignItems="center">
                     <Inline space={4} alignItems="center">
                       <IconButton
-                        aria-label="Previous"
+                        aria-label={t.prev}
                         Icon={IconChevronLeftRegular}
                         onPress={() => step(-1)}
                         small
                       />
                       <IconButton
-                        aria-label="Next"
+                        aria-label={t.next}
                         Icon={IconChevronRightRegular}
                         onPress={() => step(1)}
                         small
@@ -324,53 +323,65 @@ export default function Planning() {
                       onPress={() => setAnchor(parseDate(todayISO))}
                       StartIcon={IconCalendarRegular}
                     >
-                      Today
+                      {t.today}
                     </ButtonLink>
                     <ButtonPrimary small onPress={() => setCreating(true)} disabled={!roleId}>
-                      New activity
+                      {t.newActivity}
                     </ButtonPrimary>
                   </Inline>
                 </div>
 
                 <Inline space={16} alignItems="center" wrap>
                   <FilterDropdown
-                    label="Area"
+                    label={t.filterLabels.area}
                     value={filters.area}
                     options={options.area}
                     onChange={(v) => setFilters((f) => ({ ...f, area: v }))}
+                    allLabel={t.all}
+                    filterWord={t.filterWord}
                   />
                   <FilterDropdown
-                    label="Market"
+                    label={t.filterLabels.market}
                     value={filters.market}
                     options={options.market}
                     onChange={(v) => setFilters((f) => ({ ...f, market: v }))}
+                    allLabel={t.all}
+                    filterWord={t.filterWord}
                   />
                   <FilterDropdown
-                    label="Brand"
+                    label={t.filterLabels.brand}
                     value={filters.brand}
                     options={options.brand}
                     onChange={(v) => setFilters((f) => ({ ...f, brand: v }))}
+                    allLabel={t.all}
+                    filterWord={t.filterWord}
                   />
                   <FilterDropdown
-                    label="Axis"
+                    label={t.filterLabels.axis}
                     value={filters.axis}
                     options={options.axis}
                     onChange={(v) => setFilters((f) => ({ ...f, axis: v }))}
-                    render={(v) => axes?.find((a) => a.id === v)?.name ?? "Axis"}
+                    render={(v) => axes?.find((a) => a.id === v)?.name ?? t.axisFallback}
+                    allLabel={t.all}
+                    filterWord={t.filterWord}
                   />
                   <FilterDropdown
-                    label="Type"
+                    label={t.filterLabels.type}
                     value={filters.type}
                     options={["campaign", "milestone", "event", "publication"]}
                     onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
-                    render={(v) => TYPE_LABEL[v] ?? v}
+                    render={(v) => t.types[v] ?? v}
+                    allLabel={t.all}
+                    filterWord={t.filterWord}
                   />
                   <FilterDropdown
-                    label="Period"
+                    label={t.filterLabels.period}
                     value={period}
                     options={PERIOD_OPTIONS}
                     onChange={setPeriod}
-                    render={(v) => PERIOD_LABEL[v] ?? v}
+                    render={(v) => t.periodNextDays(Number(v))}
+                    allLabel={t.all}
+                    filterWord={t.filterWord}
                   />
 
                   <div
@@ -384,7 +395,7 @@ export default function Planning() {
                     }}
                   >
                     {(["month", "week", "day"] as CalendarView[]).map((v) => (
-                      <Touchable key={v} onPress={() => setView(v)} aria-label={v}>
+                      <Touchable key={v} onPress={() => setView(v)} aria-label={t.views[v]}>
                         <div
                           style={{
                             padding: "4px 12px",
@@ -401,7 +412,7 @@ export default function Planning() {
                                 : skinVars.colors.textSecondary
                             }
                           >
-                            {v}
+                            {t.views[v]}
                           </Text1>
                         </div>
                       </Touchable>
@@ -419,8 +430,8 @@ export default function Planning() {
                 {disconnected ? (
                   <EmptyStateCard
                     asset={<IconLayersRegular size={48} color={skinVars.colors.brand} />}
-                    title="No calendars connected"
-                    description="This workspace has no governed planning sources yet. Once a read-only calendar (Asana, Jira, Google Calendar, Confluence or Excel) is connected, its activity will appear here, scoped to your persona."
+                    title={t.noCalendarsTitle}
+                    description={t.noCalendarsBody}
                   />
                 ) : eventsLoading ? (
                   <div
@@ -432,15 +443,15 @@ export default function Planning() {
                   >
                     <Box padding={64}>
                       <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
-                        Loading governed calendar…
+                        {t.loadingCalendar}
                       </Text2>
                     </Box>
                   </div>
                 ) : eventList.length === 0 ? (
                   <EmptyStateCard
                     asset={<IconCalendarRegular size={48} color={skinVars.colors.brand} />}
-                    title="Nothing to show here"
-                    description="No activity matches these filters at your clearance. Adjust the filters, or switch to a higher-clearance persona to see restricted slots."
+                    title={t.nothingTitle}
+                    description={t.nothingBody}
                   />
                 ) : (
                   <PlanningCalendar
@@ -458,7 +469,7 @@ export default function Planning() {
                   <Box paddingX={4}>
                     <Inline space={12} alignItems="center" wrap>
                       <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                        Axis legend
+                        {t.axisLegend}
                       </Text1>
                       {axes.map((a) => (
                         <Inline key={a.id} space={8} alignItems="center">

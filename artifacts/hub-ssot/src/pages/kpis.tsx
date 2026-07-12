@@ -14,6 +14,7 @@ import {
   AskResult,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { KPIS_I18N, localeFor } from "@/i18n/kpis";
 import { useLocation } from "wouter";
 import {
   Area,
@@ -72,18 +73,7 @@ import {
 
 type PeriodType = "week" | "month" | "quarter" | "custom";
 
-const PERIOD_LABELS: Record<PeriodType, string> = {
-  week: "Weekly",
-  month: "Monthly",
-  quarter: "Quarterly",
-  custom: "Custom range",
-};
-
-const STATUS_LABEL: Record<KpiCardType["status"], string> = {
-  "on-track": "On track",
-  amber: "At risk",
-  "off-track": "Off track",
-};
+const PERIOD_TYPES: PeriodType[] = ["week", "month", "quarter", "custom"];
 
 const STATUS_TAG: Record<KpiCardType["status"], "success" | "warning" | "error"> = {
   "on-track": "success",
@@ -180,13 +170,6 @@ function AxisPill({ name, color }: { name: string; color: string }) {
   );
 }
 
-const VALIDITY_LABEL: Record<string, string> = {
-  approved: "Approved",
-  historic: "Historic",
-  superseded: "Superseded",
-  draft: "Draft",
-};
-
 function validityTagType(validity: string): "success" | "warning" | "inactive" {
   if (validity === "approved") return "success";
   if (validity === "historic" || validity === "superseded") return "warning";
@@ -194,6 +177,8 @@ function validityTagType(validity: string): "success" | "warning" | "inactive" {
 }
 
 function CardEvidenceChip({ kpi }: { kpi: KpiCardType }) {
+  const { lang } = useApp();
+  const t = KPIS_I18N[lang];
   const primary = kpi.sources[0];
   const extra = kpi.sources.length - 1;
   const validity = kpi.validity ?? "approved";
@@ -211,19 +196,21 @@ function CardEvidenceChip({ kpi }: { kpi: KpiCardType }) {
           <IconFileTextRegular size={14} color={skinVars.colors.brand} />
           <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {primary ? primary.label : "No source"}
+              {primary ? primary.label : t.noSource}
               {extra > 0 ? ` +${extra}` : ""}
             </Text2>
           </div>
           <div style={{ marginLeft: "auto", flexShrink: 0 }}>
-            <Tag type={validityTagType(validity)}>{VALIDITY_LABEL[validity] ?? "Approved"}</Tag>
+            <Tag type={validityTagType(validity)}>
+              {t.validityLabels[validity] ?? t.validityLabels.approved}
+            </Tag>
           </div>
         </Inline>
         <Inline space={8} alignItems="center">
           <Inline space={4} alignItems="center">
             <IconShieldCheckedOkRegular size={12} color={skinVars.colors.textSecondary} />
             <Text1 regular color={skinVars.colors.textSecondary}>
-              {Math.round(kpi.confidence * 100)}% confidence
+              {t.confidencePct(Math.round(kpi.confidence * 100))}
             </Text1>
           </Inline>
           <Text1 regular color={skinVars.colors.textSecondary}>
@@ -231,7 +218,7 @@ function CardEvidenceChip({ kpi }: { kpi: KpiCardType }) {
           </Text1>
           <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             <Text1 regular color={skinVars.colors.textSecondary}>
-              {kpi.composite ? kpi.blend : "Single source"}
+              {kpi.composite ? kpi.blend : t.singleSource}
             </Text1>
           </div>
         </Inline>
@@ -241,9 +228,11 @@ function CardEvidenceChip({ kpi }: { kpi: KpiCardType }) {
 }
 
 function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) {
+  const { lang } = useApp();
+  const t = KPIS_I18N[lang];
   const progressClamped = Math.max(0, Math.min(100, kpi.progress));
   return (
-    <Touchable onPress={onOpen} aria-label={`Open ${kpi.name}`}>
+    <Touchable onPress={onOpen} aria-label={t.openKpi(kpi.name)}>
       <Boxed>
         <Box padding={16}>
           <Stack space={16}>
@@ -268,7 +257,7 @@ function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) 
                     borderRadius: skinVars.borderRadii.avatar,
                     backgroundColor: statusColor(kpi.status),
                   }}
-                  title={STATUS_LABEL[kpi.status]}
+                  title={t.statusLabels[kpi.status]}
                 />
               </div>
             </Inline>
@@ -283,7 +272,7 @@ function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) 
                 </Inline>
                 <Box paddingTop={4}>
                   <Text1 regular color={skinVars.colors.textSecondary}>
-                    Target {kpi.target}
+                    {t.target} {kpi.target}
                     {kpi.unit}
                   </Text1>
                 </Box>
@@ -314,7 +303,7 @@ function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) 
               </div>
               <Inline space="between" alignItems="center">
                 <Text1 medium color={statusColor(kpi.status)} transform="uppercase">
-                  {STATUS_LABEL[kpi.status]} · {kpi.progress}%
+                  {t.statusLabels[kpi.status]} · {kpi.progress}%
                 </Text1>
                 <VariationBadge kpi={kpi} />
               </Inline>
@@ -330,17 +319,17 @@ function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) 
                 <Inline space={8} alignItems="center" wrap>
                   {kpi.composite && (
                     <Tag type="info" Icon={IconLayersRegular}>
-                      Blend
+                      {t.blend}
                     </Tag>
                   )}
                   {kpi.conflict && (
                     <Tag type="warning" Icon={IconAlertRegular}>
-                      Conflict
+                      {t.conflict}
                     </Tag>
                   )}
                   {kpi.historic && (
                     <Tag type="warning" Icon={IconTimeRegular}>
-                      Historic
+                      {t.historic}
                     </Tag>
                   )}
                 </Inline>
@@ -391,8 +380,10 @@ function SourceRow({
   index: number;
   onOpen: () => void;
 }) {
+  const { lang } = useApp();
+  const t = KPIS_I18N[lang];
   return (
-    <Touchable onPress={onOpen} aria-label={`View citation S${index + 1}`}>
+    <Touchable onPress={onOpen} aria-label={t.viewCitationAria(index + 1)}>
       <div
         style={{
           border: `1px solid ${source.accessible ? skinVars.colors.divider : applyAlpha(skinVars.rawColors.error, 0.3)}`,
@@ -425,7 +416,7 @@ function SourceRow({
             <div style={{ marginLeft: "auto", flexShrink: 0 }}>
               <Inline space={8} alignItems="center">
                 <Tag type="inactive">{source.kind}</Tag>
-                {source.conflict && <Tag type="warning">conflict</Tag>}
+                {source.conflict && <Tag type="warning">{t.conflict}</Tag>}
               </Inline>
             </div>
           </Inline>
@@ -446,7 +437,7 @@ function SourceRow({
             <Inline space={8} alignItems="center">
               <IconShieldCrossRegular size={16} color={skinVars.colors.error} />
               <Text2 medium color={skinVars.colors.error}>
-                Evidence withheld — above your clearance.
+                {t.evidenceWithheld}
               </Text2>
             </Inline>
           )}
@@ -454,7 +445,7 @@ function SourceRow({
           <Inline space="between" alignItems="center">
             <Inline space={16} alignItems="center" wrap>
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                Weight {Math.round(source.weight * 100)}%
+                {t.weight} {Math.round(source.weight * 100)}%
               </Text1>
               {source.owner && (
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
@@ -463,13 +454,13 @@ function SourceRow({
               )}
               {source.confidentiality && (
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  {clearanceLabel(source.confidentiality)}
+                  {clearanceLabel(source.confidentiality, lang)}
                 </Text1>
               )}
             </Inline>
             <Inline space={4} alignItems="center">
               <Text1 medium color={skinVars.colors.brand}>
-                View citation
+                {t.viewCitation}
               </Text1>
               <IconArrowRightRegular size={12} color={skinVars.colors.brand} />
             </Inline>
@@ -489,6 +480,8 @@ function SourceDetailSheet({
   index: number;
   onClose: () => void;
 }) {
+  const { lang } = useApp();
+  const t = KPIS_I18N[lang];
   const validity = source.validity ?? "approved";
   return (
     <Sheet onClose={onClose}>
@@ -504,14 +497,16 @@ function SourceDetailSheet({
                 }}
               >
                 <Text2 medium color={skinVars.colors.brand}>
-                  Citation S{index + 1}
+                  {t.citationLabel(index + 1)}
                 </Text2>
               </div>
               <Inline space={8} alignItems="center">
-                <Tag type={validityTagType(validity)}>{VALIDITY_LABEL[validity] ?? "Approved"}</Tag>
+                <Tag type={validityTagType(validity)}>
+                  {t.validityLabels[validity] ?? t.validityLabels.approved}
+                </Tag>
                 {source.confidentiality && (
                   <Tag type={source.confidentiality === "public" ? "success" : "error"}>
-                    {clearanceLabel(source.confidentiality)}
+                    {clearanceLabel(source.confidentiality, lang)}
                   </Tag>
                 )}
               </Inline>
@@ -536,7 +531,7 @@ function SourceDetailSheet({
                 >
                   <Stack space={8}>
                     <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                      Extracted snippet
+                      {t.extractedSnippet}
                     </Text1>
                     <Text3 regular color={skinVars.colors.textPrimary}>
                       "{source.snippet}"
@@ -545,7 +540,7 @@ function SourceDetailSheet({
                 </div>
               ) : (
                 <Text2 regular color={skinVars.colors.textSecondary}>
-                  This external signal has no extracted snippet.
+                  {t.noSnippet}
                 </Text2>
               )
             ) : (
@@ -559,8 +554,7 @@ function SourceDetailSheet({
                 <Inline space={12} alignItems="center">
                   <IconShieldCrossRegular size={20} color={skinVars.colors.error} />
                   <Text2 regular color={skinVars.colors.textPrimary}>
-                    This evidence is above your current clearance, so the Hub will not reveal its
-                    snippet. Its contribution to the blend is still governed and fails closed.
+                    {t.evidenceAboveClearance}
                   </Text2>
                 </Inline>
               </div>
@@ -569,7 +563,7 @@ function SourceDetailSheet({
             <Grid columns={{ minSize: 120 }} gap={16}>
               <Stack space={4}>
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  Weight
+                  {t.weight}
                 </Text1>
                 <Text2 regular color={skinVars.colors.textPrimary}>
                   {Math.round(source.weight * 100)}%
@@ -578,7 +572,7 @@ function SourceDetailSheet({
               {source.version && (
                 <Stack space={4}>
                   <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                    Version
+                    {t.version}
                   </Text1>
                   <Text2 regular color={skinVars.colors.textPrimary}>
                     {source.version}
@@ -588,7 +582,7 @@ function SourceDetailSheet({
               {source.owner && (
                 <Stack space={4}>
                   <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                    Owner
+                    {t.owner}
                   </Text1>
                   <Text2 regular color={skinVars.colors.textPrimary}>
                     {source.owner}
@@ -597,7 +591,7 @@ function SourceDetailSheet({
               )}
               <Stack space={4}>
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  Confidence
+                  {t.confidence}
                 </Text1>
                 <Inline space={8} alignItems="center">
                   <Text2 regular color={skinVars.colors.textPrimary}>
@@ -618,9 +612,9 @@ function SourceDetailSheet({
 
 function KpiChat({
   kpiIds,
-  heading = "Ask about this KPI",
-  intro = "Ask why this metric moved, what is driving it, or how it compares — answered only from the governed evidence behind this KPI, with citations.",
-  placeholder = "Why did this move?",
+  heading,
+  intro,
+  placeholder,
   rangeFrom = null,
   rangeTo = null,
 }: {
@@ -631,7 +625,11 @@ function KpiChat({
   rangeFrom?: string | null;
   rangeTo?: string | null;
 }) {
-  const { area, roleId } = useApp();
+  const { area, roleId, lang } = useApp();
+  const t = KPIS_I18N[lang];
+  const headingText = heading ?? t.chatHeading;
+  const introText = intro ?? t.chatIntro;
+  const placeholderText = placeholder ?? t.chatPlaceholder;
   const [question, setQuestion] = React.useState("");
   const [asked, setAsked] = React.useState("");
   const { mutate, data, isPending, reset } = useAskKpis();
@@ -651,7 +649,7 @@ function KpiChat({
         <Inline space={8} alignItems="center">
           <IconMessageRegular size={16} color={skinVars.colors.brand} />
           <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-            {heading}
+            {headingText}
           </Text1>
         </Inline>
       </Box>
@@ -659,14 +657,14 @@ function KpiChat({
       <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 12 }}>
         {!result && !isPending && (
           <Text2 regular color={skinVars.colors.textSecondary}>
-            {intro}
+            {introText}
           </Text2>
         )}
         {isPending && (
           <Inline space={12} alignItems="center">
             <Spinner size={20} />
             <Text2 medium color={skinVars.colors.textPrimary}>
-              Reading the evidence...
+              {t.readingEvidence}
             </Text2>
           </Inline>
         )}
@@ -747,7 +745,7 @@ function KpiChat({
                     <Inline space={8} alignItems="center">
                       <IconTimeRegular size={16} color={skinVars.colors.warning} />
                       <Text1 medium color={skinVars.colors.textPrimary}>
-                        {result.historicNote || "Draws on historic material."}
+                        {result.historicNote || t.drawsHistoric}
                       </Text1>
                     </Inline>
                   </div>
@@ -829,7 +827,7 @@ function KpiChat({
               submit();
             }
           }}
-          placeholder={placeholder}
+          placeholder={placeholderText}
           rows={1}
           style={{
             flex: 1,
@@ -847,7 +845,7 @@ function KpiChat({
           }}
         />
         <IconButton
-          aria-label="Send question"
+          aria-label={t.sendQuestion}
           type="brand"
           onPress={submit}
           disabled={!question.trim() || isPending || !roleId}
@@ -867,6 +865,8 @@ function DetailDrawerBody({
   rangeFrom?: string | null;
   rangeTo?: string | null;
 }) {
+  const { lang } = useApp();
+  const t = KPIS_I18N[lang];
   const kpi = detail.kpi;
   const seriesData = detail.series.map((p) => ({ ...p, target: kpi.target }));
   const [selectedSource, setSelectedSource] = React.useState<{
@@ -882,8 +882,8 @@ function DetailDrawerBody({
             <Inline space="between" alignItems="center" wrap>
               <AxisPill name={kpi.axisName} color={kpi.axisColor} />
               <Inline space={8} alignItems="center">
-                <Tag type={STATUS_TAG[kpi.status]}>{STATUS_LABEL[kpi.status]}</Tag>
-                {kpi.historic && <Tag type="warning">historic</Tag>}
+                <Tag type={STATUS_TAG[kpi.status]}>{t.statusLabels[kpi.status]}</Tag>
+                {kpi.historic && <Tag type="warning">{t.historic}</Tag>}
               </Inline>
             </Inline>
             <Text5>{kpi.name}</Text5>
@@ -894,14 +894,14 @@ function DetailDrawerBody({
               <Inline space={4} alignItems="center">
                 <IconUserAccountRegular size={14} color={skinVars.colors.textSecondary} />
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  Owner {kpi.owner}
+                  {t.owner} {kpi.owner}
                 </Text1>
               </Inline>
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                Definition v{kpi.definitionVersion}
+                {t.definition} v{kpi.definitionVersion}
               </Text1>
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                Amber below {Math.round(kpi.thresholds.amberBelow * 100)}% · Critical below{" "}
+                {t.amberBelow} {Math.round(kpi.thresholds.amberBelow * 100)}% · {t.criticalBelow}{" "}
                 {Math.round(kpi.thresholds.criticalBelow * 100)}%
               </Text1>
             </Inline>
@@ -913,9 +913,9 @@ function DetailDrawerBody({
 
           <Grid columns={3} gap={12}>
             {[
-              { label: "Current", value: `${kpi.current}${kpi.unit}`, color: skinVars.colors.textPrimary },
-              { label: "Target", value: `${kpi.target}${kpi.unit}`, color: skinVars.colors.textPrimary },
-              { label: "Progress", value: `${kpi.progress}%`, color: statusColor(kpi.status) },
+              { label: t.current, value: `${kpi.current}${kpi.unit}`, color: skinVars.colors.textPrimary },
+              { label: t.target, value: `${kpi.target}${kpi.unit}`, color: skinVars.colors.textPrimary },
+              { label: t.progress, value: `${kpi.progress}%`, color: statusColor(kpi.status) },
             ].map((m) => (
               <div
                 key={m.label}
@@ -948,8 +948,7 @@ function DetailDrawerBody({
               <Inline space={12} alignItems="center">
                 <IconAlertRegular size={20} color={skinVars.colors.warning} />
                 <Text2 regular color={skinVars.colors.textPrimary}>
-                  Composing sources disagree on this metric. The headline uses the weighted blend;
-                  open the sources below to see the divergence.
+                  {t.conflictBody}
                 </Text2>
               </Inline>
             </div>
@@ -957,7 +956,7 @@ function DetailDrawerBody({
 
           <Stack space={12}>
             <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-              Trend vs target
+              {t.trendVsTarget}
             </Text1>
             <div style={{ height: 224, width: "100%" }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -983,7 +982,7 @@ function DetailDrawerBody({
                     strokeDasharray="5 5"
                     strokeWidth={1.5}
                     dot={false}
-                    name="Target"
+                    name={t.target}
                   />
                   <Line
                     type="monotone"
@@ -1001,7 +1000,7 @@ function DetailDrawerBody({
           {detail.breakdowns.map((bd) => (
             <Stack key={bd.dimension} space={12}>
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                Breakdown by {bd.dimension}
+                {t.breakdownBy} {bd.dimension}
               </Text1>
               <div style={{ height: 176, width: "100%" }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -1044,7 +1043,7 @@ function DetailDrawerBody({
               />
               <Stack space={4}>
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  Forecast · {Math.round(kpi.forecast.confidence * 100)}% confidence
+                  {t.forecast} · {t.confidencePct(Math.round(kpi.forecast.confidence * 100))}
                 </Text1>
                 <Text2 regular color={skinVars.colors.textPrimary}>
                   {kpi.forecast.note}
@@ -1057,11 +1056,11 @@ function DetailDrawerBody({
             <Inline space={8} alignItems="center" wrap>
               <IconFileTextRegular size={16} color={skinVars.colors.textSecondary} />
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                Composing sources ({kpi.sources.length})
+                {t.composingSources} ({kpi.sources.length})
               </Text1>
               <div style={{ marginLeft: "auto" }}>
                 <Text1 regular color={skinVars.colors.textSecondary}>
-                  Blend: {kpi.blend}
+                  {t.blendPrefix} {kpi.blend}
                 </Text1>
               </div>
             </Inline>
@@ -1100,12 +1099,6 @@ const SEVERITY_TAG: Record<string, "warning" | "error" | "info"> = {
   forecast: "info",
 };
 
-const SEVERITY_LABEL: Record<string, string> = {
-  amber: "At risk",
-  critical: "Critical",
-  forecast: "Forecast risk",
-};
-
 function AlertRow({
   alert,
   onAcknowledge,
@@ -1115,6 +1108,8 @@ function AlertRow({
   onAcknowledge: () => void;
   acknowledging: boolean;
 }) {
+  const { lang } = useApp();
+  const t = KPIS_I18N[lang];
   return (
     <div
       style={{
@@ -1129,7 +1124,7 @@ function AlertRow({
       <Stack space={8}>
         <Inline space={8} alignItems="center" wrap>
           <Tag type={SEVERITY_TAG[alert.severity] ?? "info"}>
-            {SEVERITY_LABEL[alert.severity] ?? alert.severity}
+            {t.severityLabels[alert.severity] ?? alert.severity}
           </Tag>
           <Text2 medium color={skinVars.colors.textPrimary}>
             {alert.kpiName}
@@ -1139,12 +1134,12 @@ function AlertRow({
               <Inline space={4} alignItems="center">
                 <IconCheckedRegular size={14} color={skinVars.colors.success} />
                 <Text1 medium color={skinVars.colors.success} transform="uppercase">
-                  Acknowledged
+                  {t.acknowledged}
                 </Text1>
               </Inline>
             ) : (
               <ButtonSecondary small onPress={onAcknowledge} disabled={acknowledging}>
-                Acknowledge
+                {t.acknowledge}
               </ButtonSecondary>
             )}
           </div>
@@ -1156,14 +1151,14 @@ function AlertRow({
           <Inline space={4} alignItems="center">
             <IconUserAccountRegular size={12} color={skinVars.colors.textSecondary} />
             <Text1 regular color={skinVars.colors.textSecondary}>
-              Notified {alert.owner}
+              {t.notified} {alert.owner}
             </Text1>
           </Inline>
           <Text1 regular color={skinVars.colors.textSecondary}>
             {alert.channel}
           </Text1>
           <Text1 regular color={skinVars.colors.textSecondary}>
-            {new Date(alert.createdAt).toLocaleString("en-GB", {
+            {new Date(alert.createdAt).toLocaleString(localeFor(lang), {
               day: "2-digit",
               month: "short",
               hour: "2-digit",
@@ -1172,9 +1167,9 @@ function AlertRow({
           </Text1>
           {alert.acknowledged && alert.acknowledgedBy && (
             <Text1 regular color={skinVars.colors.textSecondary}>
-              By {alert.acknowledgedBy}
+              {t.by} {alert.acknowledgedBy}
               {alert.acknowledgedAt
-                ? ` · ${new Date(alert.acknowledgedAt).toLocaleString("en-GB", {
+                ? ` · ${new Date(alert.acknowledgedAt).toLocaleString(localeFor(lang), {
                     day: "2-digit",
                     month: "short",
                     hour: "2-digit",
@@ -1190,7 +1185,8 @@ function AlertRow({
 }
 
 export default function KpisPage() {
-  const { area, roleId } = useApp();
+  const { area, roleId, lang } = useApp();
+  const t = KPIS_I18N[lang];
   const [, navigate] = useLocation();
   const [period, setPeriod] = React.useState<PeriodType>("quarter");
   const [rangeFrom, setRangeFrom] = React.useState("");
@@ -1295,11 +1291,10 @@ export default function KpisPage() {
           <Stack space={8}>
             <Inline space={12} alignItems="center">
               <IconTargetRegular size={28} color={skinVars.colors.brand} />
-              <Title1>KPIs & Objectives</Title1>
+              <Title1>{t.pageTitle}</Title1>
             </Inline>
             <Text3 regular color={skinVars.colors.textSecondary}>
-              Governed objective tracking for {area}. Every figure is a cited blend of governed
-              sources, scoped to your clearance.
+              {t.pageSubtitle(area)}
             </Text3>
           </Stack>
           <div style={{ marginLeft: "auto" }}>
@@ -1309,7 +1304,7 @@ export default function KpisPage() {
                 StartIcon={IconBellRegular}
                 onPress={() => setAlertsOpen(true)}
               >
-                {unacknowledged > 0 ? `Alerts (${unacknowledged})` : "Alerts"}
+                {unacknowledged > 0 ? t.alertsCount(unacknowledged) : t.alerts}
               </ButtonSecondary>
               <ButtonSecondary
                 small
@@ -1319,9 +1314,9 @@ export default function KpisPage() {
                   const names = kpis.map((k) => k.name).slice(0, 6).join(", ");
                   const periodPhrase =
                     period === "custom" && activeRangeFrom && activeRangeTo
-                      ? `KPI report for ${area} covering ${activeRangeFrom} to ${activeRangeTo}`
-                      : `${PERIOD_LABELS[period]} KPI report for ${area}`;
-                  const topic = `${periodPhrase}: ${summary.total} tracked objectives, ${summary.onTrack} on track, ${summary.atRisk} at risk, ${summary.offTrack} off track. Covering ${names}${kpis.length > 6 ? " and others" : ""}.${offTrack.length > 0 ? ` Focus on deviations: ${offTrack.map((k) => k.name).join(", ")}.` : ""}`;
+                      ? t.reportRangePhrase(area, activeRangeFrom, activeRangeTo)
+                      : t.reportPeriodPhrase(t.periodLabels[period], area);
+                  const topic = `${periodPhrase}${t.reportSummary(summary.total, summary.onTrack, summary.atRisk, summary.offTrack, names, kpis.length > 6)}${offTrack.length > 0 ? t.reportFocus(offTrack.map((k) => k.name).join(", ")) : ""}`;
                   sessionStorage.setItem(
                     "hub-kpi-report-prefill",
                     JSON.stringify({
@@ -1346,17 +1341,17 @@ export default function KpisPage() {
                 }}
                 disabled={kpis.length === 0}
               >
-                Generate KPI report
+                {t.generateReport}
               </ButtonSecondary>
               <div style={{ minWidth: 150 }}>
                 <Select
                   name="period"
-                  label="Period"
+                  label={t.period}
                   value={period}
                   onChangeValue={(v) => setPeriod(v as PeriodType)}
-                  options={(Object.keys(PERIOD_LABELS) as PeriodType[]).map((p) => ({
+                  options={PERIOD_TYPES.map((p) => ({
                     value: p,
-                    text: PERIOD_LABELS[p],
+                    text: t.periodLabels[p],
                   }))}
                 />
               </div>
@@ -1365,7 +1360,7 @@ export default function KpisPage() {
                   <div style={{ minWidth: 170 }}>
                     <DateField
                       name="range-from"
-                      label="From"
+                      label={t.from}
                       value={rangeFrom}
                       onChangeValue={setRangeFrom}
                     />
@@ -1373,7 +1368,7 @@ export default function KpisPage() {
                   <div style={{ minWidth: 170 }}>
                     <DateField
                       name="range-to"
-                      label="To"
+                      label={t.to}
                       value={rangeTo}
                       onChangeValue={setRangeTo}
                     />
@@ -1401,9 +1396,7 @@ export default function KpisPage() {
                 color={customRangeInvalid ? skinVars.colors.error : skinVars.colors.textSecondary}
               />
               <Text2 regular color={skinVars.colors.textSecondary}>
-                {customRangeInvalid
-                  ? "The start date is after the end date — swap the dates to apply the range."
-                  : "Pick a from and to date to apply the custom range. Cards, drill-downs and the scoped chat will recalculate for that window."}
+                {customRangeInvalid ? t.rangeInvalid : t.rangePrompt}
               </Text2>
             </Inline>
           </div>
@@ -1412,10 +1405,10 @@ export default function KpisPage() {
         {kpis.length > 0 && (
           <Grid columns={{ minSize: 160 }} gap={12}>
             {[
-              { label: "Tracked", value: summary.total, color: skinVars.colors.textPrimary, bg: skinVars.colors.backgroundContainer },
-              { label: "On track", value: summary.onTrack, color: skinVars.colors.success, bg: applyAlpha(skinVars.rawColors.success, 0.12) },
-              { label: "At risk", value: summary.atRisk, color: skinVars.colors.warning, bg: applyAlpha(skinVars.rawColors.warning, 0.12) },
-              { label: "Off track", value: summary.offTrack, color: skinVars.colors.error, bg: applyAlpha(skinVars.rawColors.error, 0.12) },
+              { label: t.tracked, value: summary.total, color: skinVars.colors.textPrimary, bg: skinVars.colors.backgroundContainer },
+              { label: t.statusLabels["on-track"], value: summary.onTrack, color: skinVars.colors.success, bg: applyAlpha(skinVars.rawColors.success, 0.12) },
+              { label: t.statusLabels.amber, value: summary.atRisk, color: skinVars.colors.warning, bg: applyAlpha(skinVars.rawColors.warning, 0.12) },
+              { label: t.statusLabels["off-track"], value: summary.offTrack, color: skinVars.colors.error, bg: applyAlpha(skinVars.rawColors.error, 0.12) },
             ].map((s) => (
               <div
                 key={s.label}
@@ -1450,44 +1443,44 @@ export default function KpisPage() {
           >
             <Inline space={12} alignItems="center" wrap>
               <FilterSelect
-                label="Axis"
-                allLabel="All axes"
+                label={t.filterAxis}
+                allLabel={t.allAxes}
                 value={axisId}
                 onChange={setAxisId}
                 options={facets.axes.map((a) => ({ value: a.id, label: a.name }))}
               />
               <FilterSelect
-                label="Market"
-                allLabel="All markets"
+                label={t.filterMarket}
+                allLabel={t.allMarkets}
                 value={market}
                 onChange={setMarket}
                 options={facets.markets.map((m) => ({ value: m, label: m }))}
               />
               <FilterSelect
-                label="Brand"
-                allLabel="All brands"
+                label={t.filterBrand}
+                allLabel={t.allBrands}
                 value={brand}
                 onChange={setBrand}
                 options={facets.brands.map((b) => ({ value: b, label: b }))}
               />
               <FilterSelect
-                label="Source"
-                allLabel="All sources"
+                label={t.filterSource}
+                allLabel={t.allSources}
                 value={source}
                 onChange={setSource}
                 options={facets.sources.map((s) => ({ value: s, label: s }))}
               />
               <FilterSelect
-                label="Initiative"
-                allLabel="All initiatives"
+                label={t.filterInitiative}
+                allLabel={t.allInitiatives}
                 value={initiativeType}
                 onChange={setInitiativeType}
-                options={facets.initiativeTypes.map((t) => ({ value: t, label: t }))}
+                options={facets.initiativeTypes.map((it) => ({ value: it, label: it }))}
               />
               {facets.objectives && facets.objectives.length > 0 && (
                 <FilterSelect
-                  label="Objective"
-                  allLabel="All objectives"
+                  label={t.filterObjective}
+                  allLabel={t.allObjectives}
                   value={objectiveId}
                   onChange={setObjectiveId}
                   options={facets.objectives.map((o) => ({ value: o.id, label: o.name }))}
@@ -1539,11 +1532,10 @@ export default function KpisPage() {
                 </div>
               </Inline>
               <Text5>
-                <span style={{ display: "block", textAlign: "center" }}>No objectives in scope</span>
+                <span style={{ display: "block", textAlign: "center" }}>{t.emptyTitle}</span>
               </Text5>
               <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
-                There are no governed KPIs for this persona and filter combination. Clear a filter,
-                switch reporting period, or change persona to see tracked objectives.
+                {t.emptyBody}
               </Text2>
             </Stack>
           </div>
@@ -1583,12 +1575,10 @@ export default function KpisPage() {
                   </div>
                   <Stack space={2}>
                     <Text3 medium color={skinVars.colors.textPrimary}>
-                      Ask about these KPIs
+                      {t.askAboutKpis}
                     </Text3>
                     <Text1 regular color={skinVars.colors.textSecondary}>
-                      Answered only from the governed evidence behind the {kpis.length}{" "}
-                      {kpis.length === 1 ? "objective" : "objectives"} in view, scoped to your
-                      clearance.
+                      {t.answeredFrom(kpis.length)}
                     </Text1>
                   </Stack>
                 </Inline>
@@ -1601,9 +1591,9 @@ export default function KpisPage() {
                   kpiIds={visibleKpiIds}
                   rangeFrom={activeRangeFrom}
                   rangeTo={activeRangeTo}
-                  heading="Ask about the objectives in view"
-                  intro="Ask across every KPI currently on screen — what is on track, what is slipping, and why — answered only from the governed evidence behind them, with citations."
-                  placeholder="Which objectives are off track, and why?"
+                  heading={t.chatViewHeading}
+                  intro={t.chatViewIntro}
+                  placeholder={t.chatViewPlaceholder}
                 />
               </div>
             </Box>
@@ -1613,7 +1603,7 @@ export default function KpisPage() {
         <Inline space={8} alignItems="center">
           <IconArrowRightRegular size={14} color={skinVars.colors.textSecondary} />
           <Text1 regular color={skinVars.colors.textSecondary}>
-            Open any KPI to see its trend, breakdowns, composing sources and a scoped, cited chat.
+            {t.openAnyKpi}
           </Text1>
         </Inline>
       </Stack>
@@ -1623,19 +1613,17 @@ export default function KpisPage() {
           onClose={() => setAlertsOpen(false)}
           onDismiss={() => setAlertsOpen(false)}
           width={560}
-          title="Threshold alerts"
+          title={t.thresholdAlerts}
         >
           <Stack space={16}>
             <Text2 regular color={skinVars.colors.textSecondary}>
-              Raised when a governed KPI crosses its configured amber or critical threshold, or its
-              forecast points at a miss. Each alert records who was notified, on which channel, and
-              who acknowledged it — scoped to your clearance.
+              {t.alertsDrawerBody}
             </Text2>
             {alertsLoading && (
               <Inline space={12} alignItems="center">
                 <Spinner size={20} />
                 <Text2 medium color={skinVars.colors.textPrimary}>
-                  Checking thresholds...
+                  {t.checkingThresholds}
                 </Text2>
               </Inline>
             )}
@@ -1654,7 +1642,7 @@ export default function KpisPage() {
                     </div>
                   </Inline>
                   <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
-                    No threshold alerts for the objectives visible to this persona.
+                    {t.noThresholdAlerts}
                   </Text2>
                 </Stack>
               </div>
@@ -1677,7 +1665,7 @@ export default function KpisPage() {
           onClose={() => setOpenId(null)}
           onDismiss={() => setOpenId(null)}
           width={1024}
-          title="KPI detail"
+          title={t.kpiDetail}
         >
           {detailLoading && (
             <Box paddingY={64}>
@@ -1701,11 +1689,11 @@ export default function KpisPage() {
                 </Inline>
                 <Text5>
                   <span style={{ display: "block", textAlign: "center" }}>
-                    This KPI is restricted
+                    {t.kpiRestricted}
                   </span>
                 </Text5>
                 <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
-                  Your current persona is not cleared to open this objective or its evidence.
+                  {t.kpiRestrictedBody}
                 </Text2>
               </Stack>
             </Box>

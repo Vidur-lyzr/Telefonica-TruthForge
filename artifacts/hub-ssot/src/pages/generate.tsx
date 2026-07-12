@@ -43,6 +43,8 @@ import {
   type AskHandoffContext,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { GENERATE_I18N } from "@/i18n/generate";
+import { localeFor } from "@/i18n/planning";
 import { RichTextEditor } from "@/components/document-editor";
 import {
   Box,
@@ -206,6 +208,8 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 // ---- Brand Guardian bar ------------------------------------------------------
 function GuardianBar({ guardian }: { guardian: GuardianResult }) {
+  const { lang } = useApp();
+  const te = GENERATE_I18N[lang].editor;
   const pass = guardian.status === "pass";
   return (
     <div
@@ -226,10 +230,10 @@ function GuardianBar({ guardian }: { guardian: GuardianResult }) {
           <Stack space={4}>
             <Inline space={8} alignItems="center">
               <Text2 medium color={c.textPrimary}>
-                Brand Guardian
+                {te.guardianName}
               </Text2>
               <Tag type={pass ? "success" : "error"}>
-                {pass ? "Cleared for export" : "Export blocked"}
+                {pass ? te.guardianCleared : te.guardianBlocked}
               </Tag>
             </Inline>
             <Text2 regular color={c.textPrimary}>
@@ -246,7 +250,7 @@ function GuardianBar({ guardian }: { guardian: GuardianResult }) {
                 <Box padding={12}>
                   <Stack space={4}>
                     <Inline space={8} alignItems="center">
-                      <Tag type={f.severity === "error" ? "error" : "warning"}>{f.severity}</Tag>
+                      <Tag type={f.severity === "error" ? "error" : "warning"}>{te.severity[f.severity] ?? f.severity}</Tag>
                       <Text2 medium color={c.textPrimary}>
                         {f.rule}
                       </Text2>
@@ -256,7 +260,7 @@ function GuardianBar({ guardian }: { guardian: GuardianResult }) {
                     </Text2>
                     {f.suggestion && (
                       <Text2 medium color={c.brand}>
-                        Fix: {f.suggestion}
+                        {te.fixPrefix} {f.suggestion}
                       </Text2>
                     )}
                   </Stack>
@@ -400,13 +404,15 @@ function SectionBlock({
   onOpenCitationId: (id: string) => void;
   onAskSelection: (passage: string) => void;
 }) {
+  const { lang } = useApp();
+  const te = GENERATE_I18N[lang].editor;
   return (
     <Stack space={8}>
       <Inline space={8} alignItems="center">
         <Title3>{section.heading}</Title3>
         {section.internalOnly && (
           <Tag type="warning" Icon={IconLockClosedRegular}>
-            Internal only
+            {te.internalOnly}
           </Tag>
         )}
       </Inline>
@@ -415,7 +421,7 @@ function SectionBlock({
         onChange={onChange}
         onOpenCitation={onOpenCitationId}
         onAskSelection={onAskSelection}
-        ariaLabel={`Section body: ${section.heading}`}
+        ariaLabel={te.sectionBodyAria(section.heading)}
       />
     </Stack>
   );
@@ -488,6 +494,8 @@ function QaBlock({
   onOpenCitation: (c: Citation) => void;
   onAskSelection: (passage: string) => void;
 }) {
+  const { lang } = useApp();
+  const te = GENERATE_I18N[lang].editor;
   const items = parseQaBody(section.body);
   const [editingKey, setEditingKey] = React.useState<string | null>(null);
   const [noteText, setNoteText] = React.useState("");
@@ -519,7 +527,7 @@ function QaBlock({
         <Title3>{section.heading}</Title3>
         {section.internalOnly && (
           <Tag type="warning" Icon={IconLockClosedRegular}>
-            Internal only
+            {te.internalOnly}
           </Tag>
         )}
       </Inline>
@@ -553,7 +561,7 @@ function QaBlock({
                   if (cit) onOpenCitation(cit);
                 }}
                 onAskSelection={onAskSelection}
-                ariaLabel={`Answer: ${item.question}`}
+                ariaLabel={te.answerAria(item.question)}
               />
               {answerCitations.length > 0 ? (
                 <Stack space={4}>
@@ -565,7 +573,7 @@ function QaBlock({
                           {[
                             cit.docTitle,
                             cit.version,
-                            cit.validUntil ? `valid until ${cit.validUntil}` : "",
+                            cit.validUntil ? te.validUntil(cit.validUntil) : "",
                             cit.owner,
                           ]
                             .filter(Boolean)
@@ -579,7 +587,7 @@ function QaBlock({
                 <Inline space={4} alignItems="center">
                   <IconAlertRegular size={12} color={c.warning} />
                   <Text1 regular color={c.warning}>
-                    Not covered by approved material — this answer carries no governed source.
+                    {te.noGovernedSource}
                   </Text1>
                 </Inline>
               )}
@@ -587,8 +595,8 @@ function QaBlock({
                 <Stack space={8}>
                   <TextField
                     name={`qaNote-${idx}`}
-                    label="Internal note"
-                    placeholder="Working context for this answer — never exported externally"
+                    label={te.internalNoteLabel}
+                    placeholder={te.internalNotePlaceholder}
                     value={noteText}
                     onChangeValue={setNoteText}
                     multiline
@@ -596,7 +604,7 @@ function QaBlock({
                   />
                   <Inline space={8}>
                     <ButtonPrimary small onPress={() => saveNote(item.question)}>
-                      Save note
+                      {te.saveNote}
                     </ButtonPrimary>
                     <ButtonSecondary
                       small
@@ -605,7 +613,7 @@ function QaBlock({
                         setNoteText("");
                       }}
                     >
-                      Cancel
+                      {te.cancel}
                     </ButtonSecondary>
                   </Inline>
                 </Stack>
@@ -621,7 +629,7 @@ function QaBlock({
                   <Stack space={4}>
                     <Inline space={8} alignItems="center">
                       <IconLockClosedRegular size={12} color={c.warning} />
-                      <Tag type="warning">Internal — not exportable</Tag>
+                      <Tag type="warning">{te.internalNotExportable}</Tag>
                     </Inline>
                     <Text2 regular color={c.textPrimary}>
                       {note.note}
@@ -634,10 +642,10 @@ function QaBlock({
                           setNoteText(note.note);
                         }}
                       >
-                        Edit note
+                        {te.editNote}
                       </ButtonLink>
                       <ButtonLink small onPress={() => removeNote(item.question)}>
-                        Remove
+                        {te.remove}
                       </ButtonLink>
                     </Inline>
                   </Stack>
@@ -652,7 +660,7 @@ function QaBlock({
                     }}
                     StartIcon={IconPenRegular}
                   >
-                    Add internal note
+                    {te.addInternalNote}
                   </ButtonLink>
                 </Inline>
               )}
@@ -680,6 +688,8 @@ function DocumentCanvas({
   onOpenCitation: (c: Citation) => void;
   onAskSelection: (passage: string) => void;
 }) {
+  const { lang } = useApp();
+  const te = GENERATE_I18N[lang].editor;
   const externalStripped = draft.audience === "external";
   const visibleSections = externalStripped
     ? draft.sections.filter((s) => !s.internalOnly)
@@ -697,8 +707,8 @@ function DocumentCanvas({
           <Stack space={32}>
             <Stack space={12}>
               <Inline space={8} alignItems="center" wrap>
-                <Tag type="promo">{SHAPE_META[draft.shape as Shape]?.name ?? draft.shape}</Tag>
-                <Tag type={draft.audience === "external" ? "success" : "info"}>{draft.audience}</Tag>
+                <Tag type="promo">{GENERATE_I18N[lang].form.shapes[draft.shape as Shape]?.name ?? draft.shape}</Tag>
+                <Tag type={draft.audience === "external" ? "success" : "info"}>{te.audience[draft.audience] ?? draft.audience}</Tag>
                 <Tag type="inactive">{draft.confidentiality}</Tag>
                 <Tag type="inactive">{draft.language}</Tag>
               </Inline>
@@ -718,7 +728,7 @@ function DocumentCanvas({
                 <Inline space={8} alignItems="center">
                   <IconTimeRegular size={20} color={c.warning} />
                   <Text2 medium color={c.warning}>
-                    {draft.historicNote || "This draft draws on historic material."}
+                    {draft.historicNote || te.historicDefault}
                   </Text2>
                 </Inline>
               </div>
@@ -740,11 +750,11 @@ function DocumentCanvas({
                     <Inline space={8} alignItems="center" wrap>
                       <IconAlertRegular size={20} color={c.warning} />
                       <Text2 medium color={c.warning}>
-                        Started from an Ask answer with flagged evidence
+                        {te.askFlaggedTitle}
                       </Text2>
-                      {draft.askSignals.conflict && <Tag type="error">Sources conflict</Tag>}
-                      {draft.askSignals.lowConfidence && <Tag type="warning">Low confidence</Tag>}
-                      {draft.askSignals.historic && <Tag type="warning">Historic source</Tag>}
+                      {draft.askSignals.conflict && <Tag type="error">{te.sourcesConflict}</Tag>}
+                      {draft.askSignals.lowConfidence && <Tag type="warning">{te.lowConfidence}</Tag>}
+                      {draft.askSignals.historic && <Tag type="warning">{te.historicSource}</Tag>}
                     </Inline>
                     {draft.askSignals.note && (
                       <Text1 regular color={c.textSecondary}>
@@ -765,7 +775,7 @@ function DocumentCanvas({
               >
                 <Stack space={8}>
                   <Text1 medium color={c.textPrimaryInverse}>
-                    Umbrella message
+                    {te.umbrellaMessage}
                   </Text1>
                   <div style={{ color: c.textPrimaryInverse }}>
                     <RichTextEditor
@@ -774,7 +784,7 @@ function DocumentCanvas({
                       onOpenCitation={openCitationById}
                       onAskSelection={onAskSelection}
                       inverse
-                      ariaLabel="Umbrella message"
+                      ariaLabel={te.umbrellaMessage}
                     />
                   </div>
                 </Stack>
@@ -828,7 +838,7 @@ function DocumentCanvas({
                 <Inline space={8} alignItems="center">
                   <IconDocumentOtherRegular size={16} color={c.textSecondary} />
                   <Text2 medium color={c.textSecondary}>
-                    Evidence and citations
+                    {te.evidenceAndCitations}
                   </Text2>
                 </Inline>
                 <Stack space={12}>
@@ -889,6 +899,7 @@ function BriefForm({
   isPending: boolean;
 }) {
   const { lang: globalLang } = useApp();
+  const t = GENERATE_I18N[globalLang].form;
   const { data: axes } = useListAxes();
   const [mode, setMode] = React.useState<"form" | "chat">("form");
   const [shape, setShape] = React.useState<Shape>("messaging");
@@ -1004,11 +1015,7 @@ function BriefForm({
   const [followUpAnswer, setFollowUpAnswer] = React.useState("");
   const [askedFollowUp, setAskedFollowUp] = React.useState(false);
 
-  const FOLLOW_UP: Record<Shape, string> = {
-    messaging: "What is the single key message you want this to land?",
-    press: "What exactly are we announcing — the news hook in one line?",
-    multiformat: "What is the core message, and which channel matters most?",
-  };
+  const FOLLOW_UP: Record<Shape, string> = t.followUpQuestions;
 
   const toggleAxis = (id: string) =>
     setAxisIds((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]));
@@ -1085,13 +1092,13 @@ function BriefForm({
         <Inline space={8} alignItems="center">
           <IconDocumentOtherRegular size={16} color={c.brand} />
           <Text2 medium color={c.textPrimary}>
-            Brief attachments (optional)
+            {t.attachmentsTitle}
           </Text2>
         </Inline>
         <TextField
           name="attachmentText"
-          label="Pasted brief or data"
-          placeholder="Paste an existing brief, notes or figures the engine should be aware of"
+          label={t.attachmentsTextLabel}
+          placeholder={t.attachmentsTextPlaceholder}
           value={attachmentText}
           onChangeValue={setAttachmentText}
           multiline
@@ -1099,16 +1106,15 @@ function BriefForm({
         />
         <TextField
           name="attachmentLinks"
-          label="Source links (one per line)"
-          placeholder={"e.g. https://intranet.telefonica.com/brand/q1-brief"}
+          label={t.attachmentsLinksLabel}
+          placeholder={t.attachmentsLinksPlaceholder}
           value={attachmentLinksText}
           onChangeValue={setAttachmentLinksText}
           multiline
           fullWidth
         />
         <Text1 regular color={c.textSecondary}>
-          Attachments are given to the engine as background context only. They are never cited and
-          never enter the governed evidence — only approved corpus sources back the draft's claims.
+          {t.attachmentsHelper}
         </Text1>
       </Stack>
     </div>
@@ -1134,12 +1140,11 @@ function BriefForm({
             </div>
           </div>
           <div style={{ textAlign: "center" }}>
-            <Title2>Generate a governed document</Title2>
+            <Title2>{t.title}</Title2>
           </div>
           <div style={{ textAlign: "center" }}>
             <Text3 regular color={c.textSecondary} textAlign="center">
-              One engine, three shapes. Every claim is cited from the governed corpus, and the Brand
-              Guardian must clear it before export.
+              {t.subtitle}
             </Text3>
           </div>
         </Stack>
@@ -1147,10 +1152,10 @@ function BriefForm({
         <div style={{ display: "flex", justifyContent: "center" }}>
           <Inline space={8}>
             <Chip active={mode === "form"} onPress={() => setMode("form")} Icon={IconListDocumentRegular}>
-              Structured brief
+              {t.modeStructured}
             </Chip>
             <Chip active={mode === "chat"} onPress={() => setMode("chat")} Icon={IconChatRegular}>
-              Guided chat
+              {t.modeGuided}
             </Chip>
           </Inline>
         </div>
@@ -1174,13 +1179,13 @@ function BriefForm({
             <Inline space={8} alignItems="center">
               <IconStarRegular size={16} color={c.brand} />
               <Text2 medium color={c.textPrimary}>
-                Describe what you need and the engine suggests a set-up
+                {t.nlPanelTitle}
               </Text2>
             </Inline>
             <TextField
               name="nlDescription"
-              label="What do you need?"
-              placeholder="e.g. An external announcement of the Q1 results for the press, quoting the CEO"
+              label={t.nlLabel}
+              placeholder={t.nlPlaceholder}
               value={nlDescription}
               onChangeValue={setNlDescription}
               fullWidth
@@ -1191,7 +1196,7 @@ function BriefForm({
                 onPress={requestSuggestion}
                 disabled={!nlDescription.trim() || suggestTemplate.isPending}
               >
-                {suggestTemplate.isPending ? "Thinking..." : "Suggest a set-up"}
+                {suggestTemplate.isPending ? t.nlThinking : t.nlSuggest}
               </ButtonSecondary>
             </Inline>
             {suggestion && (
@@ -1206,10 +1211,10 @@ function BriefForm({
                     </Text2>
                     <Inline space={8}>
                       <ButtonPrimary small onPress={applySuggestion}>
-                        Use this set-up
+                        {t.nlUse}
                       </ButtonPrimary>
                       <ButtonSecondary small onPress={() => setSuggestion(null)}>
-                        Dismiss
+                        {t.nlDismiss}
                       </ButtonSecondary>
                     </Inline>
                   </Stack>
@@ -1241,10 +1246,10 @@ function BriefForm({
                 >
                   <Stack space={4}>
                     <Text2 medium color={c.textPrimary}>
-                      {SHAPE_META[s].name}
+                      {t.shapes[s].name}
                     </Text2>
                     <Text1 regular color={c.textSecondary}>
-                      {SHAPE_META[s].blurb}
+                      {t.shapes[s].blurb}
                     </Text1>
                   </Stack>
                 </div>
@@ -1254,11 +1259,11 @@ function BriefForm({
         </div>
 
         <Stack space={8}>
-          <FieldLabel>Brief</FieldLabel>
+          <FieldLabel>{t.briefLabel}</FieldLabel>
           <TextField
             name="brief"
-            label="Brief"
-            placeholder="e.g. Q1 2026 results readout for the internal leadership call, covering Transform & Grow"
+            label={t.briefLabel}
+            placeholder={t.briefPlaceholder}
             value={topic}
             onChangeValue={setTopic}
             multiline
@@ -1267,14 +1272,16 @@ function BriefForm({
           {kpiContext && (
             <Inline space={8} alignItems="center">
               <Chip onClose={() => setKpiContext(null)}>
-                {`KPI panel attached: ${kpiContext.area}, ${
-                  kpiContext.period === "custom" && kpiContext.rangeFrom && kpiContext.rangeTo
-                    ? `${kpiContext.rangeFrom} to ${kpiContext.rangeTo}`
-                    : kpiContext.period
-                }${kpiContext.market ? `, ${kpiContext.market}` : ""}`}
+                {t.kpiPanelAttached(
+                  `${kpiContext.area}, ${
+                    kpiContext.period === "custom" && kpiContext.rangeFrom && kpiContext.rangeTo
+                      ? t.kpiRange(kpiContext.rangeFrom, kpiContext.rangeTo)
+                      : kpiContext.period
+                  }${kpiContext.market ? `, ${kpiContext.market}` : ""}`,
+                )}
               </Chip>
               <Text1 regular color={c.textSecondary}>
-                Governed KPI figures for this selection will be recomputed and injected into the report.
+                {t.kpiHelper}
               </Text1>
             </Inline>
           )}
@@ -1285,17 +1292,17 @@ function BriefForm({
                   <Inline space="between" alignItems="center">
                     <Inline space={8} alignItems="center">
                       <IconMessageRegular size={20} color={c.brand} />
-                      <Text2 medium>Ask answer attached</Text2>
+                      <Text2 medium>{t.askAttached}</Text2>
                     </Inline>
-                    <Chip onClose={() => setAskDraft(null)}>Detach</Chip>
+                    <Chip onClose={() => setAskDraft(null)}>{t.askDetach}</Chip>
                   </Inline>
                   {(askDraft.status === "conflict" ||
                     askDraft.historic ||
                     askDraft.lowConfidence) && (
                     <Inline space={8}>
-                      {askDraft.status === "conflict" && <Tag type="error">Sources conflict</Tag>}
-                      {askDraft.historic && <Tag type="warning">Historic source</Tag>}
-                      {askDraft.lowConfidence && <Tag type="warning">Low confidence</Tag>}
+                      {askDraft.status === "conflict" && <Tag type="error">{t.askConflict}</Tag>}
+                      {askDraft.historic && <Tag type="warning">{t.askHistoric}</Tag>}
+                      {askDraft.lowConfidence && <Tag type="warning">{t.askLowConfidence}</Tag>}
                     </Inline>
                   )}
                   {askDraft.status === "conflict" && askDraft.conflictNote && (
@@ -1321,7 +1328,7 @@ function BriefForm({
                   {askDraft.citations.length > 0 && (
                     <Stack space={4}>
                       <Text1 medium color={c.textSecondary}>
-                        Cited sources
+                        {t.askCitedSources}
                       </Text1>
                       {[...new Map(askDraft.citations.map((ct) => [ct.docId, ct])).values()].map(
                         (ct) => (
@@ -1334,9 +1341,7 @@ function BriefForm({
                     </Stack>
                   )}
                   <Text1 regular color={c.textSecondary}>
-                    The engine will re-check every cited source against your current persona and the
-                    destination before drafting; anything you can no longer access is excluded and
-                    reported.
+                    {t.askRecheckHelper}
                   </Text1>
                 </Stack>
               </Box>
@@ -1348,15 +1353,15 @@ function BriefForm({
           style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}
         >
           <Stack space={8}>
-            <FieldLabel>Audience</FieldLabel>
+            <FieldLabel>{t.audienceLabel}</FieldLabel>
             <Select
               name="audience"
-              label="Audience"
+              label={t.audienceLabel}
               value={audience}
               onChangeValue={(v) => changeAudience(v as Audience)}
               options={[
-                { value: "internal", text: "Internal" },
-                { value: "external", text: "External" },
+                { value: "internal", text: t.audienceInternal },
+                { value: "external", text: t.audienceExternal },
               ]}
               fullWidth
             />
@@ -1364,19 +1369,22 @@ function BriefForm({
               <Inline space={4} alignItems="center">
                 <IconLockClosedRegular size={12} color={c.brand} />
                 <Text1 regular color={c.brand}>
-                  External caps sources to public material before retrieval.
+                  {t.audienceExternalHelper}
                 </Text1>
               </Inline>
             )}
           </Stack>
           <Stack space={8}>
-            <FieldLabel>Language</FieldLabel>
+            <FieldLabel>{t.languageLabel}</FieldLabel>
             <Select
               name="language"
-              label="Language"
+              label={t.languageLabel}
               value={language}
               onChangeValue={setLanguage}
-              options={LANGUAGE_OPTIONS}
+              options={LANGUAGE_OPTIONS.map((o) => ({
+                value: o.value,
+                text: t.languageOptions[o.value] ?? o.text,
+              }))}
               fullWidth
             />
           </Stack>
@@ -1386,30 +1394,36 @@ function BriefForm({
           style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}
         >
           <Stack space={8}>
-            <FieldLabel>Destination confidentiality</FieldLabel>
+            <FieldLabel>{t.confidentialityLabel}</FieldLabel>
             <Select
               name="confidentiality"
-              label="Destination confidentiality"
+              label={t.confidentialityLabel}
               value={confidentiality}
               onChangeValue={setConfidentiality}
               disabled={audience === "external"}
-              options={CONFIDENTIALITY_OPTIONS.map((o) => ({ value: o.value, text: o.label }))}
+              options={CONFIDENTIALITY_OPTIONS.map((o) => ({
+                value: o.value,
+                text: t.confidentialityOptions[o.value] ?? o.label,
+              }))}
               fullWidth
             />
             {audience === "external" && (
               <Text1 regular color={c.textSecondary}>
-                External work is held to public and cannot be raised here.
+                {t.confidentialityExternalHelper}
               </Text1>
             )}
           </Stack>
           <Stack space={8}>
-            <FieldLabel>Format</FieldLabel>
+            <FieldLabel>{t.formatLabel}</FieldLabel>
             <Select
               name="format"
-              label="Format"
+              label={t.formatLabel}
               value={format}
               onChangeValue={setFormat}
-              options={formatOptions.map((o) => ({ value: o.value, text: o.label }))}
+              options={formatOptions.map((o) => ({
+                value: o.value,
+                text: t.formatOptions[o.value] ?? o.label,
+              }))}
               fullWidth
             />
           </Stack>
@@ -1419,37 +1433,37 @@ function BriefForm({
           style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}
         >
           <Stack space={8}>
-            <FieldLabel>Spokesperson (optional)</FieldLabel>
+            <FieldLabel>{t.spokespersonLabel}</FieldLabel>
             <TextField
               name="spokesperson"
-              label="Spokesperson"
-              placeholder="e.g. María García, Chief Communications Officer"
+              label={t.spokespersonField}
+              placeholder={t.spokespersonPlaceholder}
               value={spokesperson}
               onChangeValue={setSpokesperson}
               fullWidth
             />
             <Text1 regular color={c.textSecondary}>
-              Quotes and spokesperson notes are attributed to this person.
+              {t.spokespersonHelper}
             </Text1>
           </Stack>
           <Stack space={8}>
-            <FieldLabel>Event date (optional)</FieldLabel>
+            <FieldLabel>{t.eventDateLabel}</FieldLabel>
             <TextField
               name="eventDate"
-              label="Event date"
-              placeholder="e.g. 12 May 2026"
+              label={t.eventDateField}
+              placeholder={t.eventDatePlaceholder}
               value={eventDate}
               onChangeValue={setEventDate}
               fullWidth
             />
             <Text1 regular color={c.textSecondary}>
-              The date the announcement or event takes place.
+              {t.eventDateHelper}
             </Text1>
           </Stack>
         </div>
 
         <Stack space={8}>
-          <FieldLabel>Strategic axes (optional)</FieldLabel>
+          <FieldLabel>{t.axesLabel}</FieldLabel>
           <Inline space={8} wrap>
             {axes?.map((a) => (
               <Chip key={a.id} active={axisIds.includes(a.id)} onPress={() => toggleAxis(a.id)}>
@@ -1474,7 +1488,7 @@ function BriefForm({
               <Inline space={8} alignItems="center">
                 <IconMessageRegular size={16} color={c.brand} />
                 <Text2 medium color={c.brand}>
-                  One quick thing
+                  {t.followUpTitle}
                 </Text2>
               </Inline>
               <Text2 medium color={c.textPrimary}>
@@ -1482,25 +1496,25 @@ function BriefForm({
               </Text2>
               <TextField
                 name="followUpAnswer"
-                label="Missing detail"
-                placeholder="Add the missing detail so the draft is framed correctly (optional)"
+                label={t.followUpLabel}
+                placeholder={t.followUpPlaceholder}
                 value={followUpAnswer}
                 onChangeValue={setFollowUpAnswer}
                 fullWidth
               />
               <Inline space={8}>
                 <ButtonPrimary onPress={() => submitFollowUp(false)} disabled={isPending} StartIcon={IconRobotRegular}>
-                  Generate with this
+                  {t.followUpGenerate}
                 </ButtonPrimary>
                 <ButtonSecondary onPress={() => submitFollowUp(true)} disabled={isPending}>
-                  Skip
+                  {t.followUpSkip}
                 </ButtonSecondary>
               </Inline>
             </Stack>
           </div>
         ) : (
           <ButtonPrimary onPress={submitBrief} disabled={!topic.trim() || isPending} StartIcon={IconRobotRegular}>
-            Generate draft
+            {t.generateDraft}
           </ButtonPrimary>
         )}
         </Stack>
@@ -1512,6 +1526,8 @@ function BriefForm({
 
 // ---- Dual-filter exclusions panel ---------------------------------------------
 function ExclusionsPanel({ exclusions }: { exclusions: DraftExclusion[] }) {
+  const { lang } = useApp();
+  const te = GENERATE_I18N[lang].editor;
   return (
     <div
       style={{
@@ -1525,12 +1541,11 @@ function ExclusionsPanel({ exclusions }: { exclusions: DraftExclusion[] }) {
         <Inline space={8} alignItems="center">
           <IconLockClosedRegular size={16} color={c.warning} />
           <Text2 medium color={c.textPrimary}>
-            Sources excluded by governance
+            {te.exclusionsTitle}
           </Text2>
         </Inline>
         <Text1 regular color={c.textSecondary}>
-          Two filters run before anything reaches the engine: your clearance, then the destination
-          confidentiality of this document.
+          {te.exclusionsBlurb}
         </Text1>
         <Stack space={8}>
           {exclusions.map((x, i) => (
@@ -1539,7 +1554,7 @@ function ExclusionsPanel({ exclusions }: { exclusions: DraftExclusion[] }) {
                 <Stack space={4}>
                   <Inline space={8} alignItems="center" wrap>
                     <Tag type={x.reason === "clearance" ? "error" : "warning"}>
-                      {x.reason === "clearance" ? "Your clearance" : "Destination"}
+                      {x.reason === "clearance" ? te.reasonClearance : te.reasonDestination}
                     </Tag>
                     <Tag type="inactive">{x.confidentiality}</Tag>
                     {x.docTitle && (
@@ -1563,12 +1578,12 @@ function ExclusionsPanel({ exclusions }: { exclusions: DraftExclusion[] }) {
 
 // ---- Guided-chat brief capture -------------------------------------------------
 function GuidedChat({ onComplete }: { onComplete: (fields: SuggestedBrief) => void }) {
+  const { lang: globalLang } = useApp();
+  const t = GENERATE_I18N[globalLang].chat;
   const briefChat = useBriefChat();
   const [turns, setTurns] = React.useState<BriefChatTurn[]>([]);
   const [input, setInput] = React.useState("");
-  const [pendingQuestion, setPendingQuestion] = React.useState<string>(
-    "What do you need to produce? Describe the document in your own words — the shape, the topic, who it is for, the language, any spokesperson and the event date.",
-  );
+  const [pendingQuestion, setPendingQuestion] = React.useState<string>(t.initialQuestion);
 
   const send = () => {
     const content = input.trim();
@@ -1604,10 +1619,10 @@ function GuidedChat({ onComplete }: { onComplete: (fields: SuggestedBrief) => vo
           <Inline space={8} alignItems="center">
             <IconChatRegular size={16} color={c.brand} />
             <Text2 medium color={c.textPrimary}>
-              Guided brief
+              {t.title}
             </Text2>
             <Text1 regular color={c.textSecondary}>
-              A few questions, then the form is filled in for you.
+              {t.subtitle}
             </Text1>
           </Inline>
 
@@ -1652,7 +1667,7 @@ function GuidedChat({ onComplete }: { onComplete: (fields: SuggestedBrief) => vo
             <Inline space={8} alignItems="center">
               <Spinner size={16} />
               <Text1 regular color={c.textSecondary}>
-                Working out what is still missing...
+                {t.thinking}
               </Text1>
             </Inline>
           )}
@@ -1661,15 +1676,15 @@ function GuidedChat({ onComplete }: { onComplete: (fields: SuggestedBrief) => vo
             <div style={{ flex: 1 }}>
               <TextField
                 name="chatInput"
-                label="Your answer"
-                placeholder="Type your answer"
+                label={t.answerLabel}
+                placeholder={t.answerPlaceholder}
                 value={input}
                 onChangeValue={setInput}
                 fullWidth
               />
             </div>
             <IconButton
-              aria-label="Send answer"
+              aria-label={t.sendAnswer}
               onPress={send}
               disabled={!input.trim() || briefChat.isPending}
               Icon={IconSendRegular}
@@ -1691,17 +1706,19 @@ function DraftingPipeline({
   variant: "generate" | "refine";
   stage: PipelineStage;
 }) {
+  const { lang } = useApp();
+  const te = GENERATE_I18N[lang].editor;
   const steps =
     variant === "refine"
       ? [
-          { key: "retrieving", icon: IconSearchRegular, label: "Re-checking governed evidence" },
-          { key: "composing", icon: IconPenRegular, label: "Applying your refinement with citations" },
-          { key: "guardian", icon: IconShieldCheckedOkRegular, label: "Brand Guardian re-checking claims and tone" },
+          { key: "retrieving", icon: IconSearchRegular, label: te.pipelineRefineSteps.retrieving },
+          { key: "composing", icon: IconPenRegular, label: te.pipelineRefineSteps.composing },
+          { key: "guardian", icon: IconShieldCheckedOkRegular, label: te.pipelineRefineSteps.guardian },
         ]
       : [
-          { key: "retrieving", icon: IconSearchRegular, label: "Retrieving governed evidence" },
-          { key: "composing", icon: IconPenRegular, label: "Composing the document with citations" },
-          { key: "guardian", icon: IconShieldCheckedOkRegular, label: "Brand Guardian checking claims and tone" },
+          { key: "retrieving", icon: IconSearchRegular, label: te.pipelineGenerateSteps.retrieving },
+          { key: "composing", icon: IconPenRegular, label: te.pipelineGenerateSteps.composing },
+          { key: "guardian", icon: IconShieldCheckedOkRegular, label: te.pipelineGenerateSteps.guardian },
         ];
   const order = ["retrieving", "composing", "guardian", "done"];
   const active = stage === "done" ? steps.length : order.indexOf(stage);
@@ -1713,12 +1730,12 @@ function DraftingPipeline({
           <Stack space={4}>
             <div style={{ textAlign: "center" }}>
               <Title3>
-                {variant === "refine" ? "Refining under governance" : "Composing from governed evidence"}
+                {variant === "refine" ? te.pipelineRefineTitle : te.pipelineGenerateTitle}
               </Title3>
             </div>
             <div style={{ textAlign: "center" }}>
               <Text2 regular color={c.textSecondary} textAlign="center">
-                Permission-filtered sources only. Every claim is cited before it reaches you.
+                {te.pipelineSubtitle}
               </Text2>
             </div>
           </Stack>
@@ -1773,7 +1790,9 @@ function DraftingPipeline({
 }
 
 export default function Generate() {
-  const { roleId } = useApp();
+  const { roleId, lang } = useApp();
+  const te = GENERATE_I18N[lang].editor;
+  const td = GENERATE_I18N[lang].dialogs;
   const [tab, setTab] = React.useState<Tab>("compose");
   const [draft, setDraft] = React.useState<GeneratedDraft | null>(null);
   const [instruction, setInstruction] = React.useState("");
@@ -2047,11 +2066,9 @@ export default function Generate() {
             (data?.error ?? "").toLowerCase().includes("editorial review");
           if (reviewRefused) {
             setReviewedDraft(null);
-            setExportError(
-              "Press material needs a completed editorial review before it can be exported. Mark the review below, then export again.",
-            );
+            setExportError(te.exportReviewRequiredError);
           } else {
-            setExportError(data?.error ?? "The export was refused. Check the Guardian verdict and try again.");
+            setExportError(data?.error ?? te.exportRefusedError);
           }
         },
       },
@@ -2076,10 +2093,10 @@ export default function Generate() {
   const canExport = guardianPass && !scheduledLocked;
 
   const tabDefs: { id: Tab; label: string; icon: React.FC<{ size?: number; color?: string }>; count?: number }[] = [
-    { id: "compose", label: "Compose", icon: IconRobotRegular },
-    { id: "scheduled", label: "Scheduled", icon: IconCalendarRegular },
-    { id: "inbox", label: "Review inbox", icon: IconListDocumentRegular, count: inboxQ.data?.filter((i) => i.status === "pending").length },
-    { id: "versions", label: "Versions", icon: IconTimeRegular, count: versionsQ.data?.length },
+    { id: "compose", label: td.tabCompose, icon: IconRobotRegular },
+    { id: "scheduled", label: td.tabScheduled, icon: IconCalendarRegular },
+    { id: "inbox", label: td.tabInbox, icon: IconListDocumentRegular, count: inboxQ.data?.filter((i) => i.status === "pending").length },
+    { id: "versions", label: td.tabVersions, icon: IconTimeRegular, count: versionsQ.data?.length },
   ];
   const tabIndex = tabDefs.findIndex((t) => t.id === tab);
 
@@ -2106,7 +2123,7 @@ export default function Generate() {
         </div>
         <div style={{ flexShrink: 0, padding: "0 12px", position: "relative" }}>
           <IconButton
-            aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+            aria-label={unreadCount > 0 ? td.notificationsUnread(unreadCount) : td.notifications}
             onPress={openNotifications}
             Icon={IconBellRegular}
           />
@@ -2148,9 +2165,9 @@ export default function Generate() {
                 <Stack space={16}>
                   <Callout
                     asset={<IconAlertRegular color={c.warning} />}
-                    title="No governed evidence"
+                    title={td.noEvidenceTitle}
                     description={draft.note ?? ""}
-                    button={<ButtonSecondary onPress={() => setDraft(null)}>Adjust the brief</ButtonSecondary>}
+                    button={<ButtonSecondary onPress={() => setDraft(null)}>{td.adjustBrief}</ButtonSecondary>}
                   />
                   {draft.exclusions && draft.exclusions.length > 0 && (
                     <ExclusionsPanel exclusions={draft.exclusions} />
@@ -2162,9 +2179,9 @@ export default function Generate() {
                 <Stack space={16}>
                   <Callout
                     asset={<IconAlertRegular color={c.error} />}
-                    title="Permission restricted"
+                    title={td.permissionRestrictedTitle}
                     description={draft.permissionNote ?? ""}
-                    button={<ButtonSecondary onPress={() => setDraft(null)}>Adjust the brief</ButtonSecondary>}
+                    button={<ButtonSecondary onPress={() => setDraft(null)}>{td.adjustBrief}</ButtonSecondary>}
                   />
                   {draft.exclusions && draft.exclusions.length > 0 && (
                     <ExclusionsPanel exclusions={draft.exclusions} />
@@ -2205,26 +2222,26 @@ export default function Generate() {
                       disabled={!canExport || saveVersion.isPending}
                       StartIcon={IconDownloadRegular}
                     >
-                      Save version
+                      {te.saveVersion}
                     </ButtonSecondary>
                     <ButtonSecondary small onPress={() => setShowAssets(true)} StartIcon={IconBookmarkRegular}>
-                      Assets
+                      {te.assets}
                     </ButtonSecondary>
                   </div>
                   <Inline space={4} alignItems="center">
                     <IconEditPencilRegular size={12} color={c.textSecondary} />
                     <Text1 regular color={c.textSecondary}>
-                      The document is live — click anywhere in it to edit. The Guardian rechecks as you type.
+                      {te.liveEditHint}
                     </Text1>
                   </Inline>
 
                   <Stack space={8}>
-                    <FieldLabel>Export</FieldLabel>
+                    <FieldLabel>{te.exportHeading}</FieldLabel>
                     <Inline space={8} alignItems="center" fullWidth>
                       <div style={{ flex: 1 }}>
                         <Select
                           name="exportFormat"
-                          label="Format"
+                          label={te.formatLabel}
                           value={exportFormat}
                           onChangeValue={(v) => setExportFormat(v as "docx" | "pptx" | "pdf")}
                           options={[
@@ -2241,7 +2258,7 @@ export default function Generate() {
                         disabled={!canExport || needsEditorialReview || exportDoc.isPending}
                         StartIcon={IconPrinterRegular}
                       >
-                        {exportDoc.isPending ? "Exporting..." : "Export"}
+                        {exportDoc.isPending ? te.exporting : te.exportButton}
                       </ButtonPrimary>
                     </Inline>
                     {draft.shape === "press" && (
@@ -2260,16 +2277,16 @@ export default function Generate() {
                               color={editorialReviewed ? c.success : c.textSecondary}
                             />
                             <Text2 medium color={c.textPrimary}>
-                              Editorial review
+                              {te.editorialReview}
                             </Text2>
                             <Tag type={editorialReviewed ? "success" : "warning"}>
-                              {editorialReviewed ? "Completed" : "Required"}
+                              {editorialReviewed ? te.reviewCompleted : te.reviewRequired}
                             </Tag>
                           </Inline>
                           <Text1 regular color={c.textSecondary}>
                             {editorialReviewed
-                              ? "This exact version has been reviewed. Any further edit voids the review."
-                              : "Press material must be read and signed off by a person before it can be exported."}
+                              ? te.reviewedHint
+                              : te.reviewNeededHint}
                           </Text1>
                           {!editorialReviewed && (
                             <ButtonSecondary
@@ -2278,7 +2295,7 @@ export default function Generate() {
                               disabled={recordReview.isPending}
                               StartIcon={IconCheckedRegular}
                             >
-                              {recordReview.isPending ? "Recording..." : "Mark review complete"}
+                              {recordReview.isPending ? te.recording : te.markReviewComplete}
                             </ButtonSecondary>
                           )}
                         </Stack>
@@ -2303,7 +2320,7 @@ export default function Generate() {
                       disabled={!guardianPass || approve.isPending}
                       StartIcon={IconCheckRegular}
                     >
-                      {approve.isPending ? "Approving..." : "Approve draft"}
+                      {approve.isPending ? te.approving : te.approveDraft}
                     </ButtonPrimary>
                   )}
                   {!canExport && (
@@ -2311,8 +2328,8 @@ export default function Generate() {
                       <IconLockClosedRegular size={12} color={c.error} />
                       <Text1 regular color={c.error}>
                         {scheduledLocked
-                          ? "Scheduled draft: adjust it here, then Approve draft (or approve it in the Review inbox) before export or versioning."
-                          : "Export and versioning are locked until the Guardian passes."}
+                          ? te.lockedScheduled
+                          : te.lockedGuardian}
                       </Text1>
                     </Inline>
                   )}
@@ -2322,9 +2339,9 @@ export default function Generate() {
                       <Inline space={8} alignItems="center">
                         <IconMessageRegular size={16} color={c.textPrimary} />
                         <Text2 medium color={c.textSecondary}>
-                          Spokesperson notes
+                          {te.spokespersonNotes}
                         </Text2>
-                        <Tag type="warning">Internal</Tag>
+                        <Tag type="warning">{te.internal}</Tag>
                       </Inline>
                       {draft.spokesperson.map((n, i) => (
                         <Boxed key={i}>
@@ -2340,7 +2357,7 @@ export default function Generate() {
                                 <Inline space={4} alignItems="center">
                                   <IconAlertRegular size={12} color={c.error} />
                                   <Text1 medium color={c.error}>
-                                    Do not say: {n.doNotSay}
+                                    {te.doNotSay(n.doNotSay)}
                                   </Text1>
                                 </Inline>
                               )}
@@ -2355,7 +2372,7 @@ export default function Generate() {
                     <Inline space={8} alignItems="center">
                       <IconBarChartRegular size={14} color={c.textSecondary} />
                       <Text1 regular color={c.textSecondary}>
-                        {draft.charts.length} chart{draft.charts.length > 1 ? "s" : ""} built from governed series.
+                        {te.chartsBuilt(draft.charts.length)}
                       </Text1>
                     </Inline>
                   )}
@@ -2376,11 +2393,11 @@ export default function Generate() {
                   <Inline space={8} alignItems="center">
                     <IconRobotRegular size={16} color={c.brand} />
                     <Text2 medium color={c.textSecondary}>
-                      Edit with the agent
+                      {te.editWithAgent}
                     </Text2>
                   </Inline>
                   <ButtonLink small onPress={toggleChatCollapsed}>
-                    {chatCollapsed ? "Expand" : "Collapse"}
+                    {chatCollapsed ? te.expand : te.collapse}
                   </ButtonLink>
                 </div>
                 {!chatCollapsed && chatMessages.length > 0 && (
@@ -2406,7 +2423,7 @@ export default function Generate() {
                                   regular
                                   color={m.role === "user" ? c.textPrimaryInverse : c.textSecondary}
                                 >
-                                  Re: "{m.selection.length > 90 ? `${m.selection.slice(0, 90)}...` : m.selection}"
+                                  {te.rePrefix(m.selection.length > 90 ? `${m.selection.slice(0, 90)}...` : m.selection)}
                                 </Text1>
                               )}
                               <Text2
@@ -2429,7 +2446,7 @@ export default function Generate() {
                         <Inline space={8} alignItems="center">
                           <Spinner size={16} />
                           <Text1 regular color={c.textSecondary}>
-                            Re-composing under governance...
+                            {te.recomposing}
                           </Text1>
                         </Inline>
                       )}
@@ -2452,26 +2469,25 @@ export default function Generate() {
                     >
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <Text1 regular color={c.textSecondary}>
-                          Selected passage: "
-                          {pendingSelection.length > 80 ? `${pendingSelection.slice(0, 80)}...` : pendingSelection}"
+                          {te.selectedPassage(pendingSelection.length > 80 ? `${pendingSelection.slice(0, 80)}...` : pendingSelection)}
                         </Text1>
                       </div>
                       <ButtonLink small onPress={() => setPendingSelection(null)}>
-                        Clear
+                        {te.clear}
                       </ButtonLink>
                     </div>
                   )}
                   <TextField
                     name="instruction"
-                    label={pendingSelection ? "What should change in this passage?" : "Ask for a change"}
-                    placeholder="e.g. Tighten the B2B section and add the dividend figure"
+                    label={pendingSelection ? te.refineLabelSelection : te.refineLabelDefault}
+                    placeholder={te.refinePlaceholder}
                     value={instruction}
                     onChangeValue={setInstruction}
                     fullWidth
                   />
                   <Inline space={8} alignItems="center">
                     <IconButton
-                      aria-label="Send edit instruction"
+                      aria-label={te.sendInstruction}
                       onPress={handleRefine}
                       disabled={!instruction.trim() || busy}
                       Icon={IconSendRegular}
@@ -2485,7 +2501,7 @@ export default function Generate() {
                       }}
                       StartIcon={IconRefreshRegular}
                     >
-                      Start a new brief
+                      {te.startNewBrief}
                     </ButtonLink>
                   </Inline>
                 </Stack>
@@ -2537,7 +2553,12 @@ export default function Generate() {
                     ...prev,
                     [item.id]: {
                       kind: "success",
-                      message: `Published to the knowledge core as ${r.docId} (v${r.version}, ${r.upsertedChunks} chunk${r.upsertedChunks === 1 ? "" : "s"})${r.supersededDocId ? `. Supersedes ${r.supersededDocId}` : ""}. It is now retrievable and citable in Ask.`,
+                      message: td.publishSuccess({
+                        docId: r.docId,
+                        version: r.version,
+                        chunks: r.upsertedChunks,
+                        superseded: r.supersededDocId,
+                      }),
                     },
                   }));
                 },
@@ -2547,7 +2568,7 @@ export default function Generate() {
                     ...prev,
                     [item.id]: {
                       kind: "error",
-                      message: data?.error ?? "The draft could not be published to the knowledge core.",
+                      message: data?.error ?? td.publishError,
                     },
                   }));
                 },
@@ -2571,14 +2592,14 @@ export default function Generate() {
           width={480}
           onClose={() => setShowNotifications(false)}
           onDismiss={() => setShowNotifications(false)}
-          title="Notifications"
-          description="Scheduled drafts arriving for review and approvals as they happen."
+          title={td.notificationsTitle}
+          description={td.notificationsDesc}
         >
           <Stack space={12}>
             {(!notificationsQ.data || notificationsQ.data.length === 0) && (
               <div style={{ textAlign: "center", padding: "40px 0" }}>
                 <Text2 regular color={c.textSecondary}>
-                  Nothing yet. Run a schedule and its drafts will announce themselves here.
+                  {td.notificationsEmpty}
                 </Text2>
               </div>
             )}
@@ -2593,7 +2614,7 @@ export default function Generate() {
                         <IconListDocumentRegular size={16} color={c.brand} />
                       )}
                       <Tag type={n.kind === "review_approved" ? "success" : "promo"}>
-                        {n.kind === "review_approved" ? "Approved" : "Ready for review"}
+                        {n.kind === "review_approved" ? td.notifApproved : td.notifReady}
                       </Tag>
                       <Tag type="inactive">{n.reviewFolder}</Tag>
                     </Inline>
@@ -2602,7 +2623,7 @@ export default function Generate() {
                     </Text2>
                     <Inline space={8} alignItems="center">
                       <Text1 regular color={c.textSecondary}>
-                        {n.ownerLabel} • {new Date(n.createdAt).toLocaleString()}
+                        {n.ownerLabel} • {new Date(n.createdAt).toLocaleString(localeFor(lang))}
                       </Text1>
                       {n.kind !== "review_approved" && (
                         <ButtonLink
@@ -2612,7 +2633,7 @@ export default function Generate() {
                             setTab("inbox");
                           }}
                         >
-                          Open inbox
+                          {td.openInbox}
                         </ButtonLink>
                       )}
                     </Inline>
@@ -2630,7 +2651,7 @@ export default function Generate() {
           onClose={() => setSelectedCitation(null)}
           onDismiss={() => setSelectedCitation(null)}
           title={selectedCitation.docTitle}
-          subtitle={`Citation [${selectedCitation.id}]`}
+          subtitle={td.citationSubtitle(selectedCitation.id)}
           description={selectedCitation.sourceLoc}
         >
           <Stack space={16}>
@@ -2652,7 +2673,7 @@ export default function Generate() {
             >
               <Stack space={12}>
                 <Text2 medium color={c.textSecondary}>
-                  Extracted snippet
+                  {td.extractedSnippet}
                 </Text2>
                 <Text3 regular color={c.textPrimary}>
                   "{selectedCitation.snippet}"
@@ -2662,7 +2683,7 @@ export default function Generate() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
               <Stack space={2}>
                 <Text2 medium color={c.textSecondary}>
-                  Version
+                  {td.version}
                 </Text2>
                 <Text2 regular color={c.textPrimary}>
                   {selectedCitation.version}
@@ -2670,7 +2691,7 @@ export default function Generate() {
               </Stack>
               <Stack space={2}>
                 <Text2 medium color={c.textSecondary}>
-                  Owner
+                  {td.owner}
                 </Text2>
                 <Text2 regular color={c.textPrimary}>
                   {selectedCitation.owner}
@@ -2678,7 +2699,7 @@ export default function Generate() {
               </Stack>
               <Stack space={2}>
                 <Text2 medium color={c.textSecondary}>
-                  Confidence
+                  {td.confidence}
                 </Text2>
                 <Inline space={4} alignItems="center">
                   <Text2 regular color={c.textPrimary}>
@@ -2697,12 +2718,12 @@ export default function Generate() {
           width={720}
           onClose={() => setShowAssets(false)}
           onDismiss={() => setShowAssets(false)}
-          title="Governed assets"
-          description="Approved claims, quotes, boilerplate and disclaimers available to the engine."
+          title={td.assetsTitle}
+          description={td.assetsDesc}
         >
           <Stack space={24}>
             {assets?.claims && assets.claims.length > 0 && (
-              <AssetGroup title="Approved claims">
+              <AssetGroup title={td.approvedClaims}>
                 {assets.claims.map((cl) => (
                   <Boxed key={cl.id}>
                     <Box padding={12}>
@@ -2721,7 +2742,7 @@ export default function Generate() {
               </AssetGroup>
             )}
             {assets?.quotes && assets.quotes.length > 0 && (
-              <AssetGroup title="Approved quotes">
+              <AssetGroup title={td.approvedQuotes}>
                 {assets.quotes.map((q) => (
                   <Boxed key={q.id}>
                     <Box padding={12}>
@@ -2739,7 +2760,7 @@ export default function Generate() {
               </AssetGroup>
             )}
             {assets?.disclaimers && assets.disclaimers.length > 0 && (
-              <AssetGroup title="Disclaimers">
+              <AssetGroup title={td.disclaimers}>
                 {assets.disclaimers.map((d) => (
                   <Boxed key={d.id}>
                     <Box padding={12}>
@@ -2757,7 +2778,7 @@ export default function Generate() {
               </AssetGroup>
             )}
             {assets?.glossary && assets.glossary.length > 0 && (
-              <AssetGroup title="Glossary">
+              <AssetGroup title={td.glossary}>
                 {assets.glossary.map((g) => (
                   <Boxed key={g.id}>
                     <Box padding={12}>
@@ -2822,7 +2843,10 @@ function ScheduledTab({
   creating: boolean;
   running: boolean;
 }) {
-  const { roleId } = useApp();
+  const { roleId, lang } = useApp();
+  const td = GENERATE_I18N[lang].dialogs;
+  const te = GENERATE_I18N[lang].editor;
+  const tf = GENERATE_I18N[lang].form;
   const { data: axes } = useListAxes();
   const { data: deliveries } = useListDeliveries();
   const [name, setName] = React.useState("");
@@ -2877,56 +2901,55 @@ function ScheduledTab({
       <div style={{ maxWidth: 896, margin: "0 auto" }}>
         <Stack space={32}>
           <Stack space={4}>
-            <Title2>Scheduled documents</Title2>
+            <Title2>{td.scheduledTitle}</Title2>
             <Text2 regular color={c.textSecondary}>
-              Recurring briefs run under the owner's clearance and land in the review inbox for a human
-              approval gate before anyone can export them.
+              {td.scheduledBlurb}
             </Text2>
           </Stack>
 
           <Boxed>
             <Box padding={24}>
               <Stack space={16}>
-                <Title3>New schedule</Title3>
+                <Title3>{td.newSchedule}</Title3>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-                  <TextField name="scheduleName" label="Schedule name" placeholder="e.g. Weekly brand pulse" value={name} onChangeValue={setName} fullWidth />
+                  <TextField name="scheduleName" label={td.scheduleNameLabel} placeholder={td.scheduleNamePlaceholder} value={name} onChangeValue={setName} fullWidth />
                   <Select
                     name="scheduleShape"
-                    label="Shape"
+                    label={td.shapeLabel}
                     value={shape}
                     onChangeValue={(v) => setShape(v as Shape)}
-                    options={(Object.keys(SHAPE_META) as Shape[]).map((s) => ({ value: s, text: SHAPE_META[s].name }))}
+                    options={(Object.keys(SHAPE_META) as Shape[]).map((s) => ({ value: s, text: tf.shapes[s].name }))}
                     fullWidth
                   />
                 </div>
-                <TextField name="scheduleTopic" label="Standing brief" placeholder="e.g. Weekly readout of Transform & Grow progress" value={topic} onChangeValue={setTopic} fullWidth />
+                <TextField name="scheduleTopic" label={td.standingBriefLabel} placeholder={td.standingBriefPlaceholder} value={topic} onChangeValue={setTopic} fullWidth />
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
                   <Select
                     name="frequency"
-                    label="Frequency"
+                    label={td.frequencyLabel}
                     value={frequency}
                     onChangeValue={setFrequency}
-                    options={["daily", "weekly", "monthly"].map((f) => ({ value: f, text: f.charAt(0).toUpperCase() + f.slice(1) }))}
+                    options={(["daily", "weekly", "monthly"] as const).map((f) => ({ value: f, text: te.frequency[f] ?? f }))}
                     fullWidth
                   />
                   <Select
                     name="scheduleAudience"
-                    label="Audience"
+                    label={td.audienceLabel}
                     value={audience}
                     onChangeValue={(v) => setAudience(v as Audience)}
                     options={[
-                      { value: "internal", text: "Internal" },
-                      { value: "external", text: "External" },
+                      { value: "internal", text: td.audienceInternal },
+                      { value: "external", text: td.audienceExternal },
                     ]}
                     fullWidth
                   />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
                   <Stack space={4}>
-                    <FieldLabel>Owner (runs under this clearance)</FieldLabel>
+                    <FieldLabel>{td.ownerClearanceLabel}</FieldLabel>
                     <Select
                       name="ownerRole"
-                      label="Owner"
+                      label={td.ownerLabel}
                       value={ownerRoleId}
                       onChangeValue={setOwnerRoleId}
                       options={(roles ?? []).map((r) => ({ value: r.id, text: `${r.label} • ${r.clearance}` }))}
@@ -2934,27 +2957,27 @@ function ScheduledTab({
                     />
                   </Stack>
                   <Stack space={4}>
-                    <FieldLabel>Review folder</FieldLabel>
-                    <TextField name="reviewFolder" label="Review folder" placeholder="e.g. Brand pulse" value={reviewFolder} onChangeValue={setReviewFolder} fullWidth />
+                    <FieldLabel>{td.reviewFolderLabel}</FieldLabel>
+                    <TextField name="reviewFolder" label={td.reviewFolderLabel} placeholder={td.reviewFolderPlaceholder} value={reviewFolder} onChangeValue={setReviewFolder} fullWidth />
                   </Stack>
                 </div>
                 <Stack space={4}>
-                  <FieldLabel>Governed source queries (optional, one per line)</FieldLabel>
+                  <FieldLabel>{td.queriesLabel}</FieldLabel>
                   <TextField
                     name="queries"
-                    label="Governed source queries"
-                    placeholder={"e.g. Transform & Grow KPI targets\nCustomer NPS trend"}
+                    label={td.queriesLabel}
+                    placeholder={td.queriesPlaceholder}
                     value={queriesText}
                     onChangeValue={setQueriesText}
                     multiline
                     fullWidth
                   />
                   <Text1 regular color={c.textSecondary}>
-                    Each recurring run retrieves against these governed queries in addition to the standing brief.
+                    {td.queriesHelper}
                   </Text1>
                 </Stack>
                 <Stack space={4}>
-                  <FieldLabel>Strategic axes (optional)</FieldLabel>
+                  <FieldLabel>{td.axesLabel}</FieldLabel>
                   <Inline space={8} wrap>
                     {axes?.map((a) => (
                       <Chip key={a.id} active={axisIds.includes(a.id)} onPress={() => toggleAxis(a.id)}>
@@ -2964,7 +2987,7 @@ function ScheduledTab({
                   </Inline>
                 </Stack>
                 <ButtonPrimary onPress={submit} disabled={!name.trim() || !topic.trim() || creating} StartIcon={IconCalendarRegular}>
-                  Create schedule
+                  {td.createSchedule}
                 </ButtonPrimary>
               </Stack>
             </Box>
@@ -2974,7 +2997,7 @@ function ScheduledTab({
             {(!schedules || schedules.length === 0) && (
               <div style={{ textAlign: "center", padding: "40px 0" }}>
                 <Text2 regular color={c.textSecondary}>
-                  No schedules yet.
+                  {td.noSchedules}
                 </Text2>
               </div>
             )}
@@ -2988,28 +3011,26 @@ function ScheduledTab({
                           <Text2 medium color={c.textPrimary}>
                             {s.name}
                           </Text2>
-                          <Tag type="inactive">{s.frequency}</Tag>
-                          <Tag type="inactive">{s.audience}</Tag>
+                          <Tag type="inactive">{te.frequency[s.frequency] ?? s.frequency}</Tag>
+                          <Tag type="inactive">{te.audience[s.audience] ?? s.audience}</Tag>
                         </Inline>
                         <Text2 regular color={c.textSecondary}>
                           {s.topic}
                         </Text2>
                         {s.queries.length > 0 && (
                           <Text1 regular color={c.textSecondary}>
-                            Sources: {s.queries.join(" · ")}
+                            {td.sourcesPrefix(s.queries.join(" · "))}
                           </Text1>
                         )}
                         <Text1 regular color={c.textSecondary}>
-                          Owner: {s.ownerLabel}
-                          {s.lastRunAt ? ` • Last run ${new Date(s.lastRunAt).toLocaleString()}` : " • Never run"}
-                          {s.nextRunAt
-                            ? ` • Next automatic run ${new Date(s.nextRunAt).toLocaleString()}`
-                            : ""}
+                          {td.ownerPrefix(s.ownerLabel)}
+                          {s.lastRunAt ? td.lastRun(new Date(s.lastRunAt).toLocaleString(localeFor(lang))) : td.neverRun}
+                          {s.nextRunAt ? td.nextRun(new Date(s.nextRunAt).toLocaleString(localeFor(lang))) : ""}
                         </Text1>
                       </Stack>
                     </div>
                     <ButtonSecondary small onPress={() => onRun(s.id)} disabled={running} StartIcon={IconRefreshRegular}>
-                      Run now
+                      {td.runNow}
                     </ButtonSecondary>
                   </Inline>
                 </Box>
@@ -3019,15 +3040,14 @@ function ScheduledTab({
 
           <Stack space={12}>
             <Stack space={4}>
-              <Title3>Delivery log</Title3>
+              <Title3>{td.deliveryLog}</Title3>
               <Text2 regular color={c.textSecondary}>
-                When a scheduled run lands in the review inbox, the Hub records a simulated Teams
-                message and email to the schedule owner. No real message leaves the system.
+                {td.deliveryLogBlurb}
               </Text2>
             </Stack>
             {(!deliveries || deliveries.length === 0) && (
               <Text1 regular color={c.textSecondary}>
-                No deliveries yet — they appear here after a scheduled run completes.
+                {td.noDeliveries}
               </Text1>
             )}
             {deliveries?.map((d) => (
@@ -3036,14 +3056,14 @@ function ScheduledTab({
                   <Stack space={4}>
                     <Inline space={8} alignItems="center" wrap>
                       <Tag type={d.channel === "teams" ? "promo" : "info"}>
-                        {d.channel === "teams" ? "Teams" : "Email"}
+                        {te.channel[d.channel] ?? d.channel}
                       </Tag>
                       <Text2 medium color={c.textPrimary}>
                         {d.subject}
                       </Text2>
                     </Inline>
                     <Text1 regular color={c.textSecondary}>
-                      To {d.recipientLabel} • {d.scheduleName} • {new Date(d.createdAt).toLocaleString()}
+                      {td.deliveryMeta(d.recipientLabel, d.scheduleName, new Date(d.createdAt).toLocaleString(localeFor(lang)))}
                     </Text1>
                     <Text2 regular color={c.textSecondary}>
                       {d.message}
@@ -3077,22 +3097,23 @@ function InboxTab({
   publishing: boolean;
   publishNotices: Record<string, { kind: "success" | "error"; message: string }>;
 }) {
+  const { lang } = useApp();
+  const td = GENERATE_I18N[lang].dialogs;
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
       <div style={{ maxWidth: 896, margin: "0 auto" }}>
         <Stack space={24}>
           <Stack space={4}>
-            <Title2>Review inbox</Title2>
+            <Title2>{td.inboxTitle}</Title2>
             <Text2 regular color={c.textSecondary}>
-              Scheduled drafts wait here for a human approval gate. Approval requires a passing Brand
-              Guardian verdict.
+              {td.inboxBlurb}
             </Text2>
           </Stack>
 
           {(!items || items.length === 0) && (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
               <Text2 regular color={c.textSecondary}>
-                The inbox is empty. Run a schedule to populate it.
+                {td.inboxEmpty}
               </Text2>
             </div>
           )}
@@ -3114,11 +3135,11 @@ function InboxTab({
                                 {item.draft.title}
                               </Text2>
                               {item.status === "approved" ? (
-                                <Tag type="success">Approved</Tag>
+                                <Tag type="success">{td.approved}</Tag>
                               ) : (
-                                <Tag type="warning">Pending</Tag>
+                                <Tag type="warning">{td.pending}</Tag>
                               )}
-                              {published && <Tag type="promo">Published</Tag>}
+                              {published && <Tag type="promo">{td.published}</Tag>}
                             </Inline>
                             <Text2 regular color={c.textSecondary}>
                               {item.scheduleName} • {item.reviewFolder} • {item.ownerLabel}
@@ -3130,14 +3151,14 @@ function InboxTab({
                                 <IconAlertRegular size={14} color={c.error} />
                               )}
                               <Text1 regular color={pass ? c.success : c.error}>
-                                {pass ? "Guardian cleared" : "Guardian blocked"}
+                                {pass ? td.guardianCleared : td.guardianBlocked}
                               </Text1>
                             </Inline>
                           </Stack>
                         </div>
                         <Inline space={8} alignItems="center">
                           <ButtonSecondary small onPress={() => onOpen(item.draft)}>
-                            Open
+                            {td.open}
                           </ButtonSecondary>
                           {item.status !== "approved" && (
                             <ButtonPrimary
@@ -3146,7 +3167,7 @@ function InboxTab({
                               disabled={!pass || approving}
                               StartIcon={IconCheckRegular}
                             >
-                              Approve
+                              {td.approve}
                             </ButtonPrimary>
                           )}
                           {item.status === "approved" && !published && (
@@ -3155,7 +3176,7 @@ function InboxTab({
                               onPress={() => onPublish(item)}
                               disabled={publishing}
                             >
-                              {publishing ? "Publishing" : "Publish to corpus"}
+                              {publishing ? td.publishing : td.publishToCorpus}
                             </ButtonPrimary>
                           )}
                         </Inline>
@@ -3182,21 +3203,23 @@ function InboxTab({
 
 // ---- Versions tab ------------------------------------------------------------
 function VersionsTab({ versions, onOpen }: { versions: SavedVersion[] | undefined; onOpen: (d: GeneratedDraft) => void }) {
+  const { lang } = useApp();
+  const td = GENERATE_I18N[lang].dialogs;
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
       <div style={{ maxWidth: 896, margin: "0 auto" }}>
         <Stack space={24}>
           <Stack space={4}>
-            <Title2>Saved versions</Title2>
+            <Title2>{td.versionsTitle}</Title2>
             <Text2 regular color={c.textSecondary}>
-              In-memory version history of Guardian-cleared documents. Resets when the server restarts.
+              {td.versionsBlurb}
             </Text2>
           </Stack>
 
           {(!versions || versions.length === 0) && (
             <div style={{ textAlign: "center", padding: "40px 0" }}>
               <Text2 regular color={c.textSecondary}>
-                No versions saved yet.
+                {td.noVersions}
               </Text2>
             </div>
           )}
@@ -3216,12 +3239,12 @@ function VersionsTab({ versions, onOpen }: { versions: SavedVersion[] | undefine
                           <Tag type="inactive">{v.confidentiality}</Tag>
                         </Inline>
                         <Text1 regular color={c.textSecondary}>
-                          Saved by {v.savedBy} • {new Date(v.savedAt).toLocaleString()} • Owner {v.governance.owner}
+                          {td.versionMeta(v.savedBy, new Date(v.savedAt).toLocaleString(localeFor(lang)), v.governance.owner)}
                         </Text1>
                       </Stack>
                     </div>
                     <ButtonSecondary small onPress={() => onOpen(v.draft)}>
-                      Open
+                      {td.open}
                     </ButtonSecondary>
                   </Inline>
                 </Box>

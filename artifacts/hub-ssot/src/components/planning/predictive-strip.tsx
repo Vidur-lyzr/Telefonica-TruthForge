@@ -1,5 +1,7 @@
 import React from "react";
 import type { PlanningInsights } from "@workspace/api-client-react";
+import { useApp } from "@/components/app-provider";
+import { PLANNING_I18N } from "@/i18n/planning";
 import {
   Box,
   Stack,
@@ -81,6 +83,8 @@ export function PredictiveStrip({
   insights: PlanningInsights;
   onOpenEvent?: (id: string) => void;
 }) {
+  const { lang } = useApp();
+  const t = PLANNING_I18N[lang];
   const { conflicts, gaps, predictions, signals } = insights;
   const hasAny =
     conflicts.length > 0 ||
@@ -104,8 +108,7 @@ export function PredictiveStrip({
         }}
       >
         <Text2 regular color={skinVars.colors.textSecondary}>
-          No predictive signals for the current filter. The Hub only surfaces heuristics it can back
-          with governed activity.
+          {t.noPredictive}
         </Text2>
       </div>
     );
@@ -116,7 +119,7 @@ export function PredictiveStrip({
       <Inline space={8} alignItems="center">
         <IconInformationRegular size={16} color={skinVars.colors.brand} />
         <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-          Predictive signals — suggestions, not decisions
+          {t.predictiveHeader}
         </Text1>
       </Inline>
       <div style={{ display: "flex", overflowX: "auto", gap: 12, paddingBottom: 12 }}>
@@ -125,17 +128,17 @@ export function PredictiveStrip({
             key={c.id}
             Icon={IconWarningRegular}
             tone="warning"
-            title={`Conflict · ${c.market}`}
+            title={t.conflictCard(c.market)}
             onClick={
               onOpenEvent && c.eventIds.length > 0 ? () => onOpenEvent(c.eventIds[0]) : undefined
             }
           >
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {formatDayShort(c.date)}
+              {formatDayShort(c.date, lang)}
             </Text2>
             <Stack space={2}>
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                What collides
+                {t.whatCollides}
               </Text1>
               {c.events.map((e) => (
                 <Text1 key={e.id} regular color={skinVars.colors.textPrimary}>
@@ -145,7 +148,7 @@ export function PredictiveStrip({
             </Stack>
             <Stack space={2}>
               <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                Suggested resolution
+                {t.suggestedResolution}
               </Text1>
               <Text2 regular color={skinVars.colors.textSecondary}>
                 {c.suggestion}
@@ -153,17 +156,17 @@ export function PredictiveStrip({
             </Stack>
             {onOpenEvent && c.eventIds.length > 0 && (
               <Text1 medium color={skinVars.colors.brand}>
-                Open activity to review →
+                {t.openToReview}
               </Text1>
             )}
           </Card>
         ))}
 
         {predictions.cascade && (
-          <Card Icon={IconShuffleRegular} tone="info" title="Move preview">
+          <Card Icon={IconShuffleRegular} tone="info" title={t.movePreview}>
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {predictions.cascade.eventTitle}: {formatDayShort(predictions.cascade.fromDate)} →{" "}
-              {formatDayShort(predictions.cascade.toDate)}
+              {predictions.cascade.eventTitle}: {formatDayShort(predictions.cascade.fromDate, lang)} →{" "}
+              {formatDayShort(predictions.cascade.toDate, lang)}
             </Text2>
             <Text2 regular color={skinVars.colors.textSecondary}>
               {predictions.cascade.note}
@@ -185,27 +188,27 @@ export function PredictiveStrip({
             key={`risk-${r.eventId}`}
             Icon={IconTrendUpRegular}
             tone={r.level === "high" ? "warning" : "info"}
-            title={`Delay risk · ${r.level === "high" ? "High" : "Medium"}`}
+            title={t.delayRiskCard(r.level)}
             onClick={onOpenEvent ? () => onOpenEvent(r.eventId) : undefined}
           >
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {r.title} · {formatDayShort(r.date)}
+              {r.title} · {formatDayShort(r.date, lang)}
             </Text2>
             <Text2 regular color={skinVars.colors.textSecondary}>
               {r.note}
             </Text2>
             {onOpenEvent && (
               <Text1 medium color={skinVars.colors.brand}>
-                Open activity to review →
+                {t.openToReview}
               </Text1>
             )}
           </Card>
         ))}
 
         {predictions.signalWarnings.map((w) => (
-          <Card key={w.id} Icon={IconAntennaRegular} tone="warning" title={`Signal · ${w.market}`}>
+          <Card key={w.id} Icon={IconAntennaRegular} tone="warning" title={t.signalCard(w.market)}>
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {formatDayShort(w.date)}
+              {formatDayShort(w.date, lang)}
             </Text2>
             <Text2 regular color={skinVars.colors.textSecondary}>
               {w.note}
@@ -218,10 +221,10 @@ export function PredictiveStrip({
             key={f.id}
             Icon={IconCalendarEventRegular}
             tone="warning"
-            title={`Watch · ${f.market}`}
+            title={t.watchCard(f.market)}
           >
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {formatDayShort(f.date)}
+              {formatDayShort(f.date, lang)}
             </Text2>
             <Text2 regular color={skinVars.colors.textSecondary}>
               {f.note}
@@ -232,7 +235,7 @@ export function PredictiveStrip({
         {predictions.workloadPeriods.map((p) => (
           <Card key={p.id} Icon={IconTrendUpRegular} tone="info" title={p.label}>
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {p.count} activities
+              {t.activitiesCount(p.count)}
             </Text2>
             <Text2 regular color={skinVars.colors.textSecondary}>
               {p.note}
@@ -241,9 +244,9 @@ export function PredictiveStrip({
         ))}
 
         {gaps.map((g, i) => (
-          <Card key={`gap-${i}`} Icon={IconCalendarRegular} tone="neutral" title="Activity gap">
+          <Card key={`gap-${i}`} Icon={IconCalendarRegular} tone="neutral" title={t.activityGap}>
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {formatDayShort(g.start)} – {formatDayShort(g.end)} · {g.days} days
+              {formatDayShort(g.start, lang)} – {formatDayShort(g.end, lang)} · {t.gapDays(g.days)}
             </Text2>
             <Text2 regular color={skinVars.colors.textSecondary}>
               {g.note}
@@ -256,10 +259,10 @@ export function PredictiveStrip({
             key={`sug-${i}`}
             Icon={IconInformationRegular}
             tone="info"
-            title="Suggested window"
+            title={t.suggestedWindow}
           >
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {formatDayShort(s.date)}
+              {formatDayShort(s.date, lang)}
             </Text2>
             <Text2 regular color={skinVars.colors.textSecondary}>
               {s.note}
@@ -268,9 +271,9 @@ export function PredictiveStrip({
         ))}
 
         {signals.map((s) => (
-          <Card key={s.id} Icon={IconAntennaRegular} tone="neutral" title={`External · ${s.market}`}>
+          <Card key={s.id} Icon={IconAntennaRegular} tone="neutral" title={t.externalCard(s.market)}>
             <Text2 medium color={skinVars.colors.textPrimary}>
-              {s.title} · {formatDayShort(s.date)}
+              {s.title} · {formatDayShort(s.date, lang)}
             </Text2>
             <Text2 regular color={skinVars.colors.textSecondary}>
               {s.description}

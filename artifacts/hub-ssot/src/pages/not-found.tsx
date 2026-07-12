@@ -9,8 +9,12 @@ import {
   skinVars,
   IconAlertRegular,
 } from "@telefonica/mistica";
+import { useApp } from "@/components/app-provider";
+import { HOME_I18N } from "@/i18n/home";
 
 export default function NotFound() {
+  const { lang } = useApp();
+  const t = HOME_I18N[lang];
   return (
     <Box padding={24}>
       <div
@@ -27,10 +31,10 @@ export default function NotFound() {
               <Stack space={16}>
                 <Inline space={8} alignItems="center">
                   <IconAlertRegular color={skinVars.colors.error} />
-                  <Title2>404 page not found</Title2>
+                  <Title2>{t.notFound.title}</Title2>
                 </Inline>
                 <Text3 regular color={skinVars.colors.textSecondary}>
-                  Did you forget to add the page to the router?
+                  {t.notFound.body}
                 </Text3>
               </Stack>
             </Box>

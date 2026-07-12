@@ -1,22 +1,22 @@
 - [Coverage-based retrieval relevance](coverage-retrieval.md) — rank Ask relevance by query-idf coverage, not absolute BM25; don't cap absent-term idf (breaks no_evidence).
-- [Tailwind v4 font @import](tailwind-v4-font-import.md) — Tailwind v4 strips a raw CSS `@import url(google fonts)`; load web fonts via an index.html `<link>`, and check the scaffold isn't linking the wrong font.
-- [OpenAPI path vs server route](api-contract-path-mismatch.md) — empty table but curl 200 + no JS error usually means the generated client URL (from the OpenAPI path) doesn't match the server route.
-- [Ask conflict vs corroboration](ask-conflict-vs-corroboration.md) — conflict only from top-2 permitted sources; corroboration/low-confidence count over corpus/distinct-cited-docs, not retrieved chunks.
-- [Ask governed memory](ask-governed-memory.md) — conversation memory must be persona-scoped sessions; filter history by current roleId so lower-clearance persona never inherits higher-clearance turns.
+- [Tailwind v4 font @import](tailwind-v4-font-import.md) — Tailwind v4 strips raw CSS Google-font @imports; load web fonts via an index.html <link>.
+- [OpenAPI path vs server route](api-contract-path-mismatch.md) — empty table + curl 200 + no JS error: generated client URL likely mismatches the server route.
+- [Ask conflict vs corroboration](ask-conflict-vs-corroboration.md) — conflict from top-2 permitted sources only; corroboration counts distinct cited docs, not retrieved chunks.
+- [Ask governed memory](ask-governed-memory.md) — conversation memory is persona-scoped; filter history by current roleId so lower clearance never inherits higher turns.
 - [API server is build-once](api-server-build-once.md) — the api-server dev workflow builds then serves; edits to server code/corpus need a workflow restart (not HMR) before curl reflects them.
-- [Orval hook query options](orval-query-options.md) — generated React Query hooks require queryKey in `query` options; passing bare `{ query: { enabled } }` fails typecheck. Omit options or reuse getGetXQueryOptions.
+- [Orval hook query options](orval-query-options.md) — generated hooks need queryKey in query options; bare { query: { enabled } } fails typecheck.
 - [api-server restart for new routes](api-server-restart-required.md) — new backend routes 404 until you restart `artifacts/api-server: API Server`; dev is build&&start, not watch.
 - [Generate confidentiality gate](generate-confidentiality-gate.md) — external audience must cap ALL retrieval (body AND guidance) to public before the model, not just body sources.
-- [Generate scheduled approval gate](generate-scheduled-approval-gate.md) — scheduled gate must be SERVER-authoritative: index review item by draft id AND content hash; bind save/export to approved content hash; never trust client origin/approved/id.
+- [Generate scheduled approval gate](generate-scheduled-approval-gate.md) — scheduled gate is server-authoritative: key review items by draft id + content hash; never trust client flags.
 - [Orval hooks require queryKey](orval-querykey-required.md) — passing `enabled` (or any query option) to a generated useXxx hook needs an explicit `queryKey` array or it fails TS2741.
 - [Wiki graph encoding](graph-encoding-fill-vs-outline.md) — Map nodes must encode color=axis and fill=layer (compiled solid, raw entities outline); never color-by-kind.
-- [Orval path+query collision](orval-path-query-collision.md) — mixing a path param and a query param on one op makes orval emit `<Op>Params` twice (TS2308); keep persona-scoped detail endpoints query-only.
+- [Orval path+query collision](orval-path-query-collision.md) — path param + query param on one op emits <Op>Params twice (TS2308); keep detail endpoints query-only.
 - [Mística gotchas](mistica-gotchas.md) — @telefonica/mistica API constraints (spacing steps, Touchable, Drawer, Tag, borderRadii.avatar) that break typecheck if ignored.
 - [Governance access side channels](governance-access-side-channels.md) — all Ask side channels must gate via the shared area+clearance resolver; rank-only checks caused a leak.
-- [Multilingual retrieval synonyms](multilingual-retrieval-synonyms.md) — cross-language EN/ES/DE/PT matching is a curated tokenizer synonym map (accent-fold first), not translation; beware short-word collisions.
+- [Multilingual retrieval synonyms](multilingual-retrieval-synonyms.md) — EN/ES/DE/PT matching via curated tokenizer synonym map (accent-fold first); beware short-word collisions.
 - [Server bundling natives](esbuild-native-externals.md) — packages with native .node bindings or file-relative data (resvg, pdfkit) must be externalized in api-server build.mjs, not bundled.
-- [Export governance gates](export-governance.md) — export gates re-derive citation confidentiality from the server corpus and key scheduled lineage on multiple server-known ids; never trust client draft labels.
-- [Refusal error codes](refusal-error-codes.md) — governance refusal responses must return a machine-readable `code` alongside the message; frontends key remediation UX on the code with a message fallback.
+- [Export governance gates](export-governance.md) — export gates re-derive citation confidentiality from the server corpus; never trust client draft labels.
+- [Refusal error codes](refusal-error-codes.md) — governance refusals return a machine-readable code; frontends key remediation UX on the code, message as fallback.
 - [GitAgent brain-file YAML pitfalls](gitagent-brain-files.md) — one bad SKILL.md frontmatter silently drops every run to the non-streaming fallback; check server log before debugging SSE.
 - [Streamdown in a no-Tailwind Mística app](streamdown-mistica.md) — rehype-harden blocks custom link protocols; use #hash hrefs for citation chips and own wrapper CSS.
 - [Coverage-ratio query dilution](coverage-ratio-dilution.md) — never fold non-topical text (refine instructions, chat wording) into a coverage-gated retrieval query; give it its own gated pass.
@@ -24,5 +24,6 @@
 - [Lazy schedule runs](lazy-schedule-runs.md) — no-daemon recurring runs: mark-run-before-compose on lazy reads, compose-before-persist on create, 400 on unknown roleId (never fallback).
 - [Q&A internal notes keying](qa-notes-keying.md) — notes keyed by normalized question (survive refine), excluded from content hash, stripped server-side for external exports.
 - [Corpus parallel authoring](corpus-parallel-authoring.md) — unique id prefixes + shared brief let parallel authors scale the corpus collision-free; .gitagent state self-mutates.
-- [Ask language control](ask-language-control.md) — `lang` must stay presentation-only (prompt sentence + deterministic refusal copy map); UI codes uppercase, API codes lowercase — convert at the boundary.
-- [Live-ingest persistence](live-ingest-persistence.md) — runtime-ingested docs must hydrate from Qdrant payloads at boot; accept binds to server-issued candidate ids; mirror index updates commit before local taxonomy version.
+- [Ask language control](ask-language-control.md) — lang stays presentation-only; UI codes uppercase, API codes lowercase — convert at the boundary.
+- [Live-ingest persistence](live-ingest-persistence.md) — runtime-ingested docs hydrate from Qdrant payloads at boot; mirror index commits before local taxonomy version.
+- [Large-file wiring delegation](large-file-wiring.md) — mechanical wiring across a 3k+ line page times out subagents even when narrowly scoped; do it as direct batched edits.

@@ -1,6 +1,7 @@
 import React from "react";
 import { useListPlanningAlerts } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { PLANNING_I18N } from "@/i18n/planning";
 import {
   Box,
   Stack,
@@ -16,17 +17,18 @@ import {
 } from "@telefonica/mistica";
 import { formatDayShort } from "./utils";
 
-const KIND_META: Record<
+const KIND_ICON: Record<
   string,
-  { label: string; Icon: React.ComponentType<{ size?: number; color?: string }> }
+  React.ComponentType<{ size?: number; color?: string }>
 > = {
-  milestone: { label: "Milestone", Icon: IconCalendarEventRegular },
-  conflict: { label: "Conflict", Icon: IconWarningRegular },
-  deviation: { label: "Deviation", Icon: IconShuffleRegular },
+  milestone: IconCalendarEventRegular,
+  conflict: IconWarningRegular,
+  deviation: IconShuffleRegular,
 };
 
 export function AlertsPanel({ onOpenEvent }: { onOpenEvent?: (id: string) => void }) {
-  const { roleId } = useApp();
+  const { roleId, lang } = useApp();
+  const t = PLANNING_I18N[lang];
   const { data: alerts } = useListPlanningAlerts(
     { roleId },
     { query: { enabled: !!roleId, queryKey: ["planning-alerts", roleId] } },
@@ -45,19 +47,20 @@ export function AlertsPanel({ onOpenEvent }: { onOpenEvent?: (id: string) => voi
           <Inline space={8} alignItems="center">
             <IconBellRegular size={16} color={skinVars.colors.brand} />
             <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-              Personalised alerts
+              {t.personalisedAlerts}
             </Text1>
           </Inline>
 
           {!alerts || alerts.length === 0 ? (
             <Text2 regular color={skinVars.colors.textSecondary}>
-              Nothing needs your attention right now. Alerts appear here when a milestone is close,
-              a conflict emerges, or a plan deviates for an owner you follow.
+              {t.noAlerts}
             </Text2>
           ) : (
             <Stack space={8}>
               {alerts.map((a) => {
-                const meta = KIND_META[a.kind] ?? KIND_META.milestone;
+                const Icon = KIND_ICON[a.kind] ?? KIND_ICON.milestone;
+                const kindLabel =
+                  (t.alertKinds as Record<string, string>)[a.kind] ?? t.alertKinds.milestone;
                 const tone =
                   a.severity === "warning" ? skinVars.colors.warning : skinVars.colors.brand;
                 const body = (
@@ -70,9 +73,9 @@ export function AlertsPanel({ onOpenEvent }: { onOpenEvent?: (id: string) => voi
                   >
                     <Stack space={4}>
                       <Inline space={8} alignItems="center">
-                        <meta.Icon size={14} color={tone} />
+                        <Icon size={14} color={tone} />
                         <Text1 medium color={tone} transform="uppercase">
-                          {meta.label} · {formatDayShort(a.date)}
+                          {kindLabel} · {formatDayShort(a.date, lang)}
                         </Text1>
                       </Inline>
                       <Text2 medium color={skinVars.colors.textPrimary}>
@@ -88,7 +91,7 @@ export function AlertsPanel({ onOpenEvent }: { onOpenEvent?: (id: string) => voi
                   <Touchable
                     key={a.id}
                     onPress={() => onOpenEvent(a.eventId)}
-                    aria-label={`Alert: ${a.eventTitle}`}
+                    aria-label={t.alertAria(a.eventTitle)}
                   >
                     {body}
                   </Touchable>

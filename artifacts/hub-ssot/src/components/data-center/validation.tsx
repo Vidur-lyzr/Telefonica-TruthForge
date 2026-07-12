@@ -34,7 +34,15 @@ import {
   IconArchiveRegular,
 } from "@telefonica/mistica";
 import { useDataCenter } from "./state";
-import { clearanceTagType, clearanceLabel, confidenceTagType } from "./helpers";
+import {
+  clearanceTagType,
+  clearanceLabel,
+  confidenceTagType,
+  confidenceLabel,
+  fieldLabel,
+} from "./helpers";
+import { useApp } from "../app-provider";
+import { DATA_I18N } from "../../i18n/data";
 
 function Dot({ color }: { color: string }) {
   return (
@@ -46,24 +54,26 @@ function Dot({ color }: { color: string }) {
 }
 
 function ConfidenceLegend() {
+  const { lang } = useApp();
+  const legend = DATA_I18N[lang].validation.legend;
   return (
     <Inline space={24} alignItems="center" wrap>
       <Inline space={8} alignItems="center">
         <Dot color={skinVars.colors.success} />
         <Text1 regular color={skinVars.colors.textSecondary}>
-          High — auto-validated upstream
+          {legend.high}
         </Text1>
       </Inline>
       <Inline space={8} alignItems="center">
         <Dot color={skinVars.colors.warning} />
         <Text1 regular color={skinVars.colors.textSecondary}>
-          Medium — shown here for a quick check
+          {legend.medium}
         </Text1>
       </Inline>
       <Inline space={8} alignItems="center">
         <Dot color={skinVars.colors.error} />
         <Text1 regular color={skinVars.colors.textSecondary}>
-          Low — flagged, needs a human
+          {legend.low}
         </Text1>
       </Inline>
     </Inline>
@@ -97,6 +107,8 @@ function LayerCard({
 }
 
 export default function ValidationArea() {
+  const { lang } = useApp();
+  const t = DATA_I18N[lang].validation;
   const { data: items } = useListValidationItems();
   const { data: axes } = useListAxes();
   const { resolvedValidations, resolveValidation, resolveConflict } = useDataCenter();
@@ -134,12 +146,17 @@ export default function ValidationArea() {
     if (!editing || !editMeta) return;
     const changed: string[] = [];
     if (editMeta.confidentiality !== editing.metadata.confidentiality)
-      changed.push(`confidentiality → ${clearanceLabel(editMeta.confidentiality)}`);
-    if (editMeta.owner !== editing.metadata.owner) changed.push(`owner → ${editMeta.owner}`);
-    if (editMeta.country !== editing.metadata.country) changed.push(`country → ${editMeta.country}`);
-    if (editMeta.brand !== editing.metadata.brand) changed.push(`brand → ${editMeta.brand}`);
+      changed.push(
+        t.fieldArrow(fieldLabel("confidentiality", lang), clearanceLabel(editMeta.confidentiality, lang)),
+      );
+    if (editMeta.owner !== editing.metadata.owner)
+      changed.push(t.fieldArrow(fieldLabel("owner", lang), editMeta.owner));
+    if (editMeta.country !== editing.metadata.country)
+      changed.push(t.fieldArrow(fieldLabel("country", lang), editMeta.country));
+    if (editMeta.brand !== editing.metadata.brand)
+      changed.push(t.fieldArrow(fieldLabel("brand", lang), editMeta.brand));
     const detail = changed.length
-      ? `Corrected ${changed.join(", ")}. ${editing.refinedNote}`
+      ? t.correctedDetail(changed.join(", "), editing.refinedNote)
       : editing.refinedNote;
     resolveValidation(editing.id, "edited", editing.title, detail);
     setEditing(null);
@@ -158,7 +175,7 @@ export default function ValidationArea() {
           <Inline space={8} alignItems="center">
             <IconShieldRegular size={20} color={skinVars.colors.inverse} />
             <Text3 medium color={skinVars.colors.textPrimaryInverse}>
-              Three-layer classification, always closed by a human
+              {t.bannerTitle}
             </Text3>
           </Inline>
         </Box>
@@ -171,22 +188,22 @@ export default function ValidationArea() {
               <GridItem>
                 <LayerCard
                   icon={IconLayersRegular}
-                  title="Deterministic"
-                  description="Rule-based type from source, format and structure."
+                  title={t.layers.deterministic.title}
+                  description={t.layers.deterministic.desc}
                 />
               </GridItem>
               <GridItem>
                 <LayerCard
                   icon={IconAiRegular}
-                  title="Semantic"
-                  description="Topics and entities inferred from the content."
+                  title={t.layers.semantic.title}
+                  description={t.layers.semantic.desc}
                 />
               </GridItem>
               <GridItem>
                 <LayerCard
                   icon={IconWorldDeviceRegular}
-                  title="Strategic"
-                  description="Mapped onto a Telefónica strategic axis."
+                  title={t.layers.strategic.title}
+                  description={t.layers.strategic.desc}
                 />
               </GridItem>
             </Grid>
@@ -204,9 +221,7 @@ export default function ValidationArea() {
             <IconCheckedRegular size={20} color={skinVars.colors.success} />
           )}
           <Title2>
-            {openItems.length > 0
-              ? `Validation queue — ${openItems.length} awaiting a decision`
-              : "Validation queue clear"}
+            {openItems.length > 0 ? t.queueTitleOpen(openItems.length) : t.queueTitleClear}
           </Title2>
         </Inline>
 
@@ -219,11 +234,11 @@ export default function ValidationArea() {
                     <IconArchiveRegular size={28} color={skinVars.colors.success} />
                   </Circle>
                 </Inline>
-                <Title3>All caught up</Title3>
+                <Title3>{t.allCaughtUp}</Title3>
                 <Text2 regular color={skinVars.colors.textSecondary}>
                   {resolvedItems.length > 0
-                    ? `You cleared ${resolvedItems.length} ${resolvedItems.length === 1 ? "item" : "items"} this session. High-confidence classifications were validated automatically upstream.`
-                    : "No medium- or low-confidence classifications are waiting on a human."}
+                    ? t.clearedThisSession(resolvedItems.length)
+                    : t.noneWaiting}
                 </Text2>
               </Stack>
             </Box>
@@ -240,14 +255,14 @@ export default function ValidationArea() {
                           <Text3 medium color={skinVars.colors.textPrimary}>
                             {it.title}
                           </Text3>
-                          {it.kind === "conflict" && <Tag type="warning">Source conflict</Tag>}
+                          {it.kind === "conflict" && <Tag type="warning">{t.sourceConflict}</Tag>}
                         </Inline>
                         <Text1 regular color={skinVars.colors.textSecondary}>
                           {it.source}
                         </Text1>
                       </div>
                       <Tag type={confidenceTagType(it.confidence)}>
-                        {`${it.confidence} · ${Math.round(it.confidenceScore * 100)}%`}
+                        {`${confidenceLabel(it.confidence, lang)} · ${Math.round(it.confidenceScore * 100)}%`}
                       </Tag>
                     </Inline>
 
@@ -256,7 +271,7 @@ export default function ValidationArea() {
                         <Box padding={16}>
                           <Stack space={12}>
                             <Text2 medium color={skinVars.colors.textPrimary}>
-                              A fresher source disagrees with the value already in the core.
+                              {t.conflictHeadline}
                             </Text2>
                             <Grid columns={2} gap={12}>
                               <GridItem>
@@ -273,7 +288,7 @@ export default function ValidationArea() {
                                           color={skinVars.colors.textSecondary}
                                           transform="uppercase"
                                         >
-                                          Currently live
+                                          {t.currentlyLive}
                                         </Text1>
                                       </Inline>
                                       <Text2 medium color={skinVars.colors.textPrimary}>
@@ -300,7 +315,7 @@ export default function ValidationArea() {
                                           color={skinVars.colors.success}
                                           transform="uppercase"
                                         >
-                                          Fresher source
+                                          {t.fresherSource}
                                         </Text1>
                                       </Inline>
                                       <Text2 medium color={skinVars.colors.textPrimary}>
@@ -315,8 +330,7 @@ export default function ValidationArea() {
                               </GridItem>
                             </Grid>
                             <Text1 regular color={skinVars.colors.textSecondary}>
-                              Promoting the fresher value keeps the older figure as a dated, historic
-                              record — it is never silently overwritten.
+                              {t.conflictNote}
                             </Text1>
                             <Inline space={8} wrap>
                               <ButtonPrimary
@@ -325,11 +339,16 @@ export default function ValidationArea() {
                                   resolveConflict(
                                     it.id,
                                     it.title,
-                                    `Promoted ${it.conflict!.freshValue} (${it.conflict!.freshSource}, ${it.conflict!.freshDate}); ${it.conflict!.oldValue} retained as historic.`,
+                                    t.promotedDetail(
+                                      it.conflict!.freshValue,
+                                      it.conflict!.freshSource,
+                                      it.conflict!.freshDate,
+                                      it.conflict!.oldValue,
+                                    ),
                                   )
                                 }
                               >
-                                Promote fresher value
+                                {t.promoteFresher}
                               </ButtonPrimary>
                               <ButtonSecondary
                                 small
@@ -338,11 +357,11 @@ export default function ValidationArea() {
                                     it.id,
                                     "approved",
                                     it.title,
-                                    `Kept ${it.conflict!.oldValue} (${it.conflict!.oldSource}); fresher figure logged but not promoted.`,
+                                    t.keptDetail(it.conflict!.oldValue, it.conflict!.oldSource),
                                   )
                                 }
                               >
-                                Keep current value
+                                {t.keepCurrent}
                               </ButtonSecondary>
                             </Inline>
                           </Stack>
@@ -360,7 +379,7 @@ export default function ValidationArea() {
                                     color={skinVars.colors.textSecondary}
                                     transform="uppercase"
                                   >
-                                    Deterministic
+                                    {t.deterministicLabel}
                                   </Text1>
                                   <Text2 medium color={skinVars.colors.textPrimary}>
                                     {it.classification.deterministic}
@@ -378,7 +397,7 @@ export default function ValidationArea() {
                                     color={skinVars.colors.textSecondary}
                                     transform="uppercase"
                                   >
-                                    Semantic
+                                    {t.semanticLabel}
                                   </Text1>
                                   <Inline space={4} wrap>
                                     {it.classification.semantic.map((s) => (
@@ -400,7 +419,7 @@ export default function ValidationArea() {
                                     color={skinVars.colors.textSecondary}
                                     transform="uppercase"
                                   >
-                                    Strategic axis
+                                    {t.strategicAxisLabel}
                                   </Text1>
                                   <Text2 medium color={skinVars.colors.textPrimary}>
                                     {axisName(it.classification.strategicAxisId)}
@@ -413,10 +432,10 @@ export default function ValidationArea() {
 
                         <Inline space={8} alignItems="center" wrap>
                           <Text1 regular color={skinVars.colors.textSecondary}>
-                            Proposed metadata:
+                            {t.proposedMetadata}
                           </Text1>
                           <Tag type={clearanceTagType(it.metadata.confidentiality)}>
-                            {clearanceLabel(it.metadata.confidentiality)}
+                            {clearanceLabel(it.metadata.confidentiality, lang)}
                           </Tag>
                           <Text2 medium color={skinVars.colors.textPrimary}>
                             {it.metadata.owner}
@@ -443,26 +462,21 @@ export default function ValidationArea() {
                                 it.id,
                                 "approved",
                                 it.title,
-                                `Confirmed the proposed classification. ${it.refinedNote}`,
+                                t.confirmedDetail(it.refinedNote),
                               )
                             }
                           >
-                            Validate
+                            {t.validate}
                           </ButtonPrimary>
                           <ButtonSecondary small onPress={() => startEdit(it)}>
-                            Correct
+                            {t.correct}
                           </ButtonSecondary>
                           <ButtonLink
                             onPress={() =>
-                              resolveValidation(
-                                it.id,
-                                "rejected",
-                                it.title,
-                                "Rejected — returned to the pipeline for re-processing.",
-                              )
+                              resolveValidation(it.id, "rejected", it.title, t.rejectedDetail)
                             }
                           >
-                            Reject
+                            {t.reject}
                           </ButtonLink>
                         </Inline>
                       </>
@@ -479,7 +493,7 @@ export default function ValidationArea() {
         <Stack space={16}>
           <Inline space={8} alignItems="center">
             <IconCheckedRegular size={20} color={skinVars.colors.success} />
-            <Title2>Resolved this session</Title2>
+            <Title2>{t.resolvedThisSession}</Title2>
           </Inline>
           <Boxed>
             <Box padding={16}>
@@ -488,10 +502,10 @@ export default function ValidationArea() {
                   const action = resolvedValidations[it.id];
                   const label =
                     action === "approved"
-                      ? "Validated"
+                      ? t.actionValidated
                       : action === "edited"
-                        ? "Corrected"
-                        : "Rejected";
+                        ? t.actionCorrected
+                        : t.actionRejected;
                   return (
                     <React.Fragment key={it.id}>
                       {i > 0 && <Divider />}
@@ -521,26 +535,26 @@ export default function ValidationArea() {
 
       {editing && editMeta && (
         <Drawer
-          title="Correct classification"
-          description={`${editing.title} — adjust the governed metadata before validating. Your correction is recorded as the human decision. Session-only for the demo.`}
+          title={t.editTitle}
+          description={t.editDesc(editing.title)}
           onClose={() => setEditing(null)}
-          button={{ text: "Save and validate", onPress: saveEdit }}
-          secondaryButton={{ text: "Cancel", onPress: () => setEditing(null) }}
+          button={{ text: t.saveValidate, onPress: saveEdit }}
+          secondaryButton={{ text: t.cancel, onPress: () => setEditing(null) }}
         >
           <Stack space={16}>
             <Select
               name="confidentiality"
-              label="Confidentiality"
+              label={fieldLabel("confidentiality", lang)}
               value={editMeta.confidentiality}
               onChangeValue={(v) => setEditMeta((m) => (m ? { ...m, confidentiality: v } : m))}
               options={["public", "private", "confidential", "off_the_record"].map((c) => ({
                 value: c,
-                text: clearanceLabel(c),
+                text: clearanceLabel(c, lang),
               }))}
             />
             <TextField
               name="owner"
-              label="Owner"
+              label={fieldLabel("owner", lang)}
               value={editMeta.owner}
               onChangeValue={(v) => setEditMeta((m) => (m ? { ...m, owner: v } : m))}
             />
@@ -548,7 +562,7 @@ export default function ValidationArea() {
               <div style={{ flex: 1 }}>
                 <TextField
                   name="country"
-                  label="Country"
+                  label={fieldLabel("country", lang)}
                   value={editMeta.country}
                   onChangeValue={(v) => setEditMeta((m) => (m ? { ...m, country: v } : m))}
                 />
@@ -556,7 +570,7 @@ export default function ValidationArea() {
               <div style={{ flex: 1 }}>
                 <TextField
                   name="brand"
-                  label="Brand"
+                  label={fieldLabel("brand", lang)}
                   value={editMeta.brand}
                   onChangeValue={(v) => setEditMeta((m) => (m ? { ...m, brand: v } : m))}
                 />

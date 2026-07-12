@@ -14,6 +14,13 @@ import {
 } from "@workspace/api-client-react";
 import { useApp, type Lang } from "@/components/app-provider";
 import { UI, apiLang } from "@/i18n";
+import {
+  ASK_I18N,
+  localeFor,
+  validityLabel,
+  kindLabel,
+  type AskStrings,
+} from "@/i18n/ask";
 import { streamAsk, type AskStep } from "@/hooks/ask-stream";
 import { Streamdown } from "streamdown";
 import {
@@ -143,16 +150,16 @@ function loadInsights(): SavedInsight[] {
   }
 }
 
-function formatRelativeTime(ts: number): string {
+function formatRelativeTime(ts: number, t: AskStrings, lang: Lang): string {
   const diff = Date.now() - ts;
   const min = Math.round(diff / 60000);
-  if (min < 1) return "just now";
-  if (min < 60) return `${min}m ago`;
+  if (min < 1) return t.time.justNow;
+  if (min < 60) return t.time.minutesAgo(min);
   const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h ago`;
+  if (hr < 24) return t.time.hoursAgo(hr);
   const day = Math.round(hr / 24);
-  if (day < 7) return `${day}d ago`;
-  return new Date(ts).toLocaleDateString();
+  if (day < 7) return t.time.daysAgo(day);
+  return new Date(ts).toLocaleDateString(localeFor(lang));
 }
 
 function hasActiveFilters(f: AskFilters | null): boolean {
@@ -162,6 +169,7 @@ function hasActiveFilters(f: AskFilters | null): boolean {
 
 export default function Ask() {
   const { area, roleId, lang, setLang } = useApp();
+  const t = ASK_I18N[lang];
   const [, navigate] = useLocation();
 
   const [conversations, setConversations] = React.useState<Conversation[]>(() =>
@@ -507,6 +515,7 @@ export default function Ask() {
           options={filterOptions}
           axes={axes ?? []}
           onClear={() => setFilters(EMPTY_FILTERS)}
+          t={t}
         />
       )}
 
@@ -517,6 +526,8 @@ export default function Ask() {
           onNew={newConversation}
           onResume={resumeConversation}
           insights={insights}
+          t={t}
+          lang={lang}
         />
 
         <div
@@ -536,7 +547,11 @@ export default function Ask() {
               }}
             >
               {isEmpty && !isPending && (
-                <FirstRun suggestions={suggestions} onPick={(t) => handleAsk(t)} />
+                <FirstRun
+                  suggestions={suggestions}
+                  onPick={(text) => handleAsk(text)}
+                  t={t}
+                />
               )}
 
               <Stack space={40}>
@@ -546,11 +561,13 @@ export default function Ask() {
                     turn={turn}
                     axes={axes ?? []}
                     onOpenCitation={setSelectedCitation}
-                    onAskFollowup={(t) => handleAsk(t)}
+                    onAskFollowup={(text) => handleAsk(text)}
                     onSave={() => saveInsight(turn)}
                     saved={insights.some((i) => i.question === turn.question)}
                     onExport={() => exportToGenerate(turn)}
                     onDrillIn={() => navigate("/data")}
+                    t={t}
+                    lang={lang}
                   />
                 ))}
               </Stack>
@@ -572,6 +589,7 @@ export default function Ask() {
             filtersActive={hasActiveFilters(filters)}
             fileRef={fileRef}
             onFile={onFile}
+            t={t}
           />
         </div>
       </div>
@@ -581,6 +599,8 @@ export default function Ask() {
           citation={selectedCitation}
           axes={axes ?? []}
           onClose={() => setSelectedCitation(null)}
+          t={t}
+          lang={lang}
         />
       )}
     </div>
@@ -665,12 +685,16 @@ function SessionsPanel({
   onNew,
   onResume,
   insights,
+  t,
+  lang,
 }: {
   conversations: Conversation[];
   activeId: string | null;
   onNew: () => void;
   onResume: (id: string) => void;
   insights: SavedInsight[];
+  t: AskStrings;
+  lang: Lang;
 }) {
   return (
     <div
@@ -694,27 +718,27 @@ function SessionsPanel({
           >
             <Inline space={8} alignItems="center">
               <IconAddMoreCircleRegular size={18} color={skinVars.colors.brand} />
-              <Text2 medium>New conversation</Text2>
+              <Text2 medium>{t.sessions.newConversation}</Text2>
             </Inline>
           </div>
         </Touchable>
 
         <Box paddingX={4} paddingTop={8}>
           <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-            Conversations
+            {t.sessions.conversations}
           </Text1>
         </Box>
 
         {conversations.length === 0 && (
           <Box paddingX={4} paddingY={4}>
             <Text1 regular color={skinVars.colors.textSecondary}>
-              No conversations for this persona yet.
+              {t.sessions.noConversations}
             </Text1>
           </Box>
         )}
 
         {conversations.map((c) => {
-          const first = c.turns[0]?.question ?? "New conversation";
+          const first = c.turns[0]?.question ?? t.sessions.newConversation;
           const isActive = c.id === activeId;
           return (
             <Touchable key={c.id} onPress={() => onResume(c.id)}>
@@ -746,8 +770,8 @@ function SessionsPanel({
                         </Text2>
                       )}
                       <Text1 regular color={skinVars.colors.textSecondary}>
-                        {c.turns.length} turn{c.turns.length === 1 ? "" : "s"} ·{" "}
-                        {formatRelativeTime(c.updatedAt)}
+                        {t.sessions.turnsCount(c.turns.length)} ·{" "}
+                        {formatRelativeTime(c.updatedAt, t, lang)}
                       </Text1>
                     </Stack>
                   </div>
@@ -765,7 +789,7 @@ function SessionsPanel({
                 color={skinVars.colors.textSecondary}
                 transform="uppercase"
               >
-                Saved insights
+                {t.sessions.savedInsights}
               </Text1>
             </Box>
             {insights.slice(0, 6).map((i) => (
@@ -793,17 +817,19 @@ function FiltersBar({
   options,
   axes,
   onClear,
+  t,
 }: {
   filters: AskFilters;
   setFilters: (f: AskFilters) => void;
   options: { market: string[]; brand: string[]; period: string[]; source: string[] };
   axes: { id: string; name: string }[];
   onClear: () => void;
+  t: AskStrings;
 }) {
   const set = (k: keyof AskFilters, v: string | null) =>
     setFilters({ ...filters, [k]: v });
   const opt = (arr: string[]) => [
-    { value: "", text: "All" },
+    { value: "", text: t.filters.all },
     ...arr.map((v) => ({ value: v, text: v })),
   ];
   return (
@@ -821,12 +847,12 @@ function FiltersBar({
           color={skinVars.colors.textSecondary}
           transform="uppercase"
         >
-          Retrieval scope
+          {t.filters.scope}
         </Text1>
         <div style={{ width: 160 }}>
           <Select
             name="market"
-            label="Market"
+            label={t.filters.market}
             value={filters.market ?? ""}
             onChangeValue={(v) => set("market", v || null)}
             options={opt(options.market)}
@@ -836,7 +862,7 @@ function FiltersBar({
         <div style={{ width: 160 }}>
           <Select
             name="brand"
-            label="Brand"
+            label={t.filters.brand}
             value={filters.brand ?? ""}
             onChangeValue={(v) => set("brand", v || null)}
             options={opt(options.brand)}
@@ -846,7 +872,7 @@ function FiltersBar({
         <div style={{ width: 160 }}>
           <Select
             name="period"
-            label="Period"
+            label={t.filters.period}
             value={filters.period ?? ""}
             onChangeValue={(v) => set("period", v || null)}
             options={opt(options.period)}
@@ -856,7 +882,7 @@ function FiltersBar({
         <div style={{ width: 160 }}>
           <Select
             name="source"
-            label="Source"
+            label={t.filters.source}
             value={filters.source ?? ""}
             onChangeValue={(v) => set("source", v || null)}
             options={opt(options.source)}
@@ -866,18 +892,18 @@ function FiltersBar({
         <div style={{ width: 180 }}>
           <Select
             name="axis"
-            label="Axis"
+            label={t.filters.axis}
             value={filters.axis ?? ""}
             onChangeValue={(v) => set("axis", v || null)}
             options={[
-              { value: "", text: "All" },
+              { value: "", text: t.filters.all },
               ...axes.map((a) => ({ value: a.id, text: a.name })),
             ]}
             fullWidth
           />
         </div>
         {hasActiveFilters(filters) && (
-          <ButtonLink onPress={onClear}>Clear</ButtonLink>
+          <ButtonLink onPress={onClear}>{t.filters.clear}</ButtonLink>
         )}
       </Inline>
     </div>
@@ -889,19 +915,19 @@ function FiltersBar({
 function FirstRun({
   suggestions,
   onPick,
+  t,
 }: {
   suggestions?: SuggestedQuery[];
-  onPick: (t: string) => void;
+  onPick: (text: string) => void;
+  t: AskStrings;
 }) {
   return (
     <Box paddingY={40}>
       <Stack space={32}>
         <Stack space={12}>
-          <Text8>Ask the governed source of truth</Text8>
+          <Text8>{t.firstRun.title}</Text8>
           <Text3 regular color={skinVars.colors.textSecondary}>
-            Every answer is backed by cited evidence — or an honest no-evidence,
-            permission-blocked, conflict or historic response. Nothing is
-            fabricated.
+            {t.firstRun.body}
           </Text3>
         </Stack>
         <div
@@ -916,7 +942,7 @@ function FirstRun({
               <Boxed>
                 <Box padding={16}>
                   <Stack space={8}>
-                    <Tag type="info">{s.kind.replace("_", " ")}</Tag>
+                    <Tag type="info">{kindLabel(s.kind, t)}</Tag>
                     <Text2 medium>{s.text}</Text2>
                   </Stack>
                 </Box>
@@ -940,15 +966,19 @@ function TurnBlock({
   saved,
   onExport,
   onDrillIn,
+  t,
+  lang,
 }: {
   turn: Turn;
   axes: { id: string; name: string; color: string }[];
   onOpenCitation: (c: Citation) => void;
-  onAskFollowup: (t: string) => void;
+  onAskFollowup: (text: string) => void;
   onSave: () => void;
   saved: boolean;
   onExport: () => void;
   onDrillIn: () => void;
+  t: AskStrings;
+  lang: Lang;
 }) {
   return (
     <Stack space={24}>
@@ -1035,11 +1065,15 @@ function TurnBlock({
         <div style={{ flex: 1, minWidth: 0 }}>
           <Stack space={24}>
             {turn.pending && (
-              <RunProgress steps={turn.steps ?? []} streamText={turn.streamText} />
+              <RunProgress
+                steps={turn.steps ?? []}
+                streamText={turn.streamText}
+                t={t}
+              />
             )}
 
             {!turn.pending && turn.result && (turn.steps?.length ?? 0) > 0 && (
-              <RunStepsSummary steps={turn.steps!} />
+              <RunStepsSummary steps={turn.steps!} t={t} />
             )}
 
             {turn.error && (
@@ -1052,9 +1086,7 @@ function TurnBlock({
               >
                 <Inline space={12} alignItems="center">
                   <IconAlertRegular size={20} color={skinVars.colors.error} />
-                  <Text2 regular>
-                    The Hub could not complete this request. Please try again.
-                  </Text2>
+                  <Text2 regular>{t.turnError}</Text2>
                 </Inline>
               </div>
             )}
@@ -1069,6 +1101,8 @@ function TurnBlock({
                 saved={saved}
                 onExport={onExport}
                 onDrillIn={onDrillIn}
+                t={t}
+                lang={lang}
               />
             )}
           </Stack>
@@ -1113,9 +1147,11 @@ function TurnAvatar({ kind }: { kind: "user" | "agent" }) {
 function RunProgress({
   steps,
   streamText,
+  t,
 }: {
   steps: AskStep[];
   streamText?: string | null;
+  t: AskStrings;
 }) {
   return (
     <Stack space={12}>
@@ -1123,7 +1159,7 @@ function RunProgress({
         <Inline space={12} alignItems="center">
           <Spinner size={24} />
           <Text2 medium color={skinVars.colors.brand}>
-            Contacting the governed agent…
+            {t.run.contacting}
           </Text2>
         </Inline>
       ) : (
@@ -1166,18 +1202,18 @@ function RunProgress({
 
 // After the answer lands, the step trail collapses into a quiet dropdown that
 // expands to reveal every real agent action taken during the run.
-function RunStepsSummary({ steps }: { steps: AskStep[] }) {
+function RunStepsSummary({ steps, t }: { steps: AskStep[]; t: AskStrings }) {
   const [open, setOpen] = React.useState(false);
   return (
     <Stack space={8}>
       <Touchable
         onPress={() => setOpen((v) => !v)}
-        aria-label={open ? "Hide agent actions" : "Show agent actions"}
+        aria-label={open ? t.run.hideActions : t.run.showActions}
       >
         <Inline space={8} alignItems="center">
           <IconCheckedRegular size={14} color={skinVars.colors.success} />
           <Text1 regular color={skinVars.colors.textSecondary}>
-            Done · {steps.length} agent action{steps.length === 1 ? "" : "s"}
+            {t.run.doneActions(steps.length)}
           </Text1>
           <div
             aria-hidden
@@ -1197,7 +1233,7 @@ function RunStepsSummary({ steps }: { steps: AskStep[] }) {
             <Box padding={16}>
               <Stack space={12}>
                 <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  Agent actions
+                  {t.run.agentActions}
                 </Text1>
                 <Stack space={8}>
                   {steps.map((s, i) => (
@@ -1304,15 +1340,19 @@ function AnswerCard({
   saved,
   onExport,
   onDrillIn,
+  t,
+  lang,
 }: {
   result: AskResult;
   axes: { id: string; name: string; color: string }[];
   onOpenCitation: (c: Citation) => void;
-  onAskFollowup: (t: string) => void;
+  onAskFollowup: (text: string) => void;
   onSave: () => void;
   saved: boolean;
   onExport: () => void;
   onDrillIn: () => void;
+  t: AskStrings;
+  lang: Lang;
 }) {
   const answerAxes = axes.filter((a) => result.axisIds?.includes(a.id));
 
@@ -1324,22 +1364,21 @@ function AnswerCard({
             <IconAlertRegular size={24} color={skinVars.colors.warning} />
           }
           tone="warning"
-          title="No evidence"
+          title={t.answer.noEvidence}
           body={result.answer}
         />
         {result.adjacentDatum && (
           <Boxed>
             <Box padding={16}>
               <Text2 regular color={skinVars.colors.textSecondary}>
-                Closest governed datum:{" "}
+                {t.answer.closestDatum}{" "}
                 <Text2 medium as="span">
                   {result.adjacentDatum.label} {result.adjacentDatum.value}
                   {result.adjacentDatum.unit
                     ? ` ${result.adjacentDatum.unit}`
                     : ""}
                 </Text2>{" "}
-                ({result.adjacentDatum.period}) — offered as context, not an
-                answer.
+                ({result.adjacentDatum.period}) {t.answer.datumSuffix}
               </Text2>
             </Box>
           </Boxed>
@@ -1356,7 +1395,7 @@ function AnswerCard({
             <IconShieldCrossRegular size={24} color={skinVars.colors.error} />
           }
           tone="error"
-          title="Permission blocked"
+          title={t.answer.permissionBlocked}
           body={result.answer}
           note={result.permissionNote}
         />
@@ -1377,7 +1416,7 @@ function AnswerCard({
                 />
               </Circle>
               <Stack space={4}>
-                <Title3>Sources disagree</Title3>
+                <Title3>{t.answer.sourcesDisagree}</Title3>
                 {renderAnswer(
                   result.answer,
                   result.citations,
@@ -1421,7 +1460,7 @@ function AnswerCard({
                           >
                             {c.id}
                           </div>
-                          <Tag type="warning">{c.validity}</Tag>
+                          <Tag type="warning">{validityLabel(c.validity, t)}</Tag>
                         </Inline>
                         <Text2 medium>{c.docTitle}</Text2>
                         {c.value && (
@@ -1439,7 +1478,7 @@ function AnswerCard({
                 onPress={onDrillIn}
                 StartIcon={IconLinkRegular}
               >
-                Resolve in {result.resolutionPath}
+                {t.answer.resolveIn(result.resolutionPath)}
               </ButtonSecondary>
             )}
           </Stack>
@@ -1461,10 +1500,9 @@ function AnswerCard({
                   color={skinVars.colors.warning}
                 />
               }
-              title="Low confidence"
+              title={t.answer.lowConfidence}
               description={
-                result.lowConfidenceNote ??
-                "Low confidence: this rests on a single, unverified source."
+                result.lowConfidenceNote ?? t.answer.lowConfidenceFallback
               }
             />
           )}
@@ -1476,10 +1514,9 @@ function AnswerCard({
                   color={skinVars.colors.warning}
                 />
               }
-              title="Historic material"
+              title={t.answer.historicMaterial}
               description={`${
-                result.historicNote ??
-                "This answer draws on historic or superseded material."
+                result.historicNote ?? t.answer.historicFallback
               }${result.historicPointer ? ` ${result.historicPointer}` : ""}`}
             />
           )}
@@ -1491,7 +1528,7 @@ function AnswerCard({
                   color={skinVars.colors.success}
                 />
               }
-              title="Corroborated"
+              title={t.answer.corroborated}
               description={result.corroborationNote}
             />
           )}
@@ -1532,7 +1569,7 @@ function AnswerCard({
               asset={
                 <IconClipRegular size={24} color={skinVars.colors.brand} />
               }
-              title="Attachment"
+              title={t.answer.attachment}
               description={result.attachmentAck}
             />
           )}
@@ -1550,7 +1587,7 @@ function AnswerCard({
                   color={skinVars.colors.textSecondary}
                   transform="uppercase"
                 >
-                  Evidence
+                  {t.answer.evidence}
                 </Text1>
               </Inline>
               <div
@@ -1566,6 +1603,8 @@ function AnswerCard({
                     key={cit.id}
                     citation={cit}
                     onOpen={() => onOpenCitation(cit)}
+                    t={t}
+                    lang={lang}
                   />
                 ))}
               </div>
@@ -1581,13 +1620,13 @@ function AnswerCard({
                 result.citations[0] && onOpenCitation(result.citations[0])
               }
             >
-              Sources
+              {t.answer.sources}
             </ButtonLink>
-            <ButtonLink onPress={onExport}>Export to Generate</ButtonLink>
+            <ButtonLink onPress={onExport}>{t.answer.exportToGenerate}</ButtonLink>
             <ButtonLink onPress={onSave}>
-              {saved ? "Saved" : "Save insight"}
+              {saved ? t.answer.saved : t.answer.saveInsight}
             </ButtonLink>
-            <ButtonLink onPress={onDrillIn}>Drill into Data</ButtonLink>
+            <ButtonLink onPress={onDrillIn}>{t.answer.drillIntoData}</ButtonLink>
           </Inline>
 
           {result.suggestedNext && result.suggestedNext.length > 0 && (
@@ -1597,7 +1636,7 @@ function AnswerCard({
                 color={skinVars.colors.textSecondary}
                 transform="uppercase"
               >
-                Suggested next
+                {t.answer.suggestedNext}
               </Text1>
               <Inline space={8} wrap>
                 {result.suggestedNext.map((s) => (
@@ -1726,9 +1765,13 @@ function NumericFigure({
 function EvidenceChip({
   citation,
   onOpen,
+  t,
+  lang,
 }: {
   citation: Citation;
   onOpen: () => void;
+  t: AskStrings;
+  lang: Lang;
 }) {
   return (
     <div style={{ width: 300, flexShrink: 0 }}>
@@ -1766,14 +1809,14 @@ function EvidenceChip({
                       {citation.value}
                     </Text1>
                   )}
-                  <Tag type="inactive">{clearanceLabel(citation.confidentiality)}</Tag>
+                  <Tag type="inactive">{clearanceLabel(citation.confidentiality, lang)}</Tag>
                   {citation.conflicting && (
-                    <Tag type="warning">conflict</Tag>
+                    <Tag type="warning">{t.evidence.conflict}</Tag>
                   )}
                   {typeof citation.corroboration === "number" &&
                     citation.corroboration >= 2 && (
                       <Text1 medium color={skinVars.colors.success}>
-                        +{citation.corroboration} agree
+                        {t.evidence.agree(citation.corroboration)}
                       </Text1>
                     )}
                 </Inline>
@@ -1802,6 +1845,7 @@ function Composer({
   filtersActive,
   fileRef,
   onFile,
+  t,
 }: {
   input: string;
   setInput: (v: string) => void;
@@ -1815,6 +1859,7 @@ function Composer({
   filtersActive: boolean;
   fileRef: React.RefObject<HTMLInputElement | null>;
   onFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  t: AskStrings;
 }) {
   return (
     <div
@@ -1843,17 +1888,17 @@ function Composer({
                 <IconClipRegular size={16} color={skinVars.colors.brand} />
                 <Text2 medium>{attachment.name}</Text2>
                 <Text1 regular color={skinVars.colors.textSecondary}>
-                  working context
+                  {t.composer.workingContext}
                 </Text1>
               </Inline>
               <Inline space={12} alignItems="center">
                 <Chip active={attachment.ingest} onPress={onToggleIngest}>
                   {attachment.ingest
-                    ? "Will ingest as E-data"
-                    : "Ingest to corpus"}
+                    ? t.composer.willIngest
+                    : t.composer.ingestToCorpus}
                 </Chip>
                 <IconButton
-                  aria-label="Remove attachment"
+                  aria-label={t.composer.removeAttachment}
                   onPress={onRemoveAttachment}
                   Icon={IconCloseRegular}
                   small
@@ -1874,7 +1919,7 @@ function Composer({
             }}
           >
             <IconButton
-              aria-label="Attach a working document"
+              aria-label={t.composer.attachDocument}
               onPress={onAttach}
               Icon={IconClipRegular}
               small
@@ -1889,8 +1934,8 @@ function Composer({
             <textarea
               placeholder={
                 filtersActive
-                  ? "Ask within the active retrieval scope…"
-                  : "Ask about strategy, brand, or corporate facts…"
+                  ? t.composer.placeholderScoped
+                  : t.composer.placeholderDefault
               }
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -1912,7 +1957,7 @@ function Composer({
               }}
             />
             <IconButton
-              aria-label="Send question"
+              aria-label={t.composer.sendQuestion}
               type="brand"
               onPress={onSend}
               disabled={!input.trim() || disabled}
@@ -1927,7 +1972,7 @@ function Composer({
                 color={skinVars.colors.textSecondary}
               />
               <Text1 regular color={skinVars.colors.textSecondary}>
-                Answers are permission-filtered before the model sees any source.
+                {t.composer.permissionNote}
               </Text1>
             </Inline>
           </div>
@@ -1943,10 +1988,14 @@ function CitationDrawer({
   citation,
   axes,
   onClose,
+  t,
+  lang,
 }: {
   citation: Citation;
   axes: { id: string; name: string }[];
   onClose: () => void;
+  t: AskStrings;
+  lang: Lang;
 }) {
   return (
     <Drawer
@@ -1968,22 +2017,22 @@ function CitationDrawer({
               fontSize: 14,
             }}
           >
-            Citation [{citation.id}]
+            {t.drawer.citation(citation.id)}
           </div>
           <Tag type={citation.validity === "approved" ? "success" : "warning"}>
-            {citation.validity}
+            {validityLabel(citation.validity, t)}
           </Tag>
           <Tag
             type={citation.confidentiality === "public" ? "inactive" : "error"}
           >
-            {clearanceLabel(citation.confidentiality)}
+            {clearanceLabel(citation.confidentiality, lang)}
           </Tag>
         </Inline>
 
         {/* Layer 1 — governance */}
         <DrawerLayer
           index={1}
-          title="Governance"
+          title={t.drawer.governance}
           icon={
             <IconShieldCheckedOkRegular
               size={16}
@@ -1998,30 +2047,30 @@ function CitationDrawer({
               gap: 16,
             }}
           >
-            <Field label="Version" value={citation.version} />
-            <Field label="Owner" value={citation.owner} />
+            <Field label={t.drawer.version} value={citation.version} />
+            <Field label={t.drawer.owner} value={citation.owner} />
             <Field
-              label="Confidence"
+              label={t.drawer.confidence}
               value={`${Math.round(citation.confidence * 100)}%`}
             />
             {citation.validUntil && (
-              <Field label="Valid until" value={citation.validUntil} />
+              <Field label={t.drawer.validUntil} value={citation.validUntil} />
             )}
             {typeof citation.relevance === "number" && (
               <Field
-                label="Relevance"
+                label={t.drawer.relevance}
                 value={`${Math.round(citation.relevance * 100)}%`}
               />
             )}
             {typeof citation.corroboration === "number" &&
               citation.corroboration >= 2 && (
                 <Field
-                  label="Corroboration"
-                  value={`${citation.corroboration} sources`}
+                  label={t.drawer.corroboration}
+                  value={t.drawer.corroborationSources(citation.corroboration)}
                 />
               )}
             {citation.conflicting && (
-              <Field label="Conflict" value="Disagrees" />
+              <Field label={t.drawer.conflict} value={t.drawer.disagrees} />
             )}
           </div>
         </DrawerLayer>
@@ -2029,7 +2078,7 @@ function CitationDrawer({
         {/* Layer 2 — evidence snippet */}
         <DrawerLayer
           index={2}
-          title="Evidence"
+          title={t.drawer.evidence}
           icon={
             <IconDocumentsRegular size={16} color={skinVars.colors.brand} />
           }
@@ -2060,7 +2109,7 @@ function CitationDrawer({
         {/* Layer 3 — semantic layer */}
         <DrawerLayer
           index={3}
-          title="Semantic layer"
+          title={t.drawer.semanticLayer}
           icon={
             <IconNeuralNetworkRegular
               size={16}
@@ -2070,14 +2119,14 @@ function CitationDrawer({
         >
           <Stack space={12}>
             {citation.topics && citation.topics.length > 0 && (
-              <TagRow label="Topics" tags={citation.topics} />
+              <TagRow label={t.drawer.topics} tags={citation.topics} />
             )}
             {citation.entities && citation.entities.length > 0 && (
-              <TagRow label="Entities" tags={citation.entities} />
+              <TagRow label={t.drawer.entities} tags={citation.entities} />
             )}
             {citation.axisIds && citation.axisIds.length > 0 && (
               <TagRow
-                label="Axes"
+                label={t.drawer.axes}
                 tags={citation.axisIds.map(
                   (id) => axes.find((a) => a.id === id)?.name ?? id,
                 )}
@@ -2085,7 +2134,7 @@ function CitationDrawer({
             )}
             {(citation.country || citation.brand) && (
               <TagRow
-                label="Scope"
+                label={t.drawer.scope}
                 tags={[citation.country, citation.brand].filter(
                   (v): v is string => Boolean(v),
                 )}

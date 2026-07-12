@@ -3,6 +3,13 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import { Node, mergeAttributes, type JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { skinVars } from "@telefonica/mistica";
+import { useApp } from "@/components/app-provider";
+import { DOCUMENT_EDITOR_I18N } from "@/i18n/document-editor";
+
+// The citation chip is a TipTap node created once at module scope, so its
+// tooltip is sourced from this mutable variable that RichTextEditor keeps in
+// sync with the active language.
+let citationChipTitle = "Open citation";
 
 // ---- Serialization: plain text (with [Sn] markers and markdown emphasis) <-> TipTap doc
 
@@ -172,7 +179,7 @@ const CitationChip = Node.create({
         class: "hub-citation-chip",
         role: "button",
         tabindex: "0",
-        title: "Open citation",
+        title: citationChipTitle,
       }),
       node.attrs.ids as string,
     ];
@@ -236,6 +243,10 @@ export function RichTextEditor({
   inverse?: boolean;
   ariaLabel: string;
 }) {
+  const { lang } = useApp();
+  const t = DOCUMENT_EDITOR_I18N[lang];
+  citationChipTitle = t.openCitation;
+
   const lastEmitted = React.useRef<string>(value);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
   const [toolbar, setToolbar] = React.useState<{ top: number; left: number } | null>(null);
@@ -348,39 +359,39 @@ export function RichTextEditor({
           }}
         >
           <ToolbarButton
-            label="Bold"
+            label={t.bold}
             active={editor.isActive("bold")}
             onPress={() => editor.chain().focus().toggleBold().run()}
           >
             <span style={{ fontWeight: 700 }}>B</span>
           </ToolbarButton>
           <ToolbarButton
-            label="Italic"
+            label={t.italic}
             active={editor.isActive("italic")}
             onPress={() => editor.chain().focus().toggleItalic().run()}
           >
             <span style={{ fontStyle: "italic" }}>I</span>
           </ToolbarButton>
           <ToolbarButton
-            label="Heading"
+            label={t.heading}
             active={editor.isActive("heading", { level: 2 })}
             onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           >
             <span style={{ fontWeight: 700 }}>H2</span>
           </ToolbarButton>
           <ToolbarButton
-            label="Subheading"
+            label={t.subheading}
             active={editor.isActive("heading", { level: 3 })}
             onPress={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           >
             <span style={{ fontWeight: 700 }}>H3</span>
           </ToolbarButton>
           <ToolbarButton
-            label="Bullet list"
+            label={t.bulletList}
             active={editor.isActive("bulletList")}
             onPress={() => editor.chain().focus().toggleBulletList().run()}
           >
-            <span>&bull; List</span>
+            <span>&bull; {t.listLabel}</span>
           </ToolbarButton>
           {askSelectionRef.current && (
             <>
@@ -393,14 +404,14 @@ export function RichTextEditor({
                 }}
               />
               <ToolbarButton
-                label="Ask the agent about this passage"
+                label={t.askAgentTooltip}
                 onPress={() => {
                   const passage = selectedText().trim();
                   if (passage) askSelectionRef.current?.(passage);
                   setToolbar(null);
                 }}
               >
-                <span style={{ color: skinVars.colors.brand, fontWeight: 500 }}>Ask agent</span>
+                <span style={{ color: skinVars.colors.brand, fontWeight: 500 }}>{t.askAgent}</span>
               </ToolbarButton>
             </>
           )}
