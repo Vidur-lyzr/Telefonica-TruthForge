@@ -31,6 +31,16 @@ const ADMIN_EN = {
   intro:
     "Run the platform without a vendor: register users, assign profiles, manage permissions by area and confidentiality, and schedule recurring documents. This is the backend that proves the platform is operable after implementation.",
 
+  tabs: {
+    access: "Users & access",
+    scheduled: "Scheduled documents",
+    kpis: "KPI definitions",
+    costs: "Cost model",
+    operations: "Operations",
+    audit: "Audit trail",
+  },
+  viewDocuments: "View documents",
+
   accessProfiles: "Access profiles",
   profilesNote:
     "Profiles can be added or unified as the organisation evolves — the four above are the RFP baseline, not a fixed ceiling.",
@@ -360,6 +370,16 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     intro:
       "Opera la plataforma sin proveedor: registra usuarios, asigna perfiles, gestiona permisos por área y confidencialidad, y programa documentos recurrentes. Este es el backend que demuestra que la plataforma es operable tras la implementación.",
 
+    tabs: {
+      access: "Usuarios y acceso",
+      scheduled: "Documentos programados",
+      kpis: "Definiciones de KPI",
+      costs: "Modelo de costes",
+      operations: "Operaciones",
+      audit: "Registro de auditoría",
+    },
+    viewDocuments: "Ver documentos",
+
     accessProfiles: "Perfiles de acceso",
     profilesNote:
       "Los perfiles pueden añadirse o unificarse a medida que evoluciona la organización — los cuatro anteriores son la base del RFP, no un techo fijo.",
@@ -652,6 +672,16 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     title: "Administration",
     intro:
       "Betreiben Sie die Plattform ohne Anbieter: Nutzer registrieren, Profile zuweisen, Berechtigungen nach Bereich und Vertraulichkeit verwalten und wiederkehrende Dokumente planen. Dies ist das Backend, das belegt, dass die Plattform nach der Implementierung betriebsfähig ist.",
+
+    tabs: {
+      access: "Nutzer & Zugriff",
+      scheduled: "Geplante Dokumente",
+      kpis: "KPI-Definitionen",
+      costs: "Kostenmodell",
+      operations: "Betrieb",
+      audit: "Prüfprotokoll",
+    },
+    viewDocuments: "Dokumente anzeigen",
 
     accessProfiles: "Zugriffsprofile",
     profilesNote:
@@ -946,6 +976,16 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     title: "Administração",
     intro:
       "Opere a plataforma sem fornecedor: registre usuários, atribua perfis, gerencie permissões por área e confidencialidade e agende documentos recorrentes. Este é o backend que comprova que a plataforma é operável após a implementação.",
+
+    tabs: {
+      access: "Usuários e acesso",
+      scheduled: "Documentos programados",
+      kpis: "Definições de KPI",
+      costs: "Modelo de custos",
+      operations: "Operações",
+      audit: "Trilha de auditoria",
+    },
+    viewDocuments: "Ver documentos",
 
     accessProfiles: "Perfis de acesso",
     profilesNote:

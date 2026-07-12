@@ -116,6 +116,20 @@ export interface BrandCheckInput {
   text: string;
 }
 
+export interface BrandSkill {
+  /** The full skill document (Markdown) */
+  content: string;
+  version: number;
+  updatedAt: string;
+  /** True when the content matches the governed default */
+  isDefault: boolean;
+}
+
+export interface BrandSkillUpdate {
+  /** @minLength 1 */
+  content: string;
+}
+
 export interface DraftExclusion {
   /** clearance | destination */
   reason: string;

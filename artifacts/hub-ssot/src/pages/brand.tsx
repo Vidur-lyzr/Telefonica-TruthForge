@@ -4,7 +4,10 @@ import {
   useGetBrandTemplate,
   useGetBrandTone,
   useGetBrandResources,
-  useCheckBrandText,
+  useGetBrandSkill,
+  useUpdateBrandSkill,
+  useResetBrandSkill,
+  getGetBrandSkillQueryKey,
   type BrandTemplateSummary,
   type TonePrinciple,
   type BrandRule,
@@ -14,8 +17,10 @@ import {
   type GuardianResult,
   type GuardianFinding,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useApp } from "@/components/app-provider";
-import { BRAND_I18N } from "@/i18n/brand";
+import { BRAND_I18N, type BrandStrings } from "@/i18n/brand";
+import { streamGuardianCheck, type GuardianStep } from "@/hooks/guardian-stream";
 import {
   Box,
   Boxed,
@@ -31,6 +36,7 @@ import {
   Circle,
   TextField,
   ButtonPrimary,
+  ButtonSecondary,
   ButtonLink,
   Spinner,
   Text1,
@@ -46,22 +52,28 @@ import {
   IconAlertRegular,
   IconLockClosedRegular,
   IconCheckRegular,
+  IconCheckedRegular,
   IconCloseRegular,
   IconArrowLineRightRegular,
   IconImageRegular,
   IconBalanceRegular,
   IconBookRegular,
+  IconAppsRegular,
+  IconOpenRegular,
 } from "@telefonica/mistica";
 
 type IconType = (props: { size?: number; color?: string }) => React.ReactElement;
-type TabId = "templates" | "tone" | "resources" | "guardian";
+type TabId = "templates" | "tone" | "resources" | "design" | "guardian";
 
 const TABS: { id: TabId; icon: IconType }[] = [
   { id: "templates", icon: IconFileTextRegular },
   { id: "tone", icon: IconChatRegular },
   { id: "resources", icon: IconLibraryRegular },
+  { id: "design", icon: IconAppsRegular },
   { id: "guardian", icon: IconShieldCheckedOkRegular },
 ];
+
+const DESIGN_SYSTEM_URL = "https://mistica-web.vercel.app";
 
 // ---- Shared pieces ----------------------------------------------------------
 
@@ -596,6 +608,46 @@ function ResourcesArea({ roleId }: { roleId?: string }) {
   );
 }
 
+// ---- Design system ----------------------------------------------------------
+
+function DesignSystemArea() {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
+  return (
+    <Stack space={16}>
+      <Inline space={16} alignItems="center" wrap>
+        <div style={{ flex: 1, minWidth: 280 }}>
+          <IntroLine>{t.designIntro}</IntroLine>
+        </div>
+        <ButtonLink
+          onPress={() => {
+            window.open(DESIGN_SYSTEM_URL, "_blank", "noopener");
+          }}
+          StartIcon={IconOpenRegular}
+        >
+          {t.openDesignSite}
+        </ButtonLink>
+      </Inline>
+      <div
+        style={{
+          borderRadius: skinVars.borderRadii.container,
+          border: `1px solid ${skinVars.colors.border}`,
+          overflow: "hidden",
+          height: "72vh",
+          minHeight: 480,
+          backgroundColor: skinVars.colors.backgroundContainer,
+        }}
+      >
+        <iframe
+          src={DESIGN_SYSTEM_URL}
+          title="Mística design system"
+          style={{ width: "100%", height: "100%", border: 0, display: "block" }}
+        />
+      </div>
+    </Stack>
+  );
+}
+
 // ---- Brand Guardian ---------------------------------------------------------
 
 const GUARDIAN_SAMPLE =
@@ -723,6 +775,125 @@ function HighlightedText({ text, findings }: { text: string; findings: GuardianF
   );
 }
 
+// Live activity feed for a Guardian run — every row is a real milestone
+// streamed from the agent, never simulated.
+function GuardianActivity({ steps, t }: { steps: GuardianStep[]; t: BrandStrings }) {
+  return (
+    <Boxed>
+      <Box padding={20}>
+        <Stack space={12}>
+          <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+            {t.agentActivity}
+          </Text1>
+          <Stack space={8}>
+            {steps.map((s) => (
+              <Inline space={8} alignItems="center" key={s.id}>
+                {s.state === "done" ? (
+                  <IconCheckedRegular size={16} color={skinVars.colors.success} />
+                ) : (
+                  <Spinner size={16} />
+                )}
+                <Text2
+                  regular
+                  color={
+                    s.state === "done" ? skinVars.colors.textSecondary : skinVars.colors.textPrimary
+                  }
+                >
+                  {s.label}
+                  {s.detail ? ` — ${s.detail}` : ""}
+                </Text2>
+              </Inline>
+            ))}
+          </Stack>
+        </Stack>
+      </Box>
+    </Boxed>
+  );
+}
+
+// Editor for the agent's instruction document. Saves through the server so
+// the very next check runs on the edited skill.
+function SkillSheet({ onClose, t }: { onClose: () => void; t: BrandStrings }) {
+  const queryClient = useQueryClient();
+  const skillQuery = useGetBrandSkill();
+  const update = useUpdateBrandSkill();
+  const reset = useResetBrandSkill();
+  const [draft, setDraft] = React.useState<string | null>(null);
+  const skill = skillQuery.data;
+  const value = draft ?? skill?.content ?? "";
+  const busy = update.isPending || reset.isPending;
+  const applySkill = (next: { content: string; version: number }) => {
+    queryClient.setQueryData(getGetBrandSkillQueryKey(), next);
+    setDraft(null);
+  };
+  return (
+    <Sheet onClose={onClose}>
+      {() => (
+        <Box paddingX={24} paddingTop={40} paddingBottom={32}>
+          <Stack space={16}>
+            <Stack space={8}>
+              <Inline space={8} alignItems="center" wrap>
+                <Title3>{t.skillSheetTitle}</Title3>
+                {skill && (
+                  <Tag type={skill.isDefault ? "inactive" : "active"}>
+                    {skill.isDefault ? t.skillDefaultTag : t.skillEditedTag}
+                  </Tag>
+                )}
+              </Inline>
+              <Text2 regular color={skinVars.colors.textSecondary}>
+                {t.skillSheetSub}
+                {skill ? ` ${t.skillVersion(skill.version)}.` : ""}
+              </Text2>
+            </Stack>
+            {skillQuery.isLoading ? (
+              <Inline space={12} alignItems="center">
+                <Spinner size={20} />
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  {t.loading}
+                </Text2>
+              </Inline>
+            ) : (
+              <>
+                <TextField
+                  multiline
+                  name="guardian-skill"
+                  label={t.skillContentLabel}
+                  value={value}
+                  onChangeValue={(v) => setDraft(v)}
+                  fullWidth
+                />
+                <Inline space={16} alignItems="center" wrap>
+                  <ButtonPrimary
+                    onPress={() => {
+                      update.mutate(
+                        { data: { content: value } },
+                        { onSuccess: applySkill },
+                      );
+                    }}
+                    disabled={busy || value.trim().length === 0}
+                    showSpinner={update.isPending}
+                  >
+                    {update.isPending ? t.savingSkill : t.saveSkill}
+                  </ButtonPrimary>
+                  <ButtonSecondary
+                    onPress={() => {
+                      reset.mutate(undefined, { onSuccess: applySkill });
+                    }}
+                    disabled={busy}
+                    showSpinner={reset.isPending}
+                  >
+                    {t.resetSkill}
+                  </ButtonSecondary>
+                </Inline>
+              </>
+            )}
+          </Stack>
+        </Box>
+      )}
+    </Sheet>
+  );
+}
+
 function GuardianArea() {
   const { lang } = useApp();
   const t = BRAND_I18N[lang];
@@ -730,14 +901,68 @@ function GuardianArea() {
   const [checked, setChecked] = React.useState<{ text: string; result: GuardianResult } | null>(
     null,
   );
-  const check = useCheckBrandText();
-  const run = () => {
+  const [steps, setSteps] = React.useState<GuardianStep[]>([]);
+  const [running, setRunning] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const [skillOpen, setSkillOpen] = React.useState(false);
+  const abortRef = React.useRef<AbortController | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  React.useEffect(() => () => abortRef.current?.abort(), []);
+
+  const run = async () => {
     const snapshot = text;
-    check.mutate(
-      { data: { text: snapshot } },
-      { onSuccess: (g) => setChecked({ text: snapshot, result: g }) },
-    );
+    abortRef.current?.abort();
+    const abort = new AbortController();
+    abortRef.current = abort;
+    setRunning(true);
+    setError(null);
+    setChecked(null);
+    setSteps([]);
+    const stepList: GuardianStep[] = [];
+    try {
+      const result = await streamGuardianCheck(
+        { text: snapshot },
+        {
+          onStep: (step) => {
+            const i = stepList.findIndex((s) => s.id === step.id);
+            if (i === -1) stepList.push(step);
+            else stepList[i] = step;
+            setSteps([...stepList]);
+          },
+        },
+        abort.signal,
+      );
+      setChecked({ text: snapshot, result });
+    } catch (err) {
+      const aborted = err instanceof DOMException && err.name === "AbortError";
+      if (!aborted) setError(t.guardianError);
+    } finally {
+      if (abortRef.current === abort) setRunning(false);
+    }
   };
+
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const supported = /\.(txt|md|markdown)$/i.test(file.name) || file.type.startsWith("text/");
+    if (!supported) {
+      setUploadError(t.uploadUnsupported);
+      return;
+    }
+    setUploadError(null);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setText(String(reader.result ?? ""));
+      setChecked(null);
+      setSteps([]);
+      setError(null);
+    };
+    reader.readAsText(file);
+  };
+
   const hasHighlights = !!checked && checked.result.findings.some((f) => f.location);
   return (
     <div style={{ maxWidth: 768 }}>
@@ -756,17 +981,28 @@ function GuardianArea() {
               />
               <Inline space={16} alignItems="center" wrap>
                 <ButtonPrimary
-                  onPress={run}
-                  disabled={check.isPending || text.trim().length === 0}
+                  onPress={() => {
+                    void run();
+                  }}
+                  disabled={running || text.trim().length === 0}
                   StartIcon={IconShieldCheckedOkRegular}
-                  showSpinner={check.isPending}
+                  showSpinner={running}
                 >
-                  {check.isPending ? t.checking : t.runGuardian}
+                  {running ? t.checking : t.runGuardian}
                 </ButtonPrimary>
+                <ButtonLink
+                  onPress={() => {
+                    fileInputRef.current?.click();
+                  }}
+                >
+                  {t.uploadFile}
+                </ButtonLink>
                 <ButtonLink
                   onPress={() => {
                     setText(GUARDIAN_SAMPLE);
                     setChecked(null);
+                    setSteps([]);
+                    setError(null);
                   }}
                 >
                   {t.loadSample}
@@ -776,15 +1012,47 @@ function GuardianArea() {
                     onPress={() => {
                       setText("");
                       setChecked(null);
+                      setSteps([]);
+                      setError(null);
+                      setUploadError(null);
                     }}
                   >
                     {t.clear}
                   </ButtonLink>
                 )}
+                <ButtonLink
+                  onPress={() => {
+                    setSkillOpen(true);
+                  }}
+                >
+                  {t.editSkill}
+                </ButtonLink>
               </Inline>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.md,.markdown,text/plain,text/markdown"
+                onChange={onFile}
+                style={{ display: "none" }}
+              />
+              {uploadError && (
+                <Text2 regular color={skinVars.colors.error}>
+                  {uploadError}
+                </Text2>
+              )}
             </Stack>
           </Box>
         </Boxed>
+        {steps.length > 0 && (running || checked || error) && (
+          <GuardianActivity steps={steps} t={t} />
+        )}
+        {error && (
+          <Callout
+            asset={<IconAlertRegular size={24} color={skinVars.colors.error} />}
+            title={t.tabs.guardian}
+            description={error}
+          />
+        )}
         {hasHighlights && checked && (
           <Boxed>
             <Box padding={20}>
@@ -832,6 +1100,14 @@ function GuardianArea() {
           </Boxed>
         )}
         {checked && <GuardianVerdict result={checked.result} />}
+        {skillOpen && (
+          <SkillSheet
+            onClose={() => {
+              setSkillOpen(false);
+            }}
+            t={t}
+          />
+        )}
       </Stack>
     </div>
   );
@@ -871,6 +1147,7 @@ export default function BrandPage() {
           {tab === "templates" && <TemplatesArea roleId={scopedRole} />}
           {tab === "tone" && <ToneArea />}
           {tab === "resources" && <ResourcesArea roleId={scopedRole} />}
+          {tab === "design" && <DesignSystemArea />}
           {tab === "guardian" && <GuardianArea />}
         </div>
       </Stack>

@@ -11,7 +11,15 @@ export type BrandNoun = "template" | "resource";
 
 export interface BrandStrings {
   intro: string;
-  tabs: { templates: string; tone: string; resources: string; guardian: string };
+  tabs: {
+    templates: string;
+    tone: string;
+    resources: string;
+    design: string;
+    guardian: string;
+  };
+  designIntro: string;
+  openDesignSite: string;
   loading: string;
   blockedNote: (count: number, noun: BrandNoun) => string;
   permissionBlockedTitle: string;
@@ -50,6 +58,20 @@ export interface BrandStrings {
   checkedText: string;
   legendBlocks: string;
   legendAdvises: string;
+  uploadFile: string;
+  uploadUnsupported: string;
+  agentActivity: string;
+  editSkill: string;
+  skillSheetTitle: string;
+  skillSheetSub: string;
+  skillContentLabel: string;
+  saveSkill: string;
+  savingSkill: string;
+  resetSkill: string;
+  skillVersion: (v: number) => string;
+  skillDefaultTag: string;
+  skillEditedTag: string;
+  guardianError: string;
 }
 
 export const BRAND_I18N: Record<Lang, BrandStrings> = {
@@ -60,8 +82,12 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
       templates: "Templates",
       tone: "Tone of voice",
       resources: "Resources",
+      design: "Design system",
       guardian: "Brand Guardian",
     },
+    designIntro:
+      "Mística — Telefónica's official design system, embedded live from the public component catalogue. Every surface in this Hub is built with these components and tokens.",
+    openDesignSite: "Open in a new tab",
     loading: "Loading…",
     blockedNote: (count, noun) => {
       const forms = {
@@ -119,7 +145,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     findingSeverity: { error: "Error", warning: "Warning" },
     fixPrefix: "Fix:",
     guardianIntro:
-      "Paste any copy — a caption, an intro, a tweet — and the Brand Guardian checks it against the same rules that gate document export. Every violation is flagged inline. Deterministic, and no text leaves the governed core.",
+      "Paste any copy — a caption, an intro, a tweet — and the Brand Guardian agent checks it live: deterministic hard rules first, then a Claude review of voice and register against the editable agent skill. Every violation is flagged inline.",
     pasteLabel: "Paste copy to check",
     checking: "Checking…",
     runGuardian: "Run Brand Guardian",
@@ -128,6 +154,21 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     checkedText: "Checked text",
     legendBlocks: "Blocks",
     legendAdvises: "Advises",
+    uploadFile: "Upload a file",
+    uploadUnsupported: "Only plain-text files (.txt, .md) can be checked.",
+    agentActivity: "Agent activity",
+    editSkill: "Edit agent skill",
+    skillSheetTitle: "Brand Guardian skill",
+    skillSheetSub:
+      "The instruction document the agent works from. Edits apply to the next check immediately.",
+    skillContentLabel: "Skill document",
+    saveSkill: "Save skill",
+    savingSkill: "Saving…",
+    resetSkill: "Reset to default",
+    skillVersion: (v) => `Version ${v}`,
+    skillDefaultTag: "Governed default",
+    skillEditedTag: "Edited",
+    guardianError: "The Brand Guardian could not complete this check. Try again.",
   },
   ES: {
     intro:
@@ -136,8 +177,12 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
       templates: "Plantillas",
       tone: "Tono de voz",
       resources: "Recursos",
+      design: "Sistema de diseño",
       guardian: "Brand Guardian",
     },
+    designIntro:
+      "Mística — el sistema de diseño oficial de Telefónica, incrustado en vivo desde el catálogo público de componentes. Cada superficie de este Hub está construida con estos componentes y tokens.",
+    openDesignSite: "Abrir en una pestaña nueva",
     loading: "Cargando…",
     blockedNote: (count, noun) => {
       const forms = {
@@ -197,7 +242,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     findingSeverity: { error: "Error", warning: "Advertencia" },
     fixPrefix: "Corrección:",
     guardianIntro:
-      "Pega cualquier texto — un pie de foto, una introducción, un tuit — y el Brand Guardian lo comprueba con las mismas reglas que controlan la exportación de documentos. Cada infracción se marca en línea. Determinista, y ningún texto sale del núcleo gobernado.",
+      "Pega cualquier texto — un pie de foto, una introducción, un tuit — y el agente Brand Guardian lo revisa en vivo: primero las reglas duras deterministas y después una revisión de voz y registro con Claude según la skill editable del agente. Cada infracción se marca en línea.",
     pasteLabel: "Pega el texto para comprobar",
     checking: "Comprobando…",
     runGuardian: "Ejecutar Brand Guardian",
@@ -206,6 +251,21 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     checkedText: "Texto comprobado",
     legendBlocks: "Bloquea",
     legendAdvises: "Aconseja",
+    uploadFile: "Subir un archivo",
+    uploadUnsupported: "Solo se pueden comprobar archivos de texto plano (.txt, .md).",
+    agentActivity: "Actividad del agente",
+    editSkill: "Editar la skill del agente",
+    skillSheetTitle: "Skill del Brand Guardian",
+    skillSheetSub:
+      "El documento de instrucciones con el que trabaja el agente. Los cambios se aplican en la siguiente comprobación.",
+    skillContentLabel: "Documento de la skill",
+    saveSkill: "Guardar skill",
+    savingSkill: "Guardando…",
+    resetSkill: "Restaurar el valor por defecto",
+    skillVersion: (v) => `Versión ${v}`,
+    skillDefaultTag: "Estándar gobernado",
+    skillEditedTag: "Editada",
+    guardianError: "El Brand Guardian no pudo completar esta comprobación. Inténtalo de nuevo.",
   },
   DE: {
     intro:
@@ -214,8 +274,12 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
       templates: "Vorlagen",
       tone: "Tonfall",
       resources: "Ressourcen",
+      design: "Designsystem",
       guardian: "Brand Guardian",
     },
+    designIntro:
+      "Mística — das offizielle Designsystem von Telefónica, live aus dem öffentlichen Komponentenkatalog eingebettet. Jede Oberfläche dieses Hubs ist mit diesen Komponenten und Tokens gebaut.",
+    openDesignSite: "In neuem Tab öffnen",
     loading: "Wird geladen…",
     blockedNote: (count, noun) => {
       const forms = {
@@ -275,7 +339,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     findingSeverity: { error: "Fehler", warning: "Warnung" },
     fixPrefix: "Korrektur:",
     guardianIntro:
-      "Fügen Sie beliebigen Text ein — eine Bildunterschrift, eine Einleitung, einen Tweet — und der Brand Guardian prüft ihn anhand derselben Regeln, die den Dokumentexport steuern. Jeder Verstoß wird inline markiert. Deterministisch, und kein Text verlässt den kontrollierten Kern.",
+      "Fügen Sie beliebigen Text ein — eine Bildunterschrift, eine Einleitung, einen Tweet — und der Brand-Guardian-Agent prüft ihn live: zuerst die deterministischen Grundregeln, danach eine Claude-Prüfung von Stimme und Register anhand des editierbaren Agenten-Skills. Jeder Verstoß wird inline markiert.",
     pasteLabel: "Text zum Prüfen einfügen",
     checking: "Wird geprüft…",
     runGuardian: "Brand Guardian ausführen",
@@ -284,6 +348,21 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     checkedText: "Geprüfter Text",
     legendBlocks: "Blockiert",
     legendAdvises: "Rät",
+    uploadFile: "Datei hochladen",
+    uploadUnsupported: "Nur Klartextdateien (.txt, .md) können geprüft werden.",
+    agentActivity: "Agentenaktivität",
+    editSkill: "Agenten-Skill bearbeiten",
+    skillSheetTitle: "Brand-Guardian-Skill",
+    skillSheetSub:
+      "Das Anweisungsdokument, mit dem der Agent arbeitet. Änderungen gelten sofort für die nächste Prüfung.",
+    skillContentLabel: "Skill-Dokument",
+    saveSkill: "Skill speichern",
+    savingSkill: "Wird gespeichert…",
+    resetSkill: "Auf Standard zurücksetzen",
+    skillVersion: (v) => `Version ${v}`,
+    skillDefaultTag: "Governance-Standard",
+    skillEditedTag: "Bearbeitet",
+    guardianError: "Der Brand Guardian konnte diese Prüfung nicht abschließen. Bitte erneut versuchen.",
   },
   PT: {
     intro:
@@ -292,8 +371,12 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
       templates: "Modelos",
       tone: "Tom de voz",
       resources: "Recursos",
+      design: "Sistema de design",
       guardian: "Brand Guardian",
     },
+    designIntro:
+      "Mística — o sistema de design oficial da Telefónica, incorporado ao vivo do catálogo público de componentes. Cada superfície deste Hub é construída com esses componentes e tokens.",
+    openDesignSite: "Abrir em nova guia",
     loading: "Carregando…",
     blockedNote: (count, noun) => {
       const forms = {
@@ -352,7 +435,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     findingSeverity: { error: "Erro", warning: "Aviso" },
     fixPrefix: "Correção:",
     guardianIntro:
-      "Cole qualquer texto — uma legenda, uma introdução, um tweet — e o Brand Guardian o verifica com as mesmas regras que controlam a exportação de documentos. Cada violação é marcada em linha. Determinístico, e nenhum texto sai do núcleo governado.",
+      "Cole qualquer texto — uma legenda, uma introdução, um tweet — e o agente Brand Guardian o verifica ao vivo: primeiro as regras rígidas determinísticas e depois uma revisão de voz e registro com Claude segundo a skill editável do agente. Cada violação é marcada em linha.",
     pasteLabel: "Cole o texto para verificar",
     checking: "Verificando…",
     runGuardian: "Executar Brand Guardian",
@@ -361,5 +444,20 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     checkedText: "Texto verificado",
     legendBlocks: "Bloqueia",
     legendAdvises: "Aconselha",
+    uploadFile: "Carregar um arquivo",
+    uploadUnsupported: "Somente arquivos de texto simples (.txt, .md) podem ser verificados.",
+    agentActivity: "Atividade do agente",
+    editSkill: "Editar a skill do agente",
+    skillSheetTitle: "Skill do Brand Guardian",
+    skillSheetSub:
+      "O documento de instruções com que o agente trabalha. As alterações se aplicam na próxima verificação.",
+    skillContentLabel: "Documento da skill",
+    saveSkill: "Salvar skill",
+    savingSkill: "Salvando…",
+    resetSkill: "Redefinir para o padrão",
+    skillVersion: (v) => `Versão ${v}`,
+    skillDefaultTag: "Padrão governado",
+    skillEditedTag: "Editada",
+    guardianError: "O Brand Guardian não conseguiu concluir esta verificação. Tente novamente.",
   },
 };

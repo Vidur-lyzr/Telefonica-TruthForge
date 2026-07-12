@@ -5392,6 +5392,47 @@ export const GetExportTemplatesResponse = zod.array(GetExportTemplatesResponseIt
 
 
 /**
+ * The instruction document the live Brand Guardian agent works from — voice pillars, narrative anchors, register rules. Editable from the Brand Room; edits apply to the next check immediately. In-memory only: resets to the governed default on server restart.
+ * @summary The editable Brand Guardian skill document
+ */
+export const GetBrandSkillResponse = zod.object({
+  "content": zod.string().describe('The full skill document (Markdown)'),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "isDefault": zod.boolean().describe('True when the content matches the governed default')
+})
+
+
+/**
+ * @summary Update the Brand Guardian skill document
+ */
+
+
+
+export const UpdateBrandSkillBody = zod.object({
+  "content": zod.string().min(1)
+})
+
+export const UpdateBrandSkillResponse = zod.object({
+  "content": zod.string().describe('The full skill document (Markdown)'),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "isDefault": zod.boolean().describe('True when the content matches the governed default')
+})
+
+
+/**
+ * @summary Reset the Brand Guardian skill to the governed default
+ */
+export const ResetBrandSkillResponse = zod.object({
+  "content": zod.string().describe('The full skill document (Markdown)'),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "isDefault": zod.boolean().describe('True when the content matches the governed default')
+})
+
+
+/**
  * Deterministic brand check over pasted prose — emoji, unapproved superlatives, shouted lines, American spelling and uncited figures — returning the same verdict shape as the document export gate.
  * @summary Run the live Brand Guardian over arbitrary text
  */

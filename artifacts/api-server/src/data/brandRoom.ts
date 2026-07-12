@@ -312,6 +312,78 @@ export const BRAND_RESOURCES: BrandResource[] = [
     validity: "approved",
   },
   {
+    id: "res-iconography",
+    name: "Iconography",
+    category: "identity",
+    description:
+      "The Mística icon set — regular, light and filled weights drawn on a common grid.",
+    detail:
+      "Icons come from the Mística catalogue only; never mix in third-party sets. Default to the regular weight, use filled variants for selected or active states, and keep icons at their native grid sizes so strokes stay optically even. Icons inherit text colour — use brand blue for interactive icons and textSecondary for supporting ones.",
+    format: "Icon library",
+    clearance: "public",
+    validity: "approved",
+  },
+  {
+    id: "res-photography",
+    name: "Photography & imagery",
+    category: "identity",
+    description:
+      "Human-centred photography direction for campaigns and corporate surfaces.",
+    detail:
+      "Photography shows real people in natural light, connected through technology rather than posing with it. Favour candid warmth over corporate stock, keep colour grading neutral so brand blue leads, and never overlay text on busy areas. Illustration follows the Mística style: simple geometry, flat colour, generous white space.",
+    format: "Art direction sheet",
+    clearance: "public",
+    validity: "approved",
+  },
+  {
+    id: "res-voice-pillars",
+    name: "Brand voice pillars",
+    category: "messaging",
+    description:
+      "The three pillars every piece of Telefónica copy is written to: open, bold, trustworthy.",
+    detail:
+      "Open — plain words, short sentences, no jargon; we explain technology as part of everyday life. Bold — lead with the point, use active verbs, take a position; hedging erodes the message. Trustworthy — every claim is sourced, every number carries evidence, and we never promise beyond what is governed. When pillars conflict, trustworthy wins.",
+    format: "Voice framework",
+    clearance: "public",
+    validity: "approved",
+  },
+  {
+    id: "res-manifesto",
+    name: "Brand manifesto line",
+    category: "messaging",
+    description:
+      "The approved manifesto sentence that anchors corporate storytelling.",
+    detail:
+      "\"Digital life is life itself, and technology is an essential part of being human.\" Use the sentence verbatim as a narrative anchor in keynotes, corporate pages and manifesto-level copy. It is not a tagline: do not shorten it, translate it loosely, or attach it to product promotions.",
+    format: "Verbatim text",
+    clearance: "public",
+    validity: "approved",
+  },
+  {
+    id: "res-headline-formula",
+    name: "Press headline formula",
+    category: "messaging",
+    description:
+      "The governed structure for corporate press-release headlines.",
+    detail:
+      "Structure: Telefónica + active verb + concrete achievement, optionally joined to a second achievement with \"and\". Examples on record: \"Telefónica returns to profit and cuts debt by 22%\"; \"Telefónica hits its 2025 fibre target and accelerates copper switch-off\". Keep headlines under fourteen words, verbs in present tense, and every figure traceable to a cited source.",
+    format: "Editorial pattern",
+    clearance: "private",
+    validity: "approved",
+  },
+  {
+    id: "res-subbrand-voice",
+    name: "Sub-brand voice notes",
+    category: "messaging",
+    description:
+      "How O2, Movistar and Vivo speak — and when the masterbrand leads instead.",
+    detail:
+      "Commercial brands lead local communications: O2 keeps its enabling, possibility-driven register (\"See what you can do\"), Movistar carries its heritage of closeness (\"Acortamos distancias. Acercamos personas\"), and Vivo speaks with Brazilian warmth. The Telefónica masterbrand leads corporate, financial and B2B communications. Never blend registers: a corporate release does not borrow a commercial slogan, and campaign copy does not cite corporate strategy.",
+    format: "Voice notes",
+    clearance: "private",
+    validity: "approved",
+  },
+  {
     id: "res-boilerplate",
     name: "Corporate boilerplate",
     category: "messaging",

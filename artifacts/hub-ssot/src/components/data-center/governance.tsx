@@ -340,6 +340,7 @@ export default function GovernanceArea() {
           title={W.title}
           description={W.desc}
           onClose={() => setWizardOpen(false)}
+          onDismiss={() => setWizardOpen(false)}
           button={
             step === 0
               ? {

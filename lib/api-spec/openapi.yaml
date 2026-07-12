@@ -2019,6 +2019,54 @@ paths:
                 items:
                   $ref: "#/components/schemas/ExportTemplate"
 
+  /brand/skill:
+    get:
+      operationId: getBrandSkill
+      tags: [brand-room]
+      summary: The editable Brand Guardian skill document
+      description: >
+        The instruction document the live Brand Guardian agent works from —
+        voice pillars, narrative anchors, register rules. Editable from the
+        Brand Room; edits apply to the next check immediately. In-memory only:
+        resets to the governed default on server restart.
+      responses:
+        "200":
+          description: Current skill document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandSkill"
+    put:
+      operationId: updateBrandSkill
+      tags: [brand-room]
+      summary: Update the Brand Guardian skill document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandSkillUpdate"
+      responses:
+        "200":
+          description: Updated skill document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandSkill"
+
+  /brand/skill/reset:
+    post:
+      operationId: resetBrandSkill
+      tags: [brand-room]
+      summary: Reset the Brand Guardian skill to the governed default
+      responses:
+        "200":
+          description: Skill document restored to the governed default
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandSkill"
+
   /brand/check:
     post:
       operationId: checkBrandText
@@ -2260,6 +2308,27 @@ components:
       properties:
         text:
           type: string
+    BrandSkill:
+      type: object
+      required: [content, version, updatedAt, isDefault]
+      properties:
+        content:
+          type: string
+          description: The full skill document (Markdown)
+        version:
+          type: integer
+        updatedAt:
+          type: string
+        isDefault:
+          type: boolean
+          description: True when the content matches the governed default
+    BrandSkillUpdate:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
     GenerationJob:
       type: object
       required: [id, mode, stage, status, createdAt]

@@ -28,6 +28,7 @@ import {
   Grid,
   Divider,
   Table,
+  Tabs,
   Tag,
   Sheet,
   Callout,
@@ -538,6 +539,8 @@ export default function AdminPage() {
     );
   }
 
+  const [adminTab, setAdminTab] = React.useState(0);
+
   return (
     <Box padding={24}>
       <Stack space={32}>
@@ -551,6 +554,24 @@ export default function AdminPage() {
           </div>
         </Stack>
 
+        <Stack space={8}>
+          <Tabs
+            selectedIndex={adminTab}
+            onChange={setAdminTab}
+            tabs={[
+              { text: t.tabs.access },
+              { text: t.tabs.scheduled },
+              { text: t.tabs.kpis },
+              { text: t.tabs.costs },
+              { text: t.tabs.operations },
+              { text: t.tabs.audit },
+            ]}
+          />
+          <Divider />
+        </Stack>
+
+        {adminTab === 0 && (
+          <>
         {/* Profiles overview */}
         <Stack space={16}>
           <Inline space={8} alignItems="center">
@@ -620,9 +641,16 @@ export default function AdminPage() {
               <Tag type={clearanceTagType(u.clearance)} key={`${u.id}-clearance`}>
                 {t.clearanceLabels[u.clearance] ?? u.clearance}
               </Tag>,
-              <ButtonLink small onPress={() => openEdit(u)} key={`${u.id}-edit`}>
-                {t.edit}
-              </ButtonLink>,
+              <Inline space={8} alignItems="center" key={`${u.id}-actions`}>
+                <ButtonLink small onPress={() => openEdit(u)}>
+                  {t.edit}
+                </ButtonLink>
+                {(seedUsers ?? []).some((su) => su.id === u.id) && (
+                  <ButtonLink small onPress={() => setVisibilityUserId(u.id)}>
+                    {t.viewDocuments}
+                  </ButtonLink>
+                )}
+              </Inline>,
             ])}
           />
         </Stack>
@@ -707,7 +735,11 @@ export default function AdminPage() {
             />
           )}
         </Stack>
+          </>
+        )}
 
+        {adminTab === 1 && (
+          <>
         {/* Scheduled documents */}
         <Stack space={16}>
           <Inline space="between" alignItems="center">
@@ -776,7 +808,11 @@ export default function AdminPage() {
             ])}
           />
         </Stack>
+          </>
+        )}
 
+        {adminTab === 2 && (
+          <>
         {/* KPI definitions */}
         <Stack space={16}>
           <Inline space="between" alignItems="center">
@@ -835,16 +871,22 @@ export default function AdminPage() {
             })}
           />
         </Stack>
+          </>
+        )}
 
         {/* Cost model */}
-        <CostModelSection />
+        {adminTab === 3 && <CostModelSection />}
 
-        {/* Source-system sync (D5) */}
-        <SourceSyncSection />
+        {/* Source-system sync (D5) + retrieval audit log (F3) */}
+        {adminTab === 4 && (
+          <>
+            <SourceSyncSection />
+            <RetrievalLogSection />
+          </>
+        )}
 
-        {/* Retrieval audit log (F3) */}
-        <RetrievalLogSection />
-
+        {adminTab === 5 && (
+          <>
         {/* Audit trail */}
         <Stack space={16}>
           <Stack space={4}>
@@ -877,6 +919,8 @@ export default function AdminPage() {
             ])}
           />
         </Stack>
+          </>
+        )}
       </Stack>
 
       {/* Register / Edit user dialog */}

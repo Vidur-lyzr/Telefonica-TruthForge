@@ -27,6 +27,8 @@ import type {
   AuditEntry,
   BrandCheckInput,
   BrandResourcesView,
+  BrandSkill,
+  BrandSkillUpdate,
   BrandTemplateDetailView,
   BrandTemplatesView,
   BrandToneView,
@@ -6847,6 +6849,224 @@ export function useGetExportTemplates<TData = Awaited<ReturnType<typeof getExpor
 
 
 
+
+export const getGetBrandSkillUrl = () => {
+
+
+
+
+  return `/api/brand/skill`
+}
+
+/**
+ * The instruction document the live Brand Guardian agent works from — voice pillars, narrative anchors, register rules. Editable from the Brand Room; edits apply to the next check immediately. In-memory only: resets to the governed default on server restart.
+ * @summary The editable Brand Guardian skill document
+ */
+export const getBrandSkill = async ( options?: RequestInit): Promise<BrandSkill> => {
+
+  return customFetch<BrandSkill>(getGetBrandSkillUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrandSkillQueryKey = () => {
+    return [
+    `/api/brand/skill`
+    ] as const;
+    }
+
+
+export const getGetBrandSkillQueryOptions = <TData = Awaited<ReturnType<typeof getBrandSkill>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandSkill>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrandSkillQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrandSkill>>> = ({ signal }) => getBrandSkill({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBrandSkill>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBrandSkillQueryResult = NonNullable<Awaited<ReturnType<typeof getBrandSkill>>>
+export type GetBrandSkillQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The editable Brand Guardian skill document
+ */
+
+export function useGetBrandSkill<TData = Awaited<ReturnType<typeof getBrandSkill>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandSkill>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBrandSkillQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateBrandSkillUrl = () => {
+
+
+
+
+  return `/api/brand/skill`
+}
+
+/**
+ * @summary Update the Brand Guardian skill document
+ */
+export const updateBrandSkill = async (brandSkillUpdate: BrandSkillUpdate, options?: RequestInit): Promise<BrandSkill> => {
+
+  return customFetch<BrandSkill>(getUpdateBrandSkillUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(brandSkillUpdate)
+  }
+);}
+
+
+
+
+export const getUpdateBrandSkillMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBrandSkill>>, TError,{data: BodyType<BrandSkillUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBrandSkill>>, TError,{data: BodyType<BrandSkillUpdate>}, TContext> => {
+
+const mutationKey = ['updateBrandSkill'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBrandSkill>>, {data: BodyType<BrandSkillUpdate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateBrandSkill(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBrandSkillMutationResult = NonNullable<Awaited<ReturnType<typeof updateBrandSkill>>>
+    export type UpdateBrandSkillMutationBody = BodyType<BrandSkillUpdate>
+    export type UpdateBrandSkillMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update the Brand Guardian skill document
+ */
+export const useUpdateBrandSkill = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBrandSkill>>, TError,{data: BodyType<BrandSkillUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBrandSkill>>,
+        TError,
+        {data: BodyType<BrandSkillUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateBrandSkillMutationOptions(options));
+    }
+
+export const getResetBrandSkillUrl = () => {
+
+
+
+
+  return `/api/brand/skill/reset`
+}
+
+/**
+ * @summary Reset the Brand Guardian skill to the governed default
+ */
+export const resetBrandSkill = async ( options?: RequestInit): Promise<BrandSkill> => {
+
+  return customFetch<BrandSkill>(getResetBrandSkillUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getResetBrandSkillMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetBrandSkill>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetBrandSkill>>, TError,void, TContext> => {
+
+const mutationKey = ['resetBrandSkill'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetBrandSkill>>, void> = () => {
+
+
+          return  resetBrandSkill(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetBrandSkillMutationResult = NonNullable<Awaited<ReturnType<typeof resetBrandSkill>>>
+
+    export type ResetBrandSkillMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Reset the Brand Guardian skill to the governed default
+ */
+export const useResetBrandSkill = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetBrandSkill>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetBrandSkill>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getResetBrandSkillMutationOptions(options));
+    }
 
 export const getCheckBrandTextUrl = () => {
 

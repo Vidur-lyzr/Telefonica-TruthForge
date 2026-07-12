@@ -643,6 +643,7 @@ export default function IngestionArea() {
           title={Q.resolveTitle}
           description={Q.resolveDesc(active.title, active.stage)}
           onClose={() => setActive(null)}
+          onDismiss={() => setActive(null)}
           button={{
             text: Q.releaseToPipeline,
             onPress: commitRelease,

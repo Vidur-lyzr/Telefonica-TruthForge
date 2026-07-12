@@ -183,6 +183,7 @@ export default function CorpusArea() {
       {selectedDocId && (
         <Drawer
           onClose={() => setSelectedDocId(null)}
+          onDismiss={() => setSelectedDocId(null)}
           title={docDetail?.document.title ?? c.documentFallback}
         >
         {isLoadingDetail ? (

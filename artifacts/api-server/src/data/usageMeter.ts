@@ -19,7 +19,8 @@ export type UsageModule =
   | "kpis"
   | "planning"
   | "wiki"
-  | "data";
+  | "data"
+  | "brand";
 
 export interface ModuleUsage {
   module: UsageModule;
@@ -29,7 +30,7 @@ export interface ModuleUsage {
   lastCallAt: string | null;
 }
 
-const MODULES: UsageModule[] = ["ask", "generate", "kpis", "planning", "wiki", "data"];
+const MODULES: UsageModule[] = ["ask", "generate", "kpis", "planning", "wiki", "data", "brand"];
 
 const STORE_PATH = join(process.cwd(), ".data", "usage-meter.json");
 

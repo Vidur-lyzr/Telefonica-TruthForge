@@ -78,6 +78,7 @@ function ActivityDrawer() {
           title={t.sessionActivity}
           description={t.activityDrawerDesc}
           onClose={() => setOpen(false)}
+          onDismiss={() => setOpen(false)}
         >
           {activity.length === 0 ? (
             <Box paddingY={40}>
@@ -129,7 +130,9 @@ function ActivityDrawer() {
 function DataCenterShell() {
   const { lang } = useApp();
   const t = DATA_I18N[lang];
-  const [areaIndex, setAreaIndex] = React.useState(0);
+  const [areaIndex, setAreaIndex] = React.useState(() =>
+    Math.max(0, AREA_DEFS.findIndex((a) => a.id === "corpus")),
+  );
   const area = AREA_DEFS[areaIndex].id;
 
   const { data: snapshot } = useGetIngestionSnapshot();

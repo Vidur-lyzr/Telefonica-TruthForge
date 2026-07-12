@@ -250,16 +250,18 @@ export default function ValidationArea() {
                 <Box padding={20}>
                   <Stack space={16}>
                     <Inline space="between" alignItems="center">
-                      <div style={{ minWidth: 0 }}>
-                        <Inline space={8} alignItems="center" wrap>
-                          <Text3 medium color={skinVars.colors.textPrimary}>
-                            {it.title}
-                          </Text3>
-                          {it.kind === "conflict" && <Tag type="warning">{t.sourceConflict}</Tag>}
-                        </Inline>
-                        <Text1 regular color={skinVars.colors.textSecondary}>
-                          {it.source}
-                        </Text1>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <Stack space={2}>
+                          <Inline space={8} alignItems="center" wrap>
+                            <Text3 medium color={skinVars.colors.textPrimary}>
+                              {it.title}
+                            </Text3>
+                            {it.kind === "conflict" && <Tag type="warning">{t.sourceConflict}</Tag>}
+                          </Inline>
+                          <Text1 regular color={skinVars.colors.textSecondary}>
+                            {it.source}
+                          </Text1>
+                        </Stack>
                       </div>
                       <Tag type={confidenceTagType(it.confidence)}>
                         {`${confidenceLabel(it.confidence, lang)} · ${Math.round(it.confidenceScore * 100)}%`}
@@ -368,7 +370,7 @@ export default function ValidationArea() {
                         </Box>
                       </Boxed>
                     ) : (
-                      <>
+                      <Stack space={12}>
                         <Grid columns={3} gap={12}>
                           <GridItem>
                             <Boxed>
@@ -479,7 +481,7 @@ export default function ValidationArea() {
                             {t.reject}
                           </ButtonLink>
                         </Inline>
-                      </>
+                      </Stack>
                     )}
                   </Stack>
                 </Box>
@@ -538,6 +540,7 @@ export default function ValidationArea() {
           title={t.editTitle}
           description={t.editDesc(editing.title)}
           onClose={() => setEditing(null)}
+          onDismiss={() => setEditing(null)}
           button={{ text: t.saveValidate, onPress: saveEdit }}
           secondaryButton={{ text: t.cancel, onPress: () => setEditing(null) }}
         >

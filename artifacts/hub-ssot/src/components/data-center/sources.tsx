@@ -29,6 +29,7 @@ import {
   IconCheckedRegular,
 } from "@telefonica/mistica";
 import { useDataCenter, type UploadedDoc } from "./state";
+import { SOURCE_LOGOS } from "./source-logos";
 import { sourceStatusTagType, sourceStatusLabel, clearanceLabel, localeFor } from "./helpers";
 import { useApp } from "../app-provider";
 import { DATA_I18N } from "../../i18n/data";
@@ -127,6 +128,7 @@ export default function SourcesArea() {
 
       <Grid columns={2} gap={16}>
         {sourcesWithSession.map((s) => {
+          const Logo = SOURCE_LOGOS[s.id];
           const Icon = SOURCE_ICON[s.status] ?? IconDatabaseConnectedRegular;
           return (
             <GridItem key={s.id}>
@@ -135,8 +137,17 @@ export default function SourcesArea() {
                   <Stack space={16}>
                     <Inline space="between" alignItems="center">
                       <Inline space={12} alignItems="center">
-                        <Circle size={44} backgroundColor={skinVars.colors.brandLow}>
-                          <Icon size={20} color={skinVars.colors.brand} />
+                        <Circle
+                          size={44}
+                          backgroundColor={
+                            Logo ? skinVars.colors.neutralLow : skinVars.colors.brandLow
+                          }
+                        >
+                          {Logo ? (
+                            <Logo size={22} />
+                          ) : (
+                            <Icon size={20} color={skinVars.colors.brand} />
+                          )}
                         </Circle>
                         <Stack space={2}>
                           <Title3>{s.name}</Title3>
@@ -232,6 +243,7 @@ export default function SourcesArea() {
           title={s2.uploadTitle}
           description={s2.uploadDesc}
           onClose={() => setDialogOpen(false)}
+          onDismiss={() => setDialogOpen(false)}
           button={{
             text: s2.addToIntake,
             onPress: commitUpload,

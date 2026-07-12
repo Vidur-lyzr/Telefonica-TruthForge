@@ -25,6 +25,8 @@ export * from './brandCheckInput';
 export * from './brandResource';
 export * from './brandResourcesView';
 export * from './brandRule';
+export * from './brandSkill';
+export * from './brandSkillUpdate';
 export * from './brandTemplate';
 export * from './brandTemplateDetailView';
 export * from './brandTemplateDisclaimer';
