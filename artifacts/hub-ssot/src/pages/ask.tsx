@@ -13,6 +13,7 @@ import {
   Citation,
 } from "@workspace/api-client-react";
 import { useApp, type Lang } from "@/components/app-provider";
+import { UI, apiLang } from "@/i18n";
 import { streamAsk, type AskStep } from "@/hooks/ask-stream";
 import { Streamdown } from "streamdown";
 import {
@@ -350,6 +351,7 @@ export default function Ask() {
       history,
       filters: activeFilters,
       attachment: sentAttachment,
+      lang: apiLang(lang),
     };
 
     // Stream the run: real step events and token deltas as they happen, then
@@ -620,9 +622,9 @@ function ConversationHeader({
           <IconRobotRegular size={20} color={skinVars.colors.brand} />
         </Circle>
         <Stack space={2}>
-          <Text3 medium>Governed assistant</Text3>
+          <Text3 medium>{UI[lang].ask.assistant}</Text3>
           <Text1 regular color={skinVars.colors.textSecondary}>
-            Scope: {area} · answers are cited, permission-aware and honest
+            {UI[lang].ask.scopeLine(area)}
           </Text1>
         </Stack>
       </Inline>
@@ -646,7 +648,7 @@ function ConversationHeader({
           Icon={IconFunnelRegular}
           badge={filtersActive}
         >
-          Filters
+          {UI[lang].ask.filters}
         </Chip>
       </Inline>
     </div>

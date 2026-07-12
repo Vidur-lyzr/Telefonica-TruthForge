@@ -888,12 +888,13 @@ function BriefForm({
   onGenerate: (v: BriefValues) => void;
   isPending: boolean;
 }) {
+  const { lang: globalLang } = useApp();
   const { data: axes } = useListAxes();
   const [mode, setMode] = React.useState<"form" | "chat">("form");
   const [shape, setShape] = React.useState<Shape>("messaging");
   const [topic, setTopic] = React.useState("");
   const [audience, setAudience] = React.useState<Audience>("internal");
-  const [language, setLanguage] = React.useState("en");
+  const [language, setLanguage] = React.useState(() => globalLang.toLowerCase());
   const [axisIds, setAxisIds] = React.useState<string[]>([]);
   const [confidentiality, setConfidentiality] = React.useState("private");
   const [spokesperson, setSpokesperson] = React.useState("");

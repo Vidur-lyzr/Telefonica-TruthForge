@@ -14,10 +14,20 @@ interface AppState {
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
+// The product opens in the reader's browser language when it is one of the
+// four corpus languages, falling back to Spanish (the primary market).
+function detectInitialLang(): Lang {
+  const raw =
+    typeof navigator !== "undefined" && navigator.language
+      ? navigator.language.slice(0, 2).toUpperCase()
+      : "ES";
+  return raw === "EN" || raw === "DE" || raw === "PT" ? (raw as Lang) : "ES";
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [area, setArea] = useState<Area>("Comunicación");
   const [roleId, setRoleId] = useState<string>("");
-  const [lang, setLang] = useState<Lang>("ES");
+  const [lang, setLang] = useState<Lang>(detectInitialLang);
 
   return (
     <AppContext.Provider

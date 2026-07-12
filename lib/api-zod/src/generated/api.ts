@@ -43,7 +43,8 @@ export const AskBody = zod.object({
   "name": zod.string(),
   "content": zod.string(),
   "ingest": zod.boolean().optional()
-}).describe('Working-context document. Never enters the corpus unless ingest is true.'),zod.null()]).optional()
+}).describe('Working-context document. Never enters the corpus unless ingest is true.'),zod.null()]).optional(),
+  "lang": zod.enum(['es', 'en', 'de', 'pt']).optional().describe('Preferred answer language. When present, the agent composes its answer in this language regardless of the question\'s language. Absent means mirror the question\'s language.\n')
 })
 
 export const AskResponse = zod.object({
@@ -857,7 +858,8 @@ export const AskStreamBody = zod.object({
   "name": zod.string(),
   "content": zod.string(),
   "ingest": zod.boolean().optional()
-}).describe('Working-context document. Never enters the corpus unless ingest is true.'),zod.null()]).optional()
+}).describe('Working-context document. Never enters the corpus unless ingest is true.'),zod.null()]).optional(),
+  "lang": zod.enum(['es', 'en', 'de', 'pt']).optional().describe('Preferred answer language. When present, the agent composes its answer in this language regardless of the question\'s language. Absent means mirror the question\'s language.\n')
 })
 
 export const AskStreamResponse = zod.unknown()

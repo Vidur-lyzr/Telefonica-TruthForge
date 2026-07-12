@@ -2365,6 +2365,13 @@ components:
           oneOf:
             - $ref: "#/components/schemas/AskAttachment"
             - type: "null"
+        lang:
+          type: string
+          enum: [es, en, de, pt]
+          description: >
+            Preferred answer language. When present, the agent composes its
+            answer in this language regardless of the question's language.
+            Absent means mirror the question's language.
 
     AskResult:
       type: object

@@ -14,6 +14,7 @@ export * from './askAttachment';
 export * from './askFilters';
 export * from './askHandoffContext';
 export * from './askInput';
+export * from './askInputLang';
 export * from './askResult';
 export * from './askSignals';
 export * from './askTurn';

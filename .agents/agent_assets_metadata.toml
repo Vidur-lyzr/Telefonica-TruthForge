@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "jA1xJ6-BFDcBRGTTP4xXm"
+uri = "file://docs/RAG_COVERAGE.md"
+type = "text"
+title = "RAG Requirements Coverage — PC2–PC5"

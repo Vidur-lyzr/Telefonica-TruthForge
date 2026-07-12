@@ -120,13 +120,6 @@ const COPY: Record<Lang, { placeholder: string; honesty: string; subtitle: strin
   },
 };
 
-function detectLang(): Lang {
-  const raw =
-    typeof navigator !== "undefined" && navigator.language
-      ? navigator.language.slice(0, 2).toLowerCase()
-      : "en";
-  return raw === "es" || raw === "de" || raw === "pt" ? (raw as Lang) : "en";
-}
 
 function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
@@ -389,7 +382,7 @@ function HealthStat({
 }
 
 export default function Home() {
-  const { roleId, area } = useApp();
+  const { roleId, area, lang: globalLang } = useApp();
   const [, navigate] = useLocation();
   const params = React.useMemo(
     () => (roleId ? { roleId, area } : undefined),
@@ -405,7 +398,7 @@ export default function Home() {
   const { data: roles } = useListRoles();
   const { data: suggestions } = useListSuggestions();
 
-  const lang = React.useMemo(detectLang, []);
+  const lang = globalLang.toLowerCase() as Lang;
 
   const activeRole = roles?.find((r) => r.id === roleId);
   const clearance = activeRole?.clearance ?? "public";

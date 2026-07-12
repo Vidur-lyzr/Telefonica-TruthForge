@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { useApp } from "./app-provider";
+import { useApp, type Lang } from "./app-provider";
+import { UI, type ChromeStrings } from "../i18n";
 import { useListRoles } from "@workspace/api-client-react";
 import {
   Logo,
@@ -33,30 +34,34 @@ type NavItemDef = {
   icon: React.ComponentType<{ size?: number; color?: string }>;
 };
 
-const navGroups: { label: string; items: NavItemDef[] }[] = [
-  {
-    label: "Workspace",
-    items: [
-      { name: "Home", path: "/", icon: IconHomeRegular },
-      { name: "Ask", path: "/ask", icon: IconChatRegular },
-      { name: "Generate", path: "/generate", icon: IconAiChatRegular },
-      { name: "KPIs", path: "/kpis", icon: IconBarChartRegular },
-      { name: "Planning", path: "/planning", icon: IconCalendarRegular },
-    ],
-  },
-  {
-    label: "Knowledge",
-    items: [{ name: "Wiki", path: "/wiki", icon: IconBookRegular }],
-  },
-  {
-    label: "Backend",
-    items: [
-      { name: "Data Center", path: "/data", icon: IconDatabaseRegular },
-      { name: "Admin", path: "/admin", icon: IconSettingsRegular },
-      { name: "Brand", path: "/brand", icon: IconShieldCheckedOkRegular },
-    ],
-  },
-];
+// Nav labels come from the chrome dictionary so the product-level language
+// switcher visibly changes the shell, not just the answers.
+function buildNavGroups(t: ChromeStrings): { label: string; items: NavItemDef[] }[] {
+  return [
+    {
+      label: t.navGroups.workspace,
+      items: [
+        { name: t.nav.home, path: "/", icon: IconHomeRegular },
+        { name: t.nav.ask, path: "/ask", icon: IconChatRegular },
+        { name: t.nav.generate, path: "/generate", icon: IconAiChatRegular },
+        { name: t.nav.kpis, path: "/kpis", icon: IconBarChartRegular },
+        { name: t.nav.planning, path: "/planning", icon: IconCalendarRegular },
+      ],
+    },
+    {
+      label: t.navGroups.knowledge,
+      items: [{ name: t.nav.wiki, path: "/wiki", icon: IconBookRegular }],
+    },
+    {
+      label: t.navGroups.backend,
+      items: [
+        { name: t.nav.data, path: "/data", icon: IconDatabaseRegular },
+        { name: t.nav.admin, path: "/admin", icon: IconSettingsRegular },
+        { name: t.nav.brand, path: "/brand", icon: IconShieldCheckedOkRegular },
+      ],
+    },
+  ];
+}
 
 function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) {
   const [location, navigate] = useLocation();
@@ -102,6 +107,8 @@ function Sidebar({
   onToggle: () => void;
 }) {
   const [, navigate] = useLocation();
+  const { lang } = useApp();
+  const navGroups = React.useMemo(() => buildNavGroups(UI[lang]), [lang]);
 
   return (
     <nav
@@ -186,7 +193,8 @@ function Sidebar({
 }
 
 function Topbar() {
-  const { area, setArea, roleId, setRoleId } = useApp();
+  const { area, setArea, roleId, setRoleId, lang, setLang } = useApp();
+  const t = UI[lang];
   const { data: roles } = useListRoles();
 
   React.useEffect(() => {
@@ -213,10 +221,25 @@ function Topbar() {
       </Text4>
 
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ width: 150 }}>
+          <Select
+            name="language"
+            label={t.topbar.language}
+            value={lang}
+            onChangeValue={(v) => setLang(v as Lang)}
+            options={[
+              { value: "ES", text: "Español" },
+              { value: "EN", text: "English" },
+              { value: "DE", text: "Deutsch" },
+              { value: "PT", text: "Português" },
+            ]}
+            fullWidth
+          />
+        </div>
         <div style={{ width: 180 }}>
           <Select
             name="area"
-            label="Area"
+            label={t.topbar.area}
             value={area}
             onChangeValue={(v) => setArea(v as "Comunicación" | "Marca" | "Gabinete")}
             options={[
@@ -230,7 +253,7 @@ function Topbar() {
         <div style={{ width: 280 }}>
           <Select
             name="persona"
-            label="Persona"
+            label={t.topbar.persona}
             value={roleId}
             onChangeValue={setRoleId}
             options={(roles ?? []).map((r) => ({

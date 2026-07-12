@@ -7,6 +7,7 @@
  */
 import type { AskAttachment } from './askAttachment';
 import type { AskFilters } from './askFilters';
+import type { AskInputLang } from './askInputLang';
 import type { AskTurn } from './askTurn';
 
 export interface AskInput {
@@ -20,4 +21,6 @@ export interface AskInput {
   history?: AskTurn[];
   filters?: AskFilters | null;
   attachment?: AskAttachment | null;
+  /** Preferred answer language. When present, the agent composes its answer in this language regardless of the question's language. Absent means mirror the question's language. */
+  lang?: AskInputLang;
 }
