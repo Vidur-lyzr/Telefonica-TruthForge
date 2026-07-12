@@ -25,9 +25,12 @@ export interface HomeStrings {
   radarCalmTitle: string;
   radarCalmBody: string;
   knowledgeHealth: string;
+  knowledgeHealthInfo: string;
   sourcesYouCanCite: string;
   documents: (n: number) => string;
   validated: string;
+  validatedInfo: string;
+  strategicAxis: string;
   languages: string;
   lastUpdated: string;
   quarantined: string;
@@ -88,9 +91,14 @@ export const HOME_I18N: Record<Lang, HomeStrings> = {
     radarCalmBody:
       "Nothing needs your attention right now. Ask a question to explore the governed corpus.",
     knowledgeHealth: "Knowledge health",
+    knowledgeHealthInfo:
+      "Live status of the governed knowledge core: how many sources your persona can cite, how much of the corpus is validated, and how fresh it is.",
     sourcesYouCanCite: "Sources you can cite",
     documents: (n) => `${n} documents`,
     validated: "Validated",
+    validatedInfo:
+      "Share of governed documents approved by their owner. The rest is under review, historic or superseded — the Hub flags those states in every answer.",
+    strategicAxis: "Strategic axis",
     languages: "Languages",
     lastUpdated: "Last updated",
     quarantined: "Quarantined",
@@ -150,9 +158,14 @@ export const HOME_I18N: Record<Lang, HomeStrings> = {
     radarCalmBody:
       "Nada requiere tu atención en este momento. Haz una pregunta para explorar el corpus gobernado.",
     knowledgeHealth: "Salud del conocimiento",
+    knowledgeHealthInfo:
+      "Estado en vivo del núcleo de conocimiento gobernado: cuántas fuentes puede citar tu persona, qué parte del corpus está validada y qué tan reciente es.",
     sourcesYouCanCite: "Fuentes que puedes citar",
     documents: (n) => `${n} documentos`,
     validated: "Validado",
+    validatedInfo:
+      "Proporción de documentos gobernados aprobados por su responsable. El resto está en revisión, es histórico o ha sido reemplazado — el Hub señala esos estados en cada respuesta.",
+    strategicAxis: "Eje estratégico",
     languages: "Idiomas",
     lastUpdated: "Última actualización",
     quarantined: "En cuarentena",
@@ -212,9 +225,14 @@ export const HOME_I18N: Record<Lang, HomeStrings> = {
     radarCalmBody:
       "Im Moment erfordert nichts Ihre Aufmerksamkeit. Stellen Sie eine Frage, um den kontrollierten Korpus zu erkunden.",
     knowledgeHealth: "Wissensgesundheit",
+    knowledgeHealthInfo:
+      "Live-Status des kontrollierten Wissenskerns: wie viele Quellen Ihre Persona zitieren kann, wie viel des Korpus validiert ist und wie aktuell er ist.",
     sourcesYouCanCite: "Zitierbare Quellen",
     documents: (n) => `${n} Dokumente`,
     validated: "Validiert",
+    validatedInfo:
+      "Anteil der kontrollierten Dokumente, die von ihren Verantwortlichen freigegeben wurden. Der Rest ist in Prüfung, historisch oder überholt — der Hub kennzeichnet diese Zustände in jeder Antwort.",
+    strategicAxis: "Strategische Achse",
     languages: "Sprachen",
     lastUpdated: "Zuletzt aktualisiert",
     quarantined: "In Quarantäne",
@@ -274,9 +292,14 @@ export const HOME_I18N: Record<Lang, HomeStrings> = {
     radarCalmBody:
       "Nada precisa da sua atenção neste momento. Faça uma pergunta para explorar o corpus governado.",
     knowledgeHealth: "Saúde do conhecimento",
+    knowledgeHealthInfo:
+      "Estado ao vivo do núcleo de conhecimento governado: quantas fontes sua persona pode citar, quanto do corpus está validado e quão recente ele é.",
     sourcesYouCanCite: "Fontes que você pode citar",
     documents: (n) => `${n} documentos`,
     validated: "Validado",
+    validatedInfo:
+      "Parcela dos documentos governados aprovados por seu responsável. O restante está em revisão, é histórico ou foi substituído — o Hub sinaliza esses estados em cada resposta.",
+    strategicAxis: "Eixo estratégico",
     languages: "Idiomas",
     lastUpdated: "Última atualização",
     quarantined: "Em quarentena",

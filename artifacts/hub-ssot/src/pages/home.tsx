@@ -33,7 +33,9 @@ import {
   Title2,
   SkeletonLine,
   ProgressBar,
+  Tooltip,
   skinVars,
+  IconInformationRegular,
   IconSendRegular,
   IconAiRegular,
   IconBarChartRegular,
@@ -223,10 +225,12 @@ function AppCard({
 function RadarRow({
   item,
   axisColor,
+  axisName,
   t,
 }: {
   item: RadarItem;
   axisColor?: string;
+  axisName?: string;
   t: HomeStrings;
 }) {
   const [, navigate] = useLocation();
@@ -239,7 +243,10 @@ function RadarRow({
   return (
     <Touchable onPress={() => navigate(item.href)} aria-label={item.title}>
       <Box padding={16}>
-        <Inline space={16} alignItems="center">
+        {/* Raw flex row (not Inline): Inline wraps children in its own boxes,
+            which breaks the flex:1 push that pins the axis dot to the right
+            and vertically centers it. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <Circle
             size={36}
             backgroundColor={warning ? skinVars.colors.warningLow : skinVars.colors.brandLow}
@@ -287,18 +294,29 @@ function RadarRow({
             </Stack>
           </div>
           {axisColor && (
-            <div
-              aria-hidden
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: skinVars.borderRadii.avatar,
-                backgroundColor: axisColor,
+            <Tooltip
+              target={
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: skinVars.borderRadii.avatar,
+                    backgroundColor: axisColor,
+                  }}
+                />
+              }
+              targetStyle={{
                 flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
               }}
+              description={
+                axisName ? `${t.strategicAxis}: ${axisName}` : t.strategicAxis
+              }
+              position="left"
             />
           )}
-        </Inline>
+        </div>
       </Box>
     </Touchable>
   );
@@ -364,6 +382,12 @@ export default function Home() {
   const axisColor = React.useMemo(() => {
     const map = new Map<string, string>();
     for (const a of axes ?? []) map.set(a.id, a.color);
+    return (id?: string | null) => (id ? map.get(id) : undefined);
+  }, [axes]);
+
+  const axisName = React.useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of axes ?? []) map.set(a.id, a.name);
     return (id?: string | null) => (id ? map.get(id) : undefined);
   }, [axes]);
 
@@ -450,7 +474,12 @@ export default function Home() {
             {radarItems.map((item, i) => (
               <React.Fragment key={item.id}>
                 {i > 0 && <Divider />}
-                <RadarRow item={item} axisColor={axisColor(item.axisId)} t={t} />
+                <RadarRow
+                  item={item}
+                  axisColor={axisColor(item.axisId)}
+                  axisName={axisName(item.axisId)}
+                  t={t}
+                />
               </React.Fragment>
             ))}
           </Stack>
@@ -482,6 +511,17 @@ export default function Home() {
       <Inline space={8} alignItems="center">
         <IconShieldCheckedOkRegular size={20} color={skinVars.colors.brand} />
         <Title2>{t.knowledgeHealth}</Title2>
+        <Tooltip
+          target={
+            <IconInformationRegular
+              size={16}
+              color={skinVars.colors.textSecondary}
+            />
+          }
+          targetStyle={{ display: "flex", alignItems: "center" }}
+          description={t.knowledgeHealthInfo}
+          position="bottom"
+        />
       </Inline>
 
       <Boxed>
@@ -496,9 +536,22 @@ export default function Home() {
             <Divider />
             <Stack space={8}>
               <Inline space="between" alignItems="center">
-                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  {t.validated}
-                </Text1>
+                <Inline space={4} alignItems="center">
+                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                    {t.validated}
+                  </Text1>
+                  <Tooltip
+                    target={
+                      <IconInformationRegular
+                        size={14}
+                        color={skinVars.colors.textSecondary}
+                      />
+                    }
+                    targetStyle={{ display: "flex", alignItems: "center" }}
+                    description={t.validatedInfo}
+                    position="top"
+                  />
+                </Inline>
                 {!statsLoad && (
                   <Text2 medium color={skinVars.colors.textPrimary}>
                     {stats?.validatedPercent ?? 0}%

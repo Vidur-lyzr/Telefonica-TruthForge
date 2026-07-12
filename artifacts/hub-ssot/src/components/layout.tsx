@@ -10,7 +10,9 @@ import {
   Text1,
   Text2,
   Text4,
-  Select,
+  Menu,
+  MenuItem,
+  IconChevronDownRegular,
   skinVars,
   IconHomeRegular,
   IconChatRegular,
@@ -192,6 +194,81 @@ function Sidebar({
   );
 }
 
+// Compact one-line "label: value" picker built from Mística primitives
+// (Touchable + Menu), so the topbar stays thin without leaving the design
+// system. The full-height labeled Select is deliberately not used here.
+function CompactSelect({
+  label,
+  value,
+  options,
+  onChange,
+  menuWidth,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; text: string }[];
+  onChange: (v: string) => void;
+  menuWidth?: number;
+}) {
+  const current = options.find((o) => o.value === value);
+  return (
+    <Menu
+      position="right"
+      width={menuWidth}
+      renderTarget={({ ref, onPress, isMenuOpen }) => (
+        <Touchable
+          onPress={onPress}
+          aria-label={`${label}: ${current?.text ?? ""}`}
+        >
+          <div
+            ref={ref}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 10px",
+              borderRadius: skinVars.borderRadii.button,
+              border: `1px solid ${skinVars.colors.border}`,
+              backgroundColor: isMenuOpen
+                ? skinVars.colors.brandLow
+                : "transparent",
+              transition: "background-color 150ms ease",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+              {label}
+            </Text1>
+            <Text2 medium color={skinVars.colors.textPrimary}>
+              {current?.text ?? "—"}
+            </Text2>
+            <IconChevronDownRegular
+              size={12}
+              color={skinVars.colors.neutralMedium}
+            />
+          </div>
+        </Touchable>
+      )}
+      renderMenu={({ ref, className, close }) => (
+        <div ref={ref} className={className}>
+          {options.map((o) => (
+            <MenuItem
+              key={o.value}
+              label={o.text}
+              controlType="checkbox"
+              checked={o.value === value}
+              onPress={() => {
+                onChange(o.value);
+                close();
+              }}
+            />
+          ))}
+        </div>
+      )}
+    />
+  );
+}
+
 function Topbar() {
   const { area, setArea, roleId, setRoleId, lang, setLang } = useApp();
   const t = UI[lang];
@@ -210,7 +287,7 @@ function Topbar() {
         alignItems: "center",
         justifyContent: "space-between",
         gap: 16,
-        padding: "12px 24px",
+        padding: "6px 24px",
         flexShrink: 0,
         backgroundColor: skinVars.colors.backgroundContainer,
         borderBottom: `1px solid ${skinVars.colors.divider}`,
@@ -220,49 +297,38 @@ function Topbar() {
         Hub SSoT
       </Text4>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div style={{ width: 150 }}>
-          <Select
-            name="language"
-            label={t.topbar.language}
-            value={lang}
-            onChangeValue={(v) => setLang(v as Lang)}
-            options={[
-              { value: "ES", text: "Español" },
-              { value: "EN", text: "English" },
-              { value: "DE", text: "Deutsch" },
-              { value: "PT", text: "Português" },
-            ]}
-            fullWidth
-          />
-        </div>
-        <div style={{ width: 180 }}>
-          <Select
-            name="area"
-            label={t.topbar.area}
-            value={area}
-            onChangeValue={(v) => setArea(v as "Comunicación" | "Marca" | "Gabinete")}
-            options={[
-              { value: "Comunicación", text: "Comunicación" },
-              { value: "Marca", text: "Marca" },
-              { value: "Gabinete", text: "Gabinete" },
-            ]}
-            fullWidth
-          />
-        </div>
-        <div style={{ width: 280 }}>
-          <Select
-            name="persona"
-            label={t.topbar.persona}
-            value={roleId}
-            onChangeValue={setRoleId}
-            options={(roles ?? []).map((r) => ({
-              value: r.id,
-              text: `${r.label} (${r.clearance})`,
-            }))}
-            fullWidth
-          />
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <CompactSelect
+          label={t.topbar.language}
+          value={lang}
+          onChange={(v) => setLang(v as Lang)}
+          options={[
+            { value: "ES", text: "Español" },
+            { value: "EN", text: "English" },
+            { value: "DE", text: "Deutsch" },
+            { value: "PT", text: "Português" },
+          ]}
+        />
+        <CompactSelect
+          label={t.topbar.area}
+          value={area}
+          onChange={(v) => setArea(v as "Comunicación" | "Marca" | "Gabinete")}
+          options={[
+            { value: "Comunicación", text: "Comunicación" },
+            { value: "Marca", text: "Marca" },
+            { value: "Gabinete", text: "Gabinete" },
+          ]}
+        />
+        <CompactSelect
+          label={t.topbar.persona}
+          value={roleId}
+          onChange={setRoleId}
+          menuWidth={320}
+          options={(roles ?? []).map((r) => ({
+            value: r.id,
+            text: `${r.label} (${r.clearance})`,
+          }))}
+        />
       </div>
     </header>
   );
