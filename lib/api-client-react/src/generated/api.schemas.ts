@@ -535,6 +535,110 @@ export interface AuditEntry {
   detail: string;
 }
 
+export interface RetrievalLogHit {
+  chunkId: string;
+  docId: string;
+  score: number;
+  accessible: boolean;
+}
+
+export interface RetrievalLogEvent {
+  /** qdrant | native */
+  engine: string;
+  /** Truncated retrieval query (max 120 chars) — never chunk text */
+  query: string;
+  /** Human-readable governance filter applied inside the search */
+  filterExpr: string;
+  hits: RetrievalLogHit[];
+}
+
+export interface RetrievalLogEntry {
+  id: string;
+  timestamp: string;
+  /** ask | generate */
+  surface: string;
+  /** @nullable */
+  roleId: string | null;
+  /** @nullable */
+  roleLabel: string | null;
+  clearance: string;
+  /** @nullable */
+  area: string | null;
+  /**
+     * Final outcome set by the agent (answered, no_evidence, permission_blocked, drafted, ...)
+     * @nullable
+     */
+  status: string | null;
+  events: RetrievalLogEvent[];
+}
+
+export interface RetrievalLogPage {
+  total: number;
+  items: RetrievalLogEntry[];
+}
+
+export interface SourceSyncDelta {
+  id: string;
+  docId: string;
+  docTitle: string;
+  from: string;
+  to: string;
+  /** upgrade | downgrade */
+  kind: string;
+  requestedAt: string;
+  requestedBy: string;
+  /** @nullable */
+  appliedAt: string | null;
+  /**
+     * webhook (immediate upgrade) | batch (applied by a sync run) | null while pending
+     * @nullable
+     */
+  mode: string | null;
+}
+
+export interface SourceSyncRun {
+  id: string;
+  ranAt: string;
+  actor: string;
+  appliedCount: number;
+}
+
+export interface SourceSyncDocState {
+  docId: string;
+  title: string;
+  type: string;
+  category: string;
+  /** Confidentiality currently enforced by retrieval */
+  indexLabel: string;
+  /** Confidentiality asserted by the simulated source system */
+  sourceLabel: string;
+  pending: boolean;
+}
+
+export interface SourceSyncState {
+  connector: string;
+  docs: SourceSyncDocState[];
+  pendingDeltas: SourceSyncDelta[];
+  appliedDeltas: SourceSyncDelta[];
+  runs: SourceSyncRun[];
+}
+
+export interface SetSourceLabelInput {
+  docId: string;
+  /** public | internal | private | confidential | off_the_record */
+  confidentiality: string;
+  actor?: string;
+}
+
+export interface PublishReviewItemResult {
+  docId: string;
+  title: string;
+  version: number;
+  upsertedChunks: number;
+  /** @nullable */
+  supersededDocId: string | null;
+}
+
 export interface SuggestedQuery {
   id: string;
   text: string;
@@ -2296,6 +2400,13 @@ roleId?: string;
  * Active area — Comunicación | Marca | Gabinete
  */
 area?: string;
+};
+
+export type ListRetrievalLogParams = {
+docId?: string;
+roleId?: string;
+limit?: number;
+offset?: number;
 };
 
 export type GetPlanningOverviewParams = {

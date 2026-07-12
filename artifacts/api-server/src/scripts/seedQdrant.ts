@@ -7,6 +7,10 @@
 // script: it is a `set_payload` operation at runtime.
 
 import { DOCS } from "../data/corpus";
+// Side-effect import: replays previously applied source-sync deltas onto DOCS
+// at module init, so a reseed writes post-delta governance labels, never the
+// original seed labels.
+import "../data/sourceSync";
 import { currentTaxonomyVersion } from "../data/governance";
 import {
   ensureCollection,

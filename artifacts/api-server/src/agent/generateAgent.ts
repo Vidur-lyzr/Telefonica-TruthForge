@@ -14,6 +14,10 @@
 
 import { meteredCreate } from "./metering";
 import { retrieve, resolveDoc } from "../adapters/kb";
+import {
+  beginRetrievalAudit,
+  finalizeRetrievalAudit,
+} from "../data/retrievalLog";
 import { listKpis, type KpiCard } from "../adapters/kpi";
 import { queryAll as numericQueryAll, querySeries } from "../adapters/numeric";
 import {
@@ -364,6 +368,17 @@ async function compose(
       | Clearance
       | undefined) ?? "public";
 
+  // F3 — one audit entry per generation run; every retrieval pass (body,
+  // Ask-handoff, refine-instruction, guidance) appends an event, and the
+  // final draft status is stamped at whichever exit this run takes.
+  const auditId = beginRetrievalAudit({
+    surface: "generate",
+    roleId: role.id,
+    roleLabel: role.label,
+    clearance,
+    area: role.area,
+  });
+
   const axisNames = (input.axisIds ?? [])
     .map((id) => AXES.find((a) => a.id === id)?.name ?? "")
     .filter(Boolean)
@@ -486,12 +501,22 @@ async function compose(
   // relevant sources the dual filter excluded. Nothing above the effective
   // (dual-filtered) rank ever reaches the model: permitted is re-capped below.
   onStage?.("retrieving");
-  const retrieved = retrieve({ question: retrievalQuery, clearance, topK: 12 });
+  const retrieved = retrieve({
+    question: retrievalQuery,
+    clearance,
+    topK: 12,
+    audit: { id: auditId },
+  });
   if (askQueryText && askQueryText !== input.topic) {
     // Ask handoff: also retrieve for the original question itself (its own
     // coverage-gated pass, never folded into the main query — coverage is a
     // ratio, so mixing two texts would dilute both).
-    const extra = retrieve({ question: askQueryText, clearance, topK: 8 });
+    const extra = retrieve({
+      question: askQueryText,
+      clearance,
+      topK: 8,
+      audit: { id: auditId },
+    });
     const seen = new Set(retrieved.map((c) => c.chunkId));
     for (const c of extra) {
       if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
@@ -504,7 +529,12 @@ async function compose(
     // Refine: also retrieve for the instruction itself (e.g. "add the dividend
     // figure") so newly requested material can enter, judged by its own
     // coverage against the instruction query alone.
-    const extra = retrieve({ question: instruction, clearance, topK: 6 });
+    const extra = retrieve({
+      question: instruction,
+      clearance,
+      topK: 6,
+      audit: { id: auditId },
+    });
     const seen = new Set(retrieved.map((c) => c.chunkId));
     for (const c of extra) {
       if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
@@ -580,6 +610,7 @@ async function compose(
 
   if (relevant.length === 0) {
     log.info({ topic: input.topic, roleId: role.id }, "generate: no_evidence");
+    finalizeRetrievalAudit(auditId, "no_evidence");
     return {
       id: baseDraft?.id ?? newId("draft"),
       status: "no_evidence",
@@ -624,6 +655,7 @@ async function compose(
       { topic: input.topic, roleId: role.id, audience, need },
       "generate: permission_blocked",
     );
+    finalizeRetrievalAudit(auditId, "permission_blocked");
     return {
       id: baseDraft?.id ?? newId("draft"),
       status: "permission_blocked",
@@ -711,6 +743,7 @@ async function compose(
       question: `${retrievalQuery} spokesperson holding line do not confirm guidance`,
       clearance: bodyClearance,
       topK: 8,
+      audit: { id: auditId },
     });
     guidanceChunks = gRetrieved
       .filter((c) => c.accessible)
@@ -1168,6 +1201,7 @@ ${jsonShape}${refineBlock}`;
     },
     "generate: drafted",
   );
+  finalizeRetrievalAudit(auditId, "drafted");
 
   return draft;
 }

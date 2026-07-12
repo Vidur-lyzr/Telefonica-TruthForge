@@ -39,6 +39,10 @@ import {
   type Clearance,
 } from "../data/corpus";
 import { resolveDocAccess } from "../data/governance";
+import {
+  beginRetrievalAudit,
+  finalizeRetrievalAudit,
+} from "../data/retrievalLog";
 
 type DocAccessTarget = { confidentiality: Clearance; areas: Area[] };
 type CanReadDoc = (doc: DocAccessTarget) => boolean;
@@ -420,6 +424,17 @@ export async function runAskAgent(
     for (const t of [...recentUserTurns].reverse()) candidateQueries.push(t);
   }
 
+  // F3 — one audit entry per question; every retrieval pass (including the
+  // model's own tool calls later) appends an event to it, and the final
+  // status is stamped at whichever exit this request takes.
+  const auditId = beginRetrievalAudit({
+    surface: "ask",
+    roleId: role.id,
+    roleLabel: role.label,
+    clearance,
+    area: role.area,
+  });
+
   let retrievalQuery = candidateQueries[0];
   let retrieved: Awaited<ReturnType<typeof retrieveGoverned>>["chunks"] = [];
   let engineDetail = "";
@@ -432,6 +447,7 @@ export async function runAskAgent(
         area: role.area,
         topK: 8,
         filters,
+        audit: { id: auditId },
       },
       log,
     );
@@ -482,6 +498,7 @@ export async function runAskAgent(
     const nearDoc = near ? resolveDoc(near.docId) : undefined;
     const nearAccessible = Boolean(near && nearDoc && canReadDoc(nearDoc));
     log.info({ q: input.question, roleId: role.id }, "ask: no_evidence");
+    finalizeRetrievalAudit(auditId, "no_evidence");
     emit?.({
       type: "step",
       id: "decide",
@@ -528,6 +545,7 @@ export async function runAskAgent(
       { q: input.question, roleId: role.id, pair: conflict.pair },
       "ask: conflict",
     );
+    finalizeRetrievalAudit(auditId, "conflict");
     emit?.({
       type: "step",
       id: "decide",
@@ -574,6 +592,7 @@ export async function runAskAgent(
       { q: input.question, roleId: role.id, need, areaBlocked: areaBlocked.length },
       "ask: permission_blocked",
     );
+    finalizeRetrievalAudit(auditId, "permission_blocked");
     emit?.({
       type: "step",
       id: "decide",
@@ -663,7 +682,7 @@ export async function runAskAgent(
   // Governed tools the agent may call during composition. Everything they
   // return is already clearance-filtered — the agent can look further, but it
   // can never see past the persona's clearance.
-  const agentTools = buildGovernedTools(clearance, filters, role.area);
+  const agentTools = buildGovernedTools(clearance, filters, role.area, auditId);
 
   throwIfAborted();
 
@@ -890,6 +909,7 @@ export async function runAskAgent(
     { q: input.question, roleId: role.id, sources: citations.length, historic },
     "ask: answered",
   );
+  finalizeRetrievalAudit(auditId, "answered");
 
   emit?.({
     type: "step",
@@ -949,6 +969,7 @@ function buildGovernedTools(
   clearance: Clearance,
   filters: RetrieveFilters | null | undefined,
   area: Area | null = null,
+  auditId: string | null = null,
 ) {
   return [
     tool(
@@ -968,6 +989,7 @@ function buildGovernedTools(
           area,
           topK: 4,
           filters,
+          audit: auditId ? { id: auditId } : null,
         }).filter((c) => c.accessible);
         if (hits.length === 0) {
           return "No accessible governed passages match this query.";

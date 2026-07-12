@@ -13,6 +13,7 @@ import {
   useRunSchedule,
   useListReviewItems,
   useApproveReviewItem,
+  usePublishReviewItem,
   useListVersions,
   useSaveVersion,
   useSuggestTemplate,
@@ -1805,7 +1806,13 @@ export default function Generate() {
   const runSchedule = useRunSchedule();
   const inboxQ = useListReviewItems();
   const approve = useApproveReviewItem();
+  const publish = usePublishReviewItem();
   const versionsQ = useListVersions();
+  // Per-item publish outcome (session-only): success confirmation with the new
+  // corpus doc id, or the server's refusal message.
+  const [publishNotices, setPublishNotices] = React.useState<
+    Record<string, { kind: "success" | "error"; message: string }>
+  >({});
 
   // Notifications for scheduled drafts and approvals.
   const [showNotifications, setShowNotifications] = React.useState(false);
@@ -2520,11 +2527,39 @@ export default function Generate() {
               { onSuccess: () => inboxQ.refetch() },
             )
           }
+          onPublish={(item) =>
+            publish.mutate(
+              { id: item.id },
+              {
+                onSuccess: (r) => {
+                  setPublishNotices((prev) => ({
+                    ...prev,
+                    [item.id]: {
+                      kind: "success",
+                      message: `Published to the knowledge core as ${r.docId} (v${r.version}, ${r.upsertedChunks} chunk${r.upsertedChunks === 1 ? "" : "s"})${r.supersededDocId ? `. Supersedes ${r.supersededDocId}` : ""}. It is now retrievable and citable in Ask.`,
+                    },
+                  }));
+                },
+                onError: (err) => {
+                  const data = (err as { data?: { error?: string } | null }).data;
+                  setPublishNotices((prev) => ({
+                    ...prev,
+                    [item.id]: {
+                      kind: "error",
+                      message: data?.error ?? "The draft could not be published to the knowledge core.",
+                    },
+                  }));
+                },
+              },
+            )
+          }
           onOpen={(d) => {
             setDraft(d);
             setTab("compose");
           }}
           approving={approve.isPending}
+          publishing={publish.isPending}
+          publishNotices={publishNotices}
         />
       )}
 
@@ -3027,13 +3062,19 @@ function ScheduledTab({
 function InboxTab({
   items,
   onApprove,
+  onPublish,
   onOpen,
   approving,
+  publishing,
+  publishNotices,
 }: {
   items: ReviewItem[] | undefined;
   onApprove: (item: ReviewItem) => void;
+  onPublish: (item: ReviewItem) => void;
   onOpen: (d: GeneratedDraft) => void;
   approving: boolean;
+  publishing: boolean;
+  publishNotices: Record<string, { kind: "success" | "error"; message: string }>;
 }) {
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
@@ -3058,53 +3099,75 @@ function InboxTab({
           <Stack space={12}>
             {items?.map((item) => {
               const pass = item.draft.guardian.status === "pass" && item.draft.status === "drafted";
+              const notice = publishNotices[item.id];
+              const published = notice?.kind === "success";
               return (
                 <Boxed key={item.id}>
                   <Box padding={20}>
-                    <Inline space={16} alignItems="center">
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <Stack space={8}>
-                          <Inline space={8} alignItems="center" wrap>
-                            <Text2 medium color={c.textPrimary}>
-                              {item.draft.title}
+                    <Stack space={12}>
+                      <Inline space={16} alignItems="center">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Stack space={8}>
+                            <Inline space={8} alignItems="center" wrap>
+                              <Text2 medium color={c.textPrimary}>
+                                {item.draft.title}
+                              </Text2>
+                              {item.status === "approved" ? (
+                                <Tag type="success">Approved</Tag>
+                              ) : (
+                                <Tag type="warning">Pending</Tag>
+                              )}
+                              {published && <Tag type="promo">Published</Tag>}
+                            </Inline>
+                            <Text2 regular color={c.textSecondary}>
+                              {item.scheduleName} • {item.reviewFolder} • {item.ownerLabel}
                             </Text2>
-                            {item.status === "approved" ? (
-                              <Tag type="success">Approved</Tag>
-                            ) : (
-                              <Tag type="warning">Pending</Tag>
-                            )}
-                          </Inline>
-                          <Text2 regular color={c.textSecondary}>
-                            {item.scheduleName} • {item.reviewFolder} • {item.ownerLabel}
-                          </Text2>
-                          <Inline space={4} alignItems="center">
-                            {pass ? (
-                              <IconShieldCheckedOkRegular size={14} color={c.success} />
-                            ) : (
-                              <IconAlertRegular size={14} color={c.error} />
-                            )}
-                            <Text1 regular color={pass ? c.success : c.error}>
-                              {pass ? "Guardian cleared" : "Guardian blocked"}
-                            </Text1>
-                          </Inline>
-                        </Stack>
-                      </div>
-                      <Inline space={8} alignItems="center">
-                        <ButtonSecondary small onPress={() => onOpen(item.draft)}>
-                          Open
-                        </ButtonSecondary>
-                        {item.status !== "approved" && (
-                          <ButtonPrimary
-                            small
-                            onPress={() => onApprove(item)}
-                            disabled={!pass || approving}
-                            StartIcon={IconCheckRegular}
-                          >
-                            Approve
-                          </ButtonPrimary>
-                        )}
+                            <Inline space={4} alignItems="center">
+                              {pass ? (
+                                <IconShieldCheckedOkRegular size={14} color={c.success} />
+                              ) : (
+                                <IconAlertRegular size={14} color={c.error} />
+                              )}
+                              <Text1 regular color={pass ? c.success : c.error}>
+                                {pass ? "Guardian cleared" : "Guardian blocked"}
+                              </Text1>
+                            </Inline>
+                          </Stack>
+                        </div>
+                        <Inline space={8} alignItems="center">
+                          <ButtonSecondary small onPress={() => onOpen(item.draft)}>
+                            Open
+                          </ButtonSecondary>
+                          {item.status !== "approved" && (
+                            <ButtonPrimary
+                              small
+                              onPress={() => onApprove(item)}
+                              disabled={!pass || approving}
+                              StartIcon={IconCheckRegular}
+                            >
+                              Approve
+                            </ButtonPrimary>
+                          )}
+                          {item.status === "approved" && !published && (
+                            <ButtonPrimary
+                              small
+                              onPress={() => onPublish(item)}
+                              disabled={publishing}
+                            >
+                              {publishing ? "Publishing" : "Publish to corpus"}
+                            </ButtonPrimary>
+                          )}
+                        </Inline>
                       </Inline>
-                    </Inline>
+                      {notice && (
+                        <Text1
+                          regular
+                          color={notice.kind === "success" ? c.success : c.error}
+                        >
+                          {notice.message}
+                        </Text1>
+                      )}
+                    </Stack>
                   </Box>
                 </Boxed>
               );

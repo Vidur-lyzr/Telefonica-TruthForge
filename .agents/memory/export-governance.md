@@ -11,3 +11,5 @@ Rules for the document export pipeline (drafts arrive as client JSON, so labels 
 **Why:** an architect review found the client could downgrade confidentiality labels or mutate ids to bypass gates; the fix is to trust only server-side sources.
 
 **How to apply:** any new export/share/send path must call buildExportModel (artifacts/api-server/src/export/exportService.ts) or replicate all three gates; never gate on client-supplied labels alone. Full fix would be server-owned draft references (drafts stored server-side, export by id) — acceptable gap for this demo tier and noted as future work.
+
+The same rule extends to corpus write-back: when an approved draft is published as a governed doc, its confidentiality label is CLAMPED to be at least as restrictive as the most restrictive lineage source doc (missing source docs fail closed to the top tier), because the draft's audience/label fields are client-editable. Write-back also needs an in-flight guard per item — the already_published check reads the registry before the awaited vector upsert writes it.

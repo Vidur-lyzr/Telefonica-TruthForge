@@ -409,6 +409,191 @@ export const ListAuditEntriesResponse = zod.array(ListAuditEntriesResponseItem)
 
 
 /**
+ * Every governed retrieval — Ask and Generate — appends an entry recording the persona, the effective governance filter, and the chunk ids and scores returned. Never chunk text. Filterable by document (who accessed doc X) and by persona.
+ * @summary Per-query retrieval audit log (who retrieved what, under which filter)
+ */
+export const ListRetrievalLogQueryParams = zod.object({
+  "docId": zod.coerce.string().optional(),
+  "roleId": zod.coerce.string().optional(),
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
+export const ListRetrievalLogResponse = zod.object({
+  "total": zod.number(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "timestamp": zod.string(),
+  "surface": zod.string().describe('ask | generate'),
+  "roleId": zod.string().nullable(),
+  "roleLabel": zod.string().nullable(),
+  "clearance": zod.string(),
+  "area": zod.string().nullable(),
+  "status": zod.string().nullable().describe('Final outcome set by the agent (answered, no_evidence, permission_blocked, drafted, ...)'),
+  "events": zod.array(zod.object({
+  "engine": zod.string().describe('qdrant | native'),
+  "query": zod.string().describe('Truncated retrieval query (max 120 chars) — never chunk text'),
+  "filterExpr": zod.string().describe('Human-readable governance filter applied inside the search'),
+  "hits": zod.array(zod.object({
+  "chunkId": zod.string(),
+  "docId": zod.string(),
+  "score": zod.number(),
+  "accessible": zod.boolean()
+}))
+}))
+}))
+})
+
+
+/**
+ * @summary Simulated source-system sync state (labels, pending deltas, run history)
+ */
+export const GetSourceSyncStateResponse = zod.object({
+  "connector": zod.string(),
+  "docs": zod.array(zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "category": zod.string(),
+  "indexLabel": zod.string().describe('Confidentiality currently enforced by retrieval'),
+  "sourceLabel": zod.string().describe('Confidentiality asserted by the simulated source system'),
+  "pending": zod.boolean()
+})),
+  "pendingDeltas": zod.array(zod.object({
+  "id": zod.string(),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "from": zod.string(),
+  "to": zod.string(),
+  "kind": zod.string().describe('upgrade | downgrade'),
+  "requestedAt": zod.string(),
+  "requestedBy": zod.string(),
+  "appliedAt": zod.string().nullable(),
+  "mode": zod.string().nullable().describe('webhook (immediate upgrade) | batch (applied by a sync run) | null while pending')
+})),
+  "appliedDeltas": zod.array(zod.object({
+  "id": zod.string(),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "from": zod.string(),
+  "to": zod.string(),
+  "kind": zod.string().describe('upgrade | downgrade'),
+  "requestedAt": zod.string(),
+  "requestedBy": zod.string(),
+  "appliedAt": zod.string().nullable(),
+  "mode": zod.string().nullable().describe('webhook (immediate upgrade) | batch (applied by a sync run) | null while pending')
+})),
+  "runs": zod.array(zod.object({
+  "id": zod.string(),
+  "ranAt": zod.string(),
+  "actor": zod.string(),
+  "appliedCount": zod.number()
+}))
+})
+
+
+/**
+ * Upgrades (more restrictive) propagate immediately, like a source webhook. Downgrades (less restrictive) become pending deltas applied only by the next batch sync run — fail closed.
+ * @summary Change a document's confidentiality label in the simulated source system
+ */
+export const SetSourceLabelBody = zod.object({
+  "docId": zod.string(),
+  "confidentiality": zod.string().describe('public | internal | private | confidential | off_the_record'),
+  "actor": zod.string().optional()
+})
+
+export const SetSourceLabelResponse = zod.object({
+  "connector": zod.string(),
+  "docs": zod.array(zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "category": zod.string(),
+  "indexLabel": zod.string().describe('Confidentiality currently enforced by retrieval'),
+  "sourceLabel": zod.string().describe('Confidentiality asserted by the simulated source system'),
+  "pending": zod.boolean()
+})),
+  "pendingDeltas": zod.array(zod.object({
+  "id": zod.string(),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "from": zod.string(),
+  "to": zod.string(),
+  "kind": zod.string().describe('upgrade | downgrade'),
+  "requestedAt": zod.string(),
+  "requestedBy": zod.string(),
+  "appliedAt": zod.string().nullable(),
+  "mode": zod.string().nullable().describe('webhook (immediate upgrade) | batch (applied by a sync run) | null while pending')
+})),
+  "appliedDeltas": zod.array(zod.object({
+  "id": zod.string(),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "from": zod.string(),
+  "to": zod.string(),
+  "kind": zod.string().describe('upgrade | downgrade'),
+  "requestedAt": zod.string(),
+  "requestedBy": zod.string(),
+  "appliedAt": zod.string().nullable(),
+  "mode": zod.string().nullable().describe('webhook (immediate upgrade) | batch (applied by a sync run) | null while pending')
+})),
+  "runs": zod.array(zod.object({
+  "id": zod.string(),
+  "ranAt": zod.string(),
+  "actor": zod.string(),
+  "appliedCount": zod.number()
+}))
+})
+
+
+/**
+ * @summary Run a batch sync, applying all pending downgrade deltas
+ */
+export const RunSourceSyncResponse = zod.object({
+  "connector": zod.string(),
+  "docs": zod.array(zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "category": zod.string(),
+  "indexLabel": zod.string().describe('Confidentiality currently enforced by retrieval'),
+  "sourceLabel": zod.string().describe('Confidentiality asserted by the simulated source system'),
+  "pending": zod.boolean()
+})),
+  "pendingDeltas": zod.array(zod.object({
+  "id": zod.string(),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "from": zod.string(),
+  "to": zod.string(),
+  "kind": zod.string().describe('upgrade | downgrade'),
+  "requestedAt": zod.string(),
+  "requestedBy": zod.string(),
+  "appliedAt": zod.string().nullable(),
+  "mode": zod.string().nullable().describe('webhook (immediate upgrade) | batch (applied by a sync run) | null while pending')
+})),
+  "appliedDeltas": zod.array(zod.object({
+  "id": zod.string(),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "from": zod.string(),
+  "to": zod.string(),
+  "kind": zod.string().describe('upgrade | downgrade'),
+  "requestedAt": zod.string(),
+  "requestedBy": zod.string(),
+  "appliedAt": zod.string().nullable(),
+  "mode": zod.string().nullable().describe('webhook (immediate upgrade) | batch (applied by a sync run) | null while pending')
+})),
+  "runs": zod.array(zod.object({
+  "id": zod.string(),
+  "ranAt": zod.string(),
+  "actor": zod.string(),
+  "appliedCount": zod.number()
+}))
+})
+
+
+/**
  * Resolves, for every governed document, whether the given user can see it and — when blocked — which axis blocks it (clearance or area). Access is the intersection of area and confidentiality, resolved by the same engine every retrieval path uses.
  * @summary Per-document visibility matrix for a platform user
  */
@@ -3204,6 +3389,23 @@ export const ApproveReviewItemResponse = zod.object({
   "note": zod.string().nullish()
 })]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 })
+})
+
+
+/**
+ * Server-authoritative write-back. Requires the item to be approved and its content hash to still match the approved hash. Creates a versioned category-E corpus document (v1, or vN+1 superseding the previous publication of the same schedule), chunks it per section, upserts it to the vector index with durable payloads, and makes it immediately retrievable and citable in Ask.
+ * @summary Publish an approved review item into the governed corpus as an E document
+ */
+export const PublishReviewItemParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const PublishReviewItemResponse = zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "version": zod.number(),
+  "upsertedChunks": zod.number(),
+  "supersededDocId": zod.string().nullable()
 })
 
 

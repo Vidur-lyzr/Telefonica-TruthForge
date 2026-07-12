@@ -423,3 +423,16 @@ export async function setDocPayloads(
     });
   }
 }
+
+// Generic governance payload update for one document's points: confidentiality
+// changes (source-sync deltas), validity changes (supersession) and liveDoc
+// blob rewrites all go through here. Payload-only — vectors never recomputed.
+export async function setDocGovernancePayload(
+  docId: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  await qdrant("POST", `/collections/${QDRANT_COLLECTION}/points/payload?wait=true`, {
+    payload,
+    filter: { must: [{ key: "docId", match: { value: docId } }] },
+  });
+}

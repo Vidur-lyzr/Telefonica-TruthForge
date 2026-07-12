@@ -127,6 +127,20 @@ export interface EditorialReview {
   reviewedAt: string;
 }
 
+// D4 — record of an approved review item published back into the governed
+// corpus as a category-E document. Server-authoritative: the publish gate
+// consults THIS registry (never a client flag) to refuse double publication
+// and to resolve which earlier publication a new version supersedes.
+export interface PublicationRecord {
+  id: string;
+  reviewItemId: string;
+  scheduleId: string;
+  docId: string;
+  version: number;
+  contentHash: string;
+  publishedAt: string;
+}
+
 // Notification record for the review-folder flow: a scheduled run landed a
 // draft in the owner's folder, or an item was approved.
 export interface NotificationRecord {
@@ -156,6 +170,7 @@ interface PersistedState {
   editorialReviews?: EditorialReview[];
   notifications?: NotificationRecord[];
   deliveries?: DeliveryRecord[];
+  publications?: PublicationRecord[];
   idCounter: number;
 }
 
@@ -165,6 +180,7 @@ let reviewInbox: ReviewItem[] = [];
 let editorialReviews: EditorialReview[] = [];
 let notifications: NotificationRecord[] = [];
 let deliveries: DeliveryRecord[] = [];
+let publications: PublicationRecord[] = [];
 // Server-authoritative lineage for every draft produced by a schedule. Keyed by
 // BOTH the draft id AND the content hash, so a caller cannot escape the gate by
 // mutating the client-supplied draft.id: the content hash still resolves to the
@@ -184,6 +200,7 @@ function load(): void {
     editorialReviews = Array.isArray(raw.editorialReviews) ? raw.editorialReviews : [];
     notifications = Array.isArray(raw.notifications) ? raw.notifications : [];
     deliveries = Array.isArray(raw.deliveries) ? raw.deliveries : [];
+    publications = Array.isArray(raw.publications) ? raw.publications : [];
     // Migration: schedules persisted before the automatic scheduler existed
     // have no nextRunAt — derive it so they join the timer without re-creation.
     for (const s of schedules) {
@@ -209,6 +226,7 @@ function load(): void {
     editorialReviews = [];
     notifications = [];
     deliveries = [];
+    publications = [];
   }
 }
 
@@ -222,6 +240,7 @@ function persist(): void {
       editorialReviews,
       notifications,
       deliveries,
+      publications,
       idCounter,
     };
     mkdirSync(dirname(STORE_PATH), { recursive: true });
@@ -252,6 +271,40 @@ export function hashDraftContent(draft: GeneratedDraft): string {
     citations: draft.citations.map((c) => c.id).sort(),
   });
   return createHash("sha256").update(payload).digest("hex");
+}
+
+// ---- Publications (D4 write-back) -------------------------------------------
+
+export function findPublicationByReviewItem(
+  reviewItemId: string,
+): PublicationRecord | undefined {
+  return publications.find((p) => p.reviewItemId === reviewItemId);
+}
+
+export function findLatestPublicationForSchedule(
+  scheduleId: string,
+): PublicationRecord | undefined {
+  return [...publications]
+    .filter((p) => p.scheduleId === scheduleId)
+    .sort((a, b) => b.version - a.version)[0];
+}
+
+export function listPublications(): PublicationRecord[] {
+  return [...publications].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+}
+
+export function addPublication(
+  rec: Omit<PublicationRecord, "id" | "publishedAt">,
+): PublicationRecord {
+  idCounter += 1;
+  const record: PublicationRecord = {
+    ...rec,
+    id: `pub-${idCounter}`,
+    publishedAt: new Date().toISOString(),
+  };
+  publications.push(record);
+  persist();
+  return record;
 }
 
 export function registerScheduledDraft(keys: string[], reviewItemId: string): void {

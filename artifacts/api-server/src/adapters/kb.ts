@@ -4,6 +4,7 @@
 
 import { DOCS, getDoc, type Area, type Clearance } from "../data/corpus";
 import { resolveDocAccess, type BlockedAxis } from "../data/governance";
+import { recordRetrievalEvent, type RetrievalLogHit } from "../data/retrievalLog";
 import { isQdrantConfigured, qdrantRetrieve } from "./qdrant";
 import { tokenize } from "./text";
 
@@ -125,10 +126,16 @@ export interface RetrieveOptions {
   area?: Area | null;
   topK?: number;
   filters?: RetrieveFilters | null;
+  // Retrieval audit context (F3). When set, this retrieval records an event
+  // (engine, filter, hit ids + scores — never text) into the audit entry.
+  audit?: { id: string } | null;
 }
 
 // Single access decision for a chunk, via the governance resolver. The chunk
-// inherits its document's confidentiality and area scope.
+// ALWAYS inherits the LIVE document's confidentiality and area scope — never
+// the index-build snapshot — so source-sync label changes bind instantly on
+// every engine path (the snapshot fallback only covers unknown docs, which
+// fail closed elsewhere).
 function accessFor(
   docId: string,
   confidentiality: Clearance,
@@ -136,9 +143,35 @@ function accessFor(
 ) {
   const doc = getDoc(docId);
   return resolveDocAccess(
-    { confidentiality, areas: doc?.areas ?? [] },
+    {
+      confidentiality: doc?.confidentiality ?? confidentiality,
+      areas: doc?.areas ?? [],
+    },
     { area: opts.area ?? null, clearance: opts.clearance },
   );
+}
+
+// Human-readable description of the governance filter in force for a
+// retrieval — recorded verbatim in the audit log.
+function filterExprFor(opts: RetrieveOptions): string {
+  const parts = [`confidentiality<=${opts.clearance}`];
+  if (opts.area) parts.push(`area in {${opts.area}, cross-area}`);
+  const f = opts.filters;
+  if (f?.market) parts.push(`market=${f.market}`);
+  if (f?.brand) parts.push(`brand=${f.brand}`);
+  if (f?.period) parts.push(`period=${f.period}`);
+  if (f?.source) parts.push(`source=${f.source}`);
+  if (f?.axis) parts.push(`axis=${f.axis}`);
+  return parts.join("; ");
+}
+
+function auditHits(chunks: RetrievedChunk[]): RetrievalLogHit[] {
+  return chunks.map((c) => ({
+    chunkId: c.chunkId,
+    docId: c.docId,
+    score: c.score,
+    accessible: c.accessible,
+  }));
 }
 
 function passesFilters(chunk: IndexedChunk, f?: RetrieveFilters | null): boolean {
@@ -193,7 +226,7 @@ export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
     .sort((a, b) => b.score - a.score)
     .slice(0, Math.max(topK, 8));
 
-  return relevant.map(({ chunk, score, coverage }) => {
+  const results = relevant.map(({ chunk, score, coverage }) => {
     const access = accessFor(chunk.docId, chunk.confidentiality, opts);
     return {
       chunkId: chunk.chunkId,
@@ -207,6 +240,16 @@ export function retrieve(opts: RetrieveOptions): RetrievedChunk[] {
       blockedBy: access.blockedBy,
     };
   });
+
+  if (opts.audit) {
+    recordRetrievalEvent(opts.audit.id, {
+      engine: "native",
+      query: opts.question,
+      filterExpr: filterExprFor(opts),
+      hits: auditHits(results),
+    });
+  }
+  return results;
 }
 
 export function resolveDoc(docId: string) {
@@ -277,6 +320,9 @@ export async function retrieveGoverned(
 
   // Permitted candidates: Qdrant already applied clearance + area filters
   // inside the search. Text and coverage come from the governed registry.
+  // The local resolver re-checks every hit against the LIVE document label
+  // (defense in depth): if the index payload ever lags a source-sync upgrade,
+  // the stricter in-memory label wins and the chunk is demoted to blocked.
   for (const hit of res.permitted) {
     const chunk = chunkById.get(hit.chunkId);
     if (!chunk) {
@@ -285,6 +331,7 @@ export async function retrieveGoverned(
     }
     if (seen.has(chunk.chunkId)) continue;
     seen.add(chunk.chunkId);
+    const access = accessFor(chunk.docId, chunk.confidentiality, opts);
     chunks.push({
       chunkId: chunk.chunkId,
       docId: chunk.docId,
@@ -293,8 +340,8 @@ export async function retrieveGoverned(
       heading: chunk.heading,
       breadcrumb: chunk.breadcrumb,
       text: chunk.text,
-      accessible: true,
-      blockedBy: null,
+      accessible: access.accessible,
+      blockedBy: access.blockedBy,
     });
   }
 
@@ -326,6 +373,15 @@ export async function retrieveGoverned(
       { unmapped },
       "kb: Qdrant returned candidates not present in the governed registry; dropped (fail closed)",
     );
+  }
+
+  if (opts.audit) {
+    recordRetrievalEvent(opts.audit.id, {
+      engine: "qdrant",
+      query: opts.question,
+      filterExpr: filterExprFor(opts),
+      hits: auditHits(chunks),
+    });
   }
 
   const permittedCount = chunks.filter((c) => c.accessible).length;

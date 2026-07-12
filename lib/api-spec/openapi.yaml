@@ -294,6 +294,106 @@ paths:
                 items:
                   $ref: "#/components/schemas/AuditEntry"
 
+  /admin/retrieval-log:
+    get:
+      operationId: listRetrievalLog
+      tags: [admin]
+      summary: Per-query retrieval audit log (who retrieved what, under which filter)
+      description: >
+        Every governed retrieval — Ask and Generate — appends an entry recording
+        the persona, the effective governance filter, and the chunk ids and
+        scores returned. Never chunk text. Filterable by document (who accessed
+        doc X) and by persona.
+      parameters:
+        - name: docId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: roleId
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Retrieval log page (newest first)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetrievalLogPage"
+
+  /admin/source-sync:
+    get:
+      operationId: getSourceSyncState
+      tags: [admin]
+      summary: Simulated source-system sync state (labels, pending deltas, run history)
+      responses:
+        "200":
+          description: Source sync state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceSyncState"
+
+  /admin/source-sync/label:
+    post:
+      operationId: setSourceLabel
+      tags: [admin]
+      summary: Change a document's confidentiality label in the simulated source system
+      description: >
+        Upgrades (more restrictive) propagate immediately, like a source webhook.
+        Downgrades (less restrictive) become pending deltas applied only by the
+        next batch sync run — fail closed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetSourceLabelInput"
+      responses:
+        "200":
+          description: Updated source sync state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceSyncState"
+        "404":
+          description: Unknown document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: No-op label change
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/source-sync/run:
+    post:
+      operationId: runSourceSync
+      tags: [admin]
+      summary: Run a batch sync, applying all pending downgrade deltas
+      responses:
+        "200":
+          description: Updated source sync state after the run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SourceSyncState"
+
   /admin/visibility/{userId}:
     get:
       operationId: getUserVisibilityMatrix
@@ -1241,6 +1341,44 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Guardian has not passed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /generate/inbox/{id}/publish:
+    post:
+      operationId: publishReviewItem
+      tags: [generate]
+      summary: Publish an approved review item into the governed corpus as an E document
+      description: >
+        Server-authoritative write-back. Requires the item to be approved and
+        its content hash to still match the approved hash. Creates a versioned
+        category-E corpus document (v1, or vN+1 superseding the previous
+        publication of the same schedule), chunks it per section, upserts it to
+        the vector index with durable payloads, and makes it immediately
+        retrievable and citable in Ask.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Publication result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishReviewItemResult"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Not approved, hash mismatch, or already published
           content:
             application/json:
               schema:
@@ -2511,6 +2649,188 @@ components:
           type: string
         detail:
           type: string
+
+    RetrievalLogHit:
+      type: object
+      required: [chunkId, docId, score, accessible]
+      properties:
+        chunkId:
+          type: string
+        docId:
+          type: string
+        score:
+          type: number
+        accessible:
+          type: boolean
+
+    RetrievalLogEvent:
+      type: object
+      required: [engine, query, filterExpr, hits]
+      properties:
+        engine:
+          type: string
+          description: qdrant | native
+        query:
+          type: string
+          description: Truncated retrieval query (max 120 chars) — never chunk text
+        filterExpr:
+          type: string
+          description: Human-readable governance filter applied inside the search
+        hits:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetrievalLogHit"
+
+    RetrievalLogEntry:
+      type: object
+      required:
+        [id, timestamp, surface, roleId, roleLabel, clearance, area, status, events]
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+        surface:
+          type: string
+          description: ask | generate
+        roleId:
+          type: ["string", "null"]
+        roleLabel:
+          type: ["string", "null"]
+        clearance:
+          type: string
+        area:
+          type: ["string", "null"]
+        status:
+          type: ["string", "null"]
+          description: Final outcome set by the agent (answered, no_evidence, permission_blocked, drafted, ...)
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetrievalLogEvent"
+
+    RetrievalLogPage:
+      type: object
+      required: [total, items]
+      properties:
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetrievalLogEntry"
+
+    SourceSyncDelta:
+      type: object
+      required:
+        [id, docId, docTitle, from, to, kind, requestedAt, requestedBy, appliedAt, mode]
+      properties:
+        id:
+          type: string
+        docId:
+          type: string
+        docTitle:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        kind:
+          type: string
+          description: upgrade | downgrade
+        requestedAt:
+          type: string
+        requestedBy:
+          type: string
+        appliedAt:
+          type: ["string", "null"]
+        mode:
+          type: ["string", "null"]
+          description: webhook (immediate upgrade) | batch (applied by a sync run) | null while pending
+
+    SourceSyncRun:
+      type: object
+      required: [id, ranAt, actor, appliedCount]
+      properties:
+        id:
+          type: string
+        ranAt:
+          type: string
+        actor:
+          type: string
+        appliedCount:
+          type: integer
+
+    SourceSyncDocState:
+      type: object
+      required: [docId, title, type, category, indexLabel, sourceLabel, pending]
+      properties:
+        docId:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        category:
+          type: string
+        indexLabel:
+          type: string
+          description: Confidentiality currently enforced by retrieval
+        sourceLabel:
+          type: string
+          description: Confidentiality asserted by the simulated source system
+        pending:
+          type: boolean
+
+    SourceSyncState:
+      type: object
+      required: [connector, docs, pendingDeltas, appliedDeltas, runs]
+      properties:
+        connector:
+          type: string
+        docs:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceSyncDocState"
+        pendingDeltas:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceSyncDelta"
+        appliedDeltas:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceSyncDelta"
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/SourceSyncRun"
+
+    SetSourceLabelInput:
+      type: object
+      required: [docId, confidentiality]
+      properties:
+        docId:
+          type: string
+        confidentiality:
+          type: string
+          description: public | internal | private | confidential | off_the_record
+        actor:
+          type: string
+
+    PublishReviewItemResult:
+      type: object
+      required: [docId, title, version, upsertedChunks, supersededDocId]
+      properties:
+        docId:
+          type: string
+        title:
+          type: string
+        version:
+          type: integer
+        upsertedChunks:
+          type: integer
+        supersededDocId:
+          type: ["string", "null"]
 
     GraphEntity:
       type: object

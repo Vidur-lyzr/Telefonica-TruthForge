@@ -17,6 +17,8 @@ import {
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
 import CostModelSection from "@/components/admin/cost-model";
+import SourceSyncSection from "@/components/admin/source-sync";
+import RetrievalLogSection from "@/components/admin/retrieval-log";
 import {
   Box,
   Boxed,
@@ -906,6 +908,12 @@ export default function AdminPage() {
 
         {/* Cost model */}
         <CostModelSection />
+
+        {/* Source-system sync (D5) */}
+        <SourceSyncSection />
+
+        {/* Retrieval audit log (F3) */}
+        <RetrievalLogSection />
 
         {/* Audit trail */}
         <Stack space={16}>

@@ -6,6 +6,12 @@ import {
   ListAuditEntriesResponse,
   GetUserVisibilityMatrixResponse,
   GetUsageMeterResponse,
+  ListRetrievalLogQueryParams,
+  ListRetrievalLogResponse,
+  GetSourceSyncStateResponse,
+  SetSourceLabelBody,
+  SetSourceLabelResponse,
+  RunSourceSyncResponse,
 } from "@workspace/api-zod";
 import { getUsage } from "../data/usageMeter";
 import {
@@ -18,6 +24,13 @@ import {
   resolveScheduleStatus,
 } from "../data/corpus";
 import { resolveDocAccess } from "../data/governance";
+import { queryRetrievalLog } from "../data/retrievalLog";
+import {
+  getSourceSyncState,
+  setSourceLabel,
+  runBatchSync,
+  isValidClearance,
+} from "../data/sourceSync";
 
 const router: IRouter = Router();
 
@@ -98,6 +111,67 @@ router.get("/admin/audit", (_req, res) => {
     b.timestamp.localeCompare(a.timestamp),
   );
   res.json(ListAuditEntriesResponse.parse(items));
+});
+
+// F3 — retrieval audit log: who retrieved which chunks under which filter.
+// Ids and scores only, never chunk text. Filterable by document and persona.
+router.get("/admin/retrieval-log", (req, res) => {
+  const parsed = ListRetrievalLogQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid query parameters.",
+      code: "invalid_query",
+    });
+    return;
+  }
+  const { docId, roleId, limit, offset } = parsed.data;
+  const page = queryRetrievalLog({ docId, roleId, limit, offset });
+  res.json(ListRetrievalLogResponse.parse(page));
+});
+
+// D5 — simulated source-system sync.
+router.get("/admin/source-sync", (_req, res) => {
+  res.json(GetSourceSyncStateResponse.parse(getSourceSyncState()));
+});
+
+router.post("/admin/source-sync/label", async (req, res) => {
+  const parsed = SetSourceLabelBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body.", code: "invalid_body" });
+    return;
+  }
+  const { docId, confidentiality, actor } = parsed.data;
+  if (!isValidClearance(confidentiality)) {
+    res.status(400).json({
+      error: `"${confidentiality}" is not a valid confidentiality label.`,
+      code: "invalid_label",
+    });
+    return;
+  }
+  const result = await setSourceLabel(
+    docId,
+    confidentiality,
+    actor?.trim() || "Governance Lead",
+  );
+  if (!result.ok) {
+    const status = result.code === "unknown_document" ? 404 : 409;
+    res.status(status).json({ error: result.error, code: result.code });
+    return;
+  }
+  req.log.info(
+    { docId, to: confidentiality, kind: result.delta?.kind },
+    "source-sync: label changed",
+  );
+  res.json(SetSourceLabelResponse.parse(getSourceSyncState()));
+});
+
+router.post("/admin/source-sync/run", async (req, res) => {
+  const { run } = await runBatchSync("Governance Lead");
+  req.log.info(
+    { runId: run.id, applied: run.appliedCount },
+    "source-sync: batch run",
+  );
+  res.json(RunSourceSyncResponse.parse(getSourceSyncState()));
 });
 
 export default router;

@@ -12,6 +12,7 @@ import {
   scrollLivePayloads,
 } from "../adapters/qdrant";
 import type { LiveCandidate, LiveIngestFilter } from "../adapters/perplexity";
+import { applyDeltasTo } from "./sourceSync";
 
 function slugify(text: string): string {
   return text
@@ -117,6 +118,9 @@ export async function hydrateLiveDocs(log: HydrateLogger): Promise<void> {
     let restored = 0;
     for (const doc of byDocId.values()) {
       if (DOCS.some((d) => d.id === doc.id)) continue;
+      // Source-sync deltas applied in earlier sessions target this doc by id;
+      // re-apply them so a hydrated doc never resurrects a pre-delta label.
+      applyDeltasTo(doc);
       DOCS.push(doc);
       registerDocInIndex(doc);
       restored += 1;

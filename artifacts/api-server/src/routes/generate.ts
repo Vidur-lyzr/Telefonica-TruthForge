@@ -31,7 +31,9 @@ import {
   ListNotificationsResponse,
   MarkNotificationsReadResponse,
   ListDeliveriesResponse,
+  PublishReviewItemResponse,
 } from "@workspace/api-zod";
+import { publishApprovedDraft, PublishRefusedError } from "../data/publishBack";
 import {
   exportDraft,
   ExportRefusedError,
@@ -78,6 +80,7 @@ import {
   setJobStage,
   completeJob,
   failJob,
+  findPublicationByReviewItem,
 } from "../data/generateStore";
 
 const router: IRouter = Router();
@@ -301,6 +304,80 @@ router.post("/generate/inbox/:id/approve", async (req, res) => {
     });
   }
   res.json(ApproveReviewItemResponse.parse(approved));
+});
+
+// D4 — publish an APPROVED review item back into the governed corpus as a
+// versioned category-E document. Every gate here is server-authoritative:
+// the item's own status, its approval-time content hash, and the server-side
+// publications registry. No client-supplied flag is consulted.
+const publishInFlight = new Set<string>();
+
+router.post("/generate/inbox/:id/publish", async (req, res) => {
+  const item = getReviewItem(req.params.id);
+  if (!item) {
+    res.status(404).json({ error: "Review item not found.", code: "not_found" });
+    return;
+  }
+  // Concurrent double-fire guard: the already_published check below reads the
+  // registry before the awaited upsert writes it, so two simultaneous requests
+  // could both pass. One publish per item at a time.
+  if (publishInFlight.has(item.id)) {
+    res.status(409).json({
+      error: "This draft is already being published. Wait for the current publish to finish.",
+      code: "publish_in_progress",
+    });
+    return;
+  }
+  if (item.status !== "approved" || !item.approvedHash) {
+    res.status(409).json({
+      error: "Only approved drafts can be published to the knowledge core. Approve this item first.",
+      code: "not_approved",
+    });
+    return;
+  }
+  // The approval hash binds publication to the exact content a human reviewed.
+  // Any divergence (e.g. a stale or mutated store state) voids the approval.
+  if (hashDraftContent(item.draft) !== item.approvedHash) {
+    res.status(409).json({
+      error: "The draft content no longer matches what was approved. It must be re-approved before publishing.",
+      code: "content_changed",
+    });
+    return;
+  }
+  const existing = findPublicationByReviewItem(item.id);
+  if (existing) {
+    res.status(409).json({
+      error: `This approved draft was already published as ${existing.docId} (v${existing.version}). Run the schedule again and approve a new draft to publish an update.`,
+      code: "already_published",
+    });
+    return;
+  }
+  publishInFlight.add(item.id);
+  try {
+    const result = await publishApprovedDraft(item);
+    req.log.info(
+      {
+        reviewItemId: item.id,
+        docId: result.docId,
+        version: result.version,
+        superseded: result.supersededDocId,
+      },
+      "write-back: approved draft published to corpus",
+    );
+    res.json(PublishReviewItemResponse.parse(result));
+  } catch (err) {
+    if (err instanceof PublishRefusedError) {
+      res.status(409).json({ error: err.message, code: err.code });
+      return;
+    }
+    req.log.error({ err, reviewItemId: item.id }, "write-back: publish failed");
+    res.status(500).json({
+      error: "The draft could not be published to the knowledge core. Nothing was written.",
+      code: "publish_failed",
+    });
+  } finally {
+    publishInFlight.delete(item.id);
+  }
 });
 
 router.get("/generate/versions", async (_req, res) => {

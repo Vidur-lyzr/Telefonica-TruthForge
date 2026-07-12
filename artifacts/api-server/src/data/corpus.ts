@@ -5,6 +5,7 @@
 import { INTERNAL_EXPANSION_DOCS } from "./expansion/internalDocs";
 import { EXTERNAL_EXPANSION_DOCS } from "./expansion/externalDocs";
 import { GENERATED_EXPANSION_DOCS } from "./expansion/generatedDocs";
+import { DENSIFICATION_DOCS } from "./expansion/densificationDocs";
 
 // RFP vocabulary (Purview/MIP-aligned): public | private | confidential | off_the_record.
 export type Clearance = "public" | "private" | "confidential" | "off_the_record";
@@ -1698,6 +1699,7 @@ export const DOCS: CorpusDoc[] = [
   ...INTERNAL_EXPANSION_DOCS,
   ...EXTERNAL_EXPANSION_DOCS,
   ...GENERATED_EXPANSION_DOCS,
+  ...DENSIFICATION_DOCS,
 ];
 
 export const NUMERIC_FACTS: NumericFact[] = [

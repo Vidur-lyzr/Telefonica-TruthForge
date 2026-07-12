@@ -81,6 +81,7 @@ import type {
   ListPlanningForecastSchedulesParams,
   ListPlanningSyncParams,
   ListRadarParams,
+  ListRetrievalLogParams,
   ListWikiLineageParams,
   ListWikiPagesParams,
   LiveIngestAcceptInput,
@@ -110,6 +111,7 @@ import type {
   PlanningSimulateInput,
   PlanningSyncRecord,
   PlatformUser,
+  PublishReviewItemResult,
   RadarItem,
   RefineInput,
   RelevanceFilterSnapshot,
@@ -117,12 +119,15 @@ import type {
   RetagApplyResult,
   RetagProposeInput,
   RetagProposeResult,
+  RetrievalLogPage,
   ReviewItem,
   Role,
   SaveVersionInput,
   SavedVersion,
   Schedule,
   ScheduledDocument,
+  SetSourceLabelInput,
+  SourceSyncState,
   StrategicAxis,
   SuggestTemplateInput,
   SuggestedQuery,
@@ -1264,6 +1269,309 @@ export function useListAuditEntries<TData = Awaited<ReturnType<typeof listAuditE
 
 
 
+
+export const getListRetrievalLogUrl = (params?: ListRetrievalLogParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/retrieval-log?${stringifiedParams}` : `/api/admin/retrieval-log`
+}
+
+/**
+ * Every governed retrieval — Ask and Generate — appends an entry recording the persona, the effective governance filter, and the chunk ids and scores returned. Never chunk text. Filterable by document (who accessed doc X) and by persona.
+ * @summary Per-query retrieval audit log (who retrieved what, under which filter)
+ */
+export const listRetrievalLog = async (params?: ListRetrievalLogParams, options?: RequestInit): Promise<RetrievalLogPage> => {
+
+  return customFetch<RetrievalLogPage>(getListRetrievalLogUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRetrievalLogQueryKey = (params?: ListRetrievalLogParams,) => {
+    return [
+    `/api/admin/retrieval-log`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListRetrievalLogQueryOptions = <TData = Awaited<ReturnType<typeof listRetrievalLog>>, TError = ErrorType<unknown>>(params?: ListRetrievalLogParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRetrievalLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRetrievalLogQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRetrievalLog>>> = ({ signal }) => listRetrievalLog(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRetrievalLog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRetrievalLogQueryResult = NonNullable<Awaited<ReturnType<typeof listRetrievalLog>>>
+export type ListRetrievalLogQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Per-query retrieval audit log (who retrieved what, under which filter)
+ */
+
+export function useListRetrievalLog<TData = Awaited<ReturnType<typeof listRetrievalLog>>, TError = ErrorType<unknown>>(
+ params?: ListRetrievalLogParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRetrievalLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRetrievalLogQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetSourceSyncStateUrl = () => {
+
+
+
+
+  return `/api/admin/source-sync`
+}
+
+/**
+ * @summary Simulated source-system sync state (labels, pending deltas, run history)
+ */
+export const getSourceSyncState = async ( options?: RequestInit): Promise<SourceSyncState> => {
+
+  return customFetch<SourceSyncState>(getGetSourceSyncStateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSourceSyncStateQueryKey = () => {
+    return [
+    `/api/admin/source-sync`
+    ] as const;
+    }
+
+
+export const getGetSourceSyncStateQueryOptions = <TData = Awaited<ReturnType<typeof getSourceSyncState>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSourceSyncState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSourceSyncStateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSourceSyncState>>> = ({ signal }) => getSourceSyncState({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSourceSyncState>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSourceSyncStateQueryResult = NonNullable<Awaited<ReturnType<typeof getSourceSyncState>>>
+export type GetSourceSyncStateQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Simulated source-system sync state (labels, pending deltas, run history)
+ */
+
+export function useGetSourceSyncState<TData = Awaited<ReturnType<typeof getSourceSyncState>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSourceSyncState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSourceSyncStateQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetSourceLabelUrl = () => {
+
+
+
+
+  return `/api/admin/source-sync/label`
+}
+
+/**
+ * Upgrades (more restrictive) propagate immediately, like a source webhook. Downgrades (less restrictive) become pending deltas applied only by the next batch sync run — fail closed.
+ * @summary Change a document's confidentiality label in the simulated source system
+ */
+export const setSourceLabel = async (setSourceLabelInput: SetSourceLabelInput, options?: RequestInit): Promise<SourceSyncState> => {
+
+  return customFetch<SourceSyncState>(getSetSourceLabelUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(setSourceLabelInput)
+  }
+);}
+
+
+
+
+export const getSetSourceLabelMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setSourceLabel>>, TError,{data: BodyType<SetSourceLabelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setSourceLabel>>, TError,{data: BodyType<SetSourceLabelInput>}, TContext> => {
+
+const mutationKey = ['setSourceLabel'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setSourceLabel>>, {data: BodyType<SetSourceLabelInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setSourceLabel(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetSourceLabelMutationResult = NonNullable<Awaited<ReturnType<typeof setSourceLabel>>>
+    export type SetSourceLabelMutationBody = BodyType<SetSourceLabelInput>
+    export type SetSourceLabelMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Change a document's confidentiality label in the simulated source system
+ */
+export const useSetSourceLabel = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setSourceLabel>>, TError,{data: BodyType<SetSourceLabelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setSourceLabel>>,
+        TError,
+        {data: BodyType<SetSourceLabelInput>},
+        TContext
+      > => {
+      return useMutation(getSetSourceLabelMutationOptions(options));
+    }
+
+export const getRunSourceSyncUrl = () => {
+
+
+
+
+  return `/api/admin/source-sync/run`
+}
+
+/**
+ * @summary Run a batch sync, applying all pending downgrade deltas
+ */
+export const runSourceSync = async ( options?: RequestInit): Promise<SourceSyncState> => {
+
+  return customFetch<SourceSyncState>(getRunSourceSyncUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRunSourceSyncMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSourceSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runSourceSync>>, TError,void, TContext> => {
+
+const mutationKey = ['runSourceSync'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runSourceSync>>, void> = () => {
+
+
+          return  runSourceSync(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RunSourceSyncMutationResult = NonNullable<Awaited<ReturnType<typeof runSourceSync>>>
+
+    export type RunSourceSyncMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Run a batch sync, applying all pending downgrade deltas
+ */
+export const useRunSourceSync = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSourceSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof runSourceSync>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getRunSourceSyncMutationOptions(options));
+    }
 
 export const getGetUserVisibilityMatrixUrl = (userId: string,) => {
 
@@ -4172,6 +4480,77 @@ export const useApproveReviewItem = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getApproveReviewItemMutationOptions(options));
+    }
+
+export const getPublishReviewItemUrl = (id: string,) => {
+
+
+
+
+  return `/api/generate/inbox/${id}/publish`
+}
+
+/**
+ * Server-authoritative write-back. Requires the item to be approved and its content hash to still match the approved hash. Creates a versioned category-E corpus document (v1, or vN+1 superseding the previous publication of the same schedule), chunks it per section, upserts it to the vector index with durable payloads, and makes it immediately retrievable and citable in Ask.
+ * @summary Publish an approved review item into the governed corpus as an E document
+ */
+export const publishReviewItem = async (id: string, options?: RequestInit): Promise<PublishReviewItemResult> => {
+
+  return customFetch<PublishReviewItemResult>(getPublishReviewItemUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getPublishReviewItemMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishReviewItem>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishReviewItem>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['publishReviewItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishReviewItem>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  publishReviewItem(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PublishReviewItemMutationResult = NonNullable<Awaited<ReturnType<typeof publishReviewItem>>>
+
+    export type PublishReviewItemMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Publish an approved review item into the governed corpus as an E document
+ */
+export const usePublishReviewItem = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishReviewItem>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof publishReviewItem>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getPublishReviewItemMutationOptions(options));
     }
 
 export const getListVersionsUrl = () => {
