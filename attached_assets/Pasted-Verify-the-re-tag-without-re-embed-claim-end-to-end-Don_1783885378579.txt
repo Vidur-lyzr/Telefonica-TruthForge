@@ -1,0 +1,10 @@
+Verify the "re-tag without re-embed" claim end to end. Don't describe it — prove it with a runnable check and show me the evidence.
+
+Prove no re-embedding happens on re-tag. Take a real chunk in the hub_ssot_chunks collection. Log its vector (or a hash of it) and its plan_axes payload before re-tagging. Run a taxonomy change that reassigns that chunk's axis via set_payload. Log the vector hash and plan_axes again. Show me both: plan_axes must change, the vector hash must be identical. Confirm zero embedding-model calls happened during the re-tag — instrument the embedding function with a counter and show it stayed at 0.
+Prove the filter still works after re-tag. Before: query filtered on the old axis returns the chunk. After: query on the old axis does not return it, query on the new axis does. Show both query results.
+Confirm plan_axes is a payload index created before ingest. Show me the create_payload_index call and confirm it ran before data was upserted. If it was added after ingest, tell me — filtered search works but is sub-optimal until HNSW rebuild, and I need to know.
+Confirm taxonomy versioning is real, not cosmetic. After the re-tag, show tag_version incremented on the chunk, an active-version pointer persisted, and demonstrate a rollback: flip the pointer back and show the chunk returns to its old axis. Confirm this survives a restart.
+Show me the human-validation gate actually gates. Run a re-classification where the LLM confidence is medium. Confirm it does not auto-write — it lands in a validation queue for a documentalist, and only writes through on approval. Show me the queue and the confidence threshold you're using. If this is auto-writing everything regardless of confidence, that's a gap — tell me.
+Scale honesty. Tell me how long a full-corpus re-tag takes on the current ~450 chunks, and estimate it for 200k chunks. I need to be able to say "background job, minutes, no re-embed" truthfully, not "instant."
+
+Report back what's genuinely working vs. seeded vs. missing — same honesty as your last report. Don't fix anything yet; verify first and show evidence.

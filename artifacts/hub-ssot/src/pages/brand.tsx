@@ -309,7 +309,7 @@ function TemplatesArea({ roleId }: { roleId?: string }) {
       {selectedId && (
         <Sheet onClose={() => setSelectedId(null)}>
           {() => (
-            <Box paddingBottom={24}>
+            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
               <TemplateDetail templateId={selectedId} roleId={roleId} />
             </Box>
           )}
@@ -567,7 +567,7 @@ function ResourcesArea({ roleId }: { roleId?: string }) {
       {selected && (
         <Sheet onClose={() => setSelected(null)}>
           {() => (
-            <Box paddingBottom={24}>
+            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
               <Stack space={16}>
                 <Stack space={4}>
                   <Title2>{selected.name}</Title2>

@@ -31,20 +31,6 @@ const ADMIN_EN = {
   intro:
     "Run the platform without a vendor: register users, assign profiles, manage permissions by area and confidentiality, and schedule recurring documents. This is the backend that proves the platform is operable after implementation.",
 
-  accessBanner: "Access = area × confidentiality",
-  setHere: "Set here",
-  whoYouAre: "Who you are",
-  whoYouAreBody:
-    "User → area (Comunicación / Marca / Gabinete) and profile. Managed on this page.",
-  inherited: "Inherited",
-  howSensitive: "How sensitive the content is",
-  howSensitiveBody:
-    "Confidentiality label inherited from each document's Microsoft sensitivity label — not set here.",
-  effectiveAccess: "Effective access",
-  whatEachSees: "What each person sees",
-  whatEachSeesBody:
-    "Enforced at the index (early-binding) — the model never sees a chunk the user cannot access.",
-
   accessProfiles: "Access profiles",
   profilesNote:
     "Profiles can be added or unified as the organisation evolves — the four above are the RFP baseline, not a fixed ceiling.",
@@ -374,20 +360,6 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     intro:
       "Opera la plataforma sin proveedor: registra usuarios, asigna perfiles, gestiona permisos por área y confidencialidad, y programa documentos recurrentes. Este es el backend que demuestra que la plataforma es operable tras la implementación.",
 
-    accessBanner: "Acceso = área × confidencialidad",
-    setHere: "Definido aquí",
-    whoYouAre: "Quién eres",
-    whoYouAreBody:
-      "Usuario → área (Comunicación / Marca / Gabinete) y perfil. Se gestiona en esta página.",
-    inherited: "Heredado",
-    howSensitive: "Cómo de sensible es el contenido",
-    howSensitiveBody:
-      "La etiqueta de confidencialidad se hereda de la etiqueta de sensibilidad de Microsoft de cada documento — no se define aquí.",
-    effectiveAccess: "Acceso efectivo",
-    whatEachSees: "Qué ve cada persona",
-    whatEachSeesBody:
-      "Se aplica en el índice (vinculación temprana): el modelo nunca ve un fragmento al que el usuario no puede acceder.",
-
     accessProfiles: "Perfiles de acceso",
     profilesNote:
       "Los perfiles pueden añadirse o unificarse a medida que evoluciona la organización — los cuatro anteriores son la base del RFP, no un techo fijo.",
@@ -680,20 +652,6 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     title: "Administration",
     intro:
       "Betreiben Sie die Plattform ohne Anbieter: Nutzer registrieren, Profile zuweisen, Berechtigungen nach Bereich und Vertraulichkeit verwalten und wiederkehrende Dokumente planen. Dies ist das Backend, das belegt, dass die Plattform nach der Implementierung betriebsfähig ist.",
-
-    accessBanner: "Zugriff = Bereich × Vertraulichkeit",
-    setHere: "Hier festgelegt",
-    whoYouAre: "Wer Sie sind",
-    whoYouAreBody:
-      "Nutzer → Bereich (Comunicación / Marca / Gabinete) und Profil. Wird auf dieser Seite verwaltet.",
-    inherited: "Übernommen",
-    howSensitive: "Wie sensibel der Inhalt ist",
-    howSensitiveBody:
-      "Die Vertraulichkeitskennzeichnung wird aus der Microsoft-Sensitivitätskennzeichnung jedes Dokuments übernommen — nicht hier festgelegt.",
-    effectiveAccess: "Effektiver Zugriff",
-    whatEachSees: "Was jede Person sieht",
-    whatEachSeesBody:
-      "Am Index durchgesetzt (Early-Binding) — das Modell sieht nie einen Abschnitt, auf den der Nutzer keinen Zugriff hat.",
 
     accessProfiles: "Zugriffsprofile",
     profilesNote:
@@ -988,20 +946,6 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     title: "Administração",
     intro:
       "Opere a plataforma sem fornecedor: registre usuários, atribua perfis, gerencie permissões por área e confidencialidade e agende documentos recorrentes. Este é o backend que comprova que a plataforma é operável após a implementação.",
-
-    accessBanner: "Acesso = área × confidencialidade",
-    setHere: "Definido aqui",
-    whoYouAre: "Quem você é",
-    whoYouAreBody:
-      "Usuário → área (Comunicación / Marca / Gabinete) e perfil. Gerenciado nesta página.",
-    inherited: "Herdado",
-    howSensitive: "Quão sensível é o conteúdo",
-    howSensitiveBody:
-      "O rótulo de confidencialidade é herdado do rótulo de sensibilidade da Microsoft de cada documento — não é definido aqui.",
-    effectiveAccess: "Acesso efetivo",
-    whatEachSees: "O que cada pessoa vê",
-    whatEachSeesBody:
-      "Aplicado no índice (vinculação antecipada) — o modelo nunca vê um trecho ao qual o usuário não tem acesso.",
 
     accessProfiles: "Perfis de acesso",
     profilesNote:

@@ -55,7 +55,6 @@ import {
   IconLayersRegular,
   IconShieldCheckedOkRegular,
   IconAlertRegular,
-  IconArrowLineRightRegular,
   IconTrophyRegular,
   IconTargetRegular,
   IconTimeRegular,
@@ -552,79 +551,6 @@ export default function AdminPage() {
           </div>
         </Stack>
 
-        {/* Access model explainer */}
-        <Boxed>
-          <Stack space={0}>
-            <div
-              style={{
-                backgroundColor: skinVars.colors.brand,
-                padding: 16,
-                borderTopLeftRadius: skinVars.borderRadii.container,
-                borderTopRightRadius: skinVars.borderRadii.container,
-              }}
-            >
-              <Inline space={8} alignItems="center">
-                <IconShieldCheckedOkRegular color={skinVars.colors.inverse} />
-                <Text3 medium color={skinVars.colors.inverse}>
-                  {t.accessBanner}
-                </Text3>
-              </Inline>
-            </div>
-            <Box padding={24}>
-              <Grid columns={3} gap={16}>
-                <Boxed>
-                  <Box padding={20}>
-                    <Stack space={4}>
-                      <Text1 medium color={skinVars.colors.brand} transform="uppercase">
-                        {t.setHere}
-                      </Text1>
-                      <Text3 medium color={skinVars.colors.textPrimary}>
-                        {t.whoYouAre}
-                      </Text3>
-                      <Text2 regular color={skinVars.colors.textSecondary}>
-                        {t.whoYouAreBody}
-                      </Text2>
-                    </Stack>
-                  </Box>
-                </Boxed>
-                <Boxed>
-                  <Box padding={20}>
-                    <Stack space={4}>
-                      <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                        {t.inherited}
-                      </Text1>
-                      <Text3 medium color={skinVars.colors.textPrimary}>
-                        {t.howSensitive}
-                      </Text3>
-                      <Text2 regular color={skinVars.colors.textSecondary}>
-                        {t.howSensitiveBody}
-                      </Text2>
-                    </Stack>
-                  </Box>
-                </Boxed>
-                <Boxed>
-                  <Box padding={20}>
-                    <Stack space={4}>
-                      <Inline space={4} alignItems="center">
-                        <Text1 medium color={skinVars.colors.brand} transform="uppercase">
-                          {t.effectiveAccess}
-                        </Text1>
-                        <IconArrowLineRightRegular size={14} color={skinVars.colors.brand} />
-                      </Inline>
-                      <Text3 medium color={skinVars.colors.textPrimary}>
-                        {t.whatEachSees}
-                      </Text3>
-                      <Text2 regular color={skinVars.colors.textSecondary}>
-                        {t.whatEachSeesBody}
-                      </Text2>
-                    </Stack>
-                  </Box>
-                </Boxed>
-              </Grid>
-            </Box>
-          </Stack>
-        </Boxed>
-
         {/* Profiles overview */}
         <Stack space={16}>
           <Inline space={8} alignItems="center">
@@ -957,7 +883,7 @@ export default function AdminPage() {
       {userDialogOpen && (
         <Sheet onClose={() => setUserDialogOpen(false)}>
           {({ closeModal }) => (
-            <Box paddingBottom={24}>
+            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
               <Stack space={16}>
                 <Stack space={4}>
                   <Title2>{editingUserId ? t.editUser : t.registerUser}</Title2>
@@ -1053,7 +979,7 @@ export default function AdminPage() {
       {pendingUser && (
         <Sheet onClose={() => setPendingUser(null)}>
           {({ closeModal }) => (
-            <Box paddingBottom={24}>
+            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
               <Stack space={16}>
                 <Inline space={8} alignItems="center">
                   <IconAlertRegular color={skinVars.colors.warning} />
@@ -1084,7 +1010,7 @@ export default function AdminPage() {
       {kpiSheetOpen && (
         <Sheet onClose={() => setKpiEditId(null)}>
           {({ closeModal }) => (
-            <Box paddingBottom={24}>
+            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
               <Stack space={16}>
                 <Stack space={4}>
                   <Title2>{kpiCreateMode ? t.newKpiDefinition : t.editKpiDefinition}</Title2>
@@ -1339,7 +1265,7 @@ export default function AdminPage() {
       {kpiHistoryRecord && (
         <Sheet onClose={() => setKpiHistoryId(null)}>
           {() => (
-            <Box paddingBottom={24}>
+            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
               <Stack space={16}>
                 <Stack space={4}>
                   <Title2>{t.versionHistory}</Title2>
@@ -1409,7 +1335,7 @@ export default function AdminPage() {
       {scheduleDialogOpen && (
         <Sheet onClose={() => setScheduleDialogOpen(false)}>
           {({ closeModal }) => (
-            <Box paddingBottom={24}>
+            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
               <Stack space={16}>
                 <Stack space={4}>
                   <Title2>{t.scheduleDialogTitle}</Title2>
