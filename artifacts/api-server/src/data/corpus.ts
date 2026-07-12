@@ -28,6 +28,7 @@ export interface StrategicAxis {
 
 export interface Role {
   id: string;
+  name: string;
   label: string;
   clearance: Clearance;
   area: Area;
@@ -318,9 +319,11 @@ export const AXES: StrategicAxis[] = [
   },
 ];
 
+// Persona names are fictional, like the rest of the corpus.
 export const ROLES: Role[] = [
   {
     id: "role-press",
+    name: "Elena Ruiz",
     label: "External / Press",
     clearance: "public",
     area: "Comunicación",
@@ -328,6 +331,7 @@ export const ROLES: Role[] = [
   },
   {
     id: "role-analyst",
+    name: "Marta Ortega",
     label: "Communications Analyst",
     clearance: "private",
     area: "Comunicación",
@@ -335,6 +339,7 @@ export const ROLES: Role[] = [
   },
   {
     id: "role-brand",
+    name: "Diego Fernández",
     label: "Brand Manager",
     clearance: "private",
     area: "Marca",
@@ -342,6 +347,7 @@ export const ROLES: Role[] = [
   },
   {
     id: "role-director",
+    name: "Carmen Vega",
     label: "Communications Director",
     clearance: "confidential",
     area: "Comunicación",
@@ -349,6 +355,7 @@ export const ROLES: Role[] = [
   },
   {
     id: "role-cabinet",
+    name: "Álvaro Mendoza",
     label: "Chief of Staff · Gabinete",
     clearance: "off_the_record",
     area: "Gabinete",

@@ -2880,10 +2880,13 @@ components:
 
     Role:
       type: object
-      required: [id, label, clearance, area, description]
+      required: [id, name, label, clearance, area, description]
       properties:
         id:
           type: string
+        name:
+          type: string
+          description: Fictional person name for the demo persona
         label:
           type: string
         clearance:

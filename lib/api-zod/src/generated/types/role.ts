@@ -8,6 +8,8 @@
 
 export interface Role {
   id: string;
+  /** Fictional person name for the demo persona */
+  name: string;
   label: string;
   /** public | private | confidential | off_the_record */
   clearance: string;

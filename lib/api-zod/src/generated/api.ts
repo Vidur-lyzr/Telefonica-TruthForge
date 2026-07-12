@@ -148,6 +148,7 @@ export const ListAxesResponse = zod.array(ListAxesResponseItem)
  */
 export const ListRolesResponseItem = zod.object({
   "id": zod.string(),
+  "name": zod.string().describe('Fictional person name for the demo persona'),
   "label": zod.string(),
   "clearance": zod.string().describe('public | private | confidential | off_the_record'),
   "area": zod.string(),

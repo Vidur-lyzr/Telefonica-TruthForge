@@ -18,7 +18,6 @@ import {
   ASK_I18N,
   localeFor,
   validityLabel,
-  kindLabel,
   type AskStrings,
 } from "@/i18n/ask";
 import { streamAsk, type AskStep } from "@/hooks/ask-stream";
@@ -921,37 +920,58 @@ function FirstRun({
   onPick: (text: string) => void;
   t: AskStrings;
 }) {
+  // A handful of chips instead of a wall of nudge cards: one suggestion per
+  // answer kind (cited, conflict, permission, no-evidence, historic) so the
+  // few that remain still showcase the honest answer states.
+  const chips = React.useMemo(() => {
+    const picked: SuggestedQuery[] = [];
+    const seen = new Set<string>();
+    for (const s of suggestions ?? []) {
+      if (!seen.has(s.kind)) {
+        seen.add(s.kind);
+        picked.push(s);
+      }
+      if (picked.length >= 5) break;
+    }
+    return picked;
+  }, [suggestions]);
+
   return (
-    <Box paddingY={40}>
-      <Stack space={32}>
-        <Stack space={12}>
-          <Text8>{t.firstRun.title}</Text8>
-          <Text3 regular color={skinVars.colors.textSecondary}>
-            {t.firstRun.body}
-          </Text3>
-        </Stack>
+    <div
+      style={{
+        minHeight: "55vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Stack space={24}>
+        <div style={{ textAlign: "center" }}>
+          <Stack space={12}>
+            <Text8>{t.firstRun.title}</Text8>
+            <Text3 regular color={skinVars.colors.textSecondary}>
+              {t.firstRun.body}
+            </Text3>
+          </Stack>
+        </div>
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: 12,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+            justifyContent: "center",
+            maxWidth: 680,
+            margin: "0 auto",
           }}
         >
-          {suggestions?.map((s) => (
+          {chips.map((s) => (
             <Touchable key={s.id} onPress={() => onPick(s.text)}>
-              <Boxed>
-                <Box padding={16}>
-                  <Stack space={8}>
-                    <Tag type="info">{kindLabel(s.kind, t)}</Tag>
-                    <Text2 medium>{s.text}</Text2>
-                  </Stack>
-                </Box>
-              </Boxed>
+              <Chip>{s.text}</Chip>
             </Touchable>
           ))}
         </div>
       </Stack>
-    </Box>
+    </div>
   );
 }
 

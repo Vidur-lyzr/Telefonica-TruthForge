@@ -190,7 +190,132 @@ function Sidebar({
             </div>
           ))}
         </div>
+
+        <PersonaCard collapsed={collapsed} />
     </nav>
+  );
+}
+
+// Persona switcher pinned to the bottom-left of the sidebar: fictional person
+// name + role, avatar with initials, and an upward Menu to switch personas.
+function PersonaCard({ collapsed }: { collapsed: boolean }) {
+  const { roleId, setRoleId, lang } = useApp();
+  const t = UI[lang];
+  const { data: roles } = useListRoles();
+
+  React.useEffect(() => {
+    if (roles && roles.length > 0 && !roleId) {
+      setRoleId(roles[0].id);
+    }
+  }, [roles, roleId, setRoleId]);
+
+  const active = roles?.find((r) => r.id === roleId);
+  const initials = (active?.name ?? "")
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("");
+
+  return (
+    <div
+      style={{
+        borderTop: `1px solid ${skinVars.colors.divider}`,
+        padding: collapsed ? "10px 8px" : "10px 12px",
+        flexShrink: 0,
+      }}
+    >
+      <Menu
+        position="left"
+        width={340}
+        renderTarget={({ ref, onPress, isMenuOpen }) => (
+          <Touchable
+            onPress={onPress}
+            aria-label={`${t.topbar.persona}: ${active?.name ?? ""}`}
+          >
+            <div
+              ref={ref}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                justifyContent: collapsed ? "center" : "flex-start",
+                padding: collapsed ? "6px 0" : "8px 10px",
+                borderRadius: skinVars.borderRadii.button,
+                backgroundColor: isMenuOpen
+                  ? skinVars.colors.brandLow
+                  : "transparent",
+                transition: "background-color 150ms ease",
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: skinVars.borderRadii.avatar,
+                  backgroundColor: skinVars.colors.brandLow,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Text2 medium color={skinVars.colors.brand}>
+                  {initials || "?"}
+                </Text2>
+              </div>
+              {!collapsed && (
+                <>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Text2 medium color={skinVars.colors.textPrimary}>
+                        {active?.name ?? "—"}
+                      </Text2>
+                    </div>
+                    <div
+                      style={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        {active ? `${active.label} (${active.clearance})` : ""}
+                      </Text1>
+                    </div>
+                  </div>
+                  <IconChevronDownRegular
+                    size={12}
+                    color={skinVars.colors.neutralMedium}
+                  />
+                </>
+              )}
+            </div>
+          </Touchable>
+        )}
+        renderMenu={({ ref, className, close }) => (
+          <div ref={ref} className={className}>
+            {(roles ?? []).map((r) => (
+              <MenuItem
+                key={r.id}
+                label={`${r.name} — ${r.label}`}
+                controlType="checkbox"
+                checked={r.id === roleId}
+                onPress={() => {
+                  setRoleId(r.id);
+                  close();
+                }}
+              />
+            ))}
+          </div>
+        )}
+      />
+    </div>
   );
 }
 
@@ -270,15 +395,8 @@ function CompactSelect({
 }
 
 function Topbar() {
-  const { area, setArea, roleId, setRoleId, lang, setLang } = useApp();
+  const { area, setArea, lang, setLang } = useApp();
   const t = UI[lang];
-  const { data: roles } = useListRoles();
-
-  React.useEffect(() => {
-    if (roles && roles.length > 0 && !roleId) {
-      setRoleId(roles[0].id);
-    }
-  }, [roles, roleId, setRoleId]);
 
   return (
     <header
@@ -318,16 +436,6 @@ function Topbar() {
             { value: "Marca", text: "Marca" },
             { value: "Gabinete", text: "Gabinete" },
           ]}
-        />
-        <CompactSelect
-          label={t.topbar.persona}
-          value={roleId}
-          onChange={setRoleId}
-          menuWidth={320}
-          options={(roles ?? []).map((r) => ({
-            value: r.id,
-            text: `${r.label} (${r.clearance})`,
-          }))}
         />
       </div>
     </header>
