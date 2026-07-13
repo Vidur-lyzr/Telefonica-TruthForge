@@ -155,6 +155,9 @@ export interface PlanningStrings {
   askCalendar: string;
   chatIntro: string;
   accessingCalendar: string;
+  agentActivity: string;
+  chatError: string;
+  clearChat: string;
   noEvidence: string;
   permissionRestricted: string;
   suggestedNextSteps: string;
@@ -348,6 +351,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     askCalendar: "Ask the calendar",
     chatIntro: "Every answer is scoped to your persona and cited to governed activity.",
     accessingCalendar: "Accessing governed calendar…",
+    agentActivity: "Agent activity",
+    chatError: "The calendar agent could not complete this request. Please try again.",
+    clearChat: "Clear conversation",
     noEvidence: "No evidence found",
     permissionRestricted: "Permission restricted",
     suggestedNextSteps: "Suggested next steps",
@@ -542,6 +548,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     askCalendar: "Pregunta al calendario",
     chatIntro: "Cada respuesta se acota a tu persona y se cita a actividad gobernada.",
     accessingCalendar: "Accediendo al calendario gobernado…",
+    agentActivity: "Actividad del agente",
+    chatError: "El agente del calendario no pudo completar esta solicitud. Inténtalo de nuevo.",
+    clearChat: "Borrar conversación",
     noEvidence: "No se encontró evidencia",
     permissionRestricted: "Permiso restringido",
     suggestedNextSteps: "Próximos pasos sugeridos",
@@ -738,6 +747,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     chatIntro:
       "Jede Antwort ist auf Ihre Persona zugeschnitten und mit kontrollierter Aktivität belegt.",
     accessingCalendar: "Zugriff auf kontrollierten Kalender…",
+    agentActivity: "Agentenaktivität",
+    chatError: "Der Kalender-Agent konnte diese Anfrage nicht abschließen. Bitte erneut versuchen.",
+    clearChat: "Unterhaltung löschen",
     noEvidence: "Keine Belege gefunden",
     permissionRestricted: "Berechtigung eingeschränkt",
     suggestedNextSteps: "Vorgeschlagene nächste Schritte",
@@ -932,6 +944,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     askCalendar: "Pergunte ao calendário",
     chatIntro: "Cada resposta é restrita à sua persona e citada a partir de atividade governada.",
     accessingCalendar: "Acessando calendário governado…",
+    agentActivity: "Atividade do agente",
+    chatError: "O agente do calendário não conseguiu concluir esta solicitação. Tente novamente.",
+    clearChat: "Limpar conversa",
     noEvidence: "Nenhuma evidência encontrada",
     permissionRestricted: "Permissão restrita",
     suggestedNextSteps: "Próximos passos sugeridos",

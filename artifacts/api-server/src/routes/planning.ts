@@ -52,6 +52,7 @@ import {
 } from "../data/planningStore";
 import {
   runPlanningAsk,
+  runPlanningAskAgent,
   runPlanningForecast,
   buildForecastDraft,
 } from "../agent/planningAgent";
@@ -142,6 +143,54 @@ router.post("/planning/ask", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "planning-ask route failed");
     res.status(500).json({ error: "The Hub could not complete this request." });
+  }
+});
+
+// Streaming variant of /planning/ask: Server-Sent Events with live agent
+// steps (scope -> retrieve -> decide/compose) followed by the final result.
+// Out of the OpenAPI contract by design, mirroring /brand/guardian/stream.
+router.post("/planning/ask/stream", async (req, res) => {
+  const parsed = PlanningAskBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  let closed = false;
+  const abort = new AbortController();
+  res.on("close", () => {
+    closed = true;
+    abort.abort();
+  });
+
+  const send = (event: string, data: unknown) => {
+    if (closed) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    const result = await runPlanningAskAgent(
+      parsed.data,
+      req.log,
+      (step) => send("step", step),
+      abort.signal,
+    );
+    send("result", result);
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      req.log.info("planning ask stream cancelled: client disconnected");
+    } else {
+      req.log.error({ err }, "planning ask stream failed");
+      send("error", { error: "The calendar agent could not complete this request." });
+    }
+  } finally {
+    send("done", {});
+    res.end();
   }
 });
 

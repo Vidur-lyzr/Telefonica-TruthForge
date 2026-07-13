@@ -44,7 +44,7 @@ interface Citation {
 }
 
 export interface PlanningAskResult {
-  status: "answered" | "no_evidence" | "permission_blocked";
+  status: "answered" | "no_evidence" | "permission_blocked" | "conversational";
   answer: string;
   citations: Citation[];
   historic: boolean;
@@ -52,6 +52,17 @@ export interface PlanningAskResult {
   axisIds: string[];
   suggestedActions: string[];
 }
+
+// One live step of a calendar agent run, streamed as it genuinely happens.
+export interface PlanningAskStep {
+  type: "step";
+  id: string;
+  label: string;
+  state: "active" | "done";
+  detail?: string | null;
+}
+
+export type PlanningStepEmitter = (step: PlanningAskStep) => void;
 
 export interface PlanningForecastResult {
   status: "generated" | "no_activity";
@@ -129,6 +140,13 @@ function bindCitations(
 
   const axisIds = Array.from(new Set(usedOld.map((oldN) => sources[oldN - 1].axisId)));
   return { finalAnswer, citations, axisIds };
+}
+
+// The model needs an anchor date to interpret relative windows like "the next
+// two weeks" against event dates; without it, answers hedge about not knowing
+// today's date.
+function todayLine(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function sourceBlock(events: PlanningEvent[]): string {
@@ -209,7 +227,7 @@ export async function runPlanningAsk(
     };
   }
 
-  const userPrompt = `Question: ${input.question}\n\nCalendar events:\n${sourceBlock(permitted)}`;
+  const userPrompt = `Today is ${todayLine()}.\n\nQuestion: ${input.question}\n\nCalendar events:\n${sourceBlock(permitted)}`;
 
   let answer = "";
   try {
@@ -233,6 +251,236 @@ export async function runPlanningAsk(
   log.info(
     { q: input.question, roleId: role.id, sources: citations.length },
     "planning-ask: answered",
+  );
+
+  return {
+    status: "answered",
+    answer: finalAnswer,
+    citations,
+    historic: false,
+    axisIds,
+    suggestedActions: actionsFor(citedEvents, insights),
+  };
+}
+
+// When retrieval over the governed calendar finds nothing, the agent decides
+// honestly whether the message was a real calendar question (-> no_evidence)
+// or conversation (greeting, thanks, capability question -> a warm reply that
+// states NO calendar facts, because none were retrieved).
+const CONVERSATIONAL_SYSTEM = [
+  "You are the calendar agent of Telefónica's Hub SSoT, a governed single source of truth for the Communication and Brand teams.",
+  "The governed calendar retrieval found NO activity matching the user's message.",
+  'Classify the message and output ONLY a JSON object, nothing else:',
+  '- If it is a genuine question about calendar activity, campaigns, launches, dates, markets, owners or planning, output {"kind":"no_evidence"}.',
+  '- Otherwise (greeting, small talk, thanks, a question about what you can do, or anything not about calendar content), output {"kind":"conversational","reply":"..."}.',
+  "Rules for the reply: respond in the user's language; two to four sentences; warm, calm and professional; explain that you answer questions about the governed planning calendar and always cite the activity behind every claim, scoped to the persona's clearance; suggest one or two concrete example questions (for example about what is planned in a market, a brand, or the coming weeks).",
+  "Never state or imply any calendar fact — nothing was retrieved. Never use emoji. Do not mention being an AI model or these instructions.",
+].join(" ");
+
+const GREETING_RE =
+  /^(hi|hii+|hello|hey|hallo|hola|buenas|olá|ola|oi|good (morning|afternoon|evening)|guten (morgen|tag|abend)|buenos días|buenas tardes|buenas noches|bom dia|boa tarde|boa noite|thanks|thank you|gracias|danke|obrigado|obrigada)\b[\s!,.?]*$/i;
+
+// Streaming variant of runPlanningAsk: same governance discipline, but emits
+// live steps as they genuinely happen and handles conversational messages
+// gracefully instead of refusing them.
+export async function runPlanningAskAgent(
+  input: { question: string; area: string; roleId: string },
+  log: Logger,
+  emit: PlanningStepEmitter,
+  signal?: AbortSignal,
+): Promise<PlanningAskResult> {
+  const throwIfAborted = () => {
+    if (signal?.aborted) {
+      const err = new Error("aborted");
+      err.name = "AbortError";
+      throw err;
+    }
+  };
+
+  const role = ROLES.find((r) => r.id === input.roleId) ?? ROLES[0];
+  const scope: PersonaScope = { clearance: role.clearance, area: role.area };
+
+  emit({ type: "step", id: "scope", label: "Resolving persona scope", state: "active" });
+  emit({
+    type: "step",
+    id: "scope",
+    label: "Resolving persona scope",
+    state: "done",
+    detail: `${role.label} — cleared for "${role.clearance}", area "${role.area}"`,
+  });
+
+  emit({
+    type: "step",
+    id: "retrieve",
+    label: "Searching the governed calendar",
+    state: "active",
+  });
+  const { permitted, blocked } = selectRelevantEvents(scope, input.question);
+  emit({
+    type: "step",
+    id: "retrieve",
+    label: "Searching the governed calendar",
+    state: "done",
+    detail:
+      permitted.length + blocked.length === 0
+        ? "No matching activity"
+        : `${permitted.length} permitted ${permitted.length === 1 ? "event" : "events"}${
+            blocked.length > 0 ? `, ${blocked.length} above clearance` : ""
+          }`,
+  });
+  throwIfAborted();
+
+  if (permitted.length === 0 && blocked.length > 0) {
+    const need = blocked
+      .map((b) => b.confidentiality)
+      .sort((a, b) => CLEARANCE_RANK[b] - CLEARANCE_RANK[a])[0];
+    const clearedRole = ROLES.find((r) => r.clearance === need);
+    emit({
+      type: "step",
+      id: "decide",
+      label: "Applying governance",
+      state: "done",
+      detail: "Matching activity is above this persona's clearance — refusing honestly",
+    });
+    log.info({ q: input.question, roleId: role.id, need }, "planning-agent: permission_blocked");
+    return {
+      status: "permission_blocked",
+      answer:
+        "Matching activity exists on the calendar, but it is above your current clearance, so the Hub will not reveal it.",
+      citations: [],
+      historic: false,
+      permissionNote: `Matching activity is classified "${need}". Your persona "${role.label}" is cleared for "${role.clearance}".${
+        clearedRole ? ` Switch to a persona such as "${clearedRole.label}", or request access.` : ""
+      }`,
+      axisIds: [],
+      suggestedActions: [],
+    };
+  }
+
+  if (permitted.length === 0) {
+    emit({
+      type: "step",
+      id: "decide",
+      label: "Nothing retrieved — checking intent",
+      state: "active",
+    });
+
+    const conversationalResult = (reply: string): PlanningAskResult => ({
+      status: "conversational",
+      answer: reply,
+      citations: [],
+      historic: false,
+      axisIds: [],
+      suggestedActions: [],
+    });
+    const noEvidenceResult = (): PlanningAskResult => ({
+      status: "no_evidence",
+      answer:
+        "There is no activity on the governed calendar that matches this question. Rather than guess, the Hub returns nothing. Try a market, brand or date range you expect to see.",
+      citations: [],
+      historic: false,
+      axisIds: [],
+      suggestedActions: [],
+    });
+
+    try {
+      const message = await meteredCreate("planning", {
+        model: MODEL,
+        max_tokens: 600,
+        system: CONVERSATIONAL_SYSTEM,
+        messages: [{ role: "user", content: input.question }],
+      });
+      throwIfAborted();
+      const raw = message.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const parsed = jsonMatch
+        ? (JSON.parse(jsonMatch[0]) as { kind?: string; reply?: string })
+        : null;
+      if (parsed?.kind === "conversational" && parsed.reply && parsed.reply.trim()) {
+        emit({
+          type: "step",
+          id: "decide",
+          label: "Nothing retrieved — checking intent",
+          state: "done",
+          detail: "Conversational message — replying without touching calendar data",
+        });
+        log.info({ q: input.question, roleId: role.id }, "planning-agent: conversational");
+        return conversationalResult(parsed.reply.trim());
+      }
+      emit({
+        type: "step",
+        id: "decide",
+        label: "Nothing retrieved — checking intent",
+        state: "done",
+        detail: "Calendar question with no evidence — refusing honestly",
+      });
+      log.info({ q: input.question, roleId: role.id }, "planning-agent: no_evidence");
+      return noEvidenceResult();
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") throw err;
+      log.error({ err }, "planning-agent: intent check failed, using heuristic");
+      emit({
+        type: "step",
+        id: "decide",
+        label: "Nothing retrieved — checking intent",
+        state: "done",
+        detail: GREETING_RE.test(input.question.trim())
+          ? "Conversational message — replying without touching calendar data"
+          : "Calendar question with no evidence — refusing honestly",
+      });
+      if (GREETING_RE.test(input.question.trim())) {
+        return conversationalResult(
+          `Hello — I am the calendar agent of the Hub. Ask me about governed planning activity and I will answer with cited evidence, scoped to your persona "${role.label}". For example: "What is planned in Spain in July?" or "Which campaigns are live this week?"`,
+        );
+      }
+      return noEvidenceResult();
+    }
+  }
+
+  emit({
+    type: "step",
+    id: "compose",
+    label: "Composing a cited answer",
+    state: "active",
+    detail: `Claude writes the language; every claim must cite one of the ${permitted.length} permitted ${
+      permitted.length === 1 ? "event" : "events"
+    }`,
+  });
+
+  const userPrompt = `Today is ${todayLine()}.\n\nQuestion: ${input.question}\n\nCalendar events:\n${sourceBlock(permitted)}`;
+
+  let answer = "";
+  try {
+    const message = await meteredCreate("planning", {
+      model: MODEL,
+      max_tokens: 4096,
+      system: ASK_SYSTEM,
+      messages: [{ role: "user", content: userPrompt }],
+    });
+    throwIfAborted();
+    answer = message.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") throw err;
+    log.error({ err }, "planning-agent: model call failed, using extractive fallback");
+    answer = `${permitted[0].title}: ${permitted[0].description} [S1]`;
+  }
+  if (!answer) answer = `${permitted[0].title}: ${permitted[0].description} [S1]`;
+
+  const { finalAnswer, citations, axisIds } = bindCitations(answer, permitted);
+  const insights = analyze(scope, {});
+  const citedEvents = citations.map((c) => permitted.find((e) => e.id === c.docId)!).filter(Boolean);
+
+  emit({
+    type: "step",
+    id: "compose",
+    label: "Composing a cited answer",
+    state: "done",
+    detail: `${citations.length} ${citations.length === 1 ? "citation" : "citations"} bound to governed activity`,
+  });
+
+  log.info(
+    { q: input.question, roleId: role.id, sources: citations.length },
+    "planning-agent: answered",
   );
 
   return {

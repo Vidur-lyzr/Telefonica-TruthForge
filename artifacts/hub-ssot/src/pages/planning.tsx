@@ -33,6 +33,7 @@ import {
   IconCalendarRegular,
   IconLayersRegular,
 } from "@telefonica/mistica";
+import { SOURCE_LOGOS } from "@/components/data-center/source-logos";
 import { PlanningCalendar, type CalendarView } from "@/components/planning/calendar";
 import { EventDrawer } from "@/components/planning/event-drawer";
 import { EventForm } from "@/components/planning/event-form";
@@ -261,28 +262,37 @@ export default function Planning() {
                     {t.sourcesLabel}
                   </Text1>
                 </Inline>
-                {overview.sources.map((s) => (
-                  <div
-                    key={s.id}
-                    title={s.description}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                      backgroundColor: skinVars.colors.backgroundContainer,
-                      border: `1px solid ${skinVars.colors.divider}`,
-                      borderRadius: skinVars.borderRadii.button,
-                      padding: "4px 12px",
-                    }}
-                  >
-                    <Text1 medium color={skinVars.colors.textPrimary}>
-                      {s.name}
-                    </Text1>
-                    <Text1 regular color={skinVars.colors.textSecondary} transform="uppercase">
-                      {s.status === "read_only" ? t.readOnly : s.status}
-                    </Text1>
-                  </div>
-                ))}
+                {overview.sources.map((s) => {
+                  const Logo = SOURCE_LOGOS[s.id];
+                  return (
+                    <div
+                      key={s.id}
+                      title={s.description}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        backgroundColor: skinVars.colors.backgroundContainer,
+                        border: `1px solid ${skinVars.colors.divider}`,
+                        borderRadius: skinVars.borderRadii.button,
+                        padding: "4px 12px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {Logo && (
+                        <span style={{ display: "flex", flexShrink: 0 }}>
+                          <Logo size={16} />
+                        </span>
+                      )}
+                      <Text1 medium color={skinVars.colors.textPrimary}>
+                        {s.name}
+                      </Text1>
+                      <Text1 regular color={skinVars.colors.textSecondary} transform="uppercase">
+                        {s.status === "read_only" ? t.readOnly : s.status}
+                      </Text1>
+                    </div>
+                  );
+                })}
               </Inline>
             )}
           </Inline>
@@ -392,20 +402,23 @@ export default function Planning() {
                       border: `1px solid ${skinVars.colors.divider}`,
                       backgroundColor: skinVars.colors.backgroundAlternative,
                       padding: 2,
+                      flexShrink: 0,
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {(["month", "week", "day"] as CalendarView[]).map((v) => (
                       <Touchable key={v} onPress={() => setView(v)} aria-label={t.views[v]}>
                         <div
                           style={{
-                            padding: "4px 12px",
+                            padding: "4px 14px",
                             borderRadius: skinVars.borderRadii.button,
                             backgroundColor: view === v ? skinVars.colors.brand : "transparent",
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          <Text1
+                          <Text2
                             medium
-                            transform="uppercase"
+                            wordBreak={false}
                             color={
                               view === v
                                 ? skinVars.colors.textPrimaryInverse
@@ -413,7 +426,7 @@ export default function Planning() {
                             }
                           >
                             {t.views[v]}
-                          </Text1>
+                          </Text2>
                         </div>
                       </Touchable>
                     ))}

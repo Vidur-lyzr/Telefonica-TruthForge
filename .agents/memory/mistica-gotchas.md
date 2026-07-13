@@ -15,6 +15,7 @@ description: Non-obvious API constraints of @telefonica/mistica learned during t
 - `Menu` icon typing needs `(props: IconProps) => JSX.Element`.
 - `skinVars.borderRadii.avatar` is `"50%"` — use it instead of a literal `"50%"` for circular dots.
 - Lock icon is `IconLockClosedRegular` (there is no `IconLockRegular`).
+- `Text` components break words mid-word by default (segmented toggles render "Mont h"); parent `white-space: nowrap` does NOT stop it — pass `wordBreak={false}` on the Text itself.
 
 **Why:** these caused repeated typecheck failures during the Mística rebuild; the docs bundled at `node_modules/@telefonica/mistica/doc/` are the fastest reference.
 **How to apply:** any time building or editing hub-ssot UI on Mística.

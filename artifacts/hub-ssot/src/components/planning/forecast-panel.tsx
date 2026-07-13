@@ -373,6 +373,8 @@ export function ForecastPanel() {
                           borderRadius: skinVars.borderRadii.button,
                           border: `1px solid ${applyAlpha(skinVars.rawColors.inverse, 0.4)}`,
                           padding: 2,
+                          flexShrink: 0,
+                          whiteSpace: "nowrap",
                         }}
                       >
                         {FREQUENCIES.map((f) => (
@@ -383,18 +385,19 @@ export function ForecastPanel() {
                           >
                             <div
                               style={{
-                                padding: "4px 10px",
+                                padding: "4px 12px",
                                 borderRadius: skinVars.borderRadii.button,
                                 whiteSpace: "nowrap",
+                                flexShrink: 0,
                                 backgroundColor:
                                   frequency === f
                                     ? applyAlpha(skinVars.rawColors.inverse, 0.25)
                                     : "transparent",
                               }}
                             >
-                              <Text1
+                              <Text2
                                 medium
-                                transform="uppercase"
+                                wordBreak={false}
                                 color={
                                   frequency === f
                                     ? skinVars.colors.textPrimaryInverse
@@ -402,7 +405,7 @@ export function ForecastPanel() {
                                 }
                               >
                                 {t.frequencies[f]}
-                              </Text1>
+                              </Text2>
                             </div>
                           </Touchable>
                         ))}
