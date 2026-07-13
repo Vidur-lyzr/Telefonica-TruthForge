@@ -155,6 +155,7 @@ export default function Planning() {
   const [period, setPeriod] = React.useState<string>(ALL);
   const [openEvent, setOpenEvent] = React.useState<string | null>(null);
   const [creating, setCreating] = React.useState(false);
+  const [sideTab, setSideTab] = React.useState(0);
   const disconnected = !!overview && overview.sources.length === 0;
 
   const range = React.useMemo(() => {
@@ -503,17 +504,81 @@ export default function Planning() {
                   </Box>
                 )}
 
-                {!disconnected && insights && (
-                  <PredictiveStrip insights={insights} onOpenEvent={setOpenEvent} />
-                )}
               </Stack>
             </GridSpan>
 
-            <Stack space={24}>
-              <ForecastPanel />
-              {!disconnected && <AlertsPanel onOpenEvent={setOpenEvent} />}
-              <div style={{ minHeight: 420, display: "flex" }}>
+            {/* All three side panels stay mounted so switching tabs never
+                discards a running forecast or an in-flight conversation. */}
+            <Stack space={16}>
+              <div
+                role="tablist"
+                aria-label={t.rightPanelAria}
+                style={{
+                  display: "flex",
+                  alignItems: "stretch",
+                  borderRadius: skinVars.borderRadii.button,
+                  border: `1px solid ${skinVars.colors.divider}`,
+                  backgroundColor: skinVars.colors.backgroundAlternative,
+                  padding: 2,
+                }}
+              >
+                {[t.tabForecastAlerts, t.askCalendar, t.tabSignals].map((label, i) => (
+                  <div key={i} style={{ flex: 1, display: "flex" }}>
+                    <Touchable
+                      onPress={() => setSideTab(i)}
+                      aria-label={label}
+                      role="tab"
+                      aria-selected={sideTab === i}
+                    >
+                      <div
+                        style={{
+                          padding: "6px 8px",
+                          borderRadius: skinVars.borderRadii.button,
+                          backgroundColor: sideTab === i ? skinVars.colors.brand : "transparent",
+                          textAlign: "center",
+                          height: "100%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text2
+                          medium
+                          wordBreak={false}
+                          color={
+                            sideTab === i
+                              ? skinVars.colors.textPrimaryInverse
+                              : skinVars.colors.textSecondary
+                          }
+                        >
+                          {label}
+                        </Text2>
+                      </div>
+                    </Touchable>
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: sideTab === 0 ? "block" : "none" }}>
+                <Stack space={24}>
+                  <ForecastPanel />
+                  {!disconnected && <AlertsPanel onOpenEvent={setOpenEvent} />}
+                </Stack>
+              </div>
+              <div style={{ display: sideTab === 1 ? "flex" : "none", minHeight: 480 }}>
                 <PlanningChat />
+              </div>
+              <div style={{ display: sideTab === 2 ? "block" : "none" }}>
+                {!disconnected && insights ? (
+                  <PredictiveStrip
+                    insights={insights}
+                    onOpenEvent={setOpenEvent}
+                    layout="column"
+                  />
+                ) : (
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {t.noPredictive}
+                  </Text2>
+                )}
               </div>
             </Stack>
           </Grid>

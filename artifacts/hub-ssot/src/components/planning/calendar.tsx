@@ -193,7 +193,7 @@ function MonthView({
             <div
               key={i}
               style={{
-                minHeight: 124,
+                minHeight: 96,
                 borderBottom: `1px solid ${skinVars.colors.divider}`,
                 borderRight:
                   (i + 1) % 7 === 0 ? "none" : `1px solid ${skinVars.colors.divider}`,

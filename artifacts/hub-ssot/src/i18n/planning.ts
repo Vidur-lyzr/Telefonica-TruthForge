@@ -153,6 +153,9 @@ export interface PlanningStrings {
   prompts: string[];
   evidenceAria: (id: string | number, title: string) => string;
   askCalendar: string;
+  tabForecastAlerts: string;
+  tabSignals: string;
+  rightPanelAria: string;
   chatIntro: string;
   accessingCalendar: string;
   agentActionsDone: (n: number) => string;
@@ -351,6 +354,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     ],
     evidenceAria: (id, title) => `Citation ${id}: ${title}`,
     askCalendar: "Ask the calendar",
+    tabForecastAlerts: "Forecast & alerts",
+    tabSignals: "Signals",
+    rightPanelAria: "Planning side panel",
     chatIntro: "Every answer is scoped to your persona and cited to governed activity.",
     accessingCalendar: "Accessing governed calendar…",
     agentActionsDone: (n) => `Done · ${n} agent action${n === 1 ? "" : "s"}`,
@@ -550,6 +556,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     ],
     evidenceAria: (id, title) => `Cita ${id}: ${title}`,
     askCalendar: "Pregunta al calendario",
+    tabForecastAlerts: "Previsión y alertas",
+    tabSignals: "Señales",
+    rightPanelAria: "Panel lateral de planificación",
     chatIntro: "Cada respuesta se acota a tu persona y se cita a actividad gobernada.",
     accessingCalendar: "Accediendo al calendario gobernado…",
     agentActionsDone: (n) => `Hecho · ${n} ${n === 1 ? "acción" : "acciones"} del agente`,
@@ -750,6 +759,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     ],
     evidenceAria: (id, title) => `Beleg ${id}: ${title}`,
     askCalendar: "Kalender fragen",
+    tabForecastAlerts: "Prognose & Warnungen",
+    tabSignals: "Signale",
+    rightPanelAria: "Planungs-Seitenbereich",
     chatIntro:
       "Jede Antwort ist auf Ihre Persona zugeschnitten und mit kontrollierter Aktivität belegt.",
     accessingCalendar: "Zugriff auf kontrollierten Kalender…",
@@ -950,6 +962,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     ],
     evidenceAria: (id, title) => `Citação ${id}: ${title}`,
     askCalendar: "Pergunte ao calendário",
+    tabForecastAlerts: "Previsão e alertas",
+    tabSignals: "Sinais",
+    rightPanelAria: "Painel lateral de planejamento",
     chatIntro: "Cada resposta é restrita à sua persona e citada a partir de atividade governada.",
     accessingCalendar: "Acessando calendário governado…",
     agentActionsDone: (n) => `Concluído · ${n} ${n === 1 ? "ação" : "ações"} do agente`,

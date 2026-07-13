@@ -30,6 +30,10 @@ function toneColor(tone: Tone): string {
       : skinVars.colors.textSecondary;
 }
 
+// When the strip renders as a vertical list (right-column "Signals" tab) the
+// cards stretch to the full column width instead of the fixed strip sizing.
+const FluidContext = React.createContext(false);
+
 function Card({
   Icon,
   tone,
@@ -43,12 +47,13 @@ function Card({
   children: React.ReactNode;
   onClick?: () => void;
 }) {
+  const fluid = React.useContext(FluidContext);
   const body = (
     <div
       style={{
-        minWidth: 260,
-        maxWidth: 320,
-        flexShrink: 0,
+        ...(fluid
+          ? { width: "100%" }
+          : { minWidth: 260, maxWidth: 320, flexShrink: 0 }),
         backgroundColor: skinVars.colors.backgroundContainer,
         border: `1px solid ${skinVars.colors.divider}`,
         borderRadius: skinVars.borderRadii.container,
@@ -79,9 +84,11 @@ function Card({
 export function PredictiveStrip({
   insights,
   onOpenEvent,
+  layout = "row",
 }: {
   insights: PlanningInsights;
   onOpenEvent?: (id: string) => void;
+  layout?: "row" | "column";
 }) {
   const { lang } = useApp();
   const t = PLANNING_I18N[lang];
@@ -122,7 +129,14 @@ export function PredictiveStrip({
           {t.predictiveHeader}
         </Text1>
       </Inline>
-      <div style={{ display: "flex", overflowX: "auto", gap: 12, paddingBottom: 12 }}>
+      <FluidContext.Provider value={layout === "column"}>
+      <div
+        style={
+          layout === "column"
+            ? { display: "flex", flexDirection: "column", gap: 12 }
+            : { display: "flex", overflowX: "auto", gap: 12, paddingBottom: 12 }
+        }
+      >
         {conflicts.map((c) => (
           <Card
             key={c.id}
@@ -281,6 +295,7 @@ export function PredictiveStrip({
           </Card>
         ))}
       </div>
+      </FluidContext.Provider>
     </Stack>
   );
 }
