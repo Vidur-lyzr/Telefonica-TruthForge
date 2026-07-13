@@ -53,7 +53,7 @@ A governed, agentic Single Source of Truth for Telefónica's Communication & Bra
 - The Telefónica design system must be applied exactly as specified — do not deviate.
 - No emojis anywhere in the product or code.
 - No database.
-- No gradient fills in charts/graphs — plain solid lines only (sparklines included). Never reintroduce gradient area fills.
+- No gradient fills in charts/graphs — never reintroduce gradient area fills. Approved sparkline style (Mística data-card look): solid 2px status-color line, flat uniform-alpha tint underneath (applyAlpha 0.1), dot on the latest value, padded Y domain so trends are readable.
 
 ## Gotchas
 

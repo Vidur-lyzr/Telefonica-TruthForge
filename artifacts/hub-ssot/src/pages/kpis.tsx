@@ -17,6 +17,8 @@ import { useApp } from "@/components/app-provider";
 import { KPIS_I18N, localeFor } from "@/i18n/kpis";
 import { useLocation } from "wouter";
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -89,23 +91,67 @@ function statusInkColor(status: KpiCardType["status"]): string {
       : skinVars.colors.errorHigh;
 }
 
-function Sparkline({ data, color }: { data: number[]; color: string }) {
+function statusRawColor(status: KpiCardType["status"]): string {
+  return status === "on-track"
+    ? skinVars.rawColors.successHigh
+    : status === "amber"
+      ? skinVars.rawColors.warningHigh
+      : skinVars.rawColors.errorHigh;
+}
+
+function Sparkline({
+  data,
+  color,
+  fillColor,
+}: {
+  data: number[];
+  color: string;
+  fillColor: string;
+}) {
+  if (data.length === 0) {
+    return null;
+  }
   const chartData = data.map((value, i) => ({ i, value }));
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const pad = Math.max((max - min) * 0.35, Math.abs(max) * 0.02, 0.5);
+  const lastIndex = data.length - 1;
   return (
-    <ResponsiveContainer width="100%" height={44}>
-      <LineChart
+    <ResponsiveContainer width="100%" height={48}>
+      <AreaChart
         data={chartData}
-        margin={{ top: 4, right: 0, left: 0, bottom: 4 }}
+        margin={{ top: 6, right: 5, left: 5, bottom: 2 }}
       >
-        <Line
+        <YAxis hide domain={[min - pad, max + pad]} />
+        <Area
           type="monotone"
           dataKey="value"
           stroke={color}
           strokeWidth={2}
+          fill={fillColor}
+          fillOpacity={1}
           isAnimationActive={false}
-          dot={false}
+          dot={(props: { cx?: number; cy?: number; index?: number }) =>
+            props.index === lastIndex ? (
+              <circle
+                key={`spark-dot-${props.index}`}
+                cx={props.cx}
+                cy={props.cy}
+                r={3}
+                fill={color}
+              />
+            ) : (
+              <circle
+                key={`spark-dot-${props.index}`}
+                cx={props.cx}
+                cy={props.cy}
+                r={0}
+                fill="none"
+              />
+            )
+          }
         />
-      </LineChart>
+      </AreaChart>
     </ResponsiveContainer>
   );
 }
@@ -302,10 +348,11 @@ function KpiCardTile({
                   </Text1>
                 </Box>
               </div>
-              <div style={{ marginLeft: "auto", width: 96, flexShrink: 0 }}>
+              <div style={{ marginLeft: "auto", width: 112, flexShrink: 0 }}>
                 <Sparkline
                   data={kpi.spark}
                   color={statusInkColor(kpi.status)}
+                  fillColor={applyAlpha(statusRawColor(kpi.status), 0.1)}
                 />
               </div>
             </Inline>
