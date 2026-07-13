@@ -49,7 +49,6 @@ import {
   Select,
   DateField,
   Drawer,
-  Sheet,
   Spinner,
   skinVars,
   applyAlpha,
@@ -75,18 +74,21 @@ type PeriodType = "week" | "month" | "quarter" | "custom";
 
 const PERIOD_TYPES: PeriodType[] = ["week", "month", "quarter", "custom"];
 
-const STATUS_TAG: Record<KpiCardType["status"], "success" | "warning" | "error"> = {
+const STATUS_TAG: Record<
+  KpiCardType["status"],
+  "success" | "warning" | "error"
+> = {
   "on-track": "success",
   amber: "warning",
   "off-track": "error",
 };
 
-function statusColor(status: KpiCardType["status"]): string {
+function statusInkColor(status: KpiCardType["status"]): string {
   return status === "on-track"
-    ? skinVars.colors.success
+    ? skinVars.colors.successHigh
     : status === "amber"
-      ? skinVars.colors.warning
-      : skinVars.colors.error;
+      ? skinVars.colors.warningHigh
+      : skinVars.colors.errorHigh;
 }
 
 function Sparkline({
@@ -101,7 +103,10 @@ function Sparkline({
   const chartData = data.map((value, i) => ({ i, value }));
   return (
     <ResponsiveContainer width="100%" height={44}>
-      <AreaChart data={chartData} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+      <AreaChart
+        data={chartData}
+        margin={{ top: 4, right: 0, left: 0, bottom: 0 }}
+      >
         <defs>
           <linearGradient id={`spark-${gradId}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={color} stopOpacity={0.35} />
@@ -129,8 +134,8 @@ function VariationBadge({ kpi }: { kpi: KpiCardType }) {
   const tone = flat
     ? skinVars.colors.textSecondary
     : improving
-      ? skinVars.colors.success
-      : skinVars.colors.error;
+      ? skinVars.colors.successHigh
+      : skinVars.colors.errorHigh;
   return (
     <Inline space={4} alignItems="center">
       {flat ? (
@@ -163,7 +168,11 @@ function AxisPill({ name, color }: { name: string; color: string }) {
         padding: "4px 10px",
       }}
     >
-      <Text1 medium color={skinVars.colors.textPrimaryInverse} transform="uppercase">
+      <Text1
+        medium
+        color={skinVars.colors.textPrimaryInverse}
+        transform="uppercase"
+      >
         {name}
       </Text1>
     </div>
@@ -194,7 +203,14 @@ function CardEvidenceChip({ kpi }: { kpi: KpiCardType }) {
       <Stack space={4}>
         <Inline space={8} alignItems="center">
           <IconFileTextRegular size={14} color={skinVars.colors.brand} />
-          <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div
+            style={{
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             <Text2 medium color={skinVars.colors.textPrimary}>
               {primary ? primary.label : t.noSource}
               {extra > 0 ? ` +${extra}` : ""}
@@ -208,7 +224,10 @@ function CardEvidenceChip({ kpi }: { kpi: KpiCardType }) {
         </Inline>
         <Inline space={8} alignItems="center">
           <Inline space={4} alignItems="center">
-            <IconShieldCheckedOkRegular size={12} color={skinVars.colors.textSecondary} />
+            <IconShieldCheckedOkRegular
+              size={12}
+              color={skinVars.colors.textSecondary}
+            />
             <Text1 regular color={skinVars.colors.textSecondary}>
               {t.confidencePct(Math.round(kpi.confidence * 100))}
             </Text1>
@@ -216,7 +235,14 @@ function CardEvidenceChip({ kpi }: { kpi: KpiCardType }) {
           <Text1 regular color={skinVars.colors.textSecondary}>
             ·
           </Text1>
-          <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <div
+            style={{
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
             <Text1 regular color={skinVars.colors.textSecondary}>
               {kpi.composite ? kpi.blend : t.singleSource}
             </Text1>
@@ -227,7 +253,13 @@ function CardEvidenceChip({ kpi }: { kpi: KpiCardType }) {
   );
 }
 
-function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) {
+function KpiCardTile({
+  kpi,
+  onOpen,
+}: {
+  kpi: KpiCardType;
+  onOpen: () => void;
+}) {
   const { lang } = useApp();
   const t = KPIS_I18N[lang];
   const progressClamped = Math.max(0, Math.min(100, kpi.progress));
@@ -239,8 +271,18 @@ function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) 
             <Inline space={12} alignItems="center">
               <div style={{ minWidth: 0 }}>
                 <Stack space={4}>
-                  <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  <div
+                    style={{
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    <Text1
+                      medium
+                      color={skinVars.colors.textSecondary}
+                      transform="uppercase"
+                    >
                       {kpi.market} · {kpi.brand}
                     </Text1>
                   </div>
@@ -255,7 +297,7 @@ function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) 
                     width: 10,
                     height: 10,
                     borderRadius: skinVars.borderRadii.avatar,
-                    backgroundColor: statusColor(kpi.status),
+                    backgroundColor: statusInkColor(kpi.status),
                   }}
                   title={t.statusLabels[kpi.status]}
                 />
@@ -278,7 +320,11 @@ function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) 
                 </Box>
               </div>
               <div style={{ marginLeft: "auto", width: 96, flexShrink: 0 }}>
-                <Sparkline data={kpi.spark} color={statusColor(kpi.status)} gradId={kpi.id} />
+                <Sparkline
+                  data={kpi.spark}
+                  color={statusInkColor(kpi.status)}
+                  gradId={kpi.id}
+                />
               </div>
             </Inline>
 
@@ -297,12 +343,16 @@ function KpiCardTile({ kpi, onOpen }: { kpi: KpiCardType; onOpen: () => void }) 
                     height: "100%",
                     width: `${progressClamped}%`,
                     borderRadius: skinVars.borderRadii.indicator,
-                    backgroundColor: statusColor(kpi.status),
+                    backgroundColor: statusInkColor(kpi.status),
                   }}
                 />
               </div>
               <Inline space="between" alignItems="center">
-                <Text1 medium color={statusColor(kpi.status)} transform="uppercase">
+                <Text1
+                  medium
+                  color={statusInkColor(kpi.status)}
+                  transform="uppercase"
+                >
                   {t.statusLabels[kpi.status]} · {kpi.progress}%
                 </Text1>
                 <VariationBadge kpi={kpi} />
@@ -408,7 +458,14 @@ function SourceRow({
                 S{index + 1}
               </Text1>
             </div>
-            <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div
+              style={{
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
               <Text2 medium color={skinVars.colors.textPrimary}>
                 {source.docTitle}
               </Text2>
@@ -422,7 +479,11 @@ function SourceRow({
           </Inline>
 
           {source.sourceLoc && (
-            <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+            <Text1
+              medium
+              color={skinVars.colors.textSecondary}
+              transform="uppercase"
+            >
               {source.sourceLoc}
             </Text1>
           )}
@@ -444,16 +505,28 @@ function SourceRow({
 
           <Inline space="between" alignItems="center">
             <Inline space={16} alignItems="center" wrap>
-              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+              <Text1
+                medium
+                color={skinVars.colors.textSecondary}
+                transform="uppercase"
+              >
                 {t.weight} {Math.round(source.weight * 100)}%
               </Text1>
               {source.owner && (
-                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                <Text1
+                  medium
+                  color={skinVars.colors.textSecondary}
+                  transform="uppercase"
+                >
                   {source.owner}
                 </Text1>
               )}
               {source.confidentiality && (
-                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                <Text1
+                  medium
+                  color={skinVars.colors.textSecondary}
+                  transform="uppercase"
+                >
                   {clearanceLabel(source.confidentiality, lang)}
                 </Text1>
               )}
@@ -471,7 +544,7 @@ function SourceRow({
   );
 }
 
-function SourceDetailSheet({
+function SourceDetailDrawer({
   source,
   index,
   onClose,
@@ -484,129 +557,144 @@ function SourceDetailSheet({
   const t = KPIS_I18N[lang];
   const validity = source.validity ?? "approved";
   return (
-    <Sheet onClose={onClose}>
-      {({ modalTitleId }) => (
-        <Box paddingX={24} paddingBottom={32} paddingTop={16}>
-          <Stack space={16}>
-            <Inline space="between" alignItems="center">
-              <div
-                style={{
-                  backgroundColor: skinVars.colors.brandLow,
-                  borderRadius: skinVars.borderRadii.button,
-                  padding: "4px 12px",
-                }}
-              >
-                <Text2 medium color={skinVars.colors.brand}>
-                  {t.citationLabel(index + 1)}
-                </Text2>
-              </div>
-              <Inline space={8} alignItems="center">
-                <Tag type={validityTagType(validity)}>
-                  {t.validityLabels[validity] ?? t.validityLabels.approved}
-                </Tag>
-                {source.confidentiality && (
-                  <Tag type={source.confidentiality === "public" ? "success" : "error"}>
-                    {clearanceLabel(source.confidentiality, lang)}
-                  </Tag>
-                )}
-              </Inline>
-            </Inline>
+    <Drawer
+      onClose={onClose}
+      onDismiss={onClose}
+      width={600}
+      title={source.docTitle ?? source.label}
+      subtitle={source.sourceLoc ?? undefined}
+    >
+      <Stack space={24}>
+        <Inline space={8} alignItems="center" wrap>
+          <div
+            style={{
+              backgroundColor: skinVars.colors.brandLow,
+              borderRadius: skinVars.borderRadii.button,
+              padding: "4px 12px",
+            }}
+          >
+            <Text2 medium color={skinVars.colors.brand}>
+              {t.citationLabel(index + 1)}
+            </Text2>
+          </div>
+          <Tag type={validityTagType(validity)}>
+            {t.validityLabels[validity] ?? t.validityLabels.approved}
+          </Tag>
+          {source.confidentiality && (
+            <Tag
+              type={source.confidentiality === "public" ? "inactive" : "error"}
+            >
+              {clearanceLabel(source.confidentiality, lang)}
+            </Tag>
+          )}
+        </Inline>
 
-            <Text5 id={modalTitleId}>{source.docTitle ?? source.label}</Text5>
-            {source.sourceLoc && (
-              <Text2 regular color={skinVars.colors.textSecondary}>
-                {source.sourceLoc}
-              </Text2>
-            )}
-
-            {source.accessible ? (
-              source.snippet ? (
-                <div
-                  style={{
-                    backgroundColor: skinVars.colors.backgroundAlternative,
-                    border: `1px solid ${skinVars.colors.divider}`,
-                    borderRadius: skinVars.borderRadii.container,
-                    padding: 20,
-                  }}
+        {source.accessible ? (
+          source.snippet ? (
+            <div
+              style={{
+                backgroundColor: skinVars.colors.backgroundAlternative,
+                border: `1px solid ${skinVars.colors.divider}`,
+                borderRadius: skinVars.borderRadii.container,
+                padding: 20,
+              }}
+            >
+              <Stack space={8}>
+                <Text1
+                  medium
+                  color={skinVars.colors.textSecondary}
+                  transform="uppercase"
                 >
-                  <Stack space={8}>
-                    <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                      {t.extractedSnippet}
-                    </Text1>
-                    <Text3 regular color={skinVars.colors.textPrimary}>
-                      "{source.snippet}"
-                    </Text3>
-                  </Stack>
-                </div>
-              ) : (
-                <Text2 regular color={skinVars.colors.textSecondary}>
-                  {t.noSnippet}
-                </Text2>
-              )
-            ) : (
-              <div
-                style={{
-                  backgroundColor: applyAlpha(skinVars.rawColors.error, 0.12),
-                  borderRadius: skinVars.borderRadii.container,
-                  padding: 20,
-                }}
-              >
-                <Inline space={12} alignItems="center">
-                  <IconShieldCrossRegular size={20} color={skinVars.colors.error} />
-                  <Text2 regular color={skinVars.colors.textPrimary}>
-                    {t.evidenceAboveClearance}
-                  </Text2>
-                </Inline>
-              </div>
-            )}
+                  {t.extractedSnippet}
+                </Text1>
+                <Text3 regular color={skinVars.colors.textPrimary}>
+                  "{source.snippet}"
+                </Text3>
+              </Stack>
+            </div>
+          ) : (
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {t.noSnippet}
+            </Text2>
+          )
+        ) : (
+          <div
+            style={{
+              backgroundColor: applyAlpha(skinVars.rawColors.error, 0.12),
+              borderRadius: skinVars.borderRadii.container,
+              padding: 20,
+            }}
+          >
+            <Inline space={12} alignItems="center">
+              <IconShieldCrossRegular size={20} color={skinVars.colors.error} />
+              <Text2 regular color={skinVars.colors.textPrimary}>
+                {t.evidenceAboveClearance}
+              </Text2>
+            </Inline>
+          </div>
+        )}
 
-            <Grid columns={{ minSize: 120 }} gap={16}>
-              <Stack space={4}>
-                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  {t.weight}
-                </Text1>
-                <Text2 regular color={skinVars.colors.textPrimary}>
-                  {Math.round(source.weight * 100)}%
-                </Text2>
-              </Stack>
-              {source.version && (
-                <Stack space={4}>
-                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                    {t.version}
-                  </Text1>
-                  <Text2 regular color={skinVars.colors.textPrimary}>
-                    {source.version}
-                  </Text2>
-                </Stack>
-              )}
-              {source.owner && (
-                <Stack space={4}>
-                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                    {t.owner}
-                  </Text1>
-                  <Text2 regular color={skinVars.colors.textPrimary}>
-                    {source.owner}
-                  </Text2>
-                </Stack>
-              )}
-              <Stack space={4}>
-                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  {t.confidence}
-                </Text1>
-                <Inline space={8} alignItems="center">
-                  <Text2 regular color={skinVars.colors.textPrimary}>
-                    {Math.round(source.confidence * 100)}%
-                  </Text2>
-                  {source.confidence > 0.8 && (
-                    <IconCheckedRegular size={16} color={skinVars.colors.success} />
-                  )}
-                </Inline>
-              </Stack>
-            </Grid>
+        <Grid columns={{ minSize: 120 }} gap={16}>
+          <Stack space={4}>
+            <Text1
+              medium
+              color={skinVars.colors.textSecondary}
+              transform="uppercase"
+            >
+              {t.weight}
+            </Text1>
+            <Text2 regular color={skinVars.colors.textPrimary}>
+              {Math.round(source.weight * 100)}%
+            </Text2>
           </Stack>
-        </Box>
-      )}
-    </Sheet>
+          {source.version && (
+            <Stack space={4}>
+              <Text1
+                medium
+                color={skinVars.colors.textSecondary}
+                transform="uppercase"
+              >
+                {t.version}
+              </Text1>
+              <Text2 regular color={skinVars.colors.textPrimary}>
+                {source.version}
+              </Text2>
+            </Stack>
+          )}
+          {source.owner && (
+            <Stack space={4}>
+              <Text1
+                medium
+                color={skinVars.colors.textSecondary}
+                transform="uppercase"
+              >
+                {t.owner}
+              </Text1>
+              <Text2 regular color={skinVars.colors.textPrimary}>
+                {source.owner}
+              </Text2>
+            </Stack>
+          )}
+          <Stack space={4}>
+            <Text1
+              medium
+              color={skinVars.colors.textSecondary}
+              transform="uppercase"
+            >
+              {t.confidence}
+            </Text1>
+            <Inline space={8} alignItems="center">
+              <Text2 regular color={skinVars.colors.textPrimary}>
+                {Math.round(source.confidence * 100)}%
+              </Text2>
+              {source.confidence > 0.8 && (
+                <IconCheckedRegular size={16} color={skinVars.colors.success} />
+              )}
+            </Inline>
+          </Stack>
+        </Grid>
+      </Stack>
+    </Drawer>
   );
 }
 
@@ -648,13 +736,19 @@ function KpiChat({
       <Box paddingBottom={12}>
         <Inline space={8} alignItems="center">
           <IconMessageRegular size={16} color={skinVars.colors.brand} />
-          <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+          <Text1
+            medium
+            color={skinVars.colors.textSecondary}
+            transform="uppercase"
+          >
             {headingText}
           </Text1>
         </Inline>
       </Box>
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 12 }}>
+      <div
+        style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 12 }}
+      >
         {!result && !isPending && (
           <Text2 regular color={skinVars.colors.textSecondary}>
             {introText}
@@ -710,7 +804,10 @@ function KpiChat({
                 }}
               >
                 <Inline space={12} alignItems="center">
-                  <IconShieldCrossRegular size={20} color={skinVars.colors.error} />
+                  <IconShieldCrossRegular
+                    size={20}
+                    color={skinVars.colors.error}
+                  />
                   <Stack space={8}>
                     <Text2 regular color={skinVars.colors.textPrimary}>
                       {result.answer}
@@ -737,13 +834,19 @@ function KpiChat({
                 {result.historic && (
                   <div
                     style={{
-                      backgroundColor: applyAlpha(skinVars.rawColors.warning, 0.12),
+                      backgroundColor: applyAlpha(
+                        skinVars.rawColors.warning,
+                        0.12,
+                      ),
                       borderRadius: skinVars.borderRadii.container,
                       padding: "8px 12px",
                     }}
                   >
                     <Inline space={8} alignItems="center">
-                      <IconTimeRegular size={16} color={skinVars.colors.warning} />
+                      <IconTimeRegular
+                        size={16}
+                        color={skinVars.colors.warning}
+                      />
                       <Text1 medium color={skinVars.colors.textPrimary}>
                         {result.historicNote || t.drawsHistoric}
                       </Text1>
@@ -765,7 +868,8 @@ function KpiChat({
                         <div
                           key={c.id}
                           style={{
-                            backgroundColor: skinVars.colors.backgroundAlternative,
+                            backgroundColor:
+                              skinVars.colors.backgroundAlternative,
                             borderRadius: skinVars.borderRadii.container,
                             padding: 10,
                           }}
@@ -784,13 +888,31 @@ function KpiChat({
                               </Text1>
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                <Text1 medium color={skinVars.colors.textPrimary}>
+                              <div
+                                style={{
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <Text1
+                                  medium
+                                  color={skinVars.colors.textPrimary}
+                                >
                                   {c.docTitle}
                                 </Text1>
                               </div>
-                              <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                <Text1 regular color={skinVars.colors.textSecondary}>
+                              <div
+                                style={{
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <Text1
+                                  regular
+                                  color={skinVars.colors.textSecondary}
+                                >
                                   {c.sourceLoc}
                                 </Text1>
                               </div>
@@ -882,7 +1004,9 @@ function DetailDrawerBody({
             <Inline space="between" alignItems="center" wrap>
               <AxisPill name={kpi.axisName} color={kpi.axisColor} />
               <Inline space={8} alignItems="center">
-                <Tag type={STATUS_TAG[kpi.status]}>{t.statusLabels[kpi.status]}</Tag>
+                <Tag type={STATUS_TAG[kpi.status]}>
+                  {t.statusLabels[kpi.status]}
+                </Tag>
                 {kpi.historic && <Tag type="warning">{t.historic}</Tag>}
               </Inline>
             </Inline>
@@ -892,16 +1016,32 @@ function DetailDrawerBody({
             </Text2>
             <Inline space={16} alignItems="center" wrap>
               <Inline space={4} alignItems="center">
-                <IconUserAccountRegular size={14} color={skinVars.colors.textSecondary} />
-                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                <IconUserAccountRegular
+                  size={14}
+                  color={skinVars.colors.textSecondary}
+                />
+                <Text1
+                  medium
+                  color={skinVars.colors.textSecondary}
+                  transform="uppercase"
+                >
                   {t.owner} {kpi.owner}
                 </Text1>
               </Inline>
-              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+              <Text1
+                medium
+                color={skinVars.colors.textSecondary}
+                transform="uppercase"
+              >
                 {t.definition} v{kpi.definitionVersion}
               </Text1>
-              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                {t.amberBelow} {Math.round(kpi.thresholds.amberBelow * 100)}% · {t.criticalBelow}{" "}
+              <Text1
+                medium
+                color={skinVars.colors.textSecondary}
+                transform="uppercase"
+              >
+                {t.amberBelow} {Math.round(kpi.thresholds.amberBelow * 100)}% ·{" "}
+                {t.criticalBelow}{" "}
                 {Math.round(kpi.thresholds.criticalBelow * 100)}%
               </Text1>
             </Inline>
@@ -913,9 +1053,21 @@ function DetailDrawerBody({
 
           <Grid columns={3} gap={12}>
             {[
-              { label: t.current, value: `${kpi.current}${kpi.unit}`, color: skinVars.colors.textPrimary },
-              { label: t.target, value: `${kpi.target}${kpi.unit}`, color: skinVars.colors.textPrimary },
-              { label: t.progress, value: `${kpi.progress}%`, color: statusColor(kpi.status) },
+              {
+                label: t.current,
+                value: `${kpi.current}${kpi.unit}`,
+                color: skinVars.colors.textPrimary,
+              },
+              {
+                label: t.target,
+                value: `${kpi.target}${kpi.unit}`,
+                color: skinVars.colors.textPrimary,
+              },
+              {
+                label: t.progress,
+                value: `${kpi.progress}%`,
+                color: statusInkColor(kpi.status),
+              },
             ].map((m) => (
               <div
                 key={m.label}
@@ -926,7 +1078,11 @@ function DetailDrawerBody({
                 }}
               >
                 <Stack space={4}>
-                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  <Text1
+                    medium
+                    color={skinVars.colors.textSecondary}
+                    transform="uppercase"
+                  >
                     {m.label}
                   </Text1>
                   <Text5>
@@ -955,19 +1111,33 @@ function DetailDrawerBody({
           )}
 
           <Stack space={12}>
-            <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+            <Text1
+              medium
+              color={skinVars.colors.textSecondary}
+              transform="uppercase"
+            >
               {t.trendVsTarget}
             </Text1>
             <div style={{ height: 224, width: "100%" }}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={seriesData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <LineChart
+                  data={seriesData}
+                  margin={{ top: 8, right: 8, left: -20, bottom: 0 }}
+                >
                   <CartesianGrid
                     strokeDasharray="3 3"
                     stroke={skinVars.colors.divider}
                     vertical={false}
                   />
-                  <XAxis dataKey="period" tick={{ fontSize: 11 }} stroke={skinVars.colors.textSecondary} />
-                  <YAxis tick={{ fontSize: 11 }} stroke={skinVars.colors.textSecondary} />
+                  <XAxis
+                    dataKey="period"
+                    tick={{ fontSize: 11 }}
+                    stroke={skinVars.colors.textSecondary}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    stroke={skinVars.colors.textSecondary}
+                  />
                   <RTooltip
                     contentStyle={{
                       borderRadius: 12,
@@ -987,7 +1157,7 @@ function DetailDrawerBody({
                   <Line
                     type="monotone"
                     dataKey="value"
-                    stroke={statusColor(kpi.status)}
+                    stroke={statusInkColor(kpi.status)}
                     strokeWidth={2.5}
                     dot={{ r: 3 }}
                     name={kpi.name}
@@ -999,28 +1169,48 @@ function DetailDrawerBody({
 
           {detail.breakdowns.map((bd) => (
             <Stack key={bd.dimension} space={12}>
-              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+              <Text1
+                medium
+                color={skinVars.colors.textSecondary}
+                transform="uppercase"
+              >
                 {t.breakdownBy} {bd.dimension}
               </Text1>
               <div style={{ height: 176, width: "100%" }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={bd.points} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                  <BarChart
+                    data={bd.points}
+                    margin={{ top: 4, right: 8, left: -20, bottom: 0 }}
+                  >
                     <CartesianGrid
                       strokeDasharray="3 3"
                       stroke={skinVars.colors.divider}
                       vertical={false}
                     />
-                    <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke={skinVars.colors.textSecondary} />
-                    <YAxis tick={{ fontSize: 11 }} stroke={skinVars.colors.textSecondary} />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11 }}
+                      stroke={skinVars.colors.textSecondary}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      stroke={skinVars.colors.textSecondary}
+                    />
                     <RTooltip
                       contentStyle={{
                         borderRadius: 12,
                         border: `1px solid ${skinVars.colors.divider}`,
                         fontSize: 12,
                       }}
-                      cursor={{ fill: applyAlpha(skinVars.rawColors.brand, 0.08) }}
+                      cursor={{
+                        fill: applyAlpha(skinVars.rawColors.brand, 0.08),
+                      }}
                     />
-                    <Bar dataKey="value" fill={skinVars.colors.brand} radius={[6, 6, 0, 0]} />
+                    <Bar
+                      dataKey="value"
+                      fill={skinVars.colors.brand}
+                      radius={[6, 6, 0, 0]}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -1039,11 +1229,20 @@ function DetailDrawerBody({
             <Inline space={12} alignItems="center">
               <IconAiRegular
                 size={20}
-                color={kpi.forecast.deviationRisk ? skinVars.colors.warning : skinVars.colors.success}
+                color={
+                  kpi.forecast.deviationRisk
+                    ? skinVars.colors.warning
+                    : skinVars.colors.success
+                }
               />
               <Stack space={4}>
-                <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-                  {t.forecast} · {t.confidencePct(Math.round(kpi.forecast.confidence * 100))}
+                <Text1
+                  medium
+                  color={skinVars.colors.textSecondary}
+                  transform="uppercase"
+                >
+                  {t.forecast} ·{" "}
+                  {t.confidencePct(Math.round(kpi.forecast.confidence * 100))}
                 </Text1>
                 <Text2 regular color={skinVars.colors.textPrimary}>
                   {kpi.forecast.note}
@@ -1054,8 +1253,15 @@ function DetailDrawerBody({
 
           <Stack space={12}>
             <Inline space={8} alignItems="center" wrap>
-              <IconFileTextRegular size={16} color={skinVars.colors.textSecondary} />
-              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+              <IconFileTextRegular
+                size={16}
+                color={skinVars.colors.textSecondary}
+              />
+              <Text1
+                medium
+                color={skinVars.colors.textSecondary}
+                transform="uppercase"
+              >
                 {t.composingSources} ({kpi.sources.length})
               </Text1>
               <div style={{ marginLeft: "auto" }}>
@@ -1083,7 +1289,7 @@ function DetailDrawerBody({
       </div>
 
       {selectedSource && (
-        <SourceDetailSheet
+        <SourceDetailDrawer
           source={selectedSource.source}
           index={selectedSource.index}
           onClose={() => setSelectedSource(null)}
@@ -1133,12 +1339,20 @@ function AlertRow({
             {alert.acknowledged ? (
               <Inline space={4} alignItems="center">
                 <IconCheckedRegular size={14} color={skinVars.colors.success} />
-                <Text1 medium color={skinVars.colors.success} transform="uppercase">
+                <Text1
+                  medium
+                  color={skinVars.colors.success}
+                  transform="uppercase"
+                >
                   {t.acknowledged}
                 </Text1>
               </Inline>
             ) : (
-              <ButtonSecondary small onPress={onAcknowledge} disabled={acknowledging}>
+              <ButtonSecondary
+                small
+                onPress={onAcknowledge}
+                disabled={acknowledging}
+              >
                 {t.acknowledge}
               </ButtonSecondary>
             )}
@@ -1149,7 +1363,10 @@ function AlertRow({
         </Text2>
         <Inline space={16} alignItems="center" wrap>
           <Inline space={4} alignItems="center">
-            <IconUserAccountRegular size={12} color={skinVars.colors.textSecondary} />
+            <IconUserAccountRegular
+              size={12}
+              color={skinVars.colors.textSecondary}
+            />
             <Text1 regular color={skinVars.colors.textSecondary}>
               {t.notified} {alert.owner}
             </Text1>
@@ -1169,12 +1386,15 @@ function AlertRow({
             <Text1 regular color={skinVars.colors.textSecondary}>
               {t.by} {alert.acknowledgedBy}
               {alert.acknowledgedAt
-                ? ` · ${new Date(alert.acknowledgedAt).toLocaleString(localeFor(lang), {
-                    day: "2-digit",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}`
+                ? ` · ${new Date(alert.acknowledgedAt).toLocaleString(
+                    localeFor(lang),
+                    {
+                      day: "2-digit",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}`
                 : ""}
             </Text1>
           )}
@@ -1205,8 +1425,10 @@ export default function KpisPage() {
   const val = (v: string) => (v === "__all__" ? null : v);
 
   // A custom range only takes effect once both dates are set and ordered.
-  const customRangeReady = period === "custom" && !!rangeFrom && !!rangeTo && rangeFrom <= rangeTo;
-  const customRangeInvalid = period === "custom" && !!rangeFrom && !!rangeTo && rangeFrom > rangeTo;
+  const customRangeReady =
+    period === "custom" && !!rangeFrom && !!rangeTo && rangeFrom <= rangeTo;
+  const customRangeInvalid =
+    period === "custom" && !!rangeFrom && !!rangeTo && rangeFrom > rangeTo;
   const activeRangeFrom = customRangeReady ? rangeFrom : null;
   const activeRangeTo = customRangeReady ? rangeTo : null;
 
@@ -1229,7 +1451,19 @@ export default function KpisPage() {
       },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [area, roleId, period, activeRangeFrom, activeRangeTo, axisId, market, brand, source, initiativeType, objectiveId]);
+  }, [
+    area,
+    roleId,
+    period,
+    activeRangeFrom,
+    activeRangeTo,
+    axisId,
+    market,
+    brand,
+    source,
+    initiativeType,
+    objectiveId,
+  ]);
 
   const {
     mutate: fetchAlerts,
@@ -1267,7 +1501,14 @@ export default function KpisPage() {
     if (period === "custom" && !customRangeReady) return;
     resetDetail();
     fetchDetail({
-      data: { id: openId, area, roleId, period, rangeFrom: activeRangeFrom, rangeTo: activeRangeTo },
+      data: {
+        id: openId,
+        area,
+        roleId,
+        period,
+        rangeFrom: activeRangeFrom,
+        rangeTo: activeRangeTo,
+      },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openId, area, roleId, period, activeRangeFrom, activeRangeTo]);
@@ -1311,10 +1552,17 @@ export default function KpisPage() {
                 StartIcon={IconFileTextRegular}
                 onPress={() => {
                   const offTrack = kpis.filter((k) => k.status !== "on-track");
-                  const names = kpis.map((k) => k.name).slice(0, 6).join(", ");
+                  const names = kpis
+                    .map((k) => k.name)
+                    .slice(0, 6)
+                    .join(", ");
                   const periodPhrase =
                     period === "custom" && activeRangeFrom && activeRangeTo
-                      ? t.reportRangePhrase(area, activeRangeFrom, activeRangeTo)
+                      ? t.reportRangePhrase(
+                          area,
+                          activeRangeFrom,
+                          activeRangeTo,
+                        )
                       : t.reportPeriodPhrase(t.periodLabels[period], area);
                   const topic = `${periodPhrase}${t.reportSummary(summary.total, summary.onTrack, summary.atRisk, summary.offTrack, names, kpis.length > 6)}${offTrack.length > 0 ? t.reportFocus(offTrack.map((k) => k.name).join(", ")) : ""}`;
                   sessionStorage.setItem(
@@ -1332,8 +1580,10 @@ export default function KpisPage() {
                         market: market === "__all__" ? null : market,
                         brand: brand === "__all__" ? null : brand,
                         source: source === "__all__" ? null : source,
-                        initiativeType: initiativeType === "__all__" ? null : initiativeType,
-                        objectiveId: objectiveId === "__all__" ? null : objectiveId,
+                        initiativeType:
+                          initiativeType === "__all__" ? null : initiativeType,
+                        objectiveId:
+                          objectiveId === "__all__" ? null : objectiveId,
                       },
                     }),
                   );
@@ -1393,7 +1643,11 @@ export default function KpisPage() {
             <Inline space={8} alignItems="center">
               <IconAlertRegular
                 size={16}
-                color={customRangeInvalid ? skinVars.colors.error : skinVars.colors.textSecondary}
+                color={
+                  customRangeInvalid
+                    ? skinVars.colors.error
+                    : skinVars.colors.textSecondary
+                }
               />
               <Text2 regular color={skinVars.colors.textSecondary}>
                 {customRangeInvalid ? t.rangeInvalid : t.rangePrompt}
@@ -1405,10 +1659,30 @@ export default function KpisPage() {
         {kpis.length > 0 && (
           <Grid columns={{ minSize: 160 }} gap={12}>
             {[
-              { label: t.tracked, value: summary.total, color: skinVars.colors.textPrimary, bg: skinVars.colors.backgroundContainer },
-              { label: t.statusLabels["on-track"], value: summary.onTrack, color: skinVars.colors.success, bg: applyAlpha(skinVars.rawColors.success, 0.12) },
-              { label: t.statusLabels.amber, value: summary.atRisk, color: skinVars.colors.warning, bg: applyAlpha(skinVars.rawColors.warning, 0.12) },
-              { label: t.statusLabels["off-track"], value: summary.offTrack, color: skinVars.colors.error, bg: applyAlpha(skinVars.rawColors.error, 0.12) },
+              {
+                label: t.tracked,
+                value: summary.total,
+                color: skinVars.colors.textPrimary,
+                bg: skinVars.colors.backgroundContainer,
+              },
+              {
+                label: t.statusLabels["on-track"],
+                value: summary.onTrack,
+                color: skinVars.colors.success,
+                bg: applyAlpha(skinVars.rawColors.success, 0.12),
+              },
+              {
+                label: t.statusLabels.amber,
+                value: summary.atRisk,
+                color: skinVars.colors.warning,
+                bg: applyAlpha(skinVars.rawColors.warning, 0.12),
+              },
+              {
+                label: t.statusLabels["off-track"],
+                value: summary.offTrack,
+                color: skinVars.colors.error,
+                bg: applyAlpha(skinVars.rawColors.error, 0.12),
+              },
             ].map((s) => (
               <div
                 key={s.label}
@@ -1420,7 +1694,11 @@ export default function KpisPage() {
                 }}
               >
                 <Stack space={4}>
-                  <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                  <Text1
+                    medium
+                    color={skinVars.colors.textSecondary}
+                    transform="uppercase"
+                  >
                     {s.label}
                   </Text1>
                   <Text8>
@@ -1447,7 +1725,10 @@ export default function KpisPage() {
                 allLabel={t.allAxes}
                 value={axisId}
                 onChange={setAxisId}
-                options={facets.axes.map((a) => ({ value: a.id, label: a.name }))}
+                options={facets.axes.map((a) => ({
+                  value: a.id,
+                  label: a.name,
+                }))}
               />
               <FilterSelect
                 label={t.filterMarket}
@@ -1475,7 +1756,10 @@ export default function KpisPage() {
                 allLabel={t.allInitiatives}
                 value={initiativeType}
                 onChange={setInitiativeType}
-                options={facets.initiativeTypes.map((it) => ({ value: it, label: it }))}
+                options={facets.initiativeTypes.map((it) => ({
+                  value: it,
+                  label: it,
+                }))}
               />
               {facets.objectives && facets.objectives.length > 0 && (
                 <FilterSelect
@@ -1483,7 +1767,10 @@ export default function KpisPage() {
                   allLabel={t.allObjectives}
                   value={objectiveId}
                   onChange={setObjectiveId}
-                  options={facets.objectives.map((o) => ({ value: o.id, label: o.name }))}
+                  options={facets.objectives.map((o) => ({
+                    value: o.id,
+                    label: o.name,
+                  }))}
                 />
               )}
             </Inline>
@@ -1527,14 +1814,23 @@ export default function KpisPage() {
                       justifyContent: "center",
                     }}
                   >
-                    <IconTargetRegular size={28} color={skinVars.colors.textSecondary} />
+                    <IconTargetRegular
+                      size={28}
+                      color={skinVars.colors.textSecondary}
+                    />
                   </div>
                 </div>
               </Inline>
               <Text5>
-                <span style={{ display: "block", textAlign: "center" }}>{t.emptyTitle}</span>
+                <span style={{ display: "block", textAlign: "center" }}>
+                  {t.emptyTitle}
+                </span>
               </Text5>
-              <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
+              <Text2
+                regular
+                color={skinVars.colors.textSecondary}
+                textAlign="center"
+              >
                 {t.emptyBody}
               </Text2>
             </Stack>
@@ -1544,7 +1840,11 @@ export default function KpisPage() {
         {kpis.length > 0 && (
           <Grid columns={{ minSize: 300 }} gap={16}>
             {kpis.map((kpi) => (
-              <KpiCardTile key={kpi.id} kpi={kpi} onOpen={() => setOpenId(kpi.id)} />
+              <KpiCardTile
+                key={kpi.id}
+                kpi={kpi}
+                onOpen={() => setOpenId(kpi.id)}
+              />
             ))}
           </Grid>
         )}
@@ -1571,7 +1871,10 @@ export default function KpisPage() {
                       flexShrink: 0,
                     }}
                   >
-                    <IconMessageRegular size={16} color={skinVars.colors.brand} />
+                    <IconMessageRegular
+                      size={16}
+                      color={skinVars.colors.brand}
+                    />
                   </div>
                   <Stack space={2}>
                     <Text3 medium color={skinVars.colors.textPrimary}>
@@ -1601,7 +1904,10 @@ export default function KpisPage() {
         )}
 
         <Inline space={8} alignItems="center">
-          <IconArrowRightRegular size={14} color={skinVars.colors.textSecondary} />
+          <IconArrowRightRegular
+            size={14}
+            color={skinVars.colors.textSecondary}
+          />
           <Text1 regular color={skinVars.colors.textSecondary}>
             {t.openAnyKpi}
           </Text1>
@@ -1638,10 +1944,17 @@ export default function KpisPage() {
                 <Stack space={8}>
                   <Inline space={0} alignItems="center">
                     <div style={{ margin: "0 auto" }}>
-                      <IconCheckedRegular size={28} color={skinVars.colors.success} />
+                      <IconCheckedRegular
+                        size={28}
+                        color={skinVars.colors.success}
+                      />
                     </div>
                   </Inline>
-                  <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
+                  <Text2
+                    regular
+                    color={skinVars.colors.textSecondary}
+                    textAlign="center"
+                  >
                     {t.noThresholdAlerts}
                   </Text2>
                 </Stack>
@@ -1677,14 +1990,21 @@ export default function KpisPage() {
             </Box>
           )}
           {!detailLoading && detail && (
-            <DetailDrawerBody detail={detail} rangeFrom={activeRangeFrom} rangeTo={activeRangeTo} />
+            <DetailDrawerBody
+              detail={detail}
+              rangeFrom={activeRangeFrom}
+              rangeTo={activeRangeTo}
+            />
           )}
           {!detailLoading && !detail && (
             <Box paddingY={64}>
               <Stack space={16}>
                 <Inline space={0} alignItems="center">
                   <div style={{ margin: "0 auto" }}>
-                    <IconShieldCrossRegular size={48} color={skinVars.colors.error} />
+                    <IconShieldCrossRegular
+                      size={48}
+                      color={skinVars.colors.error}
+                    />
                   </div>
                 </Inline>
                 <Text5>
@@ -1692,7 +2012,11 @@ export default function KpisPage() {
                     {t.kpiRestricted}
                   </span>
                 </Text5>
-                <Text2 regular color={skinVars.colors.textSecondary} textAlign="center">
+                <Text2
+                  regular
+                  color={skinVars.colors.textSecondary}
+                  textAlign="center"
+                >
                   {t.kpiRestrictedBody}
                 </Text2>
               </Stack>

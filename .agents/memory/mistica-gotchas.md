@@ -19,3 +19,5 @@ description: Non-obvious API constraints of @telefonica/mistica learned during t
 
 **Why:** these caused repeated typecheck failures during the Mística rebuild; the docs bundled at `node_modules/@telefonica/mistica/doc/` are the fastest reference.
 **How to apply:** any time building or editing hub-ssot UI on Mística.
+
+- Sheet inside an open Drawer looks broken: Sheet renders centered with a built-in top-right close icon that collides with any top-right content (tags). For citation/source detail popups use a stacked Drawer (the ask.tsx CitationDrawer pattern, later-mounted portal stacks on top); status text/strokes should use *High tokens (success/warning/error base tokens are soft fill variants).
