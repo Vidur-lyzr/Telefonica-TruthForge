@@ -29,7 +29,9 @@ import {
   Spinner,
   skinVars,
   applyAlpha,
-  IconAiRegular,
+  IconStatusChartRegular,
+  IconCalendarEventRegular,
+  IconCalendarRepeatRegular,
   IconAntennaRegular,
   IconShieldRegular,
   IconFileTextRegular,
@@ -110,7 +112,7 @@ export function ForecastPanel() {
           <Stack space={16}>
             <Inline space="between" alignItems="center">
               <Inline space={8} alignItems="center">
-                <IconAiRegular size={20} color={skinVars.colors.textPrimaryInverse} />
+                <IconStatusChartRegular size={20} color={skinVars.colors.textPrimaryInverse} />
                 <Text2 medium color={skinVars.colors.textPrimaryInverse} transform="uppercase">
                   {t.forecastTitle}
                 </Text2>
@@ -127,26 +129,25 @@ export function ForecastPanel() {
               </ButtonPrimary>
             </Inline>
 
-            {/* All readable content lives in a white card on the blue panel:
-                the intro, the live loader, the composed forecast (markdown)
-                and the recurring schedule. */}
-            <ThemeVariant variant="default">
-              <div
-                style={{
-                  backgroundColor: skinVars.colors.backgroundContainer,
-                  borderRadius: skinVars.borderRadii.container,
-                }}
-              >
-                <Box padding={20}>
-                  <Stack space={16}>
-                    {!forecast && !isPending && (
-                      <Text2 regular color={skinVars.colors.textSecondary}>
-                        {t.forecastIntro}
-                      </Text2>
-                    )}
+            {!forecast && !isPending && (
+              <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.8)}>
+                {t.forecastIntro}
+              </Text2>
+            )}
 
-                    {isPending && (
-                      <Box paddingY={16}>
+            {/* Only the forecast itself (and its loading state) renders on the
+                white document-style card; the rest of the panel stays brand. */}
+            {(isPending || forecast) && (
+              <ThemeVariant variant="default">
+                <div
+                  style={{
+                    backgroundColor: skinVars.colors.backgroundContainer,
+                    borderRadius: skinVars.borderRadii.container,
+                  }}
+                >
+                  <Box padding={20}>
+                    {isPending ? (
+                      <Box paddingY={8}>
                         <Inline space={12} alignItems="center">
                           <Spinner size={24} />
                           <Text2 medium color={skinVars.colors.textPrimary}>
@@ -154,14 +155,18 @@ export function ForecastPanel() {
                           </Text2>
                         </Inline>
                       </Box>
-                    )}
-
-                    {forecast && !isPending && (
+                    ) : forecast ? (
                       <Stack space={16}>
-                        <Text1 regular color={skinVars.colors.textSecondary}>
-                          {formatDay(forecast.rangeStart, lang)} –{" "}
-                          {formatDay(forecast.rangeEnd, lang)}
-                        </Text1>
+                        <Inline space={8} alignItems="center">
+                          <IconCalendarEventRegular
+                            size={16}
+                            color={skinVars.colors.brand}
+                          />
+                          <Text1 medium color={skinVars.colors.textSecondary}>
+                            {formatDay(forecast.rangeStart, lang)} –{" "}
+                            {formatDay(forecast.rangeEnd, lang)}
+                          </Text1>
+                        </Inline>
 
                         {forecast.status === "no_activity" ? (
                           <div
@@ -287,7 +292,10 @@ export function ForecastPanel() {
                                                 whiteSpace: "nowrap",
                                               }}
                                             >
-                                              <Text1 medium color={skinVars.colors.textPrimary}>
+                                              <Text1
+                                                medium
+                                                color={skinVars.colors.textPrimary}
+                                              >
                                                 {c.docTitle}
                                               </Text1>
                                             </div>
@@ -315,11 +323,7 @@ export function ForecastPanel() {
                                 </div>
                               </Stack>
                             )}
-                          </Stack>
-                        )}
 
-                        {forecast.status !== "no_activity" && (
-                          <Stack space={8}>
                             {scheduled ? (
                               <div
                                 style={{
@@ -349,128 +353,128 @@ export function ForecastPanel() {
                           </Stack>
                         )}
                       </Stack>
-                    )}
+                    ) : null}
+                  </Box>
+                </div>
+              </ThemeVariant>
+            )}
 
-                    {/* Recurring schedule */}
-                    <div
-                      style={{
-                        borderTop: `1px solid ${skinVars.colors.divider}`,
-                        paddingTop: 16,
-                      }}
-                    >
-                      <Stack space={12}>
-                        <Text1
-                          medium
-                          color={skinVars.colors.textSecondary}
-                          transform="uppercase"
-                        >
-                          {t.recurringForecast}
-                        </Text1>
-                        {activeSchedule ? (
-                          <Stack space={8}>
-                            <Text2 regular color={skinVars.colors.textPrimary}>
-                              {t.recurringActive(
-                                activeSchedule.name,
-                                t.freqEvery[
-                                  (activeSchedule.frequency === "daily" ||
-                                  activeSchedule.frequency === "weekly" ||
-                                  activeSchedule.frequency === "monthly"
-                                    ? activeSchedule.frequency
-                                    : "monthly") as "daily" | "weekly" | "monthly"
-                                ],
-                                activeSchedule.reviewFolder,
-                              )}
-                            </Text2>
-                            <Text1 regular color={skinVars.colors.textSecondary}>
-                              {t.lastRun}{" "}
-                              {activeSchedule.lastRunAt
-                                ? new Date(activeSchedule.lastRunAt).toLocaleString(
-                                    localeFor(lang),
-                                  )
-                                : t.notYet}
-                            </Text1>
-                            <div>
-                              <ButtonPrimary
-                                small
-                                onPress={() =>
-                                  cancelRecurring({
-                                    data: { roleId, scheduleId: activeSchedule.id },
-                                  })
-                                }
-                                disabled={cancellingRecurring}
-                              >
-                                {cancellingRecurring ? t.cancelling : t.cancelRecurring}
-                              </ButtonPrimary>
-                            </div>
-                          </Stack>
-                        ) : (
-                          <Stack space={8}>
-                            <Text2 regular color={skinVars.colors.textSecondary}>
-                              {t.recurringIntro}
-                            </Text2>
-                            <Inline space={8} alignItems="center" wrap>
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  borderRadius: skinVars.borderRadii.button,
-                                  border: `1px solid ${skinVars.colors.divider}`,
-                                  padding: 2,
-                                  flexShrink: 0,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {FREQUENCIES.map((f) => (
-                                  <Touchable
-                                    key={f}
-                                    onPress={() => setFrequency(f)}
-                                    aria-label={t.frequencyAria(t.frequencies[f])}
-                                  >
-                                    <div
-                                      style={{
-                                        padding: "4px 12px",
-                                        borderRadius: skinVars.borderRadii.button,
-                                        whiteSpace: "nowrap",
-                                        flexShrink: 0,
-                                        backgroundColor:
-                                          frequency === f
-                                            ? applyAlpha(skinVars.rawColors.brand, 0.12)
-                                            : "transparent",
-                                      }}
-                                    >
-                                      <Text2
-                                        medium
-                                        wordBreak={false}
-                                        color={
-                                          frequency === f
-                                            ? skinVars.colors.brand
-                                            : skinVars.colors.textSecondary
-                                        }
-                                      >
-                                        {t.frequencies[f]}
-                                      </Text2>
-                                    </div>
-                                  </Touchable>
-                                ))}
-                              </div>
-                              <ButtonPrimary
-                                small
-                                onPress={() =>
-                                  createRecurring({ data: { area, roleId, frequency } })
-                                }
-                                disabled={creatingRecurring || !roleId}
-                              >
-                                {creatingRecurring ? t.creating : t.createRecurring}
-                              </ButtonPrimary>
-                            </Inline>
-                          </Stack>
-                        )}
-                      </Stack>
+            {/* Recurring schedule stays on the brand surface */}
+            <div
+              style={{
+                borderTop: `1px solid ${applyAlpha(skinVars.rawColors.inverse, 0.2)}`,
+                paddingTop: 16,
+              }}
+            >
+              <Stack space={12}>
+                <Inline space={8} alignItems="center">
+                  <IconCalendarRepeatRegular
+                    size={14}
+                    color={applyAlpha(skinVars.rawColors.inverse, 0.72)}
+                  />
+                  <Text1
+                    medium
+                    color={applyAlpha(skinVars.rawColors.inverse, 0.72)}
+                    transform="uppercase"
+                  >
+                    {t.recurringForecast}
+                  </Text1>
+                </Inline>
+                {activeSchedule ? (
+                  <Stack space={8}>
+                    <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.9)}>
+                      {t.recurringActive(
+                        activeSchedule.name,
+                        t.freqEvery[
+                          (activeSchedule.frequency === "daily" ||
+                          activeSchedule.frequency === "weekly" ||
+                          activeSchedule.frequency === "monthly"
+                            ? activeSchedule.frequency
+                            : "monthly") as "daily" | "weekly" | "monthly"
+                        ],
+                        activeSchedule.reviewFolder,
+                      )}
+                    </Text2>
+                    <Text1 regular color={applyAlpha(skinVars.rawColors.inverse, 0.72)}>
+                      {t.lastRun}{" "}
+                      {activeSchedule.lastRunAt
+                        ? new Date(activeSchedule.lastRunAt).toLocaleString(localeFor(lang))
+                        : t.notYet}
+                    </Text1>
+                    <div>
+                      <ButtonPrimary
+                        small
+                        onPress={() =>
+                          cancelRecurring({ data: { roleId, scheduleId: activeSchedule.id } })
+                        }
+                        disabled={cancellingRecurring}
+                      >
+                        {cancellingRecurring ? t.cancelling : t.cancelRecurring}
+                      </ButtonPrimary>
                     </div>
                   </Stack>
-                </Box>
-              </div>
-            </ThemeVariant>
+                ) : (
+                  <Stack space={8}>
+                    <Text2 regular color={applyAlpha(skinVars.rawColors.inverse, 0.8)}>
+                      {t.recurringIntro}
+                    </Text2>
+                    <Inline space={8} alignItems="center" wrap>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          borderRadius: skinVars.borderRadii.button,
+                          border: `1px solid ${applyAlpha(skinVars.rawColors.inverse, 0.4)}`,
+                          padding: 2,
+                          flexShrink: 0,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {FREQUENCIES.map((f) => (
+                          <Touchable
+                            key={f}
+                            onPress={() => setFrequency(f)}
+                            aria-label={t.frequencyAria(t.frequencies[f])}
+                          >
+                            <div
+                              style={{
+                                padding: "4px 12px",
+                                borderRadius: skinVars.borderRadii.button,
+                                whiteSpace: "nowrap",
+                                flexShrink: 0,
+                                backgroundColor:
+                                  frequency === f
+                                    ? applyAlpha(skinVars.rawColors.inverse, 0.25)
+                                    : "transparent",
+                              }}
+                            >
+                              <Text2
+                                medium
+                                wordBreak={false}
+                                color={
+                                  frequency === f
+                                    ? skinVars.colors.textPrimaryInverse
+                                    : applyAlpha(skinVars.rawColors.inverse, 0.72)
+                                }
+                              >
+                                {t.frequencies[f]}
+                              </Text2>
+                            </div>
+                          </Touchable>
+                        ))}
+                      </div>
+                      <ButtonPrimary
+                        small
+                        onPress={() => createRecurring({ data: { area, roleId, frequency } })}
+                        disabled={creatingRecurring || !roleId}
+                      >
+                        {creatingRecurring ? t.creating : t.createRecurring}
+                      </ButtonPrimary>
+                    </Inline>
+                  </Stack>
+                )}
+              </Stack>
+            </div>
           </Stack>
         </Box>
       </div>
