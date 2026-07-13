@@ -17,8 +17,6 @@ import { useApp } from "@/components/app-provider";
 import { KPIS_I18N, localeFor } from "@/i18n/kpis";
 import { useLocation } from "wouter";
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -91,38 +89,23 @@ function statusInkColor(status: KpiCardType["status"]): string {
       : skinVars.colors.errorHigh;
 }
 
-function Sparkline({
-  data,
-  color,
-  gradId,
-}: {
-  data: number[];
-  color: string;
-  gradId: string;
-}) {
+function Sparkline({ data, color }: { data: number[]; color: string }) {
   const chartData = data.map((value, i) => ({ i, value }));
   return (
     <ResponsiveContainer width="100%" height={44}>
-      <AreaChart
+      <LineChart
         data={chartData}
-        margin={{ top: 4, right: 0, left: 0, bottom: 0 }}
+        margin={{ top: 4, right: 0, left: 0, bottom: 4 }}
       >
-        <defs>
-          <linearGradient id={`spark-${gradId}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-            <stop offset="100%" stopColor={color} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area
+        <Line
           type="monotone"
           dataKey="value"
           stroke={color}
           strokeWidth={2}
-          fill={`url(#spark-${gradId})`}
           isAnimationActive={false}
           dot={false}
         />
-      </AreaChart>
+      </LineChart>
     </ResponsiveContainer>
   );
 }
@@ -323,7 +306,6 @@ function KpiCardTile({
                 <Sparkline
                   data={kpi.spark}
                   color={statusInkColor(kpi.status)}
-                  gradId={kpi.id}
                 />
               </div>
             </Inline>
