@@ -123,6 +123,7 @@ const KPIS_EN = {
     "Ask across every KPI currently on screen — what is on track, what is slipping, and why — answered only from the governed evidence behind them, with citations.",
   chatViewPlaceholder: "Which objectives are off track, and why?",
   readingEvidence: "Reading the evidence...",
+  chatError: "Something went wrong while answering. Please try again.",
   sendQuestion: "Send question",
   drawsHistoric: "Draws on historic material.",
 
@@ -249,7 +250,8 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
     singleSource: "Fuente única",
 
     viewCitationAria: (n) => `Ver cita S${n}`,
-    evidenceWithheld: "Evidencia no mostrada: por encima de tu nivel de acceso.",
+    evidenceWithheld:
+      "Evidencia no mostrada: por encima de tu nivel de acceso.",
     weight: "Peso",
     viewCitation: "Ver cita",
     citationLabel: (n) => `Cita S${n}`,
@@ -270,6 +272,7 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
       "Pregunta sobre todos los KPIs en pantalla: qué va bien, qué se está desviando y por qué; se responde solo con la evidencia gobernada que los respalda, con citas.",
     chatViewPlaceholder: "¿Qué objetivos están desviados y por qué?",
     readingEvidence: "Leyendo la evidencia...",
+    chatError: "Algo ha fallado al responder. Inténtalo de nuevo.",
     sendQuestion: "Enviar pregunta",
     drawsHistoric: "Se basa en material histórico.",
 
@@ -412,6 +415,8 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
       "Fragen Sie über alle aktuell sichtbaren KPIs – was auf Kurs ist, was abweicht und warum – beantwortet ausschließlich aus dem kontrollierten Nachweis dahinter, mit Zitaten.",
     chatViewPlaceholder: "Welche Ziele sind vom Kurs ab und warum?",
     readingEvidence: "Nachweise werden gelesen …",
+    chatError:
+      "Beim Antworten ist ein Fehler aufgetreten. Bitte erneut versuchen.",
     sendQuestion: "Frage senden",
     drawsHistoric: "Stützt sich auf historisches Material.",
 
@@ -554,6 +559,7 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
       "Pergunte sobre todos os KPIs na tela — o que está no caminho, o que está desviando e por quê — respondido apenas com a evidência governada por trás deles, com citações.",
     chatViewPlaceholder: "Quais objetivos estão fora do alvo e por quê?",
     readingEvidence: "Lendo a evidência...",
+    chatError: "Algo deu errado ao responder. Tente novamente.",
     sendQuestion: "Enviar pergunta",
     drawsHistoric: "Baseia-se em material histórico.",
 

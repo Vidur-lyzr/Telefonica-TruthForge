@@ -698,6 +698,152 @@ function SourceDetailDrawer({
   );
 }
 
+function KpiAnswerBlock({ result }: { result: AskResult }) {
+  const { lang } = useApp();
+  const t = KPIS_I18N[lang];
+  return (
+    <Stack space={12}>
+      {result.status === "no_evidence" && (
+        <div
+          style={{
+            backgroundColor: applyAlpha(skinVars.rawColors.warning, 0.12),
+            borderRadius: skinVars.borderRadii.container,
+            padding: 16,
+          }}
+        >
+          <Inline space={12} alignItems="center">
+            <IconAlertRegular size={20} color={skinVars.colors.warning} />
+            <Text2 regular color={skinVars.colors.textPrimary}>
+              {result.answer}
+            </Text2>
+          </Inline>
+        </div>
+      )}
+      {result.status === "permission_blocked" && (
+        <div
+          style={{
+            backgroundColor: applyAlpha(skinVars.rawColors.error, 0.12),
+            borderRadius: skinVars.borderRadii.container,
+            padding: 16,
+          }}
+        >
+          <Inline space={12} alignItems="center">
+            <IconShieldCrossRegular size={20} color={skinVars.colors.error} />
+            <Stack space={8}>
+              <Text2 regular color={skinVars.colors.textPrimary}>
+                {result.answer}
+              </Text2>
+              {result.permissionNote && (
+                <div
+                  style={{
+                    backgroundColor: skinVars.colors.backgroundContainer,
+                    borderRadius: skinVars.borderRadii.container,
+                    padding: "8px 12px",
+                  }}
+                >
+                  <Text1 medium color={skinVars.colors.textPrimary}>
+                    {result.permissionNote}
+                  </Text1>
+                </div>
+              )}
+            </Stack>
+          </Inline>
+        </div>
+      )}
+      {result.status === "answered" && (
+        <Stack space={12}>
+          {result.historic && (
+            <div
+              style={{
+                backgroundColor: applyAlpha(skinVars.rawColors.warning, 0.12),
+                borderRadius: skinVars.borderRadii.container,
+                padding: "8px 12px",
+              }}
+            >
+              <Inline space={8} alignItems="center">
+                <IconTimeRegular size={16} color={skinVars.colors.warning} />
+                <Text1 medium color={skinVars.colors.textPrimary}>
+                  {result.historicNote || t.drawsHistoric}
+                </Text1>
+              </Inline>
+            </div>
+          )}
+          <Stack space={8}>
+            {result.answer.split("\n").map((p, i) => (
+              <Text2 key={i} regular color={skinVars.colors.textPrimary}>
+                {p}
+              </Text2>
+            ))}
+          </Stack>
+          {result.citations && result.citations.length > 0 && (
+            <>
+              <Divider />
+              <Stack space={8}>
+                {result.citations.map((c: Citation) => (
+                  <div
+                    key={c.id}
+                    style={{
+                      backgroundColor: skinVars.colors.backgroundAlternative,
+                      borderRadius: skinVars.borderRadii.container,
+                      padding: 10,
+                    }}
+                  >
+                    <Inline space={8} alignItems="center">
+                      <div
+                        style={{
+                          backgroundColor: skinVars.colors.brandLow,
+                          borderRadius: skinVars.borderRadii.chip,
+                          padding: "2px 6px",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Text1 medium color={skinVars.colors.brand}>
+                          {c.id}
+                        </Text1>
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <Text1 medium color={skinVars.colors.textPrimary}>
+                            {c.docTitle}
+                          </Text1>
+                        </div>
+                        <div
+                          style={{
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <Text1 regular color={skinVars.colors.textSecondary}>
+                            {c.sourceLoc}
+                          </Text1>
+                        </div>
+                      </div>
+                    </Inline>
+                  </div>
+                ))}
+              </Stack>
+            </>
+          )}
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
+type KpiChatTurn = {
+  id: number;
+  question: string;
+  result: AskResult | null;
+  failed?: boolean;
+};
+
 function KpiChat({
   kpiIds,
   heading,
@@ -719,20 +865,53 @@ function KpiChat({
   const introText = intro ?? t.chatIntro;
   const placeholderText = placeholder ?? t.chatPlaceholder;
   const [question, setQuestion] = React.useState("");
-  const [asked, setAsked] = React.useState("");
-  const { mutate, data, isPending, reset } = useAskKpis();
+  const [turns, setTurns] = React.useState<KpiChatTurn[]>([]);
+  const nextIdRef = React.useRef(1);
+  const threadRef = React.useRef<HTMLDivElement | null>(null);
+  const { mutate, isPending } = useAskKpis();
+
+  React.useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [turns]);
 
   const submit = () => {
-    if (!question.trim() || !roleId || kpiIds.length === 0) return;
-    setAsked(question);
-    reset();
-    mutate({ data: { question, area, roleId, kpiIds, rangeFrom, rangeTo } });
+    if (!question.trim() || !roleId || kpiIds.length === 0 || isPending) {
+      return;
+    }
+    const q = question.trim();
+    const id = nextIdRef.current;
+    nextIdRef.current += 1;
+    setTurns((prev) => [...prev, { id, question: q, result: null }]);
+    setQuestion("");
+    mutate(
+      { data: { question: q, area, roleId, kpiIds, rangeFrom, rangeTo } },
+      {
+        onSuccess: (res) =>
+          setTurns((prev) =>
+            prev.map((turn) =>
+              turn.id === id ? { ...turn, result: res as AskResult } : turn,
+            ),
+          ),
+        onError: () =>
+          setTurns((prev) =>
+            prev.map((turn) =>
+              turn.id === id ? { ...turn, failed: true } : turn,
+            ),
+          ),
+      },
+    );
   };
 
-  const result = data as AskResult | undefined;
-
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+      }}
+    >
       <Box paddingBottom={12}>
         <Inline space={8} alignItems="center">
           <IconMessageRegular size={16} color={skinVars.colors.brand} />
@@ -747,184 +926,70 @@ function KpiChat({
       </Box>
 
       <div
+        ref={threadRef}
         style={{ flex: 1, minHeight: 0, overflowY: "auto", paddingBottom: 12 }}
       >
-        {!result && !isPending && (
+        {turns.length === 0 ? (
           <Text2 regular color={skinVars.colors.textSecondary}>
             {introText}
           </Text2>
-        )}
-        {isPending && (
-          <Inline space={12} alignItems="center">
-            <Spinner size={20} />
-            <Text2 medium color={skinVars.colors.textPrimary}>
-              {t.readingEvidence}
-            </Text2>
-          </Inline>
-        )}
-        {result && !isPending && (
-          <Stack space={16}>
-            <div
-              style={{
-                backgroundColor: skinVars.colors.backgroundAlternative,
-                borderRadius: skinVars.borderRadii.container,
-                padding: "8px 16px",
-                alignSelf: "flex-start",
-                display: "inline-block",
-                maxWidth: "100%",
-              }}
-            >
-              <Text2 medium color={skinVars.colors.textPrimary}>
-                {asked}
-              </Text2>
-            </div>
-
-            {result.status === "no_evidence" && (
+        ) : (
+          <Stack space={24}>
+            {turns.map((turn) => (
               <div
+                key={turn.id}
                 style={{
-                  backgroundColor: applyAlpha(skinVars.rawColors.warning, 0.12),
-                  borderRadius: skinVars.borderRadii.container,
-                  padding: 16,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 12,
                 }}
               >
-                <Inline space={12} alignItems="center">
-                  <IconAlertRegular size={20} color={skinVars.colors.warning} />
-                  <Text2 regular color={skinVars.colors.textPrimary}>
-                    {result.answer}
+                <div
+                  style={{
+                    alignSelf: "flex-end",
+                    maxWidth: "85%",
+                    backgroundColor: skinVars.colors.brandLow,
+                    borderRadius: skinVars.borderRadii.container,
+                    padding: "8px 16px",
+                  }}
+                >
+                  <Text2 medium color={skinVars.colors.textPrimary}>
+                    {turn.question}
                   </Text2>
-                </Inline>
-              </div>
-            )}
-            {result.status === "permission_blocked" && (
-              <div
-                style={{
-                  backgroundColor: applyAlpha(skinVars.rawColors.error, 0.12),
-                  borderRadius: skinVars.borderRadii.container,
-                  padding: 16,
-                }}
-              >
-                <Inline space={12} alignItems="center">
-                  <IconShieldCrossRegular
-                    size={20}
-                    color={skinVars.colors.error}
-                  />
-                  <Stack space={8}>
-                    <Text2 regular color={skinVars.colors.textPrimary}>
-                      {result.answer}
-                    </Text2>
-                    {result.permissionNote && (
-                      <div
-                        style={{
-                          backgroundColor: skinVars.colors.backgroundContainer,
-                          borderRadius: skinVars.borderRadii.container,
-                          padding: "8px 12px",
-                        }}
-                      >
-                        <Text1 medium color={skinVars.colors.textPrimary}>
-                          {result.permissionNote}
-                        </Text1>
-                      </div>
-                    )}
-                  </Stack>
-                </Inline>
-              </div>
-            )}
-            {result.status === "answered" && (
-              <Stack space={12}>
-                {result.historic && (
+                </div>
+                {turn.failed ? (
                   <div
                     style={{
                       backgroundColor: applyAlpha(
-                        skinVars.rawColors.warning,
+                        skinVars.rawColors.error,
                         0.12,
                       ),
                       borderRadius: skinVars.borderRadii.container,
-                      padding: "8px 12px",
+                      padding: 16,
                     }}
                   >
-                    <Inline space={8} alignItems="center">
-                      <IconTimeRegular
-                        size={16}
-                        color={skinVars.colors.warning}
+                    <Inline space={12} alignItems="center">
+                      <IconAlertRegular
+                        size={20}
+                        color={skinVars.colors.error}
                       />
-                      <Text1 medium color={skinVars.colors.textPrimary}>
-                        {result.historicNote || t.drawsHistoric}
-                      </Text1>
+                      <Text2 regular color={skinVars.colors.textPrimary}>
+                        {t.chatError}
+                      </Text2>
                     </Inline>
                   </div>
-                )}
-                <Stack space={8}>
-                  {result.answer.split("\n").map((p, i) => (
-                    <Text2 key={i} regular color={skinVars.colors.textPrimary}>
-                      {p}
+                ) : turn.result ? (
+                  <KpiAnswerBlock result={turn.result} />
+                ) : (
+                  <Inline space={12} alignItems="center">
+                    <Spinner size={20} />
+                    <Text2 medium color={skinVars.colors.textPrimary}>
+                      {t.readingEvidence}
                     </Text2>
-                  ))}
-                </Stack>
-                {result.citations && result.citations.length > 0 && (
-                  <>
-                    <Divider />
-                    <Stack space={8}>
-                      {result.citations.map((c: Citation) => (
-                        <div
-                          key={c.id}
-                          style={{
-                            backgroundColor:
-                              skinVars.colors.backgroundAlternative,
-                            borderRadius: skinVars.borderRadii.container,
-                            padding: 10,
-                          }}
-                        >
-                          <Inline space={8} alignItems="center">
-                            <div
-                              style={{
-                                backgroundColor: skinVars.colors.brandLow,
-                                borderRadius: skinVars.borderRadii.chip,
-                                padding: "2px 6px",
-                                flexShrink: 0,
-                              }}
-                            >
-                              <Text1 medium color={skinVars.colors.brand}>
-                                {c.id}
-                              </Text1>
-                            </div>
-                            <div style={{ minWidth: 0 }}>
-                              <div
-                                style={{
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                <Text1
-                                  medium
-                                  color={skinVars.colors.textPrimary}
-                                >
-                                  {c.docTitle}
-                                </Text1>
-                              </div>
-                              <div
-                                style={{
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                <Text1
-                                  regular
-                                  color={skinVars.colors.textSecondary}
-                                >
-                                  {c.sourceLoc}
-                                </Text1>
-                              </div>
-                            </div>
-                          </Inline>
-                        </div>
-                      ))}
-                    </Stack>
-                  </>
+                  </Inline>
                 )}
-              </Stack>
-            )}
+              </div>
+            ))}
           </Stack>
         )}
       </div>
@@ -938,6 +1003,7 @@ function KpiChat({
           borderRadius: skinVars.borderRadii.container,
           backgroundColor: skinVars.colors.background,
           padding: "8px 8px 8px 12px",
+          flexShrink: 0,
         }}
       >
         <textarea
@@ -1131,24 +1197,36 @@ function DetailDrawerBody({
                   />
                   <XAxis
                     dataKey="period"
-                    tick={{ fontSize: 11 }}
-                    stroke={skinVars.colors.textSecondary}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fontSize: 11,
+                      fill: skinVars.colors.textSecondary,
+                    }}
+                    tickMargin={8}
                   />
                   <YAxis
-                    tick={{ fontSize: 11 }}
-                    stroke={skinVars.colors.textSecondary}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{
+                      fontSize: 11,
+                      fill: skinVars.colors.textSecondary,
+                    }}
+                    tickMargin={4}
                   />
                   <RTooltip
                     contentStyle={{
                       borderRadius: 12,
                       border: `1px solid ${skinVars.colors.divider}`,
+                      backgroundColor: skinVars.colors.background,
+                      color: skinVars.colors.textPrimary,
                       fontSize: 12,
                     }}
                   />
                   <Line
                     type="monotone"
                     dataKey="target"
-                    stroke={skinVars.colors.textSecondary}
+                    stroke={skinVars.colors.neutralMedium}
                     strokeDasharray="5 5"
                     strokeWidth={1.5}
                     dot={false}
@@ -1159,7 +1237,17 @@ function DetailDrawerBody({
                     dataKey="value"
                     stroke={statusInkColor(kpi.status)}
                     strokeWidth={2.5}
-                    dot={{ r: 3 }}
+                    dot={{
+                      r: 3.5,
+                      fill: statusInkColor(kpi.status),
+                      strokeWidth: 0,
+                    }}
+                    activeDot={{
+                      r: 5,
+                      fill: statusInkColor(kpi.status),
+                      stroke: skinVars.colors.background,
+                      strokeWidth: 2,
+                    }}
                     name={kpi.name}
                   />
                 </LineChart>
@@ -1189,17 +1277,29 @@ function DetailDrawerBody({
                     />
                     <XAxis
                       dataKey="label"
-                      tick={{ fontSize: 11 }}
-                      stroke={skinVars.colors.textSecondary}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{
+                        fontSize: 11,
+                        fill: skinVars.colors.textSecondary,
+                      }}
+                      tickMargin={8}
                     />
                     <YAxis
-                      tick={{ fontSize: 11 }}
-                      stroke={skinVars.colors.textSecondary}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{
+                        fontSize: 11,
+                        fill: skinVars.colors.textSecondary,
+                      }}
+                      tickMargin={4}
                     />
                     <RTooltip
                       contentStyle={{
                         borderRadius: 12,
                         border: `1px solid ${skinVars.colors.divider}`,
+                        backgroundColor: skinVars.colors.background,
+                        color: skinVars.colors.textPrimary,
                         fontSize: 12,
                       }}
                       cursor={{
@@ -1210,6 +1310,7 @@ function DetailDrawerBody({
                       dataKey="value"
                       fill={skinVars.colors.brand}
                       radius={[6, 6, 0, 0]}
+                      maxBarSize={48}
                     />
                   </BarChart>
                 </ResponsiveContainer>
@@ -1284,8 +1385,22 @@ function DetailDrawerBody({
         </Stack>
       </div>
 
-      <div style={{ flex: "1 1 320px", minWidth: 0, minHeight: 360 }}>
-        <KpiChat kpiIds={[kpi.id]} rangeFrom={rangeFrom} rangeTo={rangeTo} />
+      <div style={{ flex: "1 1 320px", minWidth: 0, alignSelf: "flex-start" }}>
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            height: "min(72vh, 640px)",
+            display: "flex",
+            flexDirection: "column",
+            border: `1px solid ${skinVars.colors.divider}`,
+            borderRadius: skinVars.borderRadii.container,
+            backgroundColor: skinVars.colors.background,
+            padding: 16,
+          }}
+        >
+          <KpiChat kpiIds={[kpi.id]} rangeFrom={rangeFrom} rangeTo={rangeTo} />
+        </div>
       </div>
 
       {selectedSource && (
@@ -1838,69 +1953,94 @@ export default function KpisPage() {
         )}
 
         {kpis.length > 0 && (
-          <Grid columns={{ minSize: 300 }} gap={16}>
-            {kpis.map((kpi) => (
-              <KpiCardTile
-                key={kpi.id}
-                kpi={kpi}
-                onOpen={() => setOpenId(kpi.id)}
-              />
-            ))}
-          </Grid>
-        )}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 24,
+              alignItems: "flex-start",
+            }}
+          >
+            <div style={{ flex: "2 1 560px", minWidth: 0 }}>
+              <Grid columns={{ minSize: 300 }} gap={16}>
+                {kpis.map((kpi) => (
+                  <KpiCardTile
+                    key={kpi.id}
+                    kpi={kpi}
+                    onOpen={() => setOpenId(kpi.id)}
+                  />
+                ))}
+              </Grid>
+            </div>
 
-        {kpis.length > 0 && (
-          <Boxed>
             <div
               style={{
-                borderBottom: `1px solid ${skinVars.colors.divider}`,
-                backgroundColor: skinVars.colors.backgroundAlternative,
+                flex: "1 1 320px",
+                minWidth: 0,
+                maxWidth: 480,
+                position: "sticky",
+                top: 16,
               }}
             >
-              <Box paddingX={20} paddingY={16}>
-                <Inline space={12} alignItems="center">
+              <Boxed>
+                <div
+                  style={{
+                    borderBottom: `1px solid ${skinVars.colors.divider}`,
+                    backgroundColor: skinVars.colors.backgroundAlternative,
+                  }}
+                >
+                  <Box paddingX={16} paddingY={16}>
+                    <Inline space={12} alignItems="center">
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: skinVars.borderRadii.avatar,
+                          backgroundColor: skinVars.colors.brandLow,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <IconMessageRegular
+                          size={16}
+                          color={skinVars.colors.brand}
+                        />
+                      </div>
+                      <Stack space={2}>
+                        <Text3 medium color={skinVars.colors.textPrimary}>
+                          {t.askAboutKpis}
+                        </Text3>
+                        <Text1 regular color={skinVars.colors.textSecondary}>
+                          {t.answeredFrom(kpis.length)}
+                        </Text1>
+                      </Stack>
+                    </Inline>
+                  </Box>
+                </div>
+                <Box padding={16}>
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: skinVars.borderRadii.avatar,
-                      backgroundColor: skinVars.colors.brandLow,
+                      height: "min(64vh, 560px)",
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
+                      flexDirection: "column",
                     }}
                   >
-                    <IconMessageRegular
-                      size={16}
-                      color={skinVars.colors.brand}
+                    <KpiChat
+                      key={visibleKpiIds.join(",")}
+                      kpiIds={visibleKpiIds}
+                      rangeFrom={activeRangeFrom}
+                      rangeTo={activeRangeTo}
+                      heading={t.chatViewHeading}
+                      intro={t.chatViewIntro}
+                      placeholder={t.chatViewPlaceholder}
                     />
                   </div>
-                  <Stack space={2}>
-                    <Text3 medium color={skinVars.colors.textPrimary}>
-                      {t.askAboutKpis}
-                    </Text3>
-                    <Text1 regular color={skinVars.colors.textSecondary}>
-                      {t.answeredFrom(kpis.length)}
-                    </Text1>
-                  </Stack>
-                </Inline>
-              </Box>
+                </Box>
+              </Boxed>
             </div>
-            <Box padding={20}>
-              <div style={{ height: 320 }}>
-                <KpiChat
-                  key={visibleKpiIds.join(",")}
-                  kpiIds={visibleKpiIds}
-                  rangeFrom={activeRangeFrom}
-                  rangeTo={activeRangeTo}
-                  heading={t.chatViewHeading}
-                  intro={t.chatViewIntro}
-                  placeholder={t.chatViewPlaceholder}
-                />
-              </div>
-            </Box>
-          </Boxed>
+          </div>
         )}
 
         <Inline space={8} alignItems="center">
