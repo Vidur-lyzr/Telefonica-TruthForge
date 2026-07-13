@@ -155,7 +155,9 @@ export interface PlanningStrings {
   askCalendar: string;
   chatIntro: string;
   accessingCalendar: string;
-  agentActivity: string;
+  agentActionsDone: (n: number) => string;
+  showAgentActions: string;
+  hideAgentActions: string;
   chatError: string;
   clearChat: string;
   noEvidence: string;
@@ -351,7 +353,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     askCalendar: "Ask the calendar",
     chatIntro: "Every answer is scoped to your persona and cited to governed activity.",
     accessingCalendar: "Accessing governed calendar…",
-    agentActivity: "Agent activity",
+    agentActionsDone: (n) => `Done · ${n} agent action${n === 1 ? "" : "s"}`,
+    showAgentActions: "Show agent actions",
+    hideAgentActions: "Hide agent actions",
     chatError: "The calendar agent could not complete this request. Please try again.",
     clearChat: "Clear conversation",
     noEvidence: "No evidence found",
@@ -548,7 +552,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     askCalendar: "Pregunta al calendario",
     chatIntro: "Cada respuesta se acota a tu persona y se cita a actividad gobernada.",
     accessingCalendar: "Accediendo al calendario gobernado…",
-    agentActivity: "Actividad del agente",
+    agentActionsDone: (n) => `Hecho · ${n} ${n === 1 ? "acción" : "acciones"} del agente`,
+    showAgentActions: "Mostrar acciones del agente",
+    hideAgentActions: "Ocultar acciones del agente",
     chatError: "El agente del calendario no pudo completar esta solicitud. Inténtalo de nuevo.",
     clearChat: "Borrar conversación",
     noEvidence: "No se encontró evidencia",
@@ -747,7 +753,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     chatIntro:
       "Jede Antwort ist auf Ihre Persona zugeschnitten und mit kontrollierter Aktivität belegt.",
     accessingCalendar: "Zugriff auf kontrollierten Kalender…",
-    agentActivity: "Agentenaktivität",
+    agentActionsDone: (n) => `Fertig · ${n} Agentenaktion${n === 1 ? "" : "en"}`,
+    showAgentActions: "Agentenaktionen anzeigen",
+    hideAgentActions: "Agentenaktionen ausblenden",
     chatError: "Der Kalender-Agent konnte diese Anfrage nicht abschließen. Bitte erneut versuchen.",
     clearChat: "Unterhaltung löschen",
     noEvidence: "Keine Belege gefunden",
@@ -944,7 +952,9 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     askCalendar: "Pergunte ao calendário",
     chatIntro: "Cada resposta é restrita à sua persona e citada a partir de atividade governada.",
     accessingCalendar: "Acessando calendário governado…",
-    agentActivity: "Atividade do agente",
+    agentActionsDone: (n) => `Concluído · ${n} ${n === 1 ? "ação" : "ações"} do agente`,
+    showAgentActions: "Mostrar ações do agente",
+    hideAgentActions: "Ocultar ações do agente",
     chatError: "O agente do calendário não conseguiu concluir esta solicitação. Tente novamente.",
     clearChat: "Limpar conversa",
     noEvidence: "Nenhuma evidência encontrada",

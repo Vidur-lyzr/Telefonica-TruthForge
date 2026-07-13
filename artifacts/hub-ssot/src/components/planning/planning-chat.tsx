@@ -14,6 +14,7 @@ import {
   Stack,
   Inline,
   Grid,
+  Circle,
   Text1,
   Text2,
   Text3,
@@ -32,8 +33,10 @@ import {
   IconFileTextRegular,
   IconArrowRightRegular,
   IconCheckRegular,
+  IconChevronDownRegular,
   IconTrashCanRegular,
 } from "@telefonica/mistica";
+import { AnswerMarkdown } from "@/components/answer-markdown";
 
 function EvidenceChip({ citation, onOpen }: { citation: Citation; onOpen: () => void }) {
   const { lang } = useApp();
@@ -85,47 +88,79 @@ function EvidenceChip({ citation, onOpen }: { citation: Citation; onOpen: () => 
   );
 }
 
-// Live agent steps for a turn. While the turn is pending the last step shows
-// a spinner; once a step is reported done (or the turn finished) it gets a
-// check mark. This surfaces the real pipeline: scope -> retrieve -> decide.
-function StepTrail({ steps, pending, label }: { steps: PlanningAskStep[]; pending: boolean; label: string }) {
-  if (steps.length === 0) return null;
+// Live agent steps for a turn. While the run is in flight a quiet, unboxed
+// trail shows the real pipeline (scope -> retrieve -> compose); the active
+// step gets a spinner. Once the turn finishes, the trail collapses into a
+// one-line "Done · N agent actions" summary that expands on demand.
+function StepList({ steps, pending }: { steps: PlanningAskStep[]; pending: boolean }) {
   return (
-    <div
-      style={{
-        border: `1px solid ${skinVars.colors.divider}`,
-        borderRadius: skinVars.borderRadii.container,
-        backgroundColor: skinVars.colors.backgroundAlternative,
-        padding: 12,
-      }}
-    >
+    <div style={{ paddingLeft: 4 }}>
       <Stack space={8}>
-        <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
-          {label}
-        </Text1>
         {steps.map((s) => {
           const active = pending && s.state === "active";
           return (
-            <Inline key={s.id} space={8} alignItems="center">
-              <div style={{ display: "flex", flexShrink: 0, width: 16, justifyContent: "center" }}>
+            <div key={s.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexShrink: 0,
+                  width: 14,
+                  justifyContent: "center",
+                  paddingTop: 2,
+                }}
+              >
                 {active ? (
-                  <Spinner size={14} />
+                  <Spinner size={12} />
                 ) : (
-                  <IconCheckRegular size={14} color={skinVars.colors.success} />
+                  <IconCheckRegular size={12} color={skinVars.colors.success} />
                 )}
               </div>
-              <Text2
+              <Text1
                 regular
                 color={active ? skinVars.colors.textPrimary : skinVars.colors.textSecondary}
               >
                 {s.label}
                 {s.detail ? ` — ${s.detail}` : ""}
-              </Text2>
-            </Inline>
+              </Text1>
+            </div>
           );
         })}
       </Stack>
     </div>
+  );
+}
+
+function StepTrail({ steps, pending }: { steps: PlanningAskStep[]; pending: boolean }) {
+  const { lang } = useApp();
+  const t = PLANNING_I18N[lang];
+  const [open, setOpen] = React.useState(false);
+  if (steps.length === 0) return null;
+  if (pending) return <StepList steps={steps} pending />;
+  return (
+    <Stack space={8}>
+      <Touchable
+        onPress={() => setOpen((v) => !v)}
+        aria-label={open ? t.hideAgentActions : t.showAgentActions}
+      >
+        <Inline space={8} alignItems="center">
+          <IconCheckRegular size={14} color={skinVars.colors.success} />
+          <Text1 regular color={skinVars.colors.textSecondary}>
+            {t.agentActionsDone(steps.length)}
+          </Text1>
+          <div
+            aria-hidden
+            style={{
+              display: "inline-flex",
+              transition: "transform 0.15s ease",
+              transform: open ? "rotate(180deg)" : "none",
+            }}
+          >
+            <IconChevronDownRegular size={14} color={skinVars.colors.textSecondary} />
+          </div>
+        </Inline>
+      </Touchable>
+      {open && <StepList steps={steps} pending={false} />}
+    </Stack>
   );
 }
 
@@ -292,7 +327,7 @@ export function PlanningChat() {
                       </div>
                     </div>
 
-                    <StepTrail steps={turn.steps} pending={turn.pending} label={t.agentActivity} />
+                    <StepTrail steps={turn.steps} pending={turn.pending} />
 
                     {turn.pending && turn.steps.length === 0 && (
                       <Inline space={12} alignItems="center">
@@ -321,13 +356,11 @@ export function PlanningChat() {
                     )}
 
                     {result?.status === "conversational" && (
-                      <Stack space={8}>
-                        {result.answer.split("\n").map((p, i) => (
-                          <Text2 key={i} regular color={skinVars.colors.textPrimary}>
-                            {p}
-                          </Text2>
-                        ))}
-                      </Stack>
+                      <AnswerMarkdown
+                        text={result.answer}
+                        citations={[]}
+                        onOpenCitation={() => undefined}
+                      />
                     )}
 
                     {result?.status === "no_evidence" && (
@@ -389,13 +422,11 @@ export function PlanningChat() {
 
                     {result?.status === "answered" && (
                       <Stack space={16}>
-                        <Stack space={8}>
-                          {result.answer.split("\n").map((p, i) => (
-                            <Text2 key={i} regular color={skinVars.colors.textPrimary}>
-                              {p}
-                            </Text2>
-                          ))}
-                        </Stack>
+                        <AnswerMarkdown
+                          text={result.answer}
+                          citations={result.citations ?? []}
+                          onOpenCitation={setSelected}
+                        />
 
                         {answerAxes.length > 0 && (
                           <Inline space={8} wrap>
@@ -419,20 +450,44 @@ export function PlanningChat() {
                         {result.suggestedActions && result.suggestedActions.length > 0 && (
                           <div
                             style={{
-                              backgroundColor: applyAlpha(skinVars.rawColors.brand, 0.1),
+                              backgroundColor: applyAlpha(skinVars.rawColors.brand, 0.08),
+                              border: `1px solid ${applyAlpha(skinVars.rawColors.brand, 0.2)}`,
                               borderRadius: skinVars.borderRadii.container,
-                              padding: 12,
+                              padding: 16,
                             }}
                           >
-                            <Stack space={8}>
+                            <Stack space={12}>
                               <Text1 medium color={skinVars.colors.brand} transform="uppercase">
                                 {t.suggestedNextSteps}
                               </Text1>
-                              {result.suggestedActions.map((a, i) => (
-                                <Text2 key={i} regular color={skinVars.colors.textPrimary}>
-                                  {a}
-                                </Text2>
-                              ))}
+                              <Stack space={12}>
+                                {result.suggestedActions.map((a, i) => (
+                                  <div
+                                    key={i}
+                                    style={{
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: 12,
+                                    }}
+                                  >
+                                    <div style={{ flexShrink: 0 }}>
+                                      <Circle
+                                        size={24}
+                                        backgroundColor={skinVars.colors.backgroundContainer}
+                                      >
+                                        <Text1 medium color={skinVars.colors.brand}>
+                                          {i + 1}
+                                        </Text1>
+                                      </Circle>
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+                                      <Text2 regular color={skinVars.colors.textPrimary}>
+                                        {a}
+                                      </Text2>
+                                    </div>
+                                  </div>
+                                ))}
+                              </Stack>
                             </Stack>
                           </div>
                         )}
