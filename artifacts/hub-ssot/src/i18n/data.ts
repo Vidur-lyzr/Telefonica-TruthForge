@@ -140,7 +140,12 @@ export interface DataStrings {
       acceptError: string;
       ingestionFailed: string;
       ingestedTitle: (n: number) => string;
-      ingestedDesc: (docTitles: string, chunks: number, before: number, after: number) => string;
+      ingestedDesc: (
+        docTitles: string,
+        chunks: number,
+        before: number,
+        after: number,
+      ) => string;
     };
     relevance: {
       title: string;
@@ -185,7 +190,10 @@ export interface DataStrings {
     liveDesc: (
       applied: number,
       rejected: number,
-      qdrant: { updatedDocs: number; pointsBefore: number; pointsAfter: number } | null | undefined,
+      qdrant:
+        | { updatedDocs: number; pointsBefore: number; pointsAfter: number }
+        | null
+        | undefined,
     ) => string;
     axis: (n: number) => string;
     historyTitle: string;
@@ -279,6 +287,16 @@ export interface DataStrings {
     filterNote: string;
     chunksCount: (n: number) => string;
     failedToLoad: string;
+    searchLabel: string;
+    filterCategory: string;
+    filterCountry: string;
+    filterBrand: string;
+    filterClearance: string;
+    filterValidity: string;
+    filterSource: string;
+    allLabel: string;
+    matchCount: (shown: number, total: number) => string;
+    noMatches: string;
   };
 }
 
@@ -309,7 +327,11 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     statusInQuarantine: (n) => `${n} held in quarantine`,
     statusPastSla: (n) => `${n} past review SLA`,
     confidence: { high: "High", medium: "Medium", low: "Low" },
-    sentiment: { positive: "positive", negative: "negative", neutral: "neutral" },
+    sentiment: {
+      positive: "positive",
+      negative: "negative",
+      neutral: "neutral",
+    },
     decision: { kept: "kept", dropped: "dropped" },
     activity: {
       validatedClassification: "Validated classification",
@@ -348,9 +370,11 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       allCaughtUp: "All caught up",
       clearedThisSession: (n) =>
         `You cleared ${n} ${n === 1 ? "item" : "items"} this session. High-confidence classifications were validated automatically upstream.`,
-      noneWaiting: "No medium- or low-confidence classifications are waiting on a human.",
+      noneWaiting:
+        "No medium- or low-confidence classifications are waiting on a human.",
       sourceConflict: "Source conflict",
-      conflictHeadline: "A fresher source disagrees with the value already in the core.",
+      conflictHeadline:
+        "A fresher source disagrees with the value already in the core.",
       currentlyLive: "Currently live",
       fresherSource: "Fresher source",
       conflictNote:
@@ -373,7 +397,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `${title} — adjust the governed metadata before validating. Your correction is recorded as the human decision. Session-only for the demo.`,
       saveValidate: "Save and validate",
       cancel: "Cancel",
-      confirmedDetail: (note) => `Confirmed the proposed classification. ${note}`,
+      confirmedDetail: (note) =>
+        `Confirmed the proposed classification. ${note}`,
       rejectedDetail: "Rejected — returned to the pipeline for re-processing.",
       correctedDetail: (changes, note) => `Corrected ${changes}. ${note}`,
       fieldArrow: (field, value) => `${field} → ${value}`,
@@ -416,17 +441,21 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         topics: "Topics",
         searching: "Searching public coverage",
         runCapture: "Run filtered capture",
-        atLeastOne: "At least one filter term is required — nothing is captured without a rule.",
-        searchError: "The live capture search could not be completed. Nothing has been ingested.",
+        atLeastOne:
+          "At least one filter term is required — nothing is captured without a rule.",
+        searchError:
+          "The live capture search could not be completed. Nothing has been ingested.",
         captureFailed: "Capture failed",
         noMatchTitle: "No matching coverage",
         noMatchDesc:
           "The live search found no public coverage matching the filter. Nothing was ingested.",
-        candidatesTitle: (sel, total) => `Candidates — human review (${sel} of ${total} accepted)`,
+        candidatesTitle: (sel, total) =>
+          `Candidates — human review (${sel} of ${total} accepted)`,
         embedding: "Embedding and indexing",
         ingestAccepted: (n) => `Ingest ${n} accepted`,
         matched: "Matched",
-        acceptError: "The accepted mentions could not be ingested. The core is unchanged.",
+        acceptError:
+          "The accepted mentions could not be ingested. The core is unchanged.",
         ingestionFailed: "Ingestion failed",
         ingestedTitle: (n) =>
           `${n} external document${n === 1 ? "" : "s"} ingested into the core`,
@@ -456,7 +485,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         nothingWaiting: "Nothing waiting",
         clearedThisSession: (n) =>
           `You cleared ${n} ${n === 1 ? "document" : "documents"} this session. Each re-entered the pipeline where it left off.`,
-        everyDocHasMeta: "Every ingested document has the metadata the core requires.",
+        everyDocHasMeta:
+          "Every ingested document has the metadata the core requires.",
         stalledNote:
           "These documents stalled because a required field is missing or their taxonomy version is behind. They are held — not dropped — so the core is never polluted. Complete the metadata to release them.",
         heldAt: (source, stage, version) =>
@@ -489,19 +519,32 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       historyTitle: "Taxonomy version history",
       historyDesc:
         "Every applied re-classification is a persisted, versioned configuration change with an actor and a note — the audit trail of the vocabulary itself.",
-      historyHeadings: ["Version", "When", "Actor", "Change", "Documents re-tagged"],
+      historyHeadings: [
+        "Version",
+        "When",
+        "Actor",
+        "Change",
+        "Documents re-tagged",
+      ],
       versionActive: (v) => `v${v} · active`,
       version: (v) => `v${v}`,
       freshnessTitle: "Freshness and review SLA",
       withinSla: (pct) => `${pct}% within SLA`,
       freshnessDesc:
-        "Every governed document carries a review SLA. Once it lapses, the document is flagged for a refresh so answers are never quietly built on stale ground — the honest \"historic source\" state depends on this discipline.",
+        'Every governed document carries a review SLA. Once it lapses, the document is flagged for a refresh so answers are never quietly built on stale ground — the honest "historic source" state depends on this discipline.',
       pastSla: (n) =>
         `${n} ${n === 1 ? "document is" : "documents are"} past review SLA`,
       dueRefresh: "These are due a refresh.",
-      freshnessHeadings: ["Document", "Owner", "Last reviewed", "SLA", "Status"],
+      freshnessHeadings: [
+        "Document",
+        "Owner",
+        "Last reviewed",
+        "SLA",
+        "Status",
+      ],
       everyMonths: (n) => `every ${n} mo`,
-      monthsStatus: (months, overdue) => `${months} mo · ${overdue ? "overdue" : "on track"}`,
+      monthsStatus: (months, overdue) =>
+        `${months} mo · ${overdue ? "overdue" : "on track"}`,
       wizard: {
         steps: [
           "Edit taxonomy",
@@ -533,7 +576,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         engineFallbackDesc: (n) =>
           `The model was unavailable, so each of the ${n} affected documents keeps its current mapping under the renamed label — clearly labelled, never silent. A human still validates every row.`,
         proposalHeadings: ["Document", "Proposal", "Confidence"],
-        humanConfirmTitle: "A human confirms every re-classification before it becomes live",
+        humanConfirmTitle:
+          "A human confirms every re-classification before it becomes live",
         humanConfirmDesc:
           "Untick any proposal to reject it — rejected documents keep their current tags. Nothing is applied automatically.",
         applyFailed: "Apply failed",
@@ -543,7 +587,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
           `${a} of ${total} proposals accepted. Confirm to apply as a new persisted taxonomy version — the change takes effect immediately.`,
         proposeError:
           "The re-tagging engine could not produce proposals. Nothing has been changed.",
-        applyError: "The taxonomy version could not be applied. Nothing has been changed.",
+        applyError:
+          "The taxonomy version could not be applied. Nothing has been changed.",
         actor: "You (documentalist)",
         applyNote: (from, to) =>
           `Renamed "${from}" to "${to}" and re-classified the affected documents.`,
@@ -585,6 +630,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         "Only material matching the configured keyword, competitor, executive and topic filters was ingested — never a raw dump.",
       chunksCount: (n) => `Document chunks (${n})`,
       failedToLoad: "Failed to load document",
+      searchLabel: "Search documents",
+      filterCategory: "Category",
+      filterCountry: "Country",
+      filterBrand: "Brand",
+      filterClearance: "Confidentiality",
+      filterValidity: "Validity",
+      filterSource: "Source",
+      allLabel: "All",
+      matchCount: (shown, total) => `Showing ${shown} of ${total} documents`,
+      noMatches: "No documents match the current filters.",
     },
   },
   ES: {
@@ -613,7 +668,11 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     statusInQuarantine: (n) => `${n} retenidos en cuarentena`,
     statusPastSla: (n) => `${n} fuera del SLA de revisión`,
     confidence: { high: "Alta", medium: "Media", low: "Baja" },
-    sentiment: { positive: "positivo", negative: "negativo", neutral: "neutral" },
+    sentiment: {
+      positive: "positivo",
+      negative: "negativo",
+      neutral: "neutral",
+    },
     decision: { kept: "conservado", dropped: "descartado" },
     activity: {
       validatedClassification: "Clasificación validada",
@@ -624,10 +683,12 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       manualUpload: "Carga manual",
       reclassifiedCorpus: "Corpus reclasificado",
       taxonomyConfiguration: "Configuración de taxonomía",
-      addedViaForm: (source) => `Añadido mediante formulario guiado desde ${source}.`,
+      addedViaForm: (source) =>
+        `Añadido mediante formulario guiado desde ${source}.`,
     },
     validation: {
-      bannerTitle: "Clasificación en tres capas, siempre cerrada por una persona",
+      bannerTitle:
+        "Clasificación en tres capas, siempre cerrada por una persona",
       layers: {
         deterministic: {
           title: "Determinista",
@@ -647,7 +708,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         medium: "Media — mostrada aquí para una comprobación rápida",
         low: "Baja — marcada, requiere una persona",
       },
-      queueTitleOpen: (n) => `Cola de validación — ${n} a la espera de una decisión`,
+      queueTitleOpen: (n) =>
+        `Cola de validación — ${n} a la espera de una decisión`,
       queueTitleClear: "Cola de validación vacía",
       allCaughtUp: "Todo al día",
       clearedThisSession: (n) =>
@@ -655,7 +717,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noneWaiting:
         "No hay clasificaciones de confianza media o baja a la espera de una persona.",
       sourceConflict: "Conflicto de fuentes",
-      conflictHeadline: "Una fuente más reciente discrepa del valor que ya está en el núcleo.",
+      conflictHeadline:
+        "Una fuente más reciente discrepa del valor que ya está en el núcleo.",
       currentlyLive: "Actualmente en vivo",
       fresherSource: "Fuente más reciente",
       conflictNote:
@@ -678,7 +741,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `${title} — ajusta los metadatos gobernados antes de validar. Tu corrección queda registrada como la decisión humana. Solo para la sesión de la demo.`,
       saveValidate: "Guardar y validar",
       cancel: "Cancelar",
-      confirmedDetail: (note) => `Se confirmó la clasificación propuesta. ${note}`,
+      confirmedDetail: (note) =>
+        `Se confirmó la clasificación propuesta. ${note}`,
       rejectedDetail: "Rechazado — devuelto al pipeline para reprocesarlo.",
       correctedDetail: (changes, note) => `Se corrigió ${changes}. ${note}`,
       fieldArrow: (field, value) => `${field} → ${value}`,
@@ -688,14 +752,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `Se mantuvo ${oldValue} (${oldSource}); la cifra más reciente se registró pero no se promovió.`,
     },
     sources: {
-      bannerTitle: "Las fuentes alimentan el núcleo antes de que el modelo se ejecute",
+      bannerTitle:
+        "Las fuentes alimentan el núcleo antes de que el modelo se ejecute",
       bannerDesc:
         "La calidad empieza aquí, no en el modelo. Las fuentes externas se filtran antes de la ingesta — por palabras clave, competidores vigilados, directivos nombrados y temas prioritarios — de modo que solo las menciones relevantes entran en el núcleo de conocimiento. Los documentos internos llegan con la etiqueta de sensibilidad que se convierte en su nivel de confidencialidad gobernado.",
       documents: "Documentos",
       cadence: "Cadencia",
       lastSync: "Última sincronización",
       manualUpload: "Carga manual",
-      connectorPlanned: "Conector planificado — todavía no se han ingerido documentos.",
+      connectorPlanned:
+        "Conector planificado — todavía no se han ingerido documentos.",
       addedThisSession: "Añadidos en esta sesión",
       queuedToIntake: "En cola para admisión",
       uploadTitle: "Carga manual",
@@ -765,7 +831,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         nothingWaiting: "Nada en espera",
         clearedThisSession: (n) =>
           `Has resuelto ${n} ${n === 1 ? "documento" : "documentos"} en esta sesión. Cada uno volvió al pipeline donde se quedó.`,
-        everyDocHasMeta: "Cada documento ingerido tiene los metadatos que el núcleo requiere.",
+        everyDocHasMeta:
+          "Cada documento ingerido tiene los metadatos que el núcleo requiere.",
         stalledNote:
           "Estos documentos se detuvieron porque falta un campo obligatorio o su versión de taxonomía está desactualizada. Se retienen — no se descartan — para que el núcleo nunca se contamine. Completa los metadatos para liberarlos.",
         heldAt: (source, stage, version) =>
@@ -798,17 +865,29 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       historyTitle: "Historial de versiones de taxonomía",
       historyDesc:
         "Cada reclasificación aplicada es un cambio de configuración persistido y versionado con un actor y una nota — el registro de auditoría del propio vocabulario.",
-      historyHeadings: ["Versión", "Cuándo", "Actor", "Cambio", "Documentos reetiquetados"],
+      historyHeadings: [
+        "Versión",
+        "Cuándo",
+        "Actor",
+        "Cambio",
+        "Documentos reetiquetados",
+      ],
       versionActive: (v) => `v${v} · activa`,
       version: (v) => `v${v}`,
       freshnessTitle: "Frescura y SLA de revisión",
       withinSla: (pct) => `${pct}% dentro del SLA`,
       freshnessDesc:
-        "Cada documento gobernado lleva un SLA de revisión. Una vez que caduca, el documento se marca para una actualización, de modo que las respuestas nunca se construyan en silencio sobre una base obsoleta — el estado honesto de \"fuente histórica\" depende de esta disciplina.",
+        'Cada documento gobernado lleva un SLA de revisión. Una vez que caduca, el documento se marca para una actualización, de modo que las respuestas nunca se construyan en silencio sobre una base obsoleta — el estado honesto de "fuente histórica" depende de esta disciplina.',
       pastSla: (n) =>
         `${n} ${n === 1 ? "documento está" : "documentos están"} fuera del SLA de revisión`,
       dueRefresh: "Estos necesitan una actualización.",
-      freshnessHeadings: ["Documento", "Responsable", "Última revisión", "SLA", "Estado"],
+      freshnessHeadings: [
+        "Documento",
+        "Responsable",
+        "Última revisión",
+        "SLA",
+        "Estado",
+      ],
       everyMonths: (n) => `cada ${n} m`,
       monthsStatus: (months, overdue) =>
         `${months} m · ${overdue ? "vencido" : "en plazo"}`,
@@ -843,7 +922,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         engineFallbackDesc: (n) =>
           `El modelo no estaba disponible, por lo que cada uno de los ${n} documentos afectados mantiene su mapeo actual bajo la etiqueta renombrada — claramente indicado, nunca en silencio. Una persona sigue validando cada fila.`,
         proposalHeadings: ["Documento", "Propuesta", "Confianza"],
-        humanConfirmTitle: "Una persona confirma cada reclasificación antes de que se active",
+        humanConfirmTitle:
+          "Una persona confirma cada reclasificación antes de que se active",
         humanConfirmDesc:
           "Desmarca cualquier propuesta para rechazarla — los documentos rechazados conservan sus etiquetas actuales. Nada se aplica automáticamente.",
         applyFailed: "La aplicación falló",
@@ -853,7 +933,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
           `${a} de ${total} propuestas aceptadas. Confirma para aplicar como una nueva versión persistida de la taxonomía — el cambio tiene efecto de inmediato.`,
         proposeError:
           "El motor de reetiquetado no pudo generar propuestas. No se ha cambiado nada.",
-        applyError: "No se pudo aplicar la versión de taxonomía. No se ha cambiado nada.",
+        applyError:
+          "No se pudo aplicar la versión de taxonomía. No se ha cambiado nada.",
         actor: "Tú (documentalista)",
         applyNote: (from, to) =>
           `Se renombró "${from}" a "${to}" y se reclasificaron los documentos afectados.`,
@@ -886,7 +967,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       supersededBy: "sustituido por",
       replaces: "reemplaza a",
       generatedFrom: "Generado a partir de fuentes gobernadas:",
-      filterMatch: (s) => `Coincidencia del filtro previo a la ingesta · menciones ${s}`,
+      filterMatch: (s) =>
+        `Coincidencia del filtro previo a la ingesta · menciones ${s}`,
       keyword: (k) => `palabra clave: ${k}`,
       competitor: (k) => `competidor: ${k}`,
       executive: (k) => `directivo: ${k}`,
@@ -895,6 +977,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         "Solo se ingirió el material que coincide con los filtros configurados de palabra clave, competidor, directivo y tema — nunca un volcado en bruto.",
       chunksCount: (n) => `Fragmentos del documento (${n})`,
       failedToLoad: "No se pudo cargar el documento",
+      searchLabel: "Buscar documentos",
+      filterCategory: "Categoría",
+      filterCountry: "País",
+      filterBrand: "Marca",
+      filterClearance: "Confidencialidad",
+      filterValidity: "Vigencia",
+      filterSource: "Fuente",
+      allLabel: "Todos",
+      matchCount: (shown, total) => `Mostrando ${shown} de ${total} documentos`,
+      noMatches: "Ningún documento coincide con los filtros actuales.",
     },
   },
   DE: {
@@ -934,10 +1026,12 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       manualUpload: "Manueller Upload",
       reclassifiedCorpus: "Korpus neu klassifiziert",
       taxonomyConfiguration: "Taxonomie-Konfiguration",
-      addedViaForm: (source) => `Über das geführte Formular aus ${source} hinzugefügt.`,
+      addedViaForm: (source) =>
+        `Über das geführte Formular aus ${source} hinzugefügt.`,
     },
     validation: {
-      bannerTitle: "Dreischichtige Klassifikation, immer von einem Menschen abgeschlossen",
+      bannerTitle:
+        "Dreischichtige Klassifikation, immer von einem Menschen abgeschlossen",
       layers: {
         deterministic: {
           title: "Deterministisch",
@@ -957,7 +1051,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         medium: "Mittel — hier zur schnellen Prüfung angezeigt",
         low: "Niedrig — markiert, benötigt einen Menschen",
       },
-      queueTitleOpen: (n) => `Validierungswarteschlange — ${n} warten auf eine Entscheidung`,
+      queueTitleOpen: (n) =>
+        `Validierungswarteschlange — ${n} warten auf eine Entscheidung`,
       queueTitleClear: "Validierungswarteschlange leer",
       allCaughtUp: "Alles erledigt",
       clearedThisSession: (n) =>
@@ -965,7 +1060,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noneWaiting:
         "Keine Klassifikationen mit mittlerer oder niedriger Konfidenz warten auf einen Menschen.",
       sourceConflict: "Quellenkonflikt",
-      conflictHeadline: "Eine neuere Quelle widerspricht dem Wert, der bereits im Kern liegt.",
+      conflictHeadline:
+        "Eine neuere Quelle widerspricht dem Wert, der bereits im Kern liegt.",
       currentlyLive: "Derzeit live",
       fresherSource: "Neuere Quelle",
       conflictNote:
@@ -988,8 +1084,10 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `${title} — passen Sie die kontrollierten Metadaten vor der Validierung an. Ihre Korrektur wird als menschliche Entscheidung erfasst. Nur für die Demo-Sitzung.`,
       saveValidate: "Speichern und validieren",
       cancel: "Abbrechen",
-      confirmedDetail: (note) => `Die vorgeschlagene Klassifikation wurde bestätigt. ${note}`,
-      rejectedDetail: "Abgelehnt — zur erneuten Verarbeitung an die Pipeline zurückgegeben.",
+      confirmedDetail: (note) =>
+        `Die vorgeschlagene Klassifikation wurde bestätigt. ${note}`,
+      rejectedDetail:
+        "Abgelehnt — zur erneuten Verarbeitung an die Pipeline zurückgegeben.",
       correctedDetail: (changes, note) => `${changes} korrigiert. ${note}`,
       fieldArrow: (field, value) => `${field} → ${value}`,
       promotedDetail: (freshValue, freshSource, freshDate, oldValue) =>
@@ -1070,12 +1168,14 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
           "Nichts erreicht das Modell, bevor es die Validierung besteht. Der Rest wird unten in Quarantäne gehalten — nie stillschweigend verworfen, nie stillschweigend geraten.",
       },
       quarantine: {
-        titleOpen: (n) => `Quarantäne — ${n} für Dokumentar:innen zurückgehalten`,
+        titleOpen: (n) =>
+          `Quarantäne — ${n} für Dokumentar:innen zurückgehalten`,
         titleClear: "Quarantäne leer",
         nothingWaiting: "Nichts wartet",
         clearedThisSession: (n) =>
           `Sie haben in dieser Sitzung ${n} ${n === 1 ? "Dokument" : "Dokumente"} bearbeitet. Jedes ist an der Stelle wieder in die Pipeline eingetreten, an der es aufgehört hatte.`,
-        everyDocHasMeta: "Jedes aufgenommene Dokument hat die Metadaten, die der Kern verlangt.",
+        everyDocHasMeta:
+          "Jedes aufgenommene Dokument hat die Metadaten, die der Kern verlangt.",
         stalledNote:
           "Diese Dokumente sind stehen geblieben, weil ein Pflichtfeld fehlt oder ihre Taxonomie-Version veraltet ist. Sie werden zurückgehalten — nicht verworfen — damit der Kern nie verunreinigt wird. Vervollständigen Sie die Metadaten, um sie freizugeben.",
         heldAt: (source, stage, version) =>
@@ -1108,17 +1208,29 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       historyTitle: "Versionsverlauf der Taxonomie",
       historyDesc:
         "Jede angewandte Neuklassifikation ist eine persistierte, versionierte Konfigurationsänderung mit Akteur und Notiz — der Prüfpfad des Vokabulars selbst.",
-      historyHeadings: ["Version", "Wann", "Akteur", "Änderung", "Neu getaggte Dokumente"],
+      historyHeadings: [
+        "Version",
+        "Wann",
+        "Akteur",
+        "Änderung",
+        "Neu getaggte Dokumente",
+      ],
       versionActive: (v) => `v${v} · aktiv`,
       version: (v) => `v${v}`,
       freshnessTitle: "Aktualität und Prüf-SLA",
       withinSla: (pct) => `${pct}% innerhalb des SLA`,
       freshnessDesc:
-        "Jedes kontrollierte Dokument trägt ein Prüf-SLA. Läuft es ab, wird das Dokument zur Aktualisierung markiert, damit Antworten nie stillschweigend auf veraltetem Boden entstehen — der ehrliche Zustand \"historische Quelle\" hängt von dieser Disziplin ab.",
+        'Jedes kontrollierte Dokument trägt ein Prüf-SLA. Läuft es ab, wird das Dokument zur Aktualisierung markiert, damit Antworten nie stillschweigend auf veraltetem Boden entstehen — der ehrliche Zustand "historische Quelle" hängt von dieser Disziplin ab.',
       pastSla: (n) =>
         `${n} ${n === 1 ? "Dokument ist" : "Dokumente sind"} über dem Prüf-SLA`,
       dueRefresh: "Diese sind zur Aktualisierung fällig.",
-      freshnessHeadings: ["Dokument", "Verantwortlich", "Zuletzt geprüft", "SLA", "Status"],
+      freshnessHeadings: [
+        "Dokument",
+        "Verantwortlich",
+        "Zuletzt geprüft",
+        "SLA",
+        "Status",
+      ],
       everyMonths: (n) => `alle ${n} Mon.`,
       monthsStatus: (months, overdue) =>
         `${months} Mon. · ${overdue ? "überfällig" : "im Plan"}`,
@@ -1153,7 +1265,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         engineFallbackDesc: (n) =>
           `Das Modell war nicht verfügbar, daher behält jedes der ${n} betroffenen Dokumente seine aktuelle Zuordnung unter dem umbenannten Label — klar gekennzeichnet, nie stillschweigend. Ein Mensch validiert weiterhin jede Zeile.`,
         proposalHeadings: ["Dokument", "Vorschlag", "Konfidenz"],
-        humanConfirmTitle: "Ein Mensch bestätigt jede Neuklassifikation, bevor sie live geht",
+        humanConfirmTitle:
+          "Ein Mensch bestätigt jede Neuklassifikation, bevor sie live geht",
         humanConfirmDesc:
           "Deaktivieren Sie einen Vorschlag, um ihn abzulehnen — abgelehnte Dokumente behalten ihre aktuellen Tags. Nichts wird automatisch angewendet.",
         applyFailed: "Anwendung fehlgeschlagen",
@@ -1163,7 +1276,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
           `${a} von ${total} Vorschlägen angenommen. Bestätigen Sie, um sie als neue persistierte Taxonomie-Version anzuwenden — die Änderung wird sofort wirksam.`,
         proposeError:
           "Die Re-Tagging-Engine konnte keine Vorschläge erzeugen. Es wurde nichts geändert.",
-        applyError: "Die Taxonomie-Version konnte nicht angewendet werden. Es wurde nichts geändert.",
+        applyError:
+          "Die Taxonomie-Version konnte nicht angewendet werden. Es wurde nichts geändert.",
         actor: "Sie (Dokumentar:in)",
         applyNote: (from, to) =>
           `"${from}" in "${to}" umbenannt und die betroffenen Dokumente neu klassifiziert.`,
@@ -1205,6 +1319,17 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         "Nur Material, das den konfigurierten Schlüsselwort-, Wettbewerber-, Führungskraft- und Themenfiltern entspricht, wurde aufgenommen — nie ein Rohabzug.",
       chunksCount: (n) => `Dokument-Chunks (${n})`,
       failedToLoad: "Dokument konnte nicht geladen werden",
+      searchLabel: "Dokumente durchsuchen",
+      filterCategory: "Kategorie",
+      filterCountry: "Land",
+      filterBrand: "Marke",
+      filterClearance: "Vertraulichkeit",
+      filterValidity: "Gültigkeit",
+      filterSource: "Quelle",
+      allLabel: "Alle",
+      matchCount: (shown, total) =>
+        `${shown} von ${total} Dokumenten angezeigt`,
+      noMatches: "Keine Dokumente entsprechen den aktuellen Filtern.",
     },
   },
   PT: {
@@ -1233,7 +1358,11 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     statusInQuarantine: (n) => `${n} retidos em quarentena`,
     statusPastSla: (n) => `${n} fora do SLA de revisão`,
     confidence: { high: "Alta", medium: "Média", low: "Baixa" },
-    sentiment: { positive: "positivo", negative: "negativo", neutral: "neutro" },
+    sentiment: {
+      positive: "positivo",
+      negative: "negativo",
+      neutral: "neutro",
+    },
     decision: { kept: "mantido", dropped: "descartado" },
     activity: {
       validatedClassification: "Classificação validada",
@@ -1244,10 +1373,12 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       manualUpload: "Envio manual",
       reclassifiedCorpus: "Corpus reclassificado",
       taxonomyConfiguration: "Configuração de taxonomia",
-      addedViaForm: (source) => `Adicionado pelo formulário guiado a partir de ${source}.`,
+      addedViaForm: (source) =>
+        `Adicionado pelo formulário guiado a partir de ${source}.`,
     },
     validation: {
-      bannerTitle: "Classificação em três camadas, sempre encerrada por uma pessoa",
+      bannerTitle:
+        "Classificação em três camadas, sempre encerrada por uma pessoa",
       layers: {
         deterministic: {
           title: "Determinística",
@@ -1275,7 +1406,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noneWaiting:
         "Nenhuma classificação de confiança média ou baixa aguarda uma pessoa.",
       sourceConflict: "Conflito de fontes",
-      conflictHeadline: "Uma fonte mais recente diverge do valor que já está no núcleo.",
+      conflictHeadline:
+        "Uma fonte mais recente diverge do valor que já está no núcleo.",
       currentlyLive: "Atualmente ativo",
       fresherSource: "Fonte mais recente",
       conflictNote:
@@ -1298,7 +1430,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `${title} — ajuste os metadados governados antes de validar. Sua correção é registrada como a decisão humana. Apenas para a sessão da demonstração.`,
       saveValidate: "Salvar e validar",
       cancel: "Cancelar",
-      confirmedDetail: (note) => `A classificação proposta foi confirmada. ${note}`,
+      confirmedDetail: (note) =>
+        `A classificação proposta foi confirmada. ${note}`,
       rejectedDetail: "Rejeitado — devolvido ao pipeline para reprocessamento.",
       correctedDetail: (changes, note) => `Corrigido ${changes}. ${note}`,
       fieldArrow: (field, value) => `${field} → ${value}`,
@@ -1308,7 +1441,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `Mantido ${oldValue} (${oldSource}); o número mais recente foi registrado, mas não promovido.`,
     },
     sources: {
-      bannerTitle: "As fontes alimentam o núcleo antes de o modelo sequer rodar",
+      bannerTitle:
+        "As fontes alimentam o núcleo antes de o modelo sequer rodar",
       bannerDesc:
         "A qualidade começa aqui, não no modelo. As fontes externas são filtradas antes da ingestão — por palavras-chave, concorrentes monitorados, executivos nomeados e temas prioritários — de modo que apenas menções relevantes entrem no núcleo de conhecimento. Os documentos internos chegam com o rótulo de sensibilidade que se torna seu nível de confidencialidade governado.",
       documents: "Documentos",
@@ -1385,7 +1519,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         nothingWaiting: "Nada aguardando",
         clearedThisSession: (n) =>
           `Você resolveu ${n} ${n === 1 ? "documento" : "documentos"} nesta sessão. Cada um voltou ao pipeline de onde parou.`,
-        everyDocHasMeta: "Cada documento ingerido tem os metadados que o núcleo exige.",
+        everyDocHasMeta:
+          "Cada documento ingerido tem os metadados que o núcleo exige.",
         stalledNote:
           "Estes documentos ficaram parados porque um campo obrigatório está faltando ou sua versão de taxonomia está desatualizada. Eles são retidos — não descartados — para que o núcleo nunca seja poluído. Complete os metadados para liberá-los.",
         heldAt: (source, stage, version) =>
@@ -1418,17 +1553,29 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       historyTitle: "Histórico de versões da taxonomia",
       historyDesc:
         "Cada reclassificação aplicada é uma mudança de configuração persistida e versionada com um ator e uma nota — a trilha de auditoria do próprio vocabulário.",
-      historyHeadings: ["Versão", "Quando", "Ator", "Mudança", "Documentos reetiquetados"],
+      historyHeadings: [
+        "Versão",
+        "Quando",
+        "Ator",
+        "Mudança",
+        "Documentos reetiquetados",
+      ],
       versionActive: (v) => `v${v} · ativa`,
       version: (v) => `v${v}`,
       freshnessTitle: "Atualidade e SLA de revisão",
       withinSla: (pct) => `${pct}% dentro do SLA`,
       freshnessDesc:
-        "Cada documento governado carrega um SLA de revisão. Uma vez expirado, o documento é sinalizado para atualização, de modo que as respostas nunca sejam construídas em silêncio sobre terreno desatualizado — o estado honesto de \"fonte histórica\" depende dessa disciplina.",
+        'Cada documento governado carrega um SLA de revisão. Uma vez expirado, o documento é sinalizado para atualização, de modo que as respostas nunca sejam construídas em silêncio sobre terreno desatualizado — o estado honesto de "fonte histórica" depende dessa disciplina.',
       pastSla: (n) =>
         `${n} ${n === 1 ? "documento está" : "documentos estão"} fora do SLA de revisão`,
       dueRefresh: "Estes precisam de uma atualização.",
-      freshnessHeadings: ["Documento", "Responsável", "Última revisão", "SLA", "Status"],
+      freshnessHeadings: [
+        "Documento",
+        "Responsável",
+        "Última revisão",
+        "SLA",
+        "Status",
+      ],
       everyMonths: (n) => `a cada ${n} m`,
       monthsStatus: (months, overdue) =>
         `${months} m · ${overdue ? "vencido" : "no prazo"}`,
@@ -1463,7 +1610,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         engineFallbackDesc: (n) =>
           `O modelo estava indisponível, então cada um dos ${n} documentos afetados mantém seu mapeamento atual sob o rótulo renomeado — claramente indicado, nunca em silêncio. Uma pessoa ainda valida cada linha.`,
         proposalHeadings: ["Documento", "Proposta", "Confiança"],
-        humanConfirmTitle: "Uma pessoa confirma cada reclassificação antes de ela entrar no ar",
+        humanConfirmTitle:
+          "Uma pessoa confirma cada reclassificação antes de ela entrar no ar",
         humanConfirmDesc:
           "Desmarque qualquer proposta para rejeitá-la — os documentos rejeitados mantêm suas etiquetas atuais. Nada é aplicado automaticamente.",
         applyFailed: "A aplicação falhou",
@@ -1473,7 +1621,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
           `${a} de ${total} propostas aceitas. Confirme para aplicar como uma nova versão persistida da taxonomia — a mudança tem efeito imediato.`,
         proposeError:
           "O motor de reetiquetagem não conseguiu gerar propostas. Nada foi alterado.",
-        applyError: "Não foi possível aplicar a versão da taxonomia. Nada foi alterado.",
+        applyError:
+          "Não foi possível aplicar a versão da taxonomia. Nada foi alterado.",
         actor: "Você (documentalista)",
         applyNote: (from, to) =>
           `"${from}" renomeado para "${to}" e os documentos afetados reclassificados.`,
@@ -1506,7 +1655,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       supersededBy: "substituído por",
       replaces: "substitui",
       generatedFrom: "Gerado a partir de fontes governadas:",
-      filterMatch: (s) => `Correspondência do filtro pré-ingestão · menções ${s}`,
+      filterMatch: (s) =>
+        `Correspondência do filtro pré-ingestão · menções ${s}`,
       keyword: (k) => `palavra-chave: ${k}`,
       competitor: (k) => `concorrente: ${k}`,
       executive: (k) => `executivo: ${k}`,
@@ -1515,6 +1665,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         "Apenas material que corresponde aos filtros configurados de palavra-chave, concorrente, executivo e tema foi ingerido — nunca um despejo bruto.",
       chunksCount: (n) => `Fragmentos do documento (${n})`,
       failedToLoad: "Falha ao carregar o documento",
+      searchLabel: "Pesquisar documentos",
+      filterCategory: "Categoria",
+      filterCountry: "País",
+      filterBrand: "Marca",
+      filterClearance: "Confidencialidade",
+      filterValidity: "Validade",
+      filterSource: "Fonte",
+      allLabel: "Todos",
+      matchCount: (shown, total) => `A mostrar ${shown} de ${total} documentos`,
+      noMatches: "Nenhum documento corresponde aos filtros atuais.",
     },
   },
 };
