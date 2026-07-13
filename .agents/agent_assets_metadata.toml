@@ -11,22 +11,22 @@ title = "RAG Requirements Coverage — PC2–PC5"
 id = "4UcPGHKjUt0PeABKxrKQe"
 uri = "file://exports/diagrams/access-rights-early-binding.png"
 type = "image"
-title = "Access rights — early-binding access control (PNG)"
+title = "Access Rights Early Binding (PNG)"
 
 [[outputs]]
 id = "gzzz9hK2Bx0vqqP71vC6u"
 uri = "file://exports/diagrams/access-rights-early-binding.svg"
 type = "image"
-title = "Access rights — early-binding access control (SVG source)"
+title = "Access Rights Early Binding (SVG)"
 
 [[outputs]]
 id = "rDBUekOSKnDzzGOblQx1E"
 uri = "file://exports/diagrams/taxonomy-as-configuration.png"
 type = "image"
-title = "Taxonomy and tagging — configuration, not code (PNG)"
+title = "Taxonomy as Configuration (PNG)"
 
 [[outputs]]
 id = "crT9-hmlRvlro9gdKPfZT"
 uri = "file://exports/diagrams/taxonomy-as-configuration.svg"
 type = "image"
-title = "Taxonomy and tagging — configuration, not code (SVG source)"
+title = "Taxonomy as Configuration (SVG)"
