@@ -23,6 +23,7 @@ import {
   useListDeliveries,
   useRecordEditorialReview,
   useExportDocument,
+  useExportDocumentPack,
   type GeneratedDraft,
   type DraftExclusion,
   type TemplateSuggestion,
@@ -2014,8 +2015,9 @@ export default function Generate() {
 
   // Export with an editorial-review gate for press material.
   const exportDoc = useExportDocument();
+  const exportPack = useExportDocumentPack();
   const recordReview = useRecordEditorialReview();
-  const [exportFormat, setExportFormat] = React.useState<"docx" | "pptx" | "pdf">("docx");
+  const [exportFormat, setExportFormat] = React.useState<"docx" | "pptx" | "pdf" | "txt" | "md">("docx");
   const [reviewedDraft, setReviewedDraft] = React.useState<string | null>(null);
   const [exportError, setExportError] = React.useState<string | null>(null);
 
@@ -2053,6 +2055,48 @@ export default function Generate() {
           const a = document.createElement("a");
           a.href = url;
           a.download = `${draft.title.replace(/[^\w\d-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "document"}.${exportFormat}`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+          saveVersion.mutate({ data: { draft, savedBy } }, { onSuccess: () => versionsQ.refetch() });
+        },
+        onError: (err) => {
+          const data = (err as { data?: { code?: string; error?: string } | null }).data;
+          const reviewRefused =
+            data?.code === "editorial_review_required" ||
+            (data?.error ?? "").toLowerCase().includes("editorial review");
+          if (reviewRefused) {
+            setReviewedDraft(null);
+            setExportError(te.exportReviewRequiredError);
+          } else {
+            setExportError(data?.error ?? te.exportRefusedError);
+          }
+        },
+      },
+    );
+  };
+
+  // Pack export: one action renders every format the template offers and
+  // bundles them into a single ZIP. Every per-format governance gate reruns
+  // server-side for each entry in the pack.
+  const handleExportPack = () => {
+    if (!draft) return;
+    setExportError(null);
+    const savedBy = roles?.find((r) => r.id === roleId)?.label ?? "Hub user";
+    exportPack.mutate(
+      {
+        data: {
+          draft,
+          destination: draft.audience === "external" ? "external" : "internal",
+        },
+      },
+      {
+        onSuccess: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${draft.title.replace(/[^\w\d-]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase() || "document"}-pack.zip`;
           document.body.appendChild(a);
           a.click();
           a.remove();
@@ -2243,11 +2287,13 @@ export default function Generate() {
                           name="exportFormat"
                           label={te.formatLabel}
                           value={exportFormat}
-                          onChangeValue={(v) => setExportFormat(v as "docx" | "pptx" | "pdf")}
+                          onChangeValue={(v) => setExportFormat(v as "docx" | "pptx" | "pdf" | "txt" | "md")}
                           options={[
                             { value: "docx", text: "Word (.docx)" },
                             { value: "pptx", text: "PowerPoint (.pptx)" },
                             { value: "pdf", text: "PDF (.pdf)" },
+                            { value: "txt", text: "Text (.txt)" },
+                            { value: "md", text: "Markdown (.md)" },
                           ]}
                           fullWidth
                         />
@@ -2255,12 +2301,20 @@ export default function Generate() {
                       <ButtonPrimary
                         small
                         onPress={handleExport}
-                        disabled={!canExport || needsEditorialReview || exportDoc.isPending}
+                        disabled={!canExport || needsEditorialReview || exportDoc.isPending || exportPack.isPending}
                         StartIcon={IconPrinterRegular}
                       >
                         {exportDoc.isPending ? te.exporting : te.exportButton}
                       </ButtonPrimary>
                     </Inline>
+                    <ButtonSecondary
+                      small
+                      onPress={handleExportPack}
+                      disabled={!canExport || needsEditorialReview || exportDoc.isPending || exportPack.isPending}
+                      StartIcon={IconDownloadRegular}
+                    >
+                      {exportPack.isPending ? te.exportingPack : te.exportPack}
+                    </ButtonSecondary>
                     {draft.shape === "press" && (
                       <div
                         style={{
@@ -2324,14 +2378,22 @@ export default function Generate() {
                     </ButtonPrimary>
                   )}
                   {!canExport && (
-                    <Inline space={4} alignItems="center">
-                      <IconLockClosedRegular size={12} color={c.error} />
-                      <Text1 regular color={c.error}>
-                        {scheduledLocked
-                          ? te.lockedScheduled
-                          : te.lockedGuardian}
-                      </Text1>
-                    </Inline>
+                    <Stack space={4}>
+                      <Inline space={4} alignItems="center">
+                        <IconLockClosedRegular size={12} color={c.error} />
+                        <Text1 regular color={c.error}>
+                          {scheduledLocked
+                            ? te.lockedScheduled
+                            : te.lockedGuardian}
+                        </Text1>
+                      </Inline>
+                      {!scheduledLocked && draft.guardian.status === "block" && (
+                        <Text1 regular color={c.textSecondary}>
+                          {draft.guardian.findings.find((f) => f.severity === "error")
+                            ?.message ?? draft.guardian.summary}
+                        </Text1>
+                      )}
+                    </Stack>
                   )}
 
                   {draft.spokesperson.length > 0 && (

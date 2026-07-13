@@ -22,6 +22,8 @@ import type {
 import type {
   AdminProfile,
   ApproveInput,
+  AskDocumentExportInput,
+  AskDocumentPackInput,
   AskInput,
   AskResult,
   AuditEntry,
@@ -47,6 +49,7 @@ import type {
   EditorialReviewRecord,
   ErrorResponse,
   ExportDocumentInput,
+  ExportPackInput,
   ExportTemplate,
   GenerateInput,
   GeneratedAssets,
@@ -4771,6 +4774,218 @@ export const useExportDocument = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getExportDocumentMutationOptions(options));
+    }
+
+export const getExportDocumentPackUrl = () => {
+
+
+
+
+  return `/api/generate/export/pack`
+}
+
+/**
+ * Renders the draft in each requested format (or every format the bound template offers) and bundles them into one ZIP. Every governance gate of a single-format export runs per rendered file — a pack can never bypass a refusal a single download would hit.
+ * @summary Export a guardian-passed draft as a ZIP bundle of several formats
+ */
+export const exportDocumentPack = async (exportPackInput: ExportPackInput, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getExportDocumentPackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(exportPackInput)
+  }
+);}
+
+
+
+
+export const getExportDocumentPackMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportDocumentPack>>, TError,{data: BodyType<ExportPackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof exportDocumentPack>>, TError,{data: BodyType<ExportPackInput>}, TContext> => {
+
+const mutationKey = ['exportDocumentPack'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof exportDocumentPack>>, {data: BodyType<ExportPackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  exportDocumentPack(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExportDocumentPackMutationResult = NonNullable<Awaited<ReturnType<typeof exportDocumentPack>>>
+    export type ExportDocumentPackMutationBody = BodyType<ExportPackInput>
+    export type ExportDocumentPackMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Export a guardian-passed draft as a ZIP bundle of several formats
+ */
+export const useExportDocumentPack = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportDocumentPack>>, TError,{data: BodyType<ExportPackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof exportDocumentPack>>,
+        TError,
+        {data: BodyType<ExportPackInput>},
+        TContext
+      > => {
+      return useMutation(getExportDocumentPackMutationOptions(options));
+    }
+
+export const getExportAskDocumentUrl = () => {
+
+
+
+
+  return `/api/ask/documents/export`
+}
+
+/**
+ * Renders one format of a document the doc-gen Superflow registered during an Ask turn. The full export governance stack runs server-side (Brand Guardian re-run, destination gates, external stripping) — a chat-born document obeys exactly the same rules as a Generate export.
+ * @summary Download a document generated from an Ask conversation
+ */
+export const exportAskDocument = async (askDocumentExportInput: AskDocumentExportInput, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getExportAskDocumentUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(askDocumentExportInput)
+  }
+);}
+
+
+
+
+export const getExportAskDocumentMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportAskDocument>>, TError,{data: BodyType<AskDocumentExportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof exportAskDocument>>, TError,{data: BodyType<AskDocumentExportInput>}, TContext> => {
+
+const mutationKey = ['exportAskDocument'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof exportAskDocument>>, {data: BodyType<AskDocumentExportInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  exportAskDocument(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExportAskDocumentMutationResult = NonNullable<Awaited<ReturnType<typeof exportAskDocument>>>
+    export type ExportAskDocumentMutationBody = BodyType<AskDocumentExportInput>
+    export type ExportAskDocumentMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Download a document generated from an Ask conversation
+ */
+export const useExportAskDocument = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportAskDocument>>, TError,{data: BodyType<AskDocumentExportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof exportAskDocument>>,
+        TError,
+        {data: BodyType<AskDocumentExportInput>},
+        TContext
+      > => {
+      return useMutation(getExportAskDocumentMutationOptions(options));
+    }
+
+export const getExportAskDocumentPackUrl = () => {
+
+
+
+
+  return `/api/ask/documents/export-pack`
+}
+
+/**
+ * @summary Download an Ask-generated document as a ZIP of several formats
+ */
+export const exportAskDocumentPack = async (askDocumentPackInput: AskDocumentPackInput, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getExportAskDocumentPackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(askDocumentPackInput)
+  }
+);}
+
+
+
+
+export const getExportAskDocumentPackMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportAskDocumentPack>>, TError,{data: BodyType<AskDocumentPackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof exportAskDocumentPack>>, TError,{data: BodyType<AskDocumentPackInput>}, TContext> => {
+
+const mutationKey = ['exportAskDocumentPack'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof exportAskDocumentPack>>, {data: BodyType<AskDocumentPackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  exportAskDocumentPack(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExportAskDocumentPackMutationResult = NonNullable<Awaited<ReturnType<typeof exportAskDocumentPack>>>
+    export type ExportAskDocumentPackMutationBody = BodyType<AskDocumentPackInput>
+    export type ExportAskDocumentPackMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Download an Ask-generated document as a ZIP of several formats
+ */
+export const useExportAskDocumentPack = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportAskDocumentPack>>, TError,{data: BodyType<AskDocumentPackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof exportAskDocumentPack>>,
+        TError,
+        {data: BodyType<AskDocumentPackInput>},
+        TContext
+      > => {
+      return useMutation(getExportAskDocumentPackMutationOptions(options));
     }
 
 export const getRecordEditorialReviewUrl = () => {

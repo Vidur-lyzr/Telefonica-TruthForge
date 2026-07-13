@@ -28,3 +28,4 @@
 - [Ask language control](ask-language-control.md) — lang stays presentation-only; UI codes uppercase, API codes lowercase — convert at the boundary.
 - [Live-ingest persistence](live-ingest-persistence.md) — runtime-ingested docs hydrate from Qdrant payloads at boot; mirror index commits before local taxonomy version.
 - [Large-file wiring delegation](large-file-wiring.md) — mechanical wiring across a 3k+ line page times out subagents even when narrowly scoped; do it as direct batched edits.
+- [Ask document-request routing](ask-docmode-routing.md) — downloadable-doc turns need their own router intent (report mode forbids the Superflow) and the router-resolved topic, not the raw question.

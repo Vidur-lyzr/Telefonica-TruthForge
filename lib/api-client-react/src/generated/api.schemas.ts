@@ -365,6 +365,8 @@ export interface AskTurn {
   /** user | assistant */
   role: string;
   content: string;
+  /** Doc ids cited by this (assistant) turn. Used only to seed the document-generation pipeline's retrieval; the server re-validates every id against the current persona's clearance. */
+  citedDocIds?: string[];
 }
 
 /**
@@ -418,6 +420,30 @@ export interface AskInput {
   attachment?: AskAttachment | null;
   /** Preferred answer language. When present, the agent composes its answer in this language regardless of the question's language. Absent means mirror the question's language. */
   lang?: AskInputLang;
+}
+
+/**
+ * A document generated during an Ask turn by the doc-gen Superflow. All labels (status, Guardian outcome, downloadable formats) are the server's own — never the model's claim.
+ */
+export interface AskDocumentSummary {
+  id: string;
+  title: string;
+  shape: string;
+  templateName: string;
+  /** drafted | no_evidence | permission_blocked */
+  status: string;
+  /** pass | block */
+  guardianStatus: string;
+  guardianSummary: string;
+  formats: string[];
+  language: string;
+  audience: string;
+  confidentiality: string;
+  citationsCount: number;
+  historic: boolean;
+  /** @nullable */
+  note?: string | null;
+  createdAt: string;
 }
 
 export interface NumericFact {
@@ -489,6 +515,8 @@ export interface AskResult {
   numeric?: NumericFact | null;
   /** Closest adjacent/historic datum offered on a no-evidence result. */
   adjacentDatum?: NumericFact | null;
+  /** Documents generated during this turn via the doc-gen Superflow. */
+  documents?: AskDocumentSummary[];
   relatedEntities?: GraphEntity[];
   suggestedNext?: SuggestedNext[];
   retrievalModes?: RetrievalMode[];
@@ -2204,6 +2232,8 @@ export const ExportDocumentInputFormat = {
   docx: 'docx',
   pptx: 'pptx',
   pdf: 'pdf',
+  txt: 'txt',
+  md: 'md',
 } as const;
 
 /**
@@ -2229,6 +2259,89 @@ export interface ExportDocumentInput {
   templateId?: string | null;
 }
 
+export type ExportPackInputFormatsItem = typeof ExportPackInputFormatsItem[keyof typeof ExportPackInputFormatsItem];
+
+
+export const ExportPackInputFormatsItem = {
+  docx: 'docx',
+  pptx: 'pptx',
+  pdf: 'pdf',
+  txt: 'txt',
+  md: 'md',
+} as const;
+
+export type ExportPackInputDestination = typeof ExportPackInputDestination[keyof typeof ExportPackInputDestination];
+
+
+export const ExportPackInputDestination = {
+  internal: 'internal',
+  external: 'external',
+} as const;
+
+export interface ExportPackInput {
+  draft: GeneratedDraft;
+  /** Formats to bundle; empty/absent bundles every format the template offers. */
+  formats?: ExportPackInputFormatsItem[];
+  destination?: ExportPackInputDestination;
+  /** @nullable */
+  templateId?: string | null;
+}
+
+export type AskDocumentExportInputFormat = typeof AskDocumentExportInputFormat[keyof typeof AskDocumentExportInputFormat];
+
+
+export const AskDocumentExportInputFormat = {
+  docx: 'docx',
+  pptx: 'pptx',
+  pdf: 'pdf',
+  txt: 'txt',
+  md: 'md',
+} as const;
+
+/**
+ * Defaults to internal; external strips internal-only material and refuses non-public content.
+ */
+export type AskDocumentExportInputDestination = typeof AskDocumentExportInputDestination[keyof typeof AskDocumentExportInputDestination];
+
+
+export const AskDocumentExportInputDestination = {
+  internal: 'internal',
+  external: 'external',
+} as const;
+
+export interface AskDocumentExportInput {
+  documentId: string;
+  format: AskDocumentExportInputFormat;
+  /** Defaults to internal; external strips internal-only material and refuses non-public content. */
+  destination?: AskDocumentExportInputDestination;
+}
+
+export type AskDocumentPackInputFormatsItem = typeof AskDocumentPackInputFormatsItem[keyof typeof AskDocumentPackInputFormatsItem];
+
+
+export const AskDocumentPackInputFormatsItem = {
+  docx: 'docx',
+  pptx: 'pptx',
+  pdf: 'pdf',
+  txt: 'txt',
+  md: 'md',
+} as const;
+
+export type AskDocumentPackInputDestination = typeof AskDocumentPackInputDestination[keyof typeof AskDocumentPackInputDestination];
+
+
+export const AskDocumentPackInputDestination = {
+  internal: 'internal',
+  external: 'external',
+} as const;
+
+export interface AskDocumentPackInput {
+  documentId: string;
+  /** Formats to bundle; empty/absent bundles every format the template offers. */
+  formats?: AskDocumentPackInputFormatsItem[];
+  destination?: AskDocumentPackInputDestination;
+}
+
 export interface ExportTemplateBlock {
   kind: string;
   label: string;
@@ -2248,6 +2361,8 @@ export const ExportTemplateFormatsItem = {
   docx: 'docx',
   pptx: 'pptx',
   pdf: 'pdf',
+  txt: 'txt',
+  md: 'md',
 } as const;
 
 export interface ExportTemplate {

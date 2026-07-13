@@ -33,9 +33,11 @@ import {
   type ExportTemplate,
   type ExportFormat,
 } from "./exportTemplates";
+import JSZip from "jszip";
 import { renderDocx } from "./renderers/docxRenderer";
 import { renderPptx } from "./renderers/pptxRenderer";
 import { renderPdf } from "./renderers/pdfRenderer";
+import { renderTxt, renderMd } from "./renderers/textRenderer";
 
 export type ExportDestination = "internal" | "external";
 
@@ -332,6 +334,8 @@ const CONTENT_TYPES: Record<ExportFormat, string> = {
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   pdf: "application/pdf",
+  txt: "text/plain; charset=utf-8",
+  md: "text/markdown; charset=utf-8",
 };
 
 function safeFilename(title: string, format: ExportFormat): string {
@@ -364,12 +368,58 @@ export async function exportDraft(
       ? await renderDocx(model)
       : format === "pptx"
         ? await renderPptx(model)
-        : await renderPdf(model);
+        : format === "pdf"
+          ? await renderPdf(model)
+          : format === "txt"
+            ? renderTxt(model)
+            : renderMd(model);
   return {
     buffer,
     contentType: CONTENT_TYPES[format],
     filename: safeFilename(draft.title, format),
     templateId: model.template.id,
     chartCount: model.charts.length,
+  };
+}
+
+// Bundle several formats of the same governed draft into one ZIP. Every
+// governance gate runs exactly as in a single-format export (buildExportModel
+// is called per format via exportDraft), so a pack can never bypass a refusal
+// a single download would hit.
+export async function exportPack(
+  draft: GeneratedDraft,
+  formats: ExportFormat[],
+  destination: ExportDestination,
+  templateId?: string | null,
+): Promise<ExportResult> {
+  const model = buildExportModel(draft, destination, templateId);
+  const allowed = model.template.formats;
+  const requested = formats.length > 0 ? formats : allowed;
+  const unique = Array.from(new Set(requested));
+  const bad = unique.filter((f) => !allowed.includes(f));
+  if (bad.length > 0) {
+    throw new ExportRefusedError(
+      "not_exportable",
+      `The "${model.template.name}" template does not export as ${bad.map((f) => `.${f}`).join(", ")}.`,
+    );
+  }
+  const zip = new JSZip();
+  let chartCount = 0;
+  for (const format of unique) {
+    const result = await exportDraft(draft, format, destination, templateId);
+    zip.file(result.filename, result.buffer);
+    chartCount = result.chartCount;
+  }
+  const buffer = await zip.generateAsync({
+    type: "nodebuffer",
+    compression: "DEFLATE",
+  });
+  const base = safeFilename(draft.title, "txt").replace(/\.txt$/, "");
+  return {
+    buffer,
+    contentType: "application/zip",
+    filename: `${base}-pack.zip`,
+    templateId: model.template.id,
+    chartCount,
   };
 }

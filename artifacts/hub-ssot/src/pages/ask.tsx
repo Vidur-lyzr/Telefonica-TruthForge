@@ -9,6 +9,7 @@ import {
   AskResult,
   AskFilters,
   AskTurn,
+  AskDocumentSummary,
   SuggestedQuery,
   Citation,
 } from "@workspace/api-client-react";
@@ -74,6 +75,7 @@ import {
   IconTachometerRegular,
   IconMessageRegular,
   IconChevronDownRegular,
+  IconDownloadRegular,
 } from "@telefonica/mistica";
 
 const LANGS: Lang[] = ["ES", "EN", "DE", "PT"];
@@ -278,7 +280,17 @@ export default function Ask() {
       if (t.roleId !== roleId) continue;
       if (!t.result || t.result.status !== "answered") continue;
       turns.push({ role: "user", content: t.question });
-      turns.push({ role: "assistant", content: t.result.answer });
+      // citedDocIds seed the doc-gen Superflow's retrieval with what this
+      // conversation actually cited; the server re-validates every id against
+      // the current persona's clearance before use.
+      const citedDocIds = Array.from(
+        new Set(t.result.citations.map((c) => c.docId)),
+      );
+      turns.push({
+        role: "assistant",
+        content: t.result.answer,
+        ...(citedDocIds.length > 0 ? { citedDocIds } : {}),
+      });
     }
     return turns;
   };
@@ -489,6 +501,21 @@ export default function Ask() {
 
   const isEmpty = thread.length === 0;
 
+  // Per-conversation workspace: every document the Superflow generated across
+  // this conversation's turns, newest last, deduped by id.
+  const workspaceDocs = React.useMemo(() => {
+    const seen = new Set<string>();
+    const docs: AskDocumentSummary[] = [];
+    for (const turn of thread) {
+      for (const doc of turn.result?.documents ?? []) {
+        if (seen.has(doc.id)) continue;
+        seen.add(doc.id);
+        docs.push(doc);
+      }
+    }
+    return docs;
+  }, [thread]);
+
   return (
     <div
       style={{
@@ -525,6 +552,7 @@ export default function Ask() {
           onNew={newConversation}
           onResume={resumeConversation}
           insights={insights}
+          workspaceDocs={workspaceDocs}
           t={t}
           lang={lang}
         />
@@ -684,6 +712,7 @@ function SessionsPanel({
   onNew,
   onResume,
   insights,
+  workspaceDocs,
   t,
   lang,
 }: {
@@ -692,6 +721,7 @@ function SessionsPanel({
   onNew: () => void;
   onResume: (id: string) => void;
   insights: SavedInsight[];
+  workspaceDocs: AskDocumentSummary[];
   t: AskStrings;
   lang: Lang;
 }) {
@@ -779,6 +809,25 @@ function SessionsPanel({
             </Touchable>
           );
         })}
+
+        {workspaceDocs.length > 0 && (
+          <>
+            <Box paddingX={4} paddingTop={8}>
+              <Text1
+                medium
+                color={skinVars.colors.textSecondary}
+                transform="uppercase"
+              >
+                {t.documents.workspace}
+              </Text1>
+            </Box>
+            <Stack space={8}>
+              {workspaceDocs.map((doc) => (
+                <DocumentCard key={doc.id} doc={doc} compact t={t} />
+              ))}
+            </Stack>
+          </>
+        )}
 
         {insights.length > 0 && (
           <>
@@ -1594,6 +1643,30 @@ function AnswerCard({
             />
           )}
 
+          {result.documents && result.documents.length > 0 && (
+            <Stack space={12}>
+              <Divider />
+              <Inline space={8} alignItems="center">
+                <IconDocumentsRegular
+                  size={16}
+                  color={skinVars.colors.textSecondary}
+                />
+                <Text1
+                  medium
+                  color={skinVars.colors.textSecondary}
+                  transform="uppercase"
+                >
+                  {t.documents.heading}
+                </Text1>
+              </Inline>
+              <Stack space={12}>
+                {result.documents.map((doc) => (
+                  <DocumentCard key={doc.id} doc={doc} t={t} />
+                ))}
+              </Stack>
+            </Stack>
+          )}
+
           {result.citations.length > 0 && (
             <Stack space={12}>
               <Divider />
@@ -1670,6 +1743,152 @@ function AnswerCard({
                 ))}
               </Inline>
             </Stack>
+          )}
+        </Stack>
+      </Box>
+    </Boxed>
+  );
+}
+
+/* ------------------------------------------------------- generated documents */
+
+// Download one rendered format (or the full ZIP pack) of a document the
+// doc-gen Superflow registered during this conversation. The server re-runs
+// every export governance gate before a single byte is sent.
+async function downloadAskDocument(
+  documentId: string,
+  format?: string,
+): Promise<void> {
+  const isPack = !format;
+  const res = await fetch(
+    isPack ? "/api/ask/documents/export-pack" : "/api/ask/documents/export",
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(isPack ? { documentId } : { documentId, format }),
+    },
+  );
+  if (!res.ok) {
+    let message = "";
+    try {
+      message = ((await res.json()) as { error?: string }).error ?? "";
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(message || `export failed: ${res.status}`);
+  }
+  const blob = await res.blob();
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const match = /filename="([^"]+)"/.exec(disposition);
+  const filename =
+    match?.[1] ?? (isPack ? `${documentId}-pack.zip` : `${documentId}.${format}`);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// A branded file card for one generated document: template + governance meta,
+// one download affordance per offered format, and a ZIP pack download. A
+// Guardian-blocked document renders with downloads locked and the server's
+// own explanation — the buttons are never silently dead.
+function DocumentCard({
+  doc,
+  compact,
+  t,
+}: {
+  doc: AskDocumentSummary;
+  compact?: boolean;
+  t: AskStrings;
+}) {
+  const [busy, setBusy] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const blocked = doc.guardianStatus === "block";
+
+  const download = async (format?: string) => {
+    if (busy) return;
+    setError(null);
+    setBusy(format ?? "pack");
+    try {
+      await downloadAskDocument(doc.id, format);
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : t.documents.downloadFailed,
+      );
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <Boxed>
+      <Box padding={compact ? 12 : 16}>
+        <Stack space={12}>
+          <Inline space={12} alignItems="center">
+            <Circle
+              size={40}
+              backgroundColor={
+                blocked ? skinVars.colors.errorLow : skinVars.colors.brandLow
+              }
+            >
+              <IconDocumentsRegular
+                size={20}
+                color={blocked ? skinVars.colors.error : skinVars.colors.brand}
+              />
+            </Circle>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Stack space={2}>
+                <Text2 medium truncate={compact ? 1 : 2}>
+                  {doc.title}
+                </Text2>
+                <Text1 regular color={skinVars.colors.textSecondary}>
+                  {doc.templateName} · {doc.confidentiality} ·{" "}
+                  {t.documents.citationsCount(doc.citationsCount)}
+                </Text1>
+              </Stack>
+            </div>
+            {blocked && <Tag type="error">{t.documents.guardianBlocked}</Tag>}
+          </Inline>
+
+          {blocked ? (
+            <Text1 regular color={skinVars.colors.textSecondary}>
+              {doc.note ?? doc.guardianSummary}
+            </Text1>
+          ) : (
+            <Inline space={12} wrap alignItems="center">
+              {doc.formats.map((format) => (
+                <ButtonLink
+                  key={format}
+                  small
+                  disabled={busy !== null}
+                  onPress={() => download(format)}
+                >
+                  {busy === format ? "…" : `.${format}`}
+                </ButtonLink>
+              ))}
+              {doc.formats.length > 1 && (
+                <ButtonLink
+                  small
+                  disabled={busy !== null}
+                  onPress={() => download()}
+                  StartIcon={IconDownloadRegular}
+                >
+                  {busy === "pack" ? "…" : t.documents.downloadPack}
+                </ButtonLink>
+              )}
+            </Inline>
+          )}
+
+          {error && (
+            <Text1 regular color={skinVars.colors.error}>
+              {error}
+            </Text1>
           )}
         </Stack>
       </Box>

@@ -1,6 +1,19 @@
 import { Router, type IRouter } from "express";
-import { AskBody, AskResponse } from "@workspace/api-zod";
+import {
+  AskBody,
+  AskResponse,
+  ExportAskDocumentBody,
+  ExportAskDocumentPackBody,
+} from "@workspace/api-zod";
 import { runAskAgent, type AskStreamEvent } from "../agent/askAgent";
+import { getAskDocument } from "../data/askDocuments";
+import {
+  exportDraft,
+  exportPack,
+  ExportRefusedError,
+  type ExportDestination,
+} from "../export/exportService";
+import type { ExportFormat } from "../export/exportTemplates";
 
 const router: IRouter = Router();
 
@@ -68,6 +81,84 @@ router.post("/ask/stream", async (req, res) => {
   } finally {
     send("done", {});
     res.end();
+  }
+});
+
+// Download one format of a document the doc-gen Superflow registered during an
+// Ask turn. The full export governance stack (Guardian re-run, destination
+// gates, external stripping) runs server-side — a chat-born document obeys
+// exactly the same rules as a Generate export.
+router.post("/ask/documents/export", async (req, res) => {
+  const parsed = ExportAskDocumentBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const record = getAskDocument(parsed.data.documentId);
+  if (!record) {
+    res.status(404).json({
+      error:
+        "This document is no longer available (chat documents do not survive a server restart). Ask for it again in the conversation.",
+    });
+    return;
+  }
+  const format = parsed.data.format as ExportFormat;
+  const destination =
+    (parsed.data.destination as ExportDestination | undefined) ?? "internal";
+  try {
+    const result = await exportDraft(record.draft, format, destination, null);
+    req.log.info(
+      { documentId: record.id, format, destination, bytes: result.buffer.length },
+      "ask document exported",
+    );
+    res.setHeader("Content-Type", result.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+    res.send(result.buffer);
+  } catch (err) {
+    if (err instanceof ExportRefusedError) {
+      const status = err.code === "not_exportable" ? 400 : 409;
+      res.status(status).json({ error: err.message, code: err.code });
+      return;
+    }
+    req.log.error({ err }, "ask document export failed");
+    res.status(500).json({ error: "The Hub could not export this document." });
+  }
+});
+
+router.post("/ask/documents/export-pack", async (req, res) => {
+  const parsed = ExportAskDocumentPackBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const record = getAskDocument(parsed.data.documentId);
+  if (!record) {
+    res.status(404).json({
+      error:
+        "This document is no longer available (chat documents do not survive a server restart). Ask for it again in the conversation.",
+    });
+    return;
+  }
+  const formats = (parsed.data.formats ?? []) as ExportFormat[];
+  const destination =
+    (parsed.data.destination as ExportDestination | undefined) ?? "internal";
+  try {
+    const result = await exportPack(record.draft, formats, destination, null);
+    req.log.info(
+      { documentId: record.id, formats, destination, bytes: result.buffer.length },
+      "ask document pack exported",
+    );
+    res.setHeader("Content-Type", result.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+    res.send(result.buffer);
+  } catch (err) {
+    if (err instanceof ExportRefusedError) {
+      const status = err.code === "not_exportable" ? 400 : 409;
+      res.status(status).json({ error: err.message, code: err.code });
+      return;
+    }
+    req.log.error({ err }, "ask document pack export failed");
+    res.status(500).json({ error: "The Hub could not export this document pack." });
   }
 });
 

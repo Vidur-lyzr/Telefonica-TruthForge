@@ -1460,6 +1460,124 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /generate/export/pack:
+    post:
+      operationId: exportDocumentPack
+      tags: [generate]
+      summary: Export a guardian-passed draft as a ZIP bundle of several formats
+      description: >
+        Renders the draft in each requested format (or every format the bound
+        template offers) and bundles them into one ZIP. Every governance gate of
+        a single-format export runs per rendered file — a pack can never bypass
+        a refusal a single download would hit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportPackInput"
+      responses:
+        "200":
+          description: The ZIP bundle (binary)
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "409":
+          description: Export refused by a governance gate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ask/documents/export:
+    post:
+      operationId: exportAskDocument
+      tags: [ask]
+      summary: Download a document generated from an Ask conversation
+      description: >
+        Renders one format of a document the doc-gen Superflow registered during
+        an Ask turn. The full export governance stack runs server-side (Brand
+        Guardian re-run, destination gates, external stripping) — a chat-born
+        document obeys exactly the same rules as a Generate export.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskDocumentExportInput"
+      responses:
+        "200":
+          description: The rendered document (binary)
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Unknown document id (documents do not survive a server restart)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Export refused by a governance gate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /ask/documents/export-pack:
+    post:
+      operationId: exportAskDocumentPack
+      tags: [ask]
+      summary: Download an Ask-generated document as a ZIP of several formats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AskDocumentPackInput"
+      responses:
+        "200":
+          description: The ZIP bundle (binary)
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Unknown document id (documents do not survive a server restart)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Export refused by a governance gate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /generate/editorial-review:
     post:
       operationId: recordEditorialReview
@@ -2380,6 +2498,14 @@ components:
           description: user | assistant
         content:
           type: string
+        citedDocIds:
+          type: array
+          items:
+            type: string
+          description: >
+            Doc ids cited by this (assistant) turn. Used only to seed the
+            document-generation pipeline's retrieval; the server re-validates
+            every id against the current persona's clearance.
 
     AskFilters:
       type: object
@@ -2442,6 +2568,50 @@ components:
             answer in this language regardless of the question's language.
             Absent means mirror the question's language.
 
+    AskDocumentSummary:
+      type: object
+      description: >
+        A document generated during an Ask turn by the doc-gen Superflow. All
+        labels (status, Guardian outcome, downloadable formats) are the
+        server's own — never the model's claim.
+      required:
+        [id, title, shape, templateName, status, guardianStatus, guardianSummary, formats, language, audience, confidentiality, citationsCount, historic, createdAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        shape:
+          type: string
+        templateName:
+          type: string
+        status:
+          type: string
+          description: drafted | no_evidence | permission_blocked
+        guardianStatus:
+          type: string
+          description: pass | block
+        guardianSummary:
+          type: string
+        formats:
+          type: array
+          items:
+            type: string
+        language:
+          type: string
+        audience:
+          type: string
+        confidentiality:
+          type: string
+        citationsCount:
+          type: integer
+        historic:
+          type: boolean
+        note:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
     AskResult:
       type: object
       required: [status, answer, citations, historic, axisIds]
@@ -2491,6 +2661,11 @@ components:
             - $ref: "#/components/schemas/NumericFact"
             - type: "null"
           description: Closest adjacent/historic datum offered on a no-evidence result.
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AskDocumentSummary"
+          description: Documents generated during this turn via the doc-gen Superflow.
         relatedEntities:
           type: array
           items:
@@ -5957,7 +6132,7 @@ components:
           $ref: "#/components/schemas/GeneratedDraft"
         format:
           type: string
-          enum: [docx, pptx, pdf]
+          enum: [docx, pptx, pdf, txt, md]
         destination:
           type: string
           enum: [internal, external]
@@ -5967,6 +6142,54 @@ components:
         templateId:
           type: ["string", "null"]
           description: Export template id; defaults to the draft shape's template.
+
+    ExportPackInput:
+      type: object
+      required: [draft]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+        formats:
+          type: array
+          items:
+            type: string
+            enum: [docx, pptx, pdf, txt, md]
+          description: Formats to bundle; empty/absent bundles every format the template offers.
+        destination:
+          type: string
+          enum: [internal, external]
+        templateId:
+          type: ["string", "null"]
+
+    AskDocumentExportInput:
+      type: object
+      required: [documentId, format]
+      properties:
+        documentId:
+          type: string
+        format:
+          type: string
+          enum: [docx, pptx, pdf, txt, md]
+        destination:
+          type: string
+          enum: [internal, external]
+          description: Defaults to internal; external strips internal-only material and refuses non-public content.
+
+    AskDocumentPackInput:
+      type: object
+      required: [documentId]
+      properties:
+        documentId:
+          type: string
+        formats:
+          type: array
+          items:
+            type: string
+            enum: [docx, pptx, pdf, txt, md]
+          description: Formats to bundle; empty/absent bundles every format the template offers.
+        destination:
+          type: string
+          enum: [internal, external]
 
     ExportTemplateBlock:
       type: object
@@ -6013,7 +6236,7 @@ components:
           type: array
           items:
             type: string
-            enum: [docx, pptx, pdf]
+            enum: [docx, pptx, pdf, txt, md]
         blocks:
           type: array
           items:

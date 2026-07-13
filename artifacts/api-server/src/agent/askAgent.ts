@@ -43,6 +43,16 @@ import {
   beginRetrievalAudit,
   finalizeRetrievalAudit,
 } from "../data/retrievalLog";
+import { runGenerateAgent } from "./generateAgent";
+import { type DocShape } from "../data/assets";
+import {
+  registerAskDocument,
+  type AskDocumentSummary,
+} from "../data/askDocuments";
+import {
+  getExportTemplate,
+  defaultTemplateForShape,
+} from "../export/exportTemplates";
 
 type DocAccessTarget = { confidentiality: Clearance; areas: Area[] };
 type CanReadDoc = (doc: DocAccessTarget) => boolean;
@@ -58,6 +68,11 @@ const NOW = new Date();
 export interface AskTurn {
   role: string;
   content: string;
+  // Doc ids cited by this turn (assistant turns). Used ONLY to seed the
+  // document-generation Superflow's retrieval with the conversation's evidence
+  // trail — the generate pipeline re-validates every id against the CURRENT
+  // persona's clearance and the destination gate before any content is used.
+  citedDocIds?: string[];
 }
 
 export interface AskAttachment {
@@ -162,7 +177,7 @@ const TOOL_STEP_LABELS: Record<string, string> = {
   graph: "Traversing the knowledge graph",
   numeric: "Checking the governed numeric zone",
   tokenize: "Analysing query terms",
-  invoke_superflow: "Handing off to a Superflow",
+  invoke_superflow: "Running the document-generation Superflow",
 };
 
 interface Citation {
@@ -236,6 +251,10 @@ export interface AskAgentResult {
   suggestedNext?: SuggestedNext[];
   retrievalModes?: RetrievalMode[];
   attachmentAck?: string | null;
+  // Documents generated during this turn via the doc-gen Superflow bridge.
+  // Each summary is the server's own truthful label set (status, Guardian
+  // outcome, real downloadable formats) — never the model's claim.
+  documents?: AskDocumentSummary[];
 }
 
 function confidenceFor(score: number, topScore: number): number {
@@ -349,6 +368,7 @@ function conversationalAnswer(kind: ConversationalKind, roleLabel: string): stri
 type TurnIntent =
   | "topic_question"
   | "report_request"
+  | "document_request"
   | "refine"
   | "smalltalk_meta"
   | "none";
@@ -363,11 +383,17 @@ interface TurnRoute {
 const REPORTISH =
   /\b(report|summary|overview|briefing|informe|resumen|bericht|zusammenfassung|übersicht|relatório|resumo)\b/i;
 
+// Document-deliverable wording (EN/ES/DE/PT): the user wants a downloadable
+// file, not an in-chat summary. Long distinctive words and explicit file
+// formats only — short-word collisions are a known multilingual hazard.
+const DOCUMENTISH =
+  /\b(document|documento|dokument|docx|pptx|deck|press release|talking points|nota de prensa|pressemitteilung|comunicado|q&a pack|download)\b|\bpdf\b/i;
+
 const ROUTER_SYSTEM = [
   "You classify the latest turn of a conversation with a governed corporate knowledge assistant. The assistant answers questions about Telefónica strategy, brand, communication and corporate facts from a governed corpus.",
   'Reply with ONLY a JSON object, no prose and no code fences: {"intent": "...", "standaloneQuery": "..." | null}.',
-  'Intents: "topic_question" — the turn asks about a topic, possibly referring back to the conversation ("this", "that", "it") or wrapped in verbose politeness. "report_request" — the turn asks for a report, summary, overview or document about a topic from the conversation. "refine" — the turn asks to rework the previous answer (shorter, longer, as a table, simpler, in another language). "smalltalk_meta" — greetings, thanks, or questions about the assistant itself. "none" — anything else, INCLUDING factual questions unrelated to the corporate corpus (general knowledge, other companies); never classify an unrelated factual question as smalltalk_meta.',
-  "standaloneQuery: for topic_question, report_request and refine, a short retrieval query naming the concrete topic. Build it ONLY from topical terms — proper nouns, metric names, campaign, product, market or axis names — copied VERBATIM from the conversation in their original language. Resolve references like \"this\" to the concrete topic discussed. NEVER include conversational words (can, you, please, generate, report, make, tell, shorter). Do not translate and do not paraphrase. If no concrete topic is resolvable, use null.",
+  'Intents: "topic_question" — the turn asks about a topic, possibly referring back to the conversation ("this", "that", "it") or wrapped in verbose politeness. "document_request" — the turn asks to produce, draft or generate a downloadable document, file or deliverable: a talking-points document, press release, Q&A, deck, pack, or anything naming file formats (docx, pptx, pdf, txt, md, ZIP). "report_request" — the turn asks for an in-chat report, summary or overview about a topic from the conversation, WITHOUT asking for a downloadable file or deliverable. "refine" — the turn asks to rework the previous answer (shorter, longer, as a table, simpler, in another language). "smalltalk_meta" — greetings, thanks, or questions about the assistant itself. "none" — anything else, INCLUDING factual questions unrelated to the corporate corpus (general knowledge, other companies); never classify an unrelated factual question as smalltalk_meta.',
+  "standaloneQuery: for topic_question, report_request, document_request and refine, a short retrieval query naming the concrete topic. Build it ONLY from topical terms — proper nouns, metric names, campaign, product, market or axis names — copied VERBATIM from the conversation in their original language. Resolve references like \"this\" to the concrete topic discussed. NEVER include conversational words (can, you, please, generate, report, make, tell, shorter). Do not translate and do not paraphrase. If no concrete topic is resolvable, use null.",
 ].join(" ");
 
 async function routeTurn(
@@ -404,6 +430,7 @@ async function routeTurn(
     const intents: TurnIntent[] = [
       "topic_question",
       "report_request",
+      "document_request",
       "refine",
       "smalltalk_meta",
       "none",
@@ -652,14 +679,17 @@ export async function runAskAgent(
   // (permission filter, coverage gate, audit); if the router fails or the
   // topic truly has no evidence, the honest no_evidence path below is kept.
   let reportMode = false;
+  let docMode = false;
   let refineMode = false;
-  // Report-style turns ("can you generate a report...") must ALWAYS go through
-  // the router, even when their raw wording grazes the coverage gate (the word
-  // "report" alone matches report-titled docs): composing a normal answer from
-  // those spurious matches produces Superflow-handoff jargon instead of the
-  // in-chat cited report the user asked for.
+  // Report-style and document-style turns ("can you generate a report...",
+  // "draft a press release as docx...") must ALWAYS go through the router,
+  // even when their raw wording grazes the coverage gate (the word "report"
+  // alone matches report-titled docs): composing a normal answer from those
+  // spurious matches produces Superflow-handoff jargon instead of the in-chat
+  // cited report — or the governed file — the user asked for.
   const reportish = REPORTISH.test(input.question);
-  if (relevant.length === 0 || reportish) {
+  const documentish = DOCUMENTISH.test(input.question);
+  if (relevant.length === 0 || reportish || documentish) {
     throwIfAborted();
     emit?.({
       type: "step",
@@ -689,6 +719,7 @@ export async function runAskAgent(
       route.standaloneQuery &&
       (route.intent === "topic_question" ||
         route.intent === "report_request" ||
+        route.intent === "document_request" ||
         route.intent === "refine");
     if (retriable && route.standaloneQuery) {
       const res = await retrieveGoverned(
@@ -708,8 +739,25 @@ export async function runAskAgent(
         retrieved = res.chunks;
         engineDetail = res.engineDetail;
         relevant = rel;
-        reportMode = route.intent === "report_request";
+        docMode =
+          route.intent === "document_request" ||
+          // Safety net: a "report" classification that explicitly names file
+          // formats or deliverables is a document request.
+          (route.intent === "report_request" && documentish);
+        reportMode = route.intent === "report_request" && !docMode;
         refineMode = route.intent === "refine";
+      }
+    }
+    // A document request whose retry query added nothing still counts as a
+    // document turn when the original wording already retrieved permitted
+    // evidence — never bounce the user to a refusal in that case.
+    if (!docMode && relevant.length > 0 && route) {
+      if (
+        route.intent === "document_request" ||
+        (route.intent === "report_request" && documentish)
+      ) {
+        docMode = true;
+        reportMode = false;
       }
     }
 
@@ -722,11 +770,13 @@ export async function runAskAgent(
     // matching report-titled docs) — clarify what the report should cover.
     const conversationalExit =
       route &&
-      ((route.intent === "report_request" && !reportMode) ||
+      ((route.intent === "report_request" && !reportMode && !docMode) ||
+        (route.intent === "document_request" && !docMode) ||
         (relevant.length === 0 &&
           route.intent !== "none" &&
           route.intent !== "topic_question" &&
-          route.intent !== "report_request"));
+          route.intent !== "report_request" &&
+          route.intent !== "document_request"));
     if (conversationalExit && route) {
       finalizeRetrievalAudit(auditId, "conversational");
       emit?.({
@@ -737,7 +787,11 @@ export async function runAskAgent(
         detail: "conversational turn — no governed sources in scope",
       });
       const situation =
-        route.intent === "report_request"
+        route.intent === "document_request"
+          ? route.standaloneQuery
+            ? `The user asked to generate a governed document about "${route.standaloneQuery}", but the governed corpus has no permitted evidence on that topic, so no cited document can be produced — the document-generation Superflow would refuse for the same reason. Say that plainly, then ask what the document should cover — for example a market, a campaign, a metric or a strategic axis. Do not state any corporate facts and never claim a file was produced.`
+            : "The user asked to generate a document, but no concrete topic can be resolved from the conversation yet. Ask briefly what the document should cover — the topic, the audience (internal or external) and the language if unclear. Do not state any corporate facts and never claim a file was produced."
+          : route.intent === "report_request"
           ? route.standaloneQuery
             ? `The user asked for a report about "${route.standaloneQuery}", but the governed corpus has no permitted evidence on that topic, so no cited report can be composed. Say that plainly, then ask what else the report should cover — for example a market, a campaign, a metric or a strategic axis — and mention that the Generate area can produce full governed documents. Do not state any corporate facts.`
             : "The user asked for a report or document, but no concrete topic can be resolved from the conversation yet. Ask briefly what the report should cover — for example a market, a campaign, a metric or a strategic axis — and mention that once a topic is given you will draft a cited summary here in the chat, and that the Generate area can produce a full governed document. Do not state any corporate facts."
@@ -745,7 +799,9 @@ export async function runAskAgent(
             ? "The user asked to rework a previous answer, but there is no previous governed answer in this conversation to rework. Say so briefly and invite a question about strategy, brand or corporate facts. Do not state any corporate facts."
             : "This turn is conversational (small talk, or a question about the assistant itself). No governed sources are in scope. Reply briefly and warmly as the Hub's governed assistant. Explain, when relevant, that you answer questions about Telefónica strategy, brand and corporate facts from the governed corpus, always with citations, and that you say honestly when evidence is missing, blocked by clearance, or historic.";
       const fallback =
-        route.intent === "report_request"
+        route.intent === "document_request"
+          ? "Happy to generate a governed document. Tell me what it should cover — a market, a campaign, a metric or a strategic axis — and whether it is for internal or external use, and I will produce it with real citations and downloadable formats."
+          : route.intent === "report_request"
           ? "Happy to draft a report. Tell me what it should cover — a market, a campaign, a metric or a strategic axis — and I will compose a cited summary here. For a full governed document, use the Generate area."
           : route.intent === "refine"
             ? "There is no previous answer in this conversation to rework yet. Ask me about strategy, brand or corporate facts and I will answer with citations."
@@ -976,6 +1032,11 @@ export async function runAskAgent(
           "The user asked for a report on the topic of this conversation. Compose a compact report-style answer directly in this chat: one short title line, then two to four brief titled sections, every claim carrying its [Sn] marker. Do NOT hand off to a Superflow or any external tool for this. Close with one line noting that the Generate area can produce a full governed document.",
         ]
       : []),
+    ...(docMode
+      ? [
+          'The user asked for a downloadable governed document. Do NOT write the document in the chat. Call the invoke_superflow tool ONCE with name "document-generation" and the resolved input: doc_type (talking_points, press_release, qa, or multiformat for packs), topic, audience (internal unless the user says external), language, and any named axes — all taken from the request and conversation. Then relay EXACTLY the outcome the tool reports in one or two sentences: a ready file card, a Brand Guardian block, or an honest refusal. Never paste document content into the chat and never claim a file exists if the tool refused.',
+        ]
+      : []),
     ...(refineMode
       ? [
           "The user asked to rework the previous answer. Produce the revised form they asked for, based on this turn's numbered sources, citing them with [Sn] markers. Do not reuse citation markers from earlier turns.",
@@ -998,7 +1059,22 @@ export async function runAskAgent(
   // Governed tools the agent may call during composition. Everything they
   // return is already clearance-filtered — the agent can look further, but it
   // can never see past the persona's clearance.
-  const agentTools = buildGovernedTools(clearance, filters, role.area, auditId);
+  const seedDocIds = Array.from(
+    new Set([
+      ...history.flatMap((t) => t.citedDocIds ?? []),
+      ...sources.map((s) => s.docId),
+    ]),
+  );
+  const generatedDocuments: AskDocumentSummary[] = [];
+  const agentTools = buildGovernedTools(clearance, filters, role.area, auditId, {
+    roleId: role.id,
+    question: input.question,
+    resolvedTopic: retrievalQuery !== input.question ? retrievalQuery : null,
+    lang: input.lang,
+    seedDocIds,
+    log,
+    onDocument: (doc) => generatedDocuments.push(doc),
+  });
 
   throwIfAborted();
 
@@ -1238,6 +1314,7 @@ export async function runAskAgent(
   return {
     status: "answered",
     answer: finalAnswer,
+    documents: generatedDocuments.length > 0 ? generatedDocuments : undefined,
     citations,
     historic,
     historicNote,
@@ -1281,11 +1358,31 @@ function summariseToolArgs(args: Record<string, unknown>): string | null {
   return v.length > 80 ? `${v.slice(0, 77)}…` : v;
 }
 
+// Context the invoke_superflow bridge needs to run the real generate pipeline
+// for the current persona and conversation. Absent (conversational turns), the
+// tool answers honestly that document generation is unavailable.
+interface DocgenContext {
+  roleId: string;
+  question: string;
+  // Router-resolved topical query (topical terms only). Preferred over the
+  // raw question and even over the model-passed topic: folding request
+  // wording ("draft", "as docx and pdf") into the generate pipeline's
+  // coverage-gated retrieval causes false no_evidence (coverage dilution).
+  resolvedTopic: string | null;
+  lang?: AskLang;
+  // Conversation evidence trail: doc ids cited by prior turns plus this turn's
+  // permitted sources. Re-validated server-side by the generate pipeline.
+  seedDocIds: string[];
+  log: Logger;
+  onDocument: (doc: AskDocumentSummary) => void;
+}
+
 function buildGovernedTools(
   clearance: Clearance,
   filters: RetrieveFilters | null | undefined,
   area: Area | null = null,
   auditId: string | null = null,
+  docgen: DocgenContext | null = null,
 ) {
   return [
     tool(
@@ -1380,7 +1477,7 @@ function buildGovernedTools(
     ),
     tool(
       "invoke_superflow",
-      "Hand off to a deterministic backend Superflow (e.g. document-generation). Returns a queued run reference; the Superflow performs its own governed retrieval and routes any publishable output through the human approval gate. Never compose the document yourself when this applies.",
+      "Run the deterministic document-generation Superflow now, synchronously. It performs its own governed retrieval (clearance and destination gates), composes the draft, runs the Brand Guardian, and registers the finished document with real downloadable formats. Report EXACTLY the outcome it returns — never compose the document content yourself, and never paste document text into the chat.",
       {
         type: "object",
         properties: {
@@ -1390,7 +1487,8 @@ function buildGovernedTools(
           },
           input: {
             type: "object",
-            description: "Resolved Superflow input parameters",
+            description:
+              "Resolved Superflow input: { doc_type, topic, audience, language, confidentiality, axes }",
           },
         },
         required: ["name"],
@@ -1400,11 +1498,103 @@ function buildGovernedTools(
         if (name !== "document-generation") {
           return `No Superflow named "${name}" is registered. Available: document-generation.`;
         }
-        const runId = `sf-${Date.now().toString(36)}`;
-        return {
-          text: `Superflow "document-generation" queued (run ${runId}). The draft will land in the review folder behind the approval gate — tell the user it is queued for review; do not compose the document here.`,
-          details: { runId, name, input: args.input ?? {} },
-        };
+        if (!docgen) {
+          return "The document-generation Superflow is not available in this context.";
+        }
+        const params = (args.input ?? {}) as Record<string, unknown>;
+        const rawType = String(params.doc_type ?? params.shape ?? "").toLowerCase();
+        const shape: DocShape =
+          rawType.includes("talk") || rawType.includes("messag")
+            ? "messaging"
+            : rawType.includes("press") || rawType.replace(/[^a-z]/g, "") === "qa"
+              ? "press"
+              : "multiformat";
+        const topic =
+          docgen.resolvedTopic?.trim() ||
+          String(params.topic ?? "").trim() ||
+          docgen.question;
+        const audience =
+          String(params.audience ?? "internal").toLowerCase() === "external"
+            ? ("external" as const)
+            : ("internal" as const);
+        const language =
+          typeof params.language === "string" && params.language.trim()
+            ? params.language.trim().toLowerCase()
+            : (docgen.lang ?? "en");
+        const confidentiality =
+          typeof params.confidentiality === "string" && params.confidentiality.trim()
+            ? params.confidentiality.trim().toLowerCase()
+            : undefined;
+        const axisIds = Array.isArray(params.axes)
+          ? params.axes.map((a) => String(a))
+          : undefined;
+        try {
+          // The generate pipeline re-runs governed retrieval under the CURRENT
+          // persona (clearance + destination gates) and re-validates every
+          // seeded doc id server-side — the chat can suggest evidence, never
+          // widen access.
+          const draft = await runGenerateAgent(
+            {
+              shape,
+              topic,
+              roleId: docgen.roleId,
+              audience,
+              language,
+              confidentiality,
+              axisIds,
+              askContext: {
+                question: docgen.question,
+                citedDocIds: docgen.seedDocIds,
+              },
+            },
+            docgen.log,
+          );
+          if (draft.status !== "drafted") {
+            const reason =
+              draft.status === "permission_blocked"
+                ? (draft.permissionNote ??
+                  "the matching material is outside the current permission scope")
+                : (draft.note ??
+                  "no governed evidence supports a cited document on this topic");
+            return `The document-generation Superflow refused (${draft.status.replace(/_/g, " ")}): ${reason} Report this honestly to the user; do NOT compose the document yourself.`;
+          }
+          const record = registerAskDocument(draft, docgen.roleId);
+          const template =
+            getExportTemplate(draft.templateId) ??
+            defaultTemplateForShape(draft.shape);
+          const summary: AskDocumentSummary = {
+            id: record.id,
+            title: draft.title,
+            shape: draft.shape,
+            templateName: template.name,
+            status: draft.status,
+            guardianStatus: draft.guardian.status,
+            guardianSummary: draft.guardian.summary,
+            formats: template.formats,
+            language: draft.language,
+            audience: draft.audience,
+            confidentiality: draft.confidentiality,
+            citationsCount: draft.citations.length,
+            historic: draft.historic,
+            note: draft.historicNote ?? draft.note ?? null,
+            createdAt: record.createdAt,
+          };
+          docgen.onDocument(summary);
+          const guardianLine =
+            draft.guardian.status === "pass"
+              ? "Brand Guardian: pass."
+              : `Brand Guardian: BLOCKED (${draft.guardian.summary}) — downloads stay locked until the findings are fixed in the Generate area.`;
+          return {
+            text: `Document ready: "${draft.title}" — ${template.name}, ${draft.language}, ${draft.audience}, ${draft.confidentiality}, ${draft.citations.length} governed citation${draft.citations.length === 1 ? "" : "s"}. ${guardianLine} Downloadable formats: ${template.formats.join(", ")}. A file card with download buttons appears under your reply automatically. Tell the user in one or two sentences that the document is ready (or blocked by the Guardian) and what it covers. Do NOT paste the document content into the chat.`,
+            details: { documentId: record.id },
+          };
+        } catch (err) {
+          docgen.log.error(
+            { err },
+            "ask: document-generation superflow failed",
+          );
+          return "The document-generation Superflow failed unexpectedly. Tell the user the document could not be generated right now and suggest trying again or using the Generate area.";
+        }
       },
     ),
   ];

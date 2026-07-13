@@ -80,6 +80,14 @@ export interface AskStrings {
     sendQuestion: string;
     permissionNote: string;
   };
+  documents: {
+    heading: string;
+    workspace: string;
+    downloadPack: string;
+    guardianBlocked: string;
+    downloadFailed: string;
+    citationsCount: (n: number) => string;
+  };
   drawer: {
     citation: (id: string) => string;
     governance: string;
@@ -207,6 +215,14 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       axes: "Axes",
       scope: "Scope",
     },
+    documents: {
+      heading: "Generated documents",
+      workspace: "Documents in this conversation",
+      downloadPack: "Download all (ZIP)",
+      guardianBlocked: "Blocked by the Brand Guardian — downloads locked",
+      downloadFailed: "Download failed",
+      citationsCount: (n) => `${n} citation${n === 1 ? "" : "s"}`,
+    },
   },
   ES: {
     sessions: {
@@ -315,6 +331,14 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       entities: "Entidades",
       axes: "Ejes",
       scope: "Ámbito",
+    },
+    documents: {
+      heading: "Documentos generados",
+      workspace: "Documentos de esta conversación",
+      downloadPack: "Descargar todo (ZIP)",
+      guardianBlocked: "Bloqueado por el Brand Guardian — descargas bloqueadas",
+      downloadFailed: "La descarga ha fallado",
+      citationsCount: (n) => `${n} cita${n === 1 ? "" : "s"}`,
     },
   },
   DE: {
@@ -426,6 +450,14 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       axes: "Achsen",
       scope: "Bereich",
     },
+    documents: {
+      heading: "Erstellte Dokumente",
+      workspace: "Dokumente in diesem Gespräch",
+      downloadPack: "Alles herunterladen (ZIP)",
+      guardianBlocked: "Vom Brand Guardian blockiert — Downloads gesperrt",
+      downloadFailed: "Download fehlgeschlagen",
+      citationsCount: (n) => `${n} Zitat${n === 1 ? "" : "e"}`,
+    },
   },
   PT: {
     sessions: {
@@ -535,6 +567,14 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       entities: "Entidades",
       axes: "Eixos",
       scope: "Escopo",
+    },
+    documents: {
+      heading: "Documentos gerados",
+      workspace: "Documentos desta conversa",
+      downloadPack: "Transferir tudo (ZIP)",
+      guardianBlocked: "Bloqueado pelo Brand Guardian — transferências bloqueadas",
+      downloadFailed: "A transferência falhou",
+      citationsCount: (n) => `${n} citação${n === 1 ? "" : "s"}`,
     },
   },
 };

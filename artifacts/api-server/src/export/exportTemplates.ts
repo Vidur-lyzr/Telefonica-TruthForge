@@ -3,7 +3,7 @@
 // and .pdf, plus a preview payload for the frontend gallery. All content is
 // fictional / illustrative.
 
-export type ExportFormat = "docx" | "pptx" | "pdf";
+export type ExportFormat = "docx" | "pptx" | "pdf" | "txt" | "md";
 
 export type ExportBlockKind =
   | "cover"
@@ -50,7 +50,7 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     owner: "Global Brand Office",
     version: "v2.4",
     shapes: ["messaging"],
-    formats: ["docx", "pptx", "pdf"],
+    formats: ["docx", "pptx", "pdf", "txt", "md"],
     blocks: [
       { kind: "cover", label: "Cover" },
       { kind: "summary", label: "Umbrella message" },
@@ -77,7 +77,7 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     owner: "Group Communications",
     version: "v4.1",
     shapes: ["press"],
-    formats: ["docx", "pptx", "pdf"],
+    formats: ["docx", "pptx", "pdf", "txt", "md"],
     blocks: [
       { kind: "cover", label: "Masthead" },
       { kind: "sections", label: "Headline, lead and body" },
@@ -102,7 +102,7 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     owner: "Group Communications",
     version: "v3.0",
     shapes: ["press", "messaging"],
-    formats: ["docx", "pptx", "pdf"],
+    formats: ["docx", "pptx", "pdf", "txt", "md"],
     blocks: [
       { kind: "cover", label: "Cover" },
       { kind: "qa", label: "Questions and approved answers" },
@@ -127,7 +127,7 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     owner: "Executive Communications",
     version: "v2.2",
     shapes: [],
-    formats: ["docx", "pptx", "pdf"],
+    formats: ["docx", "pptx", "pdf", "txt", "md"],
     blocks: [
       { kind: "cover", label: "Cover" },
       { kind: "summary", label: "Executive summary" },
@@ -153,7 +153,7 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     owner: "Insights & Analytics",
     version: "v1.6",
     shapes: [],
-    formats: ["docx", "pptx", "pdf"],
+    formats: ["docx", "pptx", "pdf", "txt", "md"],
     blocks: [
       { kind: "cover", label: "Cover" },
       { kind: "table", label: "KPI table with sources" },
@@ -178,7 +178,7 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     owner: "Planning & Newsroom",
     version: "v1.2",
     shapes: [],
-    formats: ["docx", "pptx", "pdf"],
+    formats: ["docx", "pptx", "pdf", "txt", "md"],
     blocks: [
       { kind: "cover", label: "Cover" },
       { kind: "summary", label: "Outlook summary" },

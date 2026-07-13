@@ -74,8 +74,11 @@ export async function renderPptx(model: ExportDocumentModel): Promise<Buffer> {
     addFooter(s, model);
   }
 
-  // Section slides
+  // Section slides. The raw Q&A section is skipped when the structured Q&A
+  // block is present — it is rendered as styled per-question slides below,
+  // never as an unformatted text blob.
   for (const section of model.sections) {
+    if (section.isQa && model.qa.length > 0) continue;
     const s = pptx.addSlide();
     s.background = { color: "FFFFFF" };
     s.addShape("rect", { x: 0, y: 0, w: 13.33, h: 0.18, fill: { color: BRAND } });
@@ -92,6 +95,72 @@ export async function renderPptx(model: ExportDocumentModel): Promise<Buffer> {
       lineSpacingMultiple: 1.2,
     });
     addFooter(s, model);
+  }
+
+  // Structured Q&A slides: one question per slide, with the answer, its
+  // provenance line and (internal exports only) the internal note.
+  if (model.qa.length > 0) {
+    for (const [index, item] of model.qa.entries()) {
+      const s = pptx.addSlide();
+      s.background = { color: "FFFFFF" };
+      s.addShape("rect", { x: 0, y: 0, w: 13.33, h: 0.18, fill: { color: BRAND } });
+      s.addText(`${model.qaHeading ?? "Q&A"} — ${index + 1}/${model.qa.length}`, {
+        x: 0.8, y: 0.5, w: 11.6, h: 0.4, fontFace: FONT, fontSize: 12, color: MUTED,
+      });
+      s.addText(item.question, {
+        x: 0.8, y: 1.0, w: 11.7, h: 1.1, fontFace: FONT, fontSize: 22, bold: true, color: NAVY, valign: "top",
+      });
+      s.addText(item.answer, {
+        x: 0.8, y: 2.2, w: 11.7, h: 3.2, fontFace: FONT, fontSize: 15, color: TEXT, valign: "top",
+        lineSpacingMultiple: 1.2,
+      });
+      s.addText(
+        item.provenance.length > 0
+          ? `Sources: ${item.provenance
+              .map((p) => [p.docTitle, p.version, p.owner].filter(Boolean).join(" · "))
+              .join(" | ")}`
+          : "Not covered by approved material — no governed source backs this answer.",
+        { x: 0.8, y: 5.5, w: 11.7, h: 0.5, fontFace: FONT, fontSize: 11, italic: true, color: MUTED, valign: "top" },
+      );
+      if (item.note) {
+        s.addText(`Internal note — not exportable externally: ${item.note}`, {
+          x: 0.8, y: 6.1, w: 11.7, h: 0.6, fontFace: FONT, fontSize: 11, italic: true, color: MUTED, valign: "top",
+          fill: { color: "FFF4E5" },
+        });
+      }
+      addFooter(s, model);
+    }
+  }
+
+  // Spokesperson guidance slides (internal exports only — the export model
+  // already strips this block for external audiences).
+  if (model.spokesperson.length > 0) {
+    const perSlide = 2;
+    for (let i = 0; i < model.spokesperson.length; i += perSlide) {
+      const batch = model.spokesperson.slice(i, i + perSlide);
+      const s = pptx.addSlide();
+      s.background = { color: "FFFFFF" };
+      s.addShape("rect", { x: 0, y: 0, w: 13.33, h: 0.18, fill: { color: BRAND } });
+      s.addText("Spokesperson guidance (internal only)", {
+        x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
+      });
+      batch.forEach((note, j) => {
+        const y = 1.6 + j * 2.6;
+        s.addText(`If asked: ${note.question}`, {
+          x: 0.8, y, w: 11.7, h: 0.6, fontFace: FONT, fontSize: 15, bold: true, color: NAVY, valign: "top",
+        });
+        s.addText(note.guidance, {
+          x: 0.8, y: y + 0.65, w: 11.7, h: 1.3, fontFace: FONT, fontSize: 13, color: TEXT, valign: "top",
+          lineSpacingMultiple: 1.15,
+        });
+        if (note.doNotSay) {
+          s.addText(`Do not say: ${note.doNotSay}`, {
+            x: 0.8, y: y + 2.0, w: 11.7, h: 0.45, fontFace: FONT, fontSize: 11, italic: true, color: MUTED, valign: "top",
+          });
+        }
+      });
+      addFooter(s, model);
+    }
   }
 
   // Chart slides

@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type ExportDocumentInputFormat = typeof ExportDocumentInputFormat[keyof typeof ExportDocumentInputFormat];
+export type ExportPackInputFormatsItem = typeof ExportPackInputFormatsItem[keyof typeof ExportPackInputFormatsItem];
 
 
-export const ExportDocumentInputFormat = {
+export const ExportPackInputFormatsItem = {
   docx: 'docx',
   pptx: 'pptx',
   pdf: 'pdf',

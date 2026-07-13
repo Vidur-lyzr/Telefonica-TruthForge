@@ -13,7 +13,10 @@ body via the `read` tool, then executes it. One agent, many skills.
 ## Routing notes
 - Default to `answer-cited`. It is the core; most turns are it.
 - `generate-document` does not compose in-agent — it binds to the doc-gen Superflow
-  via `invoke_superflow`. The agent's job is to resolve params and hand off.
+  via `invoke_superflow`. The agent's job is to resolve params and hand off. The
+  Superflow is synchronous and delivers finished files (docx/pptx/pdf/txt/md,
+  single or ZIP pack) into the conversation workspace; report the real outcome,
+  including Guardian blocks and refusals.
 - `track-goal` and `plan-calendar` read the numeric/graph tools and, for a *report*,
   hand off to `generate-document` (one-off) — scheduled reports are configured in the
   backend, never from chat.

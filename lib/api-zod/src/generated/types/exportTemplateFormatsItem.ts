@@ -13,4 +13,6 @@ export const ExportTemplateFormatsItem = {
   docx: 'docx',
   pptx: 'pptx',
   pdf: 'pdf',
+  txt: 'txt',
+  md: 'md',
 } as const;

@@ -200,6 +200,9 @@ importers:
       express:
         specifier: ^5.2.1
         version: 5.2.1
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
       lyzr-adk:
         specifier: ^0.1.9
         version: 0.1.9

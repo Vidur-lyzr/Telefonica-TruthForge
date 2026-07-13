@@ -10,4 +10,6 @@ export interface AskTurn {
   /** user | assistant */
   role: string;
   content: string;
+  /** Doc ids cited by this (assistant) turn. Used only to seed the document-generation pipeline's retrieval; the server re-validates every id against the current persona's clearance. */
+  citedDocIds?: string[];
 }

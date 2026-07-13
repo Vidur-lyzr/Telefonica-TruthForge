@@ -163,6 +163,8 @@ export interface GenerateStrings {
     formatLabel: string;
     exporting: string;
     exportButton: string;
+    exportPack: string;
+    exportingPack: string;
     editorialReview: string;
     reviewCompleted: string;
     reviewRequired: string;
@@ -495,6 +497,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       formatLabel: "Format",
       exporting: "Exporting...",
       exportButton: "Export",
+      exportPack: "Download pack (ZIP)",
+      exportingPack: "Building pack...",
       editorialReview: "Editorial review",
       reviewCompleted: "Completed",
       reviewRequired: "Required",
@@ -823,6 +827,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       formatLabel: "Formato",
       exporting: "Exportando...",
       exportButton: "Exportar",
+      exportPack: "Descargar pack (ZIP)",
+      exportingPack: "Creando pack...",
       editorialReview: "Revisión editorial",
       reviewCompleted: "Completada",
       reviewRequired: "Requerida",
@@ -1156,6 +1162,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       formatLabel: "Format",
       exporting: "Exportiere...",
       exportButton: "Exportieren",
+      exportPack: "Paket herunterladen (ZIP)",
+      exportingPack: "Paket wird erstellt...",
       editorialReview: "Redaktionelle Prüfung",
       reviewCompleted: "Abgeschlossen",
       reviewRequired: "Erforderlich",
@@ -1488,6 +1496,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       formatLabel: "Formato",
       exporting: "Exportando...",
       exportButton: "Exportar",
+      exportPack: "Baixar pacote (ZIP)",
+      exportingPack: "Criando pacote...",
       editorialReview: "Revisão editorial",
       reviewCompleted: "Concluída",
       reviewRequired: "Obrigatória",

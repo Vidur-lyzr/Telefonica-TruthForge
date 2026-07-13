@@ -22,6 +22,7 @@ import {
   StartRefineJobBody,
   GetGenerationJobResponse,
   ExportDocumentBody,
+  ExportDocumentPackBody,
   RecordEditorialReviewBody,
   RecordEditorialReviewResponse,
   SuggestTemplateBody,
@@ -36,6 +37,7 @@ import {
 import { publishApprovedDraft, PublishRefusedError } from "../data/publishBack";
 import {
   exportDraft,
+  exportPack,
   ExportRefusedError,
   type ExportDestination,
 } from "../export/exportService";
@@ -472,6 +474,37 @@ router.post("/generate/export", async (req, res) => {
     }
     req.log.error({ err }, "export route failed");
     res.status(500).json({ error: "The Hub could not export this document." });
+  }
+});
+
+// ZIP bundle of several formats of the same governed draft. Every gate a
+// single-format export runs is re-run per rendered file inside exportPack.
+router.post("/generate/export/pack", async (req, res) => {
+  const parsed = ExportDocumentPackBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const draft = parsed.data.draft as unknown as GeneratedDraft;
+  const formats = (parsed.data.formats ?? []) as ExportFormat[];
+  const destination = (parsed.data.destination as ExportDestination | undefined) ?? "internal";
+  try {
+    const result = await exportPack(draft, formats, destination, parsed.data.templateId ?? null);
+    req.log.info(
+      { formats, destination, templateId: result.templateId, bytes: result.buffer.length },
+      "document pack exported",
+    );
+    res.setHeader("Content-Type", result.contentType);
+    res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
+    res.send(result.buffer);
+  } catch (err) {
+    if (err instanceof ExportRefusedError) {
+      const status = err.code === "not_exportable" ? 400 : 409;
+      res.status(status).json({ error: err.message, code: err.code });
+      return;
+    }
+    req.log.error({ err }, "export pack route failed");
+    res.status(500).json({ error: "The Hub could not export this document pack." });
   }
 });
 

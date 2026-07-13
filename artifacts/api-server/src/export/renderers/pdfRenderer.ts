@@ -86,7 +86,11 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
     doc.moveDown(0.5);
   }
 
+  // The raw Q&A section is skipped when the structured Q&A block is present —
+  // it is rendered as styled Q/A pairs with provenance below, never as an
+  // unformatted text blob.
   for (const section of model.sections) {
+    if (section.isQa && model.qa.length > 0) continue;
     heading(doc, section.heading);
     if (section.internalOnly) {
       doc
@@ -97,6 +101,41 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
       doc.moveDown(0.3);
     }
     bodyText(doc, section.body);
+  }
+
+  // Structured Q&A block: styled question, answer, provenance and (internal
+  // exports only) the internal note.
+  if (model.qa.length > 0) {
+    heading(doc, model.qaHeading ?? "Q&A");
+    for (const item of model.qa) {
+      ensureSpace(doc, 70);
+      doc.font("Helvetica-Bold").fontSize(11).fillColor(NAVY).text(`Q: ${item.question}`, {
+        width: CONTENT_W,
+      });
+      doc.moveDown(0.2);
+      bodyText(doc, item.answer);
+      doc
+        .font("Helvetica-Oblique")
+        .fontSize(8.5)
+        .fillColor(MUTED)
+        .text(
+          item.provenance.length > 0
+            ? `Sources: ${item.provenance
+                .map((p) => [p.docTitle, p.version, p.owner].filter(Boolean).join(" · "))
+                .join(" | ")}`
+            : "Not covered by approved material — no governed source backs this answer.",
+          { width: CONTENT_W },
+        );
+      if (item.note) {
+        doc.moveDown(0.2);
+        doc
+          .font("Helvetica-Oblique")
+          .fontSize(8.5)
+          .fillColor(MUTED)
+          .text(`Internal note — not exportable externally: ${item.note}`, { width: CONTENT_W });
+      }
+      doc.moveDown(0.6);
+    }
   }
 
   for (const chart of model.charts) {

@@ -5,6 +5,7 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { AskDocumentSummary } from './askDocumentSummary';
 import type { Citation } from './citation';
 import type { GraphEntity } from './graphEntity';
 import type { NumericFact } from './numericFact';
@@ -47,6 +48,8 @@ export interface AskResult {
   numeric?: NumericFact | null;
   /** Closest adjacent/historic datum offered on a no-evidence result. */
   adjacentDatum?: NumericFact | null;
+  /** Documents generated during this turn via the doc-gen Superflow. */
+  documents?: AskDocumentSummary[];
   relatedEntities?: GraphEntity[];
   suggestedNext?: SuggestedNext[];
   retrievalModes?: RetrievalMode[];
