@@ -30,3 +30,15 @@ id = "crT9-hmlRvlro9gdKPfZT"
 uri = "file://exports/diagrams/taxonomy-as-configuration.svg"
 type = "image"
 title = "Taxonomy as Configuration (SVG)"
+
+[[outputs]]
+id = "_ga82bIEn0jiGl3ueab7m"
+uri = "file://exports/hub-ssot-governed-rag-solution.pdf"
+type = "pdf"
+title = "Hub SSoT — Governed-RAG Solution (PDF)"
+
+[[outputs]]
+id = "ShbEM1DmttpRcfy4hs8M5"
+uri = "file://docs/GOVERNED_RAG_SOLUTION.md"
+type = "text"
+title = "Governed-RAG Solution Document (Markdown)"
