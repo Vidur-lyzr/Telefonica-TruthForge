@@ -28,6 +28,7 @@ import type {
   AskInput,
   AskResult,
   AuditEntry,
+  AxisAffectedDocuments,
   BrandCheckInput,
   BrandResourcesView,
   BrandSkill,
@@ -137,6 +138,8 @@ import type {
   StrategicAxis,
   SuggestTemplateInput,
   SuggestedQuery,
+  TaxonomyRollbackInput,
+  TaxonomyRollbackResult,
   TaxonomyState,
   TemplateSuggestion,
   UsageMeter,
@@ -1951,6 +1954,155 @@ export const useApplyRetag = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getApplyRetagMutationOptions(options));
+    }
+
+export const getListAxisAffectedDocumentsUrl = (axisId: string,) => {
+
+
+
+
+  return `/api/governance/axes/${axisId}/affected`
+}
+
+/**
+ * Scrolls the Qdrant payload index for chunks tagged with the axis and aggregates them per document (titles joined from the governed corpus), so the mapping table is derived from the live index, not a static list. The in-memory corpus count is returned alongside for a cross-check. Falls back to the in-memory corpus when no vector index is configured.
+ * @summary Live mapping table — documents carrying an axis, read from the vector index
+ */
+export const listAxisAffectedDocuments = async (axisId: string, options?: RequestInit): Promise<AxisAffectedDocuments> => {
+
+  return customFetch<AxisAffectedDocuments>(getListAxisAffectedDocumentsUrl(axisId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAxisAffectedDocumentsQueryKey = (axisId: string,) => {
+    return [
+    `/api/governance/axes/${axisId}/affected`
+    ] as const;
+    }
+
+
+export const getListAxisAffectedDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof listAxisAffectedDocuments>>, TError = ErrorType<ErrorResponse>>(axisId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAxisAffectedDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAxisAffectedDocumentsQueryKey(axisId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAxisAffectedDocuments>>> = ({ signal }) => listAxisAffectedDocuments(axisId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: axisId !== null && axisId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAxisAffectedDocuments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAxisAffectedDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof listAxisAffectedDocuments>>>
+export type ListAxisAffectedDocumentsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Live mapping table — documents carrying an axis, read from the vector index
+ */
+
+export function useListAxisAffectedDocuments<TData = Awaited<ReturnType<typeof listAxisAffectedDocuments>>, TError = ErrorType<ErrorResponse>>(
+ axisId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAxisAffectedDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAxisAffectedDocumentsQueryOptions(axisId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRollbackTaxonomyUrl = () => {
+
+
+
+
+  return `/api/governance/rollback`
+}
+
+/**
+ * Rebuilds the taxonomy state at the target version (seed configuration plus every version up to and including it), diffs it against the current state, mirrors the reverted tags into the vector index first (payload-only), then commits the revert as a NEW taxonomy version — history is never rewritten. Runtime-ingested documents outside the seed snapshot are never touched.
+ * @summary Revert the taxonomy to an earlier version (append-only)
+ */
+export const rollbackTaxonomy = async (taxonomyRollbackInput: TaxonomyRollbackInput, options?: RequestInit): Promise<TaxonomyRollbackResult> => {
+
+  return customFetch<TaxonomyRollbackResult>(getRollbackTaxonomyUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(taxonomyRollbackInput)
+  }
+);}
+
+
+
+
+export const getRollbackTaxonomyMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rollbackTaxonomy>>, TError,{data: BodyType<TaxonomyRollbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rollbackTaxonomy>>, TError,{data: BodyType<TaxonomyRollbackInput>}, TContext> => {
+
+const mutationKey = ['rollbackTaxonomy'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rollbackTaxonomy>>, {data: BodyType<TaxonomyRollbackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rollbackTaxonomy(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RollbackTaxonomyMutationResult = NonNullable<Awaited<ReturnType<typeof rollbackTaxonomy>>>
+    export type RollbackTaxonomyMutationBody = BodyType<TaxonomyRollbackInput>
+    export type RollbackTaxonomyMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Revert the taxonomy to an earlier version (append-only)
+ */
+export const useRollbackTaxonomy = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rollbackTaxonomy>>, TError,{data: BodyType<TaxonomyRollbackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rollbackTaxonomy>>,
+        TError,
+        {data: BodyType<TaxonomyRollbackInput>},
+        TContext
+      > => {
+      return useMutation(getRollbackTaxonomyMutationOptions(options));
     }
 
 export const getQueryKpisUrl = () => {

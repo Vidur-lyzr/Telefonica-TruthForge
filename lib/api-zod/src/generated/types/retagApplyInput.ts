@@ -7,10 +7,18 @@
  */
 import type { RetagDecision } from './retagDecision';
 import type { TaxonomyAxisEdit } from './taxonomyAxisEdit';
+import type { TaxonomyAxisOp } from './taxonomyAxisOp';
 
 export interface RetagApplyInput {
   actor: string;
   note: string;
   axisEdit: TaxonomyAxisEdit | null;
   decisions: RetagDecision[];
+  /**
+     * rename (default) | split | merge
+     * @nullable
+     */
+  kind?: string | null;
+  /** Structural axis operations (create/retire/rename) committed with this version. */
+  axisOps?: TaxonomyAxisOp[];
 }

@@ -195,10 +195,27 @@ export interface DataStrings {
         | null
         | undefined,
     ) => string;
+    proofSummary: (p: {
+      embedCallsDelta: number;
+      hashesIdentical: boolean;
+      checksPassed: number;
+      checksTotal: number;
+    }) => string;
     axis: (n: number) => string;
+    axisRetired: string;
     historyTitle: string;
     historyDesc: string;
-    historyHeadings: [string, string, string, string, string];
+    historyHeadings: [string, string, string, string, string, string];
+    kindLabels: { rename: string; split: string; merge: string; rollback: string };
+    revert: string;
+    revertConfirmTitle: (v: number) => string;
+    revertConfirmDesc: string;
+    revertConfirm: string;
+    revertCancel: string;
+    seedNote: string;
+    seedActor: string;
+    revertError: string;
+    revertedDetail: (toVersion: number, newVersion: number, docs: number) => string;
     versionActive: (v: number) => string;
     version: (v: number) => string;
     freshnessTitle: string;
@@ -222,6 +239,27 @@ export interface DataStrings {
       axisToEdit: string;
       newName: string;
       newDescription: string;
+      kindLabel: string;
+      kindRename: string;
+      kindSplit: string;
+      kindMerge: string;
+      splitNewAxisName: string;
+      splitNewAxisDescription: string;
+      mergeInto: string;
+      liveMappingTitle: string;
+      liveFromQdrant: string;
+      liveFromMemory: string;
+      liveCounts: (memoryDocs: number, qdrantDocs: number | null, points: number | null) => string;
+      countsMatch: string;
+      countsMismatch: string;
+      mappingHeadings: [string, string, string];
+      sparseNote: string;
+      splitPreview: (nextName: string, newAxis: string) => string;
+      mergePreview: (from: string, to: string) => string;
+      movedTo: (name: string) => string;
+      bothUnder: (a: string, b: string) => string;
+      applyNoteSplit: (from: string, next: string, newAxis: string) => string;
+      applyNoteMerge: (from: string, to: string) => string;
       building: string;
       proposalFailed: string;
       affected: (n: number, fromName: string) => string;
@@ -515,17 +553,38 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
             ? ` Qdrant proof: ${qdrant.updatedDocs} document payload${qdrant.updatedDocs === 1 ? "" : "s"} updated in place via set_payload — vector count unchanged (${qdrant.pointsBefore} before, ${qdrant.pointsAfter} after). No re-embedding, no re-ingestion.`
             : ""
         }`,
+      proofSummary: (p) =>
+        `Proof: embedding calls during apply = ${p.embedCallsDelta} (must be 0), vector hashes ${p.hashesIdentical ? "identical before and after" : "CHANGED — this should never happen"}, ${p.checksPassed}/${p.checksTotal} live filter checks passed against the vector index.`,
       axis: (n) => `Axis ${n}`,
+      axisRetired: "Retired",
       historyTitle: "Taxonomy version history",
       historyDesc:
-        "Every applied re-classification is a persisted, versioned configuration change with an actor and a note — the audit trail of the vocabulary itself.",
+        "Every applied re-classification is a persisted, versioned configuration change with an actor and a note — the audit trail of the vocabulary itself. Rolling back appends a new version; history is never rewritten.",
       historyHeadings: [
         "Version",
         "When",
         "Actor",
         "Change",
         "Documents re-tagged",
+        "",
       ],
+      kindLabels: {
+        rename: "Rename",
+        split: "Split",
+        merge: "Merge",
+        rollback: "Rollback",
+      },
+      revert: "Revert to this",
+      revertConfirmTitle: (v) => `Roll back to taxonomy v${v}?`,
+      revertConfirmDesc:
+        "Documents return to the tags they carried at that version and the axis catalogue is restored — applied as a NEW version, so the audit trail keeps every step. The vector index is updated in place; nothing is re-embedded. Runtime-ingested documents are not touched.",
+      revertConfirm: "Roll back",
+      revertCancel: "Cancel",
+      seedNote: "Seed corpus classification",
+      seedActor: "System",
+      revertError: "The rollback could not be applied. Nothing has been changed.",
+      revertedDetail: (toVersion, newVersion, docs) =>
+        `Rolled back to taxonomy v${toVersion} — applied as new version v${newVersion}, ${docs} document${docs === 1 ? "" : "s"} reverted. Append-only history, no re-embedding.`,
       versionActive: (v) => `v${v} · active`,
       version: (v) => `v${v}`,
       freshnessTitle: "Freshness and review SLA",
@@ -560,10 +619,39 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         back: "Back",
         cancel: "Cancel",
         step0Desc:
-          "Rename or refine a strategic axis. This mirrors a strategy shift — for example folding a legacy theme into a current strategic axis.",
+          "Rename, split or merge a strategic axis. This mirrors a strategy shift — for example folding a legacy theme into a current strategic axis, or breaking a broad axis into two sharper ones.",
         axisToEdit: "Axis to edit",
         newName: "New name",
         newDescription: "New description (optional)",
+        kindLabel: "Kind of change",
+        kindRename: "Rename / redefine",
+        kindSplit: "Split into two axes",
+        kindMerge: "Merge into another axis",
+        splitNewAxisName: "New sibling axis name",
+        splitNewAxisDescription: "New sibling axis description (optional)",
+        mergeInto: "Merge into",
+        liveMappingTitle: "Live mapping from the vector index",
+        liveFromQdrant: "Read live from Qdrant",
+        liveFromMemory: "Vector index unavailable — showing the in-memory working set",
+        liveCounts: (memoryDocs, qdrantDocs, points) =>
+          qdrantDocs === null
+            ? `${memoryDocs} documents in the working set.`
+            : `${qdrantDocs} documents · ${points ?? 0} vector points found by filtering the index on this axis; the in-memory working set has ${memoryDocs}.`,
+        countsMatch: "Index and working set agree",
+        countsMismatch: "Index and working set DISAGREE",
+        mappingHeadings: ["Document", "Current tags", "Vector points"],
+        sparseNote:
+          "Honesty note: axis tags filter the dense vector lane (Qdrant payload filters). The local keyword lane re-reads the same document metadata, so both lanes follow the new tags — but only the dense lane is proven by the index counts shown here.",
+        splitPreview: (nextName, newAxis) =>
+          `The original axis becomes "${nextName}" and a new sibling axis "${newAxis}" is created. Each document below will be proposed to one of the two (or both).`,
+        mergePreview: (from, to) =>
+          `"${from}" will be retired (never deleted) and its documents proposed for "${to}". The retired axis stays in history and can be revived by rollback.`,
+        movedTo: (name) => `Moves to "${name}"`,
+        bothUnder: (a, b) => `Stays under "${a}" and joins "${b}"`,
+        applyNoteSplit: (from, next, newAxis) =>
+          `Split "${from}" into "${next}" and new axis "${newAxis}", re-classifying the affected documents.`,
+        applyNoteMerge: (from, to) =>
+          `Merged "${from}" into "${to}" and retired the source axis.`,
         building:
           "Building the mapping table and asking the engine to re-classify each affected document against the edited axis…",
         proposalFailed: "Proposal failed",
@@ -861,17 +949,38 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
             ? ` Prueba de Qdrant: ${qdrant.updatedDocs} payload${qdrant.updatedDocs === 1 ? "" : "s"} de documento actualizado${qdrant.updatedDocs === 1 ? "" : "s"} in situ mediante set_payload — el recuento de vectores no cambia (${qdrant.pointsBefore} antes, ${qdrant.pointsAfter} después). Sin regenerar embeddings, sin reingesta.`
             : ""
         }`,
+      proofSummary: (p) =>
+        `Prueba: llamadas de embedding durante la aplicación = ${p.embedCallsDelta} (debe ser 0), hashes de vectores ${p.hashesIdentical ? "idénticos antes y después" : "CAMBIARON — esto nunca debería ocurrir"}, ${p.checksPassed}/${p.checksTotal} comprobaciones de filtro en vivo superadas contra el índice vectorial.`,
       axis: (n) => `Eje ${n}`,
+      axisRetired: "Retirado",
       historyTitle: "Historial de versiones de taxonomía",
       historyDesc:
-        "Cada reclasificación aplicada es un cambio de configuración persistido y versionado con un actor y una nota — el registro de auditoría del propio vocabulario.",
+        "Cada reclasificación aplicada es un cambio de configuración persistido y versionado con un actor y una nota — el registro de auditoría del propio vocabulario. Revertir añade una versión nueva; el historial nunca se reescribe.",
       historyHeadings: [
         "Versión",
         "Cuándo",
         "Actor",
         "Cambio",
         "Documentos reetiquetados",
+        "",
       ],
+      kindLabels: {
+        rename: "Renombrado",
+        split: "División",
+        merge: "Fusión",
+        rollback: "Reversión",
+      },
+      revert: "Volver a esta",
+      revertConfirmTitle: (v) => `¿Revertir a la taxonomía v${v}?`,
+      revertConfirmDesc:
+        "Los documentos recuperan las etiquetas que tenían en esa versión y se restaura el catálogo de ejes — se aplica como una versión NUEVA, así que el registro de auditoría conserva cada paso. El índice vectorial se actualiza in situ; no se regenera ningún embedding. Los documentos ingeridos en tiempo de ejecución no se tocan.",
+      revertConfirm: "Revertir",
+      revertCancel: "Cancelar",
+      seedNote: "Clasificación del corpus semilla",
+      seedActor: "Sistema",
+      revertError: "No se pudo aplicar la reversión. No se ha cambiado nada.",
+      revertedDetail: (toVersion, newVersion, docs) =>
+        `Se revirtió a la taxonomía v${toVersion} — aplicada como nueva versión v${newVersion}, ${docs} documento${docs === 1 ? "" : "s"} restaurado${docs === 1 ? "" : "s"}. Historial solo de anexado, sin regenerar embeddings.`,
       versionActive: (v) => `v${v} · activa`,
       version: (v) => `v${v}`,
       freshnessTitle: "Frescura y SLA de revisión",
@@ -906,10 +1015,39 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         back: "Atrás",
         cancel: "Cancelar",
         step0Desc:
-          "Renombra o refina un eje estratégico. Esto refleja un cambio de estrategia — por ejemplo, integrar un tema heredado en un eje estratégico actual.",
+          "Renombra, divide o fusiona un eje estratégico. Esto refleja un cambio de estrategia — por ejemplo, integrar un tema heredado en un eje actual o dividir un eje amplio en dos más precisos.",
         axisToEdit: "Eje a editar",
         newName: "Nombre nuevo",
         newDescription: "Descripción nueva (opcional)",
+        kindLabel: "Tipo de cambio",
+        kindRename: "Renombrar / redefinir",
+        kindSplit: "Dividir en dos ejes",
+        kindMerge: "Fusionar con otro eje",
+        splitNewAxisName: "Nombre del nuevo eje hermano",
+        splitNewAxisDescription: "Descripción del nuevo eje hermano (opcional)",
+        mergeInto: "Fusionar con",
+        liveMappingTitle: "Mapeo en vivo desde el índice vectorial",
+        liveFromQdrant: "Leído en vivo de Qdrant",
+        liveFromMemory: "Índice vectorial no disponible — mostrando el conjunto de trabajo en memoria",
+        liveCounts: (memoryDocs, qdrantDocs, points) =>
+          qdrantDocs === null
+            ? `${memoryDocs} documentos en el conjunto de trabajo.`
+            : `${qdrantDocs} documentos · ${points ?? 0} puntos vectoriales encontrados filtrando el índice por este eje; el conjunto de trabajo en memoria tiene ${memoryDocs}.`,
+        countsMatch: "El índice y el conjunto de trabajo coinciden",
+        countsMismatch: "El índice y el conjunto de trabajo NO COINCIDEN",
+        mappingHeadings: ["Documento", "Etiquetas actuales", "Puntos vectoriales"],
+        sparseNote:
+          "Nota de honestidad: las etiquetas de eje filtran la vía vectorial densa (filtros de payload de Qdrant). La vía local de palabras clave relee los mismos metadatos del documento, así que ambas vías siguen las etiquetas nuevas — pero solo la vía densa queda probada por los recuentos del índice mostrados aquí.",
+        splitPreview: (nextName, newAxis) =>
+          `El eje original pasa a ser "${nextName}" y se crea un nuevo eje hermano "${newAxis}". Cada documento se propondrá para uno de los dos (o ambos).`,
+        mergePreview: (from, to) =>
+          `"${from}" se retirará (nunca se elimina) y sus documentos se propondrán para "${to}". El eje retirado permanece en el historial y una reversión puede reactivarlo.`,
+        movedTo: (name) => `Pasa a "${name}"`,
+        bothUnder: (a, b) => `Permanece bajo "${a}" y se une a "${b}"`,
+        applyNoteSplit: (from, next, newAxis) =>
+          `Se dividió "${from}" en "${next}" y el nuevo eje "${newAxis}", reclasificando los documentos afectados.`,
+        applyNoteMerge: (from, to) =>
+          `Se fusionó "${from}" con "${to}" y se retiró el eje de origen.`,
         building:
           "Construyendo la tabla de mapeo y pidiendo al motor que reclasifique cada documento afectado contra el eje editado…",
         proposalFailed: "La propuesta falló",
@@ -1204,17 +1342,38 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
             ? ` Qdrant-Nachweis: ${qdrant.updatedDocs} Dokument-Payload${qdrant.updatedDocs === 1 ? "" : "s"} per set_payload direkt aktualisiert — die Vektoranzahl bleibt unverändert (${qdrant.pointsBefore} vorher, ${qdrant.pointsAfter} nachher). Kein erneutes Einbetten, keine erneute Ingestion.`
             : ""
         }`,
+      proofSummary: (p) =>
+        `Nachweis: Embedding-Aufrufe während der Anwendung = ${p.embedCallsDelta} (muss 0 sein), Vektor-Hashes ${p.hashesIdentical ? "vorher und nachher identisch" : "GEÄNDERT — das darf nie passieren"}, ${p.checksPassed}/${p.checksTotal} Live-Filterprüfungen gegen den Vektorindex bestanden.`,
       axis: (n) => `Achse ${n}`,
+      axisRetired: "Stillgelegt",
       historyTitle: "Versionsverlauf der Taxonomie",
       historyDesc:
-        "Jede angewandte Neuklassifikation ist eine persistierte, versionierte Konfigurationsänderung mit Akteur und Notiz — der Prüfpfad des Vokabulars selbst.",
+        "Jede angewandte Neuklassifikation ist eine persistierte, versionierte Konfigurationsänderung mit Akteur und Notiz — der Prüfpfad des Vokabulars selbst. Ein Rollback fügt eine neue Version hinzu; der Verlauf wird nie umgeschrieben.",
       historyHeadings: [
         "Version",
         "Wann",
         "Akteur",
         "Änderung",
         "Neu getaggte Dokumente",
+        "",
       ],
+      kindLabels: {
+        rename: "Umbenennung",
+        split: "Aufteilung",
+        merge: "Zusammenführung",
+        rollback: "Rollback",
+      },
+      revert: "Hierauf zurücksetzen",
+      revertConfirmTitle: (v) => `Auf Taxonomie v${v} zurücksetzen?`,
+      revertConfirmDesc:
+        "Dokumente erhalten die Tags zurück, die sie in dieser Version trugen, und der Achsenkatalog wird wiederhergestellt — angewendet als NEUE Version, sodass der Prüfpfad jeden Schritt behält. Der Vektorindex wird direkt aktualisiert; nichts wird neu eingebettet. Zur Laufzeit aufgenommene Dokumente bleiben unberührt.",
+      revertConfirm: "Zurücksetzen",
+      revertCancel: "Abbrechen",
+      seedNote: "Klassifikation des Ausgangskorpus",
+      seedActor: "System",
+      revertError: "Das Rollback konnte nicht angewendet werden. Es wurde nichts geändert.",
+      revertedDetail: (toVersion, newVersion, docs) =>
+        `Auf Taxonomie v${toVersion} zurückgesetzt — angewendet als neue Version v${newVersion}, ${docs} Dokument${docs === 1 ? "" : "e"} zurückgesetzt. Nur-anfügender Verlauf, kein erneutes Einbetten.`,
       versionActive: (v) => `v${v} · aktiv`,
       version: (v) => `v${v}`,
       freshnessTitle: "Aktualität und Prüf-SLA",
@@ -1249,10 +1408,39 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         back: "Zurück",
         cancel: "Abbrechen",
         step0Desc:
-          "Benennen oder verfeinern Sie eine strategische Achse. Dies spiegelt eine Strategieverschiebung wider — zum Beispiel das Zusammenführen eines Alt-Themas in eine aktuelle strategische Achse.",
+          "Benennen Sie eine strategische Achse um, teilen Sie sie auf oder führen Sie sie zusammen. Dies spiegelt eine Strategieverschiebung wider — zum Beispiel das Zusammenführen eines Alt-Themas in eine aktuelle Achse oder das Aufteilen einer breiten Achse in zwei schärfere.",
         axisToEdit: "Zu bearbeitende Achse",
         newName: "Neuer Name",
         newDescription: "Neue Beschreibung (optional)",
+        kindLabel: "Art der Änderung",
+        kindRename: "Umbenennen / neu definieren",
+        kindSplit: "In zwei Achsen aufteilen",
+        kindMerge: "In andere Achse zusammenführen",
+        splitNewAxisName: "Name der neuen Schwesterachse",
+        splitNewAxisDescription: "Beschreibung der neuen Schwesterachse (optional)",
+        mergeInto: "Zusammenführen in",
+        liveMappingTitle: "Live-Zuordnung aus dem Vektorindex",
+        liveFromQdrant: "Live aus Qdrant gelesen",
+        liveFromMemory: "Vektorindex nicht verfügbar — In-Memory-Arbeitsmenge wird angezeigt",
+        liveCounts: (memoryDocs, qdrantDocs, points) =>
+          qdrantDocs === null
+            ? `${memoryDocs} Dokumente in der Arbeitsmenge.`
+            : `${qdrantDocs} Dokumente · ${points ?? 0} Vektorpunkte durch Filtern des Index nach dieser Achse gefunden; die In-Memory-Arbeitsmenge umfasst ${memoryDocs}.`,
+        countsMatch: "Index und Arbeitsmenge stimmen überein",
+        countsMismatch: "Index und Arbeitsmenge STIMMEN NICHT ÜBEREIN",
+        mappingHeadings: ["Dokument", "Aktuelle Tags", "Vektorpunkte"],
+        sparseNote:
+          "Ehrlichkeitshinweis: Achsen-Tags filtern die dichte Vektorspur (Qdrant-Payload-Filter). Die lokale Stichwortspur liest dieselben Dokument-Metadaten erneut, sodass beide Spuren den neuen Tags folgen — aber nur die dichte Spur wird durch die hier gezeigten Indexzählungen belegt.",
+        splitPreview: (nextName, newAxis) =>
+          `Die ursprüngliche Achse wird zu "${nextName}" und eine neue Schwesterachse "${newAxis}" wird angelegt. Jedes Dokument unten wird einer der beiden (oder beiden) vorgeschlagen.`,
+        mergePreview: (from, to) =>
+          `"${from}" wird stillgelegt (nie gelöscht) und seine Dokumente werden für "${to}" vorgeschlagen. Die stillgelegte Achse bleibt im Verlauf und kann per Rollback reaktiviert werden.`,
+        movedTo: (name) => `Wechselt zu "${name}"`,
+        bothUnder: (a, b) => `Bleibt unter "${a}" und tritt "${b}" bei`,
+        applyNoteSplit: (from, next, newAxis) =>
+          `"${from}" in "${next}" und die neue Achse "${newAxis}" aufgeteilt und die betroffenen Dokumente neu klassifiziert.`,
+        applyNoteMerge: (from, to) =>
+          `"${from}" in "${to}" zusammengeführt und die Ausgangsachse stillgelegt.`,
         building:
           "Die Zuordnungstabelle wird erstellt und die Engine gebeten, jedes betroffene Dokument gegen die bearbeitete Achse neu zu klassifizieren…",
         proposalFailed: "Vorschlag fehlgeschlagen",
@@ -1549,17 +1737,38 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
             ? ` Prova do Qdrant: ${qdrant.updatedDocs} payload${qdrant.updatedDocs === 1 ? "" : "s"} de documento atualizado${qdrant.updatedDocs === 1 ? "" : "s"} no local via set_payload — a contagem de vetores permanece inalterada (${qdrant.pointsBefore} antes, ${qdrant.pointsAfter} depois). Sem regerar embeddings, sem reingestão.`
             : ""
         }`,
+      proofSummary: (p) =>
+        `Prova: chamadas de embedding durante a aplicação = ${p.embedCallsDelta} (deve ser 0), hashes de vetores ${p.hashesIdentical ? "idênticos antes e depois" : "MUDARAM — isso nunca deveria acontecer"}, ${p.checksPassed}/${p.checksTotal} verificações de filtro ao vivo aprovadas contra o índice vetorial.`,
       axis: (n) => `Eixo ${n}`,
+      axisRetired: "Aposentado",
       historyTitle: "Histórico de versões da taxonomia",
       historyDesc:
-        "Cada reclassificação aplicada é uma mudança de configuração persistida e versionada com um ator e uma nota — a trilha de auditoria do próprio vocabulário.",
+        "Cada reclassificação aplicada é uma mudança de configuração persistida e versionada com um ator e uma nota — a trilha de auditoria do próprio vocabulário. Reverter acrescenta uma nova versão; o histórico nunca é reescrito.",
       historyHeadings: [
         "Versão",
         "Quando",
         "Ator",
         "Mudança",
         "Documentos reetiquetados",
+        "",
       ],
+      kindLabels: {
+        rename: "Renomeação",
+        split: "Divisão",
+        merge: "Fusão",
+        rollback: "Reversão",
+      },
+      revert: "Voltar a esta",
+      revertConfirmTitle: (v) => `Reverter para a taxonomia v${v}?`,
+      revertConfirmDesc:
+        "Os documentos voltam às etiquetas que carregavam naquela versão e o catálogo de eixos é restaurado — aplicado como uma versão NOVA, então a trilha de auditoria mantém cada passo. O índice vetorial é atualizado no local; nada é reembutido. Documentos ingeridos em tempo de execução não são tocados.",
+      revertConfirm: "Reverter",
+      revertCancel: "Cancelar",
+      seedNote: "Classificação do corpus semente",
+      seedActor: "Sistema",
+      revertError: "Não foi possível aplicar a reversão. Nada foi alterado.",
+      revertedDetail: (toVersion, newVersion, docs) =>
+        `Revertido para a taxonomia v${toVersion} — aplicada como nova versão v${newVersion}, ${docs} documento${docs === 1 ? "" : "s"} restaurado${docs === 1 ? "" : "s"}. Histórico somente de acréscimo, sem regerar embeddings.`,
       versionActive: (v) => `v${v} · ativa`,
       version: (v) => `v${v}`,
       freshnessTitle: "Atualidade e SLA de revisão",
@@ -1594,10 +1803,39 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         back: "Voltar",
         cancel: "Cancelar",
         step0Desc:
-          "Renomeie ou refine um eixo estratégico. Isso reflete uma mudança de estratégia — por exemplo, integrar um tema legado a um eixo estratégico atual.",
+          "Renomeie, divida ou funda um eixo estratégico. Isso reflete uma mudança de estratégia — por exemplo, integrar um tema legado a um eixo atual ou dividir um eixo amplo em dois mais precisos.",
         axisToEdit: "Eixo a editar",
         newName: "Novo nome",
         newDescription: "Nova descrição (opcional)",
+        kindLabel: "Tipo de mudança",
+        kindRename: "Renomear / redefinir",
+        kindSplit: "Dividir em dois eixos",
+        kindMerge: "Fundir com outro eixo",
+        splitNewAxisName: "Nome do novo eixo irmão",
+        splitNewAxisDescription: "Descrição do novo eixo irmão (opcional)",
+        mergeInto: "Fundir com",
+        liveMappingTitle: "Mapeamento ao vivo do índice vetorial",
+        liveFromQdrant: "Lido ao vivo do Qdrant",
+        liveFromMemory: "Índice vetorial indisponível — mostrando o conjunto de trabalho em memória",
+        liveCounts: (memoryDocs, qdrantDocs, points) =>
+          qdrantDocs === null
+            ? `${memoryDocs} documentos no conjunto de trabalho.`
+            : `${qdrantDocs} documentos · ${points ?? 0} pontos vetoriais encontrados filtrando o índice por este eixo; o conjunto de trabalho em memória tem ${memoryDocs}.`,
+        countsMatch: "Índice e conjunto de trabalho coincidem",
+        countsMismatch: "Índice e conjunto de trabalho NÃO COINCIDEM",
+        mappingHeadings: ["Documento", "Etiquetas atuais", "Pontos vetoriais"],
+        sparseNote:
+          "Nota de honestidade: as etiquetas de eixo filtram a via vetorial densa (filtros de payload do Qdrant). A via local de palavras-chave relê os mesmos metadados do documento, então ambas as vias seguem as novas etiquetas — mas apenas a via densa é comprovada pelas contagens do índice mostradas aqui.",
+        splitPreview: (nextName, newAxis) =>
+          `O eixo original passa a ser "${nextName}" e um novo eixo irmão "${newAxis}" é criado. Cada documento abaixo será proposto para um dos dois (ou ambos).`,
+        mergePreview: (from, to) =>
+          `"${from}" será aposentado (nunca excluído) e seus documentos propostos para "${to}". O eixo aposentado permanece no histórico e uma reversão pode reativá-lo.`,
+        movedTo: (name) => `Passa para "${name}"`,
+        bothUnder: (a, b) => `Permanece sob "${a}" e junta-se a "${b}"`,
+        applyNoteSplit: (from, next, newAxis) =>
+          `"${from}" dividido em "${next}" e o novo eixo "${newAxis}", reclassificando os documentos afetados.`,
+        applyNoteMerge: (from, to) =>
+          `"${from}" fundido com "${to}" e o eixo de origem aposentado.`,
         building:
           "Construindo a tabela de mapeamento e pedindo ao motor que reclassifique cada documento afetado contra o eixo editado…",
         proposalFailed: "A proposta falhou",

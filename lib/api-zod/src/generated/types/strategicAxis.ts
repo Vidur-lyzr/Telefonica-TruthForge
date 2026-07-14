@@ -11,4 +11,6 @@ export interface StrategicAxis {
   name: string;
   color: string;
   description: string;
+  /** A retired axis is never deleted — old taxonomy versions and audit entries keep referencing it — but it is hidden from active listings. */
+  retired?: boolean;
 }

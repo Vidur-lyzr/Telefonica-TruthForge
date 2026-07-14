@@ -734,6 +734,8 @@ export interface StrategicAxis {
   name: string;
   color: string;
   description: string;
+  /** A retired axis is never deleted — old taxonomy versions and audit entries keep referencing it — but it is hidden from active listings. */
+  retired?: boolean;
 }
 
 export interface Role {
@@ -2466,6 +2468,31 @@ export interface TaxonomyAxisEdit {
   description: string | null;
 }
 
+/**
+ * A versioned structural operation on the axis catalogue.
+ */
+export interface TaxonomyAxisOp {
+  /** create | retire | rename */
+  op: string;
+  /** For create — the full new axis definition. */
+  axis?: StrategicAxis | null;
+  /**
+     * For retire and rename — the target axis.
+     * @nullable
+     */
+  axisId?: string | null;
+  /**
+     * For rename — the new axis name.
+     * @nullable
+     */
+  name?: string | null;
+  /**
+     * For rename — the new axis description.
+     * @nullable
+     */
+  description?: string | null;
+}
+
 export interface TaxonomyVersion {
   version: number;
   createdAt: string;
@@ -2473,6 +2500,17 @@ export interface TaxonomyVersion {
   note: string;
   axisEdit: TaxonomyAxisEdit | null;
   retaggedCount: number;
+  /**
+     * rename | split | merge | rollback
+     * @nullable
+     */
+  kind?: string | null;
+  /**
+     * For rollback versions — the version whose state was restored.
+     * @nullable
+     */
+  rolledBackTo?: number | null;
+  axisOps?: TaxonomyAxisOp[];
 }
 
 export interface TaxonomyState {
@@ -2484,9 +2522,27 @@ export interface TaxonomyState {
 
 export interface RetagProposeInput {
   axisId: string;
+  /** New name for the edited axis (rename and split). Ignored for merge — the source axis keeps its name until it is retired. */
   newName: string;
   /** @nullable */
   newDescription?: string | null;
+  /**
+     * rename (default) | split | merge
+     * @nullable
+     */
+  kind?: string | null;
+  /**
+     * For split — the name of the new sibling axis.
+     * @nullable
+     */
+  splitNewAxisName?: string | null;
+  /** @nullable */
+  splitNewAxisDescription?: string | null;
+  /**
+     * For merge — the axis that absorbs the edited axis's documents.
+     * @nullable
+     */
+  mergeIntoAxisId?: string | null;
 }
 
 export interface RetagProposal {
@@ -2509,6 +2565,17 @@ export interface RetagProposeResult {
   engine: string;
   affectedCount: number;
   proposals: RetagProposal[];
+  /**
+     * rename | split | merge
+     * @nullable
+     */
+  kind?: string | null;
+  /** For split — the provisional new sibling axis (created on apply). */
+  newAxis?: StrategicAxis | null;
+  /** @nullable */
+  mergeIntoAxisId?: string | null;
+  /** @nullable */
+  mergeIntoName?: string | null;
 }
 
 export interface RetagDecision {
@@ -2523,6 +2590,13 @@ export interface RetagApplyInput {
   note: string;
   axisEdit: TaxonomyAxisEdit | null;
   decisions: RetagDecision[];
+  /**
+     * rename (default) | split | merge
+     * @nullable
+     */
+  kind?: string | null;
+  /** Structural axis operations (create/retire/rename) committed with this version. */
+  axisOps?: TaxonomyAxisOp[];
 }
 
 /**
@@ -2537,11 +2611,97 @@ export interface RetagQdrantProof {
   pointsAfter: number;
 }
 
+/**
+ * Hash of ALL stored dense vectors of one re-tagged document, before and after the payload write.
+ */
+export interface RetagVectorHashCheck {
+  docId: string;
+  pointCount: number;
+  before: string;
+  after: string;
+  identical: boolean;
+}
+
+/**
+ * Exact Qdrant count for docId AND axisId, before and after the payload write.
+ */
+export interface RetagFilterCheck {
+  docId: string;
+  axisId: string;
+  /** removed | added | kept */
+  expectation: string;
+  beforeCount: number;
+  afterCount: number;
+  passed: boolean;
+}
+
+/**
+ * Anti-fakeness instrumentation gathered during Apply: the embedding call counter must not move, dense vector hashes must be identical before and after, and the axis payload filter must genuinely flip.
+ */
+export interface RetagProof {
+  embedCallsBefore: number;
+  embedCallsAfter: number;
+  /** Must be 0 — re-tagging never computes an embedding. */
+  embedCallsDelta: number;
+  vectorHashes: RetagVectorHashCheck[];
+  filterChecks: RetagFilterCheck[];
+}
+
 export interface RetagApplyResult {
   version: number;
   appliedCount: number;
   rejectedCount: number;
   /** Proof that the re-tag was a metadata-only Qdrant payload update — vectors untouched */
+  qdrant?: RetagQdrantProof | null;
+  /** Anti-fakeness instrumentation (embed counter, vector hashes, filter flips). */
+  proof?: RetagProof | null;
+}
+
+export interface AxisAffectedDocument {
+  docId: string;
+  title: string;
+  type: string;
+  confidentiality: string;
+  axisIds: string[];
+  topics: string[];
+  /** Chunk points in the vector index carrying this axis for this document. */
+  pointCount: number;
+}
+
+export interface AxisAffectedDocuments {
+  axisId: string;
+  axisName: string;
+  /** qdrant | memory */
+  source: string;
+  docs: AxisAffectedDocument[];
+  /** Documents carrying the axis in the in-memory working set. */
+  memoryDocCount: number;
+  /**
+     * Distinct documents carrying the axis in the vector index (null without an index).
+     * @nullable
+     */
+  qdrantDocCount: number | null;
+  /**
+     * Chunk points carrying the axis in the vector index.
+     * @nullable
+     */
+  totalPoints: number | null;
+  /** Whether the index-derived document count equals the in-memory count. */
+  countsMatch: boolean;
+}
+
+export interface TaxonomyRollbackInput {
+  toVersion: number;
+  actor: string;
+}
+
+export interface TaxonomyRollbackResult {
+  /** The NEW version number the rollback was committed as. */
+  version: number;
+  toVersion: number;
+  revertedDocs: number;
+  /** Axes whose name/description/retired state changed in the revert. */
+  axesChanged: number;
   qdrant?: RetagQdrantProof | null;
 }
 

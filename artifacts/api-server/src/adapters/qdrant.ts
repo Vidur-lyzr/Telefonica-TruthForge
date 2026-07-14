@@ -202,6 +202,15 @@ export interface UpsertChunk {
   embedText: string;
 }
 
+// Anti-fakeness instrumentation: this counter increments ONLY here, on the
+// single code path where dense embeddings are computed (cloud inference at
+// upsert time). Re-tagging goes through set_payload and must never move it.
+let embedCallCount = 0;
+
+export function getEmbedCallCount(): number {
+  return embedCallCount;
+}
+
 export async function upsertChunks(chunks: UpsertChunk[]): Promise<void> {
   const points = chunks.map((c) => ({
     id: pointIdFor(c.chunkId),
@@ -211,6 +220,7 @@ export async function upsertChunks(chunks: UpsertChunk[]): Promise<void> {
     },
     payload: c.payload,
   }));
+  embedCallCount += points.length;
   await qdrant("PUT", `/collections/${QDRANT_COLLECTION}/points?wait=true`, { points });
 }
 
@@ -435,4 +445,134 @@ export async function setDocGovernancePayload(
     payload,
     filter: { must: [{ key: "docId", match: { value: docId } }] },
   });
+}
+
+// ── Anti-fakeness instrumentation for the re-tag pipeline ───────────────────
+
+export interface AxisDocAggregate {
+  docId: string;
+  axisIds: string[];
+  topics: string[];
+  pointCount: number;
+}
+
+export interface AxisScrollResult {
+  docs: AxisDocAggregate[];
+  totalPoints: number;
+}
+
+// Live mapping table: scroll the payload index for every point carrying the
+// axis and aggregate per document. This is the ground truth the wizard shows —
+// derived from Qdrant, not from any in-memory list.
+export async function scrollDocsByAxis(axisId: string): Promise<AxisScrollResult> {
+  const byDoc = new Map<string, AxisDocAggregate>();
+  let totalPoints = 0;
+  let offset: unknown = undefined;
+  for (;;) {
+    const page = await qdrant<{
+      points: { payload?: { docId?: string; axisIds?: string[]; topics?: string[] } }[];
+      next_page_offset?: unknown;
+    }>("POST", `/collections/${QDRANT_COLLECTION}/points/scroll`, {
+      filter: { must: [{ key: "axisIds", match: { value: axisId } }] },
+      with_payload: ["docId", "axisIds", "topics"],
+      with_vector: false,
+      limit: 256,
+      offset,
+    });
+    for (const p of page.points ?? []) {
+      const docId = p.payload?.docId;
+      if (!docId) continue;
+      totalPoints += 1;
+      const existing = byDoc.get(docId);
+      if (existing) {
+        existing.pointCount += 1;
+      } else {
+        byDoc.set(docId, {
+          docId,
+          axisIds: p.payload?.axisIds ?? [],
+          topics: p.payload?.topics ?? [],
+          pointCount: 1,
+        });
+      }
+    }
+    if (!page.next_page_offset) break;
+    offset = page.next_page_offset;
+  }
+  return { docs: [...byDoc.values()], totalPoints };
+}
+
+export interface DocVectorHash {
+  pointCount: number;
+  hash: string;
+}
+
+// FNV-1a over the concatenated dense vectors of ALL points of a document,
+// sorted by point id so the hash is order-stable. Identical hashes before and
+// after a re-tag prove set_payload did not touch a single stored vector.
+export async function vectorHashForDoc(docId: string): Promise<DocVectorHash> {
+  const points: { id: number; dense: number[] }[] = [];
+  let offset: unknown = undefined;
+  for (;;) {
+    const page = await qdrant<{
+      points: { id: number; vector?: { dense?: number[] } }[];
+      next_page_offset?: unknown;
+    }>("POST", `/collections/${QDRANT_COLLECTION}/points/scroll`, {
+      filter: { must: [{ key: "docId", match: { value: docId } }] },
+      with_payload: false,
+      with_vector: ["dense"],
+      limit: 64,
+      offset,
+    });
+    for (const p of page.points ?? []) {
+      if (Array.isArray(p.vector?.dense)) {
+        points.push({ id: p.id, dense: p.vector.dense });
+      }
+    }
+    if (!page.next_page_offset) break;
+    offset = page.next_page_offset;
+  }
+  points.sort((a, b) => a.id - b.id);
+  let h = 0x811c9dc5;
+  const mix = (s: string) => {
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+  };
+  let h2 = 0xcbf29ce4; // second lane for a 64-bit-ish hex digest
+  const mix2 = (s: string) => {
+    for (let i = 0; i < s.length; i++) {
+      h2 ^= s.charCodeAt(i);
+      h2 = Math.imul(h2, 0x01000197);
+    }
+  };
+  for (const p of points) {
+    const line = `${p.id}:${p.dense.map((v) => v.toFixed(6)).join(",")};`;
+    mix(line);
+    mix2(line);
+  }
+  const hash = `${(h >>> 0).toString(16).padStart(8, "0")}${(h2 >>> 0)
+    .toString(16)
+    .padStart(8, "0")}`;
+  return { pointCount: points.length, hash };
+}
+
+// Exact payload-filter count: how many points of this document currently
+// carry this axis. Used to prove the retrieval filter genuinely flips when a
+// re-tag is committed (before: >0, after: 0 — or the inverse for an add).
+export async function countDocAxisPoints(docId: string, axisId: string): Promise<number> {
+  const result = await qdrant<{ count: number }>(
+    "POST",
+    `/collections/${QDRANT_COLLECTION}/points/count`,
+    {
+      filter: {
+        must: [
+          { key: "docId", match: { value: docId } },
+          { key: "axisIds", match: { value: axisId } },
+        ],
+      },
+      exact: true,
+    },
+  );
+  return result.count;
 }

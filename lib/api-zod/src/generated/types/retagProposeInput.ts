@@ -8,7 +8,25 @@
 
 export interface RetagProposeInput {
   axisId: string;
+  /** New name for the edited axis (rename and split). Ignored for merge — the source axis keeps its name until it is retired. */
   newName: string;
   /** @nullable */
   newDescription?: string | null;
+  /**
+     * rename (default) | split | merge
+     * @nullable
+     */
+  kind?: string | null;
+  /**
+     * For split — the name of the new sibling axis.
+     * @nullable
+     */
+  splitNewAxisName?: string | null;
+  /** @nullable */
+  splitNewAxisDescription?: string | null;
+  /**
+     * For merge — the axis that absorbs the edited axis's documents.
+     * @nullable
+     */
+  mergeIntoAxisId?: string | null;
 }

@@ -38,7 +38,7 @@ router.get("/suggestions", (_req, res) => {
 });
 
 router.get("/axes", (_req, res) => {
-  res.json(ListAxesResponse.parse(AXES));
+  res.json(ListAxesResponse.parse(AXES.filter((a) => !a.retired)));
 });
 
 router.get("/roles", (_req, res) => {

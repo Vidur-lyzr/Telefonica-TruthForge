@@ -21,3 +21,4 @@ description: Non-obvious API constraints of @telefonica/mistica learned during t
 **How to apply:** any time building or editing hub-ssot UI on Mística.
 
 - Sheet inside an open Drawer looks broken: Sheet renders centered with a built-in top-right close icon that collides with any top-right content (tags). For citation/source detail popups use a stacked Drawer (the ask.tsx CitationDrawer pattern, later-mounted portal stacks on top); status text/strokes should use *High tokens (success/warning/error base tokens are soft fill variants).
+- Drawer's built-in `button`/`secondaryButton` ALWAYS close the drawer before running onPress (`close().then(onPress)`) — a multi-step wizard inside a Drawer must render its own ButtonPrimary/ButtonSecondary in the content; the built-in buttons are only for dismiss-style actions. Also make wizard checkboxes use Checkbox `children` for the label — the bare control is a tiny click target that automated/real users miss.

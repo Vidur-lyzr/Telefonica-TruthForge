@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { RetagProposal } from './retagProposal';
+import type { StrategicAxis } from './strategicAxis';
 
 export interface RetagProposeResult {
   axisId: string;
@@ -15,4 +16,15 @@ export interface RetagProposeResult {
   engine: string;
   affectedCount: number;
   proposals: RetagProposal[];
+  /**
+     * rename | split | merge
+     * @nullable
+     */
+  kind?: string | null;
+  /** For split — the provisional new sibling axis (created on apply). */
+  newAxis?: StrategicAxis | null;
+  /** @nullable */
+  mergeIntoAxisId?: string | null;
+  /** @nullable */
+  mergeIntoName?: string | null;
 }

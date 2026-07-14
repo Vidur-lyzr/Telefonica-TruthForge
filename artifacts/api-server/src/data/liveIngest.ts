@@ -10,6 +10,7 @@ import {
   isQdrantConfigured,
   ensureLiveFieldIndex,
   scrollLivePayloads,
+  setDocGovernancePayload,
 } from "../adapters/qdrant";
 import type { LiveCandidate, LiveIngestFilter } from "../adapters/perplexity";
 import { applyDeltasTo } from "./sourceSync";
@@ -123,6 +124,13 @@ export async function hydrateLiveDocs(log: HydrateLogger): Promise<void> {
       applyDeltasTo(doc);
       DOCS.push(doc);
       registerDocInIndex(doc);
+      // The blob is the durable source of truth for a live doc's tags —
+      // reconcile the point payload to it so any historical drift (e.g. a
+      // retag applied before blobs were refreshed) self-heals at boot.
+      await setDocGovernancePayload(doc.id, {
+        axisIds: doc.axisIds,
+        topics: doc.topics,
+      });
       restored += 1;
     }
     if (restored > 0) {

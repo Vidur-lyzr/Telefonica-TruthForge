@@ -5,6 +5,7 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { RetagProof } from './retagProof';
 import type { RetagQdrantProof } from './retagQdrantProof';
 
 export interface RetagApplyResult {
@@ -13,4 +14,6 @@ export interface RetagApplyResult {
   rejectedCount: number;
   /** Proof that the re-tag was a metadata-only Qdrant payload update — vectors untouched */
   qdrant?: RetagQdrantProof | null;
+  /** Anti-fakeness instrumentation (embed counter, vector hashes, filter flips). */
+  proof?: RetagProof | null;
 }

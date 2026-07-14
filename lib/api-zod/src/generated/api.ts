@@ -156,7 +156,8 @@ export const ListAxesResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "color": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "retired": zod.boolean().optional().describe('A retired axis is never deleted — old taxonomy versions and audit entries keep referencing it — but it is hidden from active listings.\n')
 })
 export const ListAxesResponse = zod.array(ListAxesResponseItem)
 
@@ -675,7 +676,8 @@ export const GetTaxonomyStateResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "color": zod.string(),
-  "description": zod.string()
+  "description": zod.string(),
+  "retired": zod.boolean().optional().describe('A retired axis is never deleted — old taxonomy versions and audit entries keep referencing it — but it is hidden from active listings.\n')
 })),
   "versions": zod.array(zod.object({
   "version": zod.number(),
@@ -687,7 +689,22 @@ export const GetTaxonomyStateResponse = zod.object({
   "name": zod.string(),
   "description": zod.string().nullable()
 }),zod.null()]),
-  "retaggedCount": zod.number()
+  "retaggedCount": zod.number(),
+  "kind": zod.string().nullish().describe('rename | split | merge | rollback'),
+  "rolledBackTo": zod.number().nullish().describe('For rollback versions — the version whose state was restored.'),
+  "axisOps": zod.array(zod.object({
+  "op": zod.string().describe('create | retire | rename'),
+  "axis": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "color": zod.string(),
+  "description": zod.string(),
+  "retired": zod.boolean().optional().describe('A retired axis is never deleted — old taxonomy versions and audit entries keep referencing it — but it is hidden from active listings.\n')
+}),zod.null()]).optional().describe('For create — the full new axis definition.'),
+  "axisId": zod.string().nullish().describe('For retire and rename — the target axis.'),
+  "name": zod.string().nullish().describe('For rename — the new axis name.'),
+  "description": zod.string().nullish().describe('For rename — the new axis description.')
+}).describe('A versioned structural operation on the axis catalogue.')).optional()
 }))
 })
 
@@ -698,8 +715,12 @@ export const GetTaxonomyStateResponse = zod.object({
  */
 export const ProposeRetagBody = zod.object({
   "axisId": zod.string(),
-  "newName": zod.string(),
-  "newDescription": zod.string().nullish()
+  "newName": zod.string().describe('New name for the edited axis (rename and split). Ignored for merge — the source axis keeps its name until it is retired.\n'),
+  "newDescription": zod.string().nullish(),
+  "kind": zod.string().nullish().describe('rename (default) | split | merge'),
+  "splitNewAxisName": zod.string().nullish().describe('For split — the name of the new sibling axis.'),
+  "splitNewAxisDescription": zod.string().nullish(),
+  "mergeIntoAxisId": zod.string().nullish().describe('For merge — the axis that absorbs the edited axis\'s documents.')
 })
 
 export const ProposeRetagResponse = zod.object({
@@ -718,7 +739,17 @@ export const ProposeRetagResponse = zod.object({
   "proposedTopics": zod.array(zod.string()),
   "confidence": zod.number(),
   "rationale": zod.string()
-}))
+})),
+  "kind": zod.string().nullish().describe('rename | split | merge'),
+  "newAxis": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "color": zod.string(),
+  "description": zod.string(),
+  "retired": zod.boolean().optional().describe('A retired axis is never deleted — old taxonomy versions and audit entries keep referencing it — but it is hidden from active listings.\n')
+}),zod.null()]).optional().describe('For split — the provisional new sibling axis (created on apply).'),
+  "mergeIntoAxisId": zod.string().nullish(),
+  "mergeIntoName": zod.string().nullish()
 })
 
 
@@ -739,7 +770,21 @@ export const ApplyRetagBody = zod.object({
   "accept": zod.boolean(),
   "axisIds": zod.array(zod.string()),
   "topics": zod.array(zod.string())
-}))
+})),
+  "kind": zod.string().nullish().describe('rename (default) | split | merge'),
+  "axisOps": zod.array(zod.object({
+  "op": zod.string().describe('create | retire | rename'),
+  "axis": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "color": zod.string(),
+  "description": zod.string(),
+  "retired": zod.boolean().optional().describe('A retired axis is never deleted — old taxonomy versions and audit entries keep referencing it — but it is hidden from active listings.\n')
+}),zod.null()]).optional().describe('For create — the full new axis definition.'),
+  "axisId": zod.string().nullish().describe('For retire and rename — the target axis.'),
+  "name": zod.string().nullish().describe('For rename — the new axis name.'),
+  "description": zod.string().nullish().describe('For rename — the new axis description.')
+}).describe('A versioned structural operation on the axis catalogue.')).optional().describe('Structural axis operations (create\/retire\/rename) committed with this version.')
 })
 
 export const ApplyRetagResponse = zod.object({
@@ -750,7 +795,77 @@ export const ApplyRetagResponse = zod.object({
   "updatedDocs": zod.number().describe('Documents whose Qdrant chunk payloads were updated in place'),
   "pointsBefore": zod.number().describe('Vector point count before Apply'),
   "pointsAfter": zod.number().describe('Vector point count after Apply (identical — nothing re-embedded)')
-}).describe('Evidence that Apply issued set_payload only — no re-embedding, no re-ingestion'),zod.null()]).optional().describe('Proof that the re-tag was a metadata-only Qdrant payload update — vectors untouched')
+}).describe('Evidence that Apply issued set_payload only — no re-embedding, no re-ingestion'),zod.null()]).optional().describe('Proof that the re-tag was a metadata-only Qdrant payload update — vectors untouched'),
+  "proof": zod.union([zod.object({
+  "embedCallsBefore": zod.number(),
+  "embedCallsAfter": zod.number(),
+  "embedCallsDelta": zod.number().describe('Must be 0 — re-tagging never computes an embedding.'),
+  "vectorHashes": zod.array(zod.object({
+  "docId": zod.string(),
+  "pointCount": zod.number(),
+  "before": zod.string(),
+  "after": zod.string(),
+  "identical": zod.boolean()
+}).describe('Hash of ALL stored dense vectors of one re-tagged document, before and after the payload write.')),
+  "filterChecks": zod.array(zod.object({
+  "docId": zod.string(),
+  "axisId": zod.string(),
+  "expectation": zod.string().describe('removed | added | kept'),
+  "beforeCount": zod.number(),
+  "afterCount": zod.number(),
+  "passed": zod.boolean()
+}).describe('Exact Qdrant count for docId AND axisId, before and after the payload write.'))
+}).describe('Anti-fakeness instrumentation gathered during Apply: the embedding call counter must not move, dense vector hashes must be identical before and after, and the axis payload filter must genuinely flip.\n'),zod.null()]).optional().describe('Anti-fakeness instrumentation (embed counter, vector hashes, filter flips).')
+})
+
+
+/**
+ * Scrolls the Qdrant payload index for chunks tagged with the axis and aggregates them per document (titles joined from the governed corpus), so the mapping table is derived from the live index, not a static list. The in-memory corpus count is returned alongside for a cross-check. Falls back to the in-memory corpus when no vector index is configured.
+ * @summary Live mapping table — documents carrying an axis, read from the vector index
+ */
+export const ListAxisAffectedDocumentsParams = zod.object({
+  "axisId": zod.coerce.string()
+})
+
+export const ListAxisAffectedDocumentsResponse = zod.object({
+  "axisId": zod.string(),
+  "axisName": zod.string(),
+  "source": zod.string().describe('qdrant | memory'),
+  "docs": zod.array(zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "confidentiality": zod.string(),
+  "axisIds": zod.array(zod.string()),
+  "topics": zod.array(zod.string()),
+  "pointCount": zod.number().describe('Chunk points in the vector index carrying this axis for this document.')
+})),
+  "memoryDocCount": zod.number().describe('Documents carrying the axis in the in-memory working set.'),
+  "qdrantDocCount": zod.number().nullable().describe('Distinct documents carrying the axis in the vector index (null without an index).'),
+  "totalPoints": zod.number().nullable().describe('Chunk points carrying the axis in the vector index.'),
+  "countsMatch": zod.boolean().describe('Whether the index-derived document count equals the in-memory count.')
+})
+
+
+/**
+ * Rebuilds the taxonomy state at the target version (seed configuration plus every version up to and including it), diffs it against the current state, mirrors the reverted tags into the vector index first (payload-only), then commits the revert as a NEW taxonomy version — history is never rewritten. Runtime-ingested documents outside the seed snapshot are never touched.
+ * @summary Revert the taxonomy to an earlier version (append-only)
+ */
+export const RollbackTaxonomyBody = zod.object({
+  "toVersion": zod.number(),
+  "actor": zod.string()
+})
+
+export const RollbackTaxonomyResponse = zod.object({
+  "version": zod.number().describe('The NEW version number the rollback was committed as.'),
+  "toVersion": zod.number(),
+  "revertedDocs": zod.number(),
+  "axesChanged": zod.number().describe('Axes whose name\/description\/retired state changed in the revert.'),
+  "qdrant": zod.union([zod.object({
+  "updatedDocs": zod.number().describe('Documents whose Qdrant chunk payloads were updated in place'),
+  "pointsBefore": zod.number().describe('Vector point count before Apply'),
+  "pointsAfter": zod.number().describe('Vector point count after Apply (identical — nothing re-embedded)')
+}).describe('Evidence that Apply issued set_payload only — no re-embedding, no re-ingestion'),zod.null()]).optional()
 })
 
 

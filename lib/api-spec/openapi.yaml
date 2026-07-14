@@ -504,6 +504,69 @@ paths:
               schema:
                 $ref: "#/components/schemas/RetagApplyResult"
 
+  /governance/axes/{axisId}/affected:
+    get:
+      operationId: listAxisAffectedDocuments
+      tags: [governance]
+      summary: Live mapping table — documents carrying an axis, read from the vector index
+      description: >
+        Scrolls the Qdrant payload index for chunks tagged with the axis and
+        aggregates them per document (titles joined from the governed corpus),
+        so the mapping table is derived from the live index, not a static list.
+        The in-memory corpus count is returned alongside for a cross-check.
+        Falls back to the in-memory corpus when no vector index is configured.
+      parameters:
+        - name: axisId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Documents currently tagged with the axis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AxisAffectedDocuments"
+        "404":
+          description: Unknown axis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /governance/rollback:
+    post:
+      operationId: rollbackTaxonomy
+      tags: [governance]
+      summary: Revert the taxonomy to an earlier version (append-only)
+      description: >
+        Rebuilds the taxonomy state at the target version (seed configuration
+        plus every version up to and including it), diffs it against the
+        current state, mirrors the reverted tags into the vector index first
+        (payload-only), then commits the revert as a NEW taxonomy version —
+        history is never rewritten. Runtime-ingested documents outside the
+        seed snapshot are never touched.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaxonomyRollbackInput"
+      responses:
+        "200":
+          description: Rollback committed as a new taxonomy version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaxonomyRollbackResult"
+        "400":
+          description: Unknown or invalid target version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /kpis/query:
     post:
       operationId: queryKpis
@@ -3207,6 +3270,11 @@ components:
           type: string
         description:
           type: string
+        retired:
+          type: boolean
+          description: >
+            A retired axis is never deleted — old taxonomy versions and audit
+            entries keep referencing it — but it is hidden from active listings.
 
     Role:
       type: object
@@ -6438,6 +6506,29 @@ components:
         description:
           type: ["string", "null"]
 
+    TaxonomyAxisOp:
+      type: object
+      description: A versioned structural operation on the axis catalogue.
+      required: [op]
+      properties:
+        op:
+          type: string
+          description: create | retire | rename
+        axis:
+          oneOf:
+            - $ref: "#/components/schemas/StrategicAxis"
+            - type: "null"
+          description: For create — the full new axis definition.
+        axisId:
+          type: ["string", "null"]
+          description: For retire and rename — the target axis.
+        name:
+          type: ["string", "null"]
+          description: For rename — the new axis name.
+        description:
+          type: ["string", "null"]
+          description: For rename — the new axis description.
+
     TaxonomyVersion:
       type: object
       required: [version, createdAt, actor, note, axisEdit, retaggedCount]
@@ -6456,6 +6547,16 @@ components:
             - type: "null"
         retaggedCount:
           type: integer
+        kind:
+          type: ["string", "null"]
+          description: rename | split | merge | rollback
+        rolledBackTo:
+          type: ["integer", "null"]
+          description: For rollback versions — the version whose state was restored.
+        axisOps:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxonomyAxisOp"
 
     TaxonomyState:
       type: object
@@ -6482,8 +6583,22 @@ components:
           type: string
         newName:
           type: string
+          description: >
+            New name for the edited axis (rename and split). Ignored for merge —
+            the source axis keeps its name until it is retired.
         newDescription:
           type: ["string", "null"]
+        kind:
+          type: ["string", "null"]
+          description: rename (default) | split | merge
+        splitNewAxisName:
+          type: ["string", "null"]
+          description: For split — the name of the new sibling axis.
+        splitNewAxisDescription:
+          type: ["string", "null"]
+        mergeIntoAxisId:
+          type: ["string", "null"]
+          description: For merge — the axis that absorbs the edited axis's documents.
 
     RetagProposal:
       type: object
@@ -6536,6 +6651,18 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RetagProposal"
+        kind:
+          type: ["string", "null"]
+          description: rename | split | merge
+        newAxis:
+          oneOf:
+            - $ref: "#/components/schemas/StrategicAxis"
+            - type: "null"
+          description: For split — the provisional new sibling axis (created on apply).
+        mergeIntoAxisId:
+          type: ["string", "null"]
+        mergeIntoName:
+          type: ["string", "null"]
 
     RetagDecision:
       type: object
@@ -6570,6 +6697,14 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/RetagDecision"
+        kind:
+          type: ["string", "null"]
+          description: rename (default) | split | merge
+        axisOps:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxonomyAxisOp"
+          description: Structural axis operations (create/retire/rename) committed with this version.
 
     RetagApplyResult:
       type: object
@@ -6586,6 +6721,11 @@ components:
             - $ref: "#/components/schemas/RetagQdrantProof"
             - type: "null"
           description: Proof that the re-tag was a metadata-only Qdrant payload update — vectors untouched
+        proof:
+          oneOf:
+            - $ref: "#/components/schemas/RetagProof"
+            - type: "null"
+          description: Anti-fakeness instrumentation (embed counter, vector hashes, filter flips).
 
     RetagQdrantProof:
       type: object
@@ -6601,3 +6741,142 @@ components:
         pointsAfter:
           type: integer
           description: Vector point count after Apply (identical — nothing re-embedded)
+
+    RetagVectorHashCheck:
+      type: object
+      description: Hash of ALL stored dense vectors of one re-tagged document, before and after the payload write.
+      required: [docId, pointCount, before, after, identical]
+      properties:
+        docId:
+          type: string
+        pointCount:
+          type: integer
+        before:
+          type: string
+        after:
+          type: string
+        identical:
+          type: boolean
+
+    RetagFilterCheck:
+      type: object
+      description: Exact Qdrant count for docId AND axisId, before and after the payload write.
+      required: [docId, axisId, expectation, beforeCount, afterCount, passed]
+      properties:
+        docId:
+          type: string
+        axisId:
+          type: string
+        expectation:
+          type: string
+          description: removed | added | kept
+        beforeCount:
+          type: integer
+        afterCount:
+          type: integer
+        passed:
+          type: boolean
+
+    RetagProof:
+      type: object
+      description: >
+        Anti-fakeness instrumentation gathered during Apply: the embedding
+        call counter must not move, dense vector hashes must be identical
+        before and after, and the axis payload filter must genuinely flip.
+      required: [embedCallsBefore, embedCallsAfter, embedCallsDelta, vectorHashes, filterChecks]
+      properties:
+        embedCallsBefore:
+          type: integer
+        embedCallsAfter:
+          type: integer
+        embedCallsDelta:
+          type: integer
+          description: Must be 0 — re-tagging never computes an embedding.
+        vectorHashes:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetagVectorHashCheck"
+        filterChecks:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetagFilterCheck"
+
+    AxisAffectedDocument:
+      type: object
+      required: [docId, title, type, confidentiality, axisIds, topics, pointCount]
+      properties:
+        docId:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        confidentiality:
+          type: string
+        axisIds:
+          type: array
+          items:
+            type: string
+        topics:
+          type: array
+          items:
+            type: string
+        pointCount:
+          type: integer
+          description: Chunk points in the vector index carrying this axis for this document.
+
+    AxisAffectedDocuments:
+      type: object
+      required: [axisId, axisName, source, docs, memoryDocCount, qdrantDocCount, totalPoints, countsMatch]
+      properties:
+        axisId:
+          type: string
+        axisName:
+          type: string
+        source:
+          type: string
+          description: qdrant | memory
+        docs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AxisAffectedDocument"
+        memoryDocCount:
+          type: integer
+          description: Documents carrying the axis in the in-memory working set.
+        qdrantDocCount:
+          type: ["integer", "null"]
+          description: Distinct documents carrying the axis in the vector index (null without an index).
+        totalPoints:
+          type: ["integer", "null"]
+          description: Chunk points carrying the axis in the vector index.
+        countsMatch:
+          type: boolean
+          description: Whether the index-derived document count equals the in-memory count.
+
+    TaxonomyRollbackInput:
+      type: object
+      required: [toVersion, actor]
+      properties:
+        toVersion:
+          type: integer
+        actor:
+          type: string
+
+    TaxonomyRollbackResult:
+      type: object
+      required: [version, toVersion, revertedDocs, axesChanged]
+      properties:
+        version:
+          type: integer
+          description: The NEW version number the rollback was committed as.
+        toVersion:
+          type: integer
+        revertedDocs:
+          type: integer
+        axesChanged:
+          type: integer
+          description: Axes whose name/description/retired state changed in the revert.
+        qdrant:
+          oneOf:
+            - $ref: "#/components/schemas/RetagQdrantProof"
+            - type: "null"

@@ -22,6 +22,7 @@ import {
   type Area,
   type Clearance,
   type AuditEntry,
+  type StrategicAxis,
 } from "./corpus";
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,18 @@ export interface AxisEdit {
   description: string | null;
 }
 
+// Structural axis-catalogue operation, versioned alongside the doc overrides.
+// Axes are NEVER deleted — split creates, merge retires, rollback revives.
+export interface AxisOp {
+  op: "create" | "retire" | "revive" | "rename";
+  axis?: StrategicAxis | null;
+  axisId?: string | null;
+  name?: string | null;
+  description?: string | null;
+}
+
+export type TaxonomyVersionKind = "rename" | "split" | "merge" | "rollback";
+
 export interface TaxonomyVersion {
   version: number; // v5, v6, ... (seed corpus is v4)
   createdAt: string;
@@ -93,10 +106,15 @@ export interface TaxonomyVersion {
   note: string;
   axisEdit: AxisEdit | null;
   overrides: DocRetagOverride[];
+  // Optional (older persisted files predate them — all back-compatible).
+  kind?: TaxonomyVersionKind;
+  rolledBackTo?: number;
+  axisOps?: AxisOp[];
 }
 
 interface GovernanceFile {
   versions: TaxonomyVersion[];
+  audit?: AuditEntry[];
 }
 
 const SEED_VERSION = 4; // the synthetic corpus ships classified against v4
@@ -121,13 +139,45 @@ function persist(): void {
   fs.mkdirSync(STORE_DIR, { recursive: true });
   fs.writeFileSync(
     STORE_FILE,
-    JSON.stringify({ versions } satisfies GovernanceFile, null, 2),
+    JSON.stringify({ versions, audit: persistedAudit } satisfies GovernanceFile, null, 2),
     "utf8",
   );
 }
 
-// Mutates metadata only: axis labels on AXES, axisIds/topics on DOCS.
+// Applies structural axis ops to an axis catalogue (live AXES or a rollback
+// simulation clone). Create is idempotent; retire/revive flip the flag only.
+function applyAxisOps(axes: StrategicAxis[], ops: AxisOp[]): void {
+  for (const op of ops) {
+    if (op.op === "create" && op.axis) {
+      const existing = axes.find((a) => a.id === op.axis!.id);
+      if (existing) {
+        existing.name = op.axis.name;
+        existing.description = op.axis.description;
+        existing.color = op.axis.color;
+        existing.retired = false;
+      } else {
+        axes.push({ ...op.axis, retired: false });
+      }
+    } else if (op.op === "retire" && op.axisId) {
+      const axis = axes.find((a) => a.id === op.axisId);
+      if (axis) axis.retired = true;
+    } else if (op.op === "revive" && op.axisId) {
+      const axis = axes.find((a) => a.id === op.axisId);
+      if (axis) axis.retired = false;
+    } else if (op.op === "rename" && op.axisId) {
+      const axis = axes.find((a) => a.id === op.axisId);
+      if (axis) {
+        if (op.name) axis.name = op.name;
+        if (op.description != null) axis.description = op.description;
+      }
+    }
+  }
+}
+
+// Mutates metadata only: axis catalogue entries on AXES, axisIds/topics on
+// DOCS. Chunks, embeddings and the retrieval index are untouched.
 function applyVersionToCorpus(v: TaxonomyVersion): number {
+  if (v.axisOps && v.axisOps.length > 0) applyAxisOps(AXES, v.axisOps);
   if (v.axisEdit) {
     const axis = AXES.find((a) => a.id === v.axisEdit!.axisId);
     if (axis) {
@@ -146,11 +196,26 @@ function applyVersionToCorpus(v: TaxonomyVersion): number {
   return applied;
 }
 
-// Boot: re-apply every persisted version, in order, to the in-memory corpus.
+// Seed snapshot for rollback — captured BEFORE the boot replay below, so it
+// reflects the pristine v4 corpus. Keyed by docId; runtime-ingested (live)
+// documents are hydrated later and are deliberately NOT part of the snapshot:
+// rollback never touches them.
+const SEED_AXES: StrategicAxis[] = AXES.map((a) => ({ ...a }));
+const SEED_DOC_TAGS = new Map<string, { axisIds: string[]; topics: string[] }>(
+  DOCS.map((d) => [d.id, { axisIds: [...d.axisIds], topics: [...d.topics] }]),
+);
+
+// Boot: re-apply every persisted version, in order, to the in-memory corpus,
+// and rehydrate persisted governance audit entries into the in-memory log.
+let persistedAudit: AuditEntry[] = [];
 {
   const file = loadFile();
   versions = file.versions.sort((a, b) => a.version - b.version);
   for (const v of versions) applyVersionToCorpus(v);
+  if (Array.isArray(file.audit)) {
+    persistedAudit = file.audit;
+    AUDIT_LOG.push(...persistedAudit);
+  }
 }
 
 export function currentTaxonomyVersion(): number {
@@ -161,6 +226,8 @@ export function listTaxonomyVersions(): TaxonomyVersion[] {
   return [...versions].sort((a, b) => b.version - a.version);
 }
 
+// Governance audit entries are persisted with the taxonomy versions and
+// rehydrated at boot — the audit trail survives a restart, same as the tags.
 function pushAudit(entry: Omit<AuditEntry, "id" | "timestamp">): AuditEntry {
   const full: AuditEntry = {
     ...entry,
@@ -168,6 +235,8 @@ function pushAudit(entry: Omit<AuditEntry, "id" | "timestamp">): AuditEntry {
     timestamp: new Date().toISOString(),
   };
   AUDIT_LOG.push(full);
+  persistedAudit.push(full);
+  persist();
   return full;
 }
 
@@ -181,6 +250,8 @@ export interface ApplyRetagInput {
     axisIds: string[];
     topics: string[];
   }[];
+  kind?: TaxonomyVersionKind;
+  axisOps?: AxisOp[];
 }
 
 export interface ApplyRetagResult {
@@ -204,6 +275,8 @@ export function applyRetag(input: ApplyRetagInput): ApplyRetagResult {
       axisIds: d.axisIds,
       topics: d.topics,
     })),
+    ...(input.kind ? { kind: input.kind } : {}),
+    ...(input.axisOps && input.axisOps.length > 0 ? { axisOps: input.axisOps } : {}),
   };
   const appliedCount = applyVersionToCorpus(version);
   versions.push(version);
@@ -218,6 +291,178 @@ export function applyRetag(input: ApplyRetagInput): ApplyRetagResult {
     detail: `Taxonomy v${version.version}: ${appliedCount} document${appliedCount === 1 ? "" : "s"} re-tagged after human validation (${rejected} proposal${rejected === 1 ? "" : "s"} rejected). Metadata only — no re-embedding, no redeploy. ${input.note}`.trim(),
   });
   return { version: version.version, appliedCount, rejectedCount: rejected };
+}
+
+// ---------------------------------------------------------------------------
+// Rollback — append-only revert to an earlier taxonomy version.
+// ---------------------------------------------------------------------------
+
+function sameStringSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort();
+  const sb = [...b].sort();
+  return sa.every((v, i) => v === sb[i]);
+}
+
+export interface RollbackPlan {
+  toVersion: number;
+  overrides: DocRetagOverride[];
+  axisOps: AxisOp[];
+  revertedDocs: number;
+  axesChanged: number;
+}
+
+// PURE simulation: rebuilds the taxonomy state at the target version on
+// clones (seed snapshot + replay of versions <= target), then diffs it
+// against the live corpus. Nothing is mutated here — the route mirrors the
+// plan into Qdrant FIRST and only then commits it locally.
+export function planRollback(toVersion: number): RollbackPlan | null {
+  const known =
+    toVersion === SEED_VERSION || versions.some((v) => v.version === toVersion);
+  if (!known || toVersion >= currentTaxonomyVersion()) return null;
+
+  const simAxes = SEED_AXES.map((a) => ({ ...a }));
+  const simTags = new Map(
+    [...SEED_DOC_TAGS].map(([id, t]) => [
+      id,
+      { axisIds: [...t.axisIds], topics: [...t.topics] },
+    ]),
+  );
+  for (const v of versions) {
+    if (v.version > toVersion) break;
+    if (v.axisOps && v.axisOps.length > 0) applyAxisOps(simAxes, v.axisOps);
+    if (v.axisEdit) {
+      const axis = simAxes.find((a) => a.id === v.axisEdit!.axisId);
+      if (axis) {
+        axis.name = v.axisEdit.name;
+        if (v.axisEdit.description) axis.description = v.axisEdit.description;
+      }
+    }
+    for (const o of v.overrides) {
+      if (simTags.has(o.docId)) {
+        simTags.set(o.docId, { axisIds: [...o.axisIds], topics: [...o.topics] });
+      }
+    }
+  }
+
+  // Diff docs: only seed-snapshot docs — live-ingested documents are never touched.
+  const overrides: DocRetagOverride[] = [];
+  for (const [docId, sim] of simTags) {
+    const doc = getDoc(docId);
+    if (!doc) continue;
+    if (!sameStringSet(doc.axisIds, sim.axisIds) || !sameStringSet(doc.topics, sim.topics)) {
+      overrides.push({ docId, axisIds: [...sim.axisIds], topics: [...sim.topics] });
+    }
+  }
+
+  // Diff axes: restore names/descriptions, revive axes retired later, retire
+  // axes created after the target version. Never delete.
+  const axisOps: AxisOp[] = [];
+  for (const cur of AXES) {
+    const sim = simAxes.find((a) => a.id === cur.id);
+    if (!sim) {
+      if (!cur.retired) axisOps.push({ op: "retire", axisId: cur.id });
+      continue;
+    }
+    if (cur.name !== sim.name || cur.description !== sim.description) {
+      axisOps.push({
+        op: "rename",
+        axisId: cur.id,
+        name: sim.name,
+        description: sim.description,
+      });
+    }
+    if (Boolean(cur.retired) !== Boolean(sim.retired)) {
+      axisOps.push({ op: sim.retired ? "retire" : "revive", axisId: cur.id });
+    }
+  }
+
+  return {
+    toVersion,
+    overrides,
+    axisOps,
+    revertedDocs: overrides.length,
+    axesChanged: new Set(
+      axisOps.map((o) => o.axisId ?? o.axis?.id).filter(Boolean),
+    ).size,
+  };
+}
+
+export interface CommitRollbackResult {
+  version: number;
+  toVersion: number;
+  revertedDocs: number;
+  axesChanged: number;
+}
+
+// Commits a rollback plan as a NEW version — history is append-only.
+export function commitRollback(plan: RollbackPlan, actor: string): CommitRollbackResult {
+  const version: TaxonomyVersion = {
+    version: currentTaxonomyVersion() + 1,
+    createdAt: new Date().toISOString(),
+    actor,
+    note: `Rollback to taxonomy v${plan.toVersion}`,
+    axisEdit: null,
+    overrides: plan.overrides,
+    kind: "rollback",
+    rolledBackTo: plan.toVersion,
+    ...(plan.axisOps.length > 0 ? { axisOps: plan.axisOps } : {}),
+  };
+  const appliedCount = applyVersionToCorpus(version);
+  versions.push(version);
+  persist();
+  pushAudit({
+    actor,
+    action: "Taxonomy rollback applied",
+    target: `Taxonomy v${plan.toVersion}`,
+    kind: "run",
+    detail: `Taxonomy v${version.version}: rolled back to v${plan.toVersion} — ${appliedCount} document${appliedCount === 1 ? "" : "s"} reverted, ${plan.axesChanged} ax${plan.axesChanged === 1 ? "is" : "es"} restored. Append-only: earlier versions were not rewritten. Metadata only — no re-embedding.`,
+  });
+  return {
+    version: version.version,
+    toVersion: plan.toVersion,
+    revertedDocs: appliedCount,
+    axesChanged: plan.axesChanged,
+  };
+}
+
+// Axis id/colour helpers for split — new axes get a slug id and a palette
+// colour not already used by an active axis. Ids are generated at PROPOSE
+// time so the human validates exactly what will be committed.
+const AXIS_COLOR_PALETTE = [
+  "#0066FF",
+  "#59C2C9",
+  "#E63780",
+  "#EAC344",
+  "#5CB615",
+  "#A575E0",
+  "#FF7F41",
+  "#66CCFF",
+];
+
+export function makeAxisId(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  let id = `ax-${slug || "axis"}`;
+  let n = 2;
+  while (AXES.some((a) => a.id === id)) {
+    id = `ax-${slug}-${n}`;
+    n += 1;
+  }
+  return id;
+}
+
+export function pickAxisColor(): string {
+  const used = new Set(AXES.filter((a) => !a.retired).map((a) => a.color));
+  return (
+    AXIS_COLOR_PALETTE.find((c) => !used.has(c)) ??
+    AXIS_COLOR_PALETTE[AXES.length % AXIS_COLOR_PALETTE.length]
+  );
 }
 
 // ---------------------------------------------------------------------------

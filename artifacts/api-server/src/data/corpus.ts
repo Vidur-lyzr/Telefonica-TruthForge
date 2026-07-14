@@ -24,6 +24,12 @@ export interface StrategicAxis {
   name: string;
   color: string;
   description: string;
+  /**
+   * A retired axis is NEVER deleted: old taxonomy versions, audit entries,
+   * KPI definitions and wiki nodes may still reference its id. It is only
+   * hidden from active listings (axes route, wizard selector).
+   */
+  retired?: boolean;
 }
 
 export interface Role {
@@ -2611,11 +2617,17 @@ export const AUDIT_LOG: AuditEntry[] = [
 
 const docById = new Map(DOCS.map((d) => [d.id, d]));
 export function getDoc(id: string): CorpusDoc | undefined {
-  return docById.get(id);
+  // Runtime-ingested docs are pushed into DOCS after this map is built, so
+  // fall back to a live scan and cache the hit.
+  const cached = docById.get(id);
+  if (cached) return cached;
+  const live = DOCS.find((d) => d.id === id);
+  if (live) docById.set(id, live);
+  return live;
 }
 
 export function resolveScheduleStatus(s: ScheduledDoc): ScheduleStatus {
-  if (s.sourceDocId && !docById.has(s.sourceDocId)) return "orphaned";
+  if (s.sourceDocId && !getDoc(s.sourceDocId)) return "orphaned";
   return s.status;
 }
 

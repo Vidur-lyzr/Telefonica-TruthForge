@@ -5,7 +5,12 @@ import {
   useGetTaxonomyState,
   useProposeRetag,
   useApplyRetag,
+  useRollbackTaxonomy,
+  useListAxisAffectedDocuments,
+  getListAxisAffectedDocumentsQueryKey,
   RetagProposeResult,
+  RetagApplyResult,
+  TaxonomyAxisOp,
 } from "@workspace/api-client-react";
 import {
   Box,
@@ -21,7 +26,9 @@ import {
   ProgressBar,
   Table,
   Checkbox,
+  ButtonPrimary,
   ButtonSecondary,
+  ButtonDanger,
   TextField,
   Select,
   Drawer,
@@ -45,6 +52,7 @@ import { useApp } from "../app-provider";
 import { DATA_I18N } from "../../i18n/data";
 
 type Step = 0 | 1 | 2 | 3;
+type RetagKind = "rename" | "split" | "merge";
 
 export default function GovernanceArea() {
   const { lang } = useApp();
@@ -56,22 +64,31 @@ export default function GovernanceArea() {
   const { data: taxonomy, refetch: refetchTaxonomy } = useGetTaxonomyState();
   const proposeMutation = useProposeRetag();
   const applyMutation = useApplyRetag();
+  const rollbackMutation = useRollbackTaxonomy();
   const { runReclassification } = useDataCenter();
 
   const [wizardOpen, setWizardOpen] = React.useState(false);
   const [step, setStep] = React.useState<Step>(0);
+  const [kind, setKind] = React.useState<RetagKind>("rename");
   const [axisId, setAxisId] = React.useState("");
   const [renameTo, setRenameTo] = React.useState("");
   const [newDescription, setNewDescription] = React.useState("");
+  const [splitName, setSplitName] = React.useState("");
+  const [splitDescription, setSplitDescription] = React.useState("");
+  const [mergeTargetId, setMergeTargetId] = React.useState("");
   const [proposal, setProposal] = React.useState<RetagProposeResult | null>(null);
   const [proposeError, setProposeError] = React.useState<string | null>(null);
   const [decisions, setDecisions] = React.useState<Record<string, boolean>>({});
   const [applying, setApplying] = React.useState(false);
   const [applyError, setApplyError] = React.useState<string | null>(null);
-  const [lastApplied, setLastApplied] = React.useState<null | {
-    version: number;
-    appliedCount: number;
-    rejectedCount: number;
+  const [lastApplied, setLastApplied] = React.useState<RetagApplyResult | null>(null);
+  const [revertTarget, setRevertTarget] = React.useState<number | null>(null);
+  const [reverting, setReverting] = React.useState(false);
+  const [revertError, setRevertError] = React.useState<string | null>(null);
+  const [lastRevert, setLastRevert] = React.useState<null | {
+    toVersion: number;
+    newVersion: number;
+    docs: number;
     qdrant?: { updatedDocs: number; pointsBefore: number; pointsAfter: number } | null;
   }>(null);
 
@@ -79,22 +96,57 @@ export default function GovernanceArea() {
   const onTrack = (freshness?.length ?? 0) - overdue.length;
   const compliancePct = freshness?.length ? Math.round((onTrack / freshness.length) * 100) : 100;
 
-  const effectiveAxisId = axisId || (axes && axes.length > 0 ? axes[0].id : "");
-  const selectedAxis = (axes ?? []).find((a) => a.id === effectiveAxisId);
+  const activeAxes = axes ?? [];
+  const allAxes = taxonomy?.axes ?? activeAxes;
+  const effectiveAxisId = axisId || (activeAxes.length > 0 ? activeAxes[0].id : "");
+  const selectedAxis = activeAxes.find((a) => a.id === effectiveAxisId);
+  const mergeCandidates = activeAxes.filter((a) => a.id !== effectiveAxisId);
+  const effectiveMergeTargetId =
+    mergeTargetId && mergeTargetId !== effectiveAxisId
+      ? mergeTargetId
+      : mergeCandidates.length > 0
+        ? mergeCandidates[0].id
+        : "";
   const acceptedCount = proposal
     ? proposal.proposals.filter((p) => decisions[p.docId] !== false).length
     : 0;
 
+  const axisNameById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    allAxes.forEach((a) => map.set(a.id, a.name));
+    activeAxes.forEach((a) => map.set(a.id, a.name));
+    if (proposal?.newAxis) map.set(proposal.newAxis.id, proposal.newAxis.name);
+    return map;
+  }, [allAxes, activeAxes, proposal]);
+
+  const affectedQuery = useListAxisAffectedDocuments(effectiveAxisId, {
+    query: {
+      queryKey: getListAxisAffectedDocumentsQueryKey(effectiveAxisId),
+      enabled: wizardOpen && step === 1 && effectiveAxisId.length > 0,
+    },
+  });
+  const affected = affectedQuery.data;
+
   function resetWizard() {
     setStep(0);
+    setKind("rename");
     setAxisId("");
     setRenameTo("");
     setNewDescription("");
+    setSplitName("");
+    setSplitDescription("");
+    setMergeTargetId("");
     setProposal(null);
     setProposeError(null);
     setDecisions({});
     setApplyError(null);
   }
+
+  const continueDisabled =
+    !selectedAxis ||
+    (kind === "rename" && renameTo.trim().length === 0) ||
+    (kind === "split" && (renameTo.trim().length === 0 || splitName.trim().length === 0)) ||
+    (kind === "merge" && effectiveMergeTargetId.length === 0);
 
   async function startProposal() {
     setStep(1);
@@ -104,8 +156,13 @@ export default function GovernanceArea() {
       const result = await proposeMutation.mutateAsync({
         data: {
           axisId: effectiveAxisId,
-          newName: renameTo.trim(),
+          kind,
+          newName: kind === "merge" ? (selectedAxis?.name ?? "") : renameTo.trim(),
           newDescription: newDescription.trim() ? newDescription.trim() : null,
+          splitNewAxisName: kind === "split" ? splitName.trim() : null,
+          splitNewAxisDescription:
+            kind === "split" && splitDescription.trim() ? splitDescription.trim() : null,
+          mergeIntoAxisId: kind === "merge" ? effectiveMergeTargetId : null,
         },
       });
       setProposal(result);
@@ -117,20 +174,61 @@ export default function GovernanceArea() {
     }
   }
 
+  function proposalRowLabel(p: { proposedAxisIds: string[] }): string {
+    if (!proposal) return "";
+    const pKind = (proposal.kind ?? "rename") as RetagKind;
+    if (pKind === "split" && proposal.newAxis) {
+      const inOriginal = p.proposedAxisIds.includes(proposal.axisId);
+      const inNew = p.proposedAxisIds.includes(proposal.newAxis.id);
+      if (inOriginal && inNew) return W.bothUnder(proposal.toName, proposal.newAxis.name);
+      if (inNew) return W.movedTo(proposal.newAxis.name);
+      if (inOriginal) return W.staysUnder(proposal.toName);
+      return W.leaves(proposal.fromName);
+    }
+    if (pKind === "merge") {
+      const targetName = proposal.mergeIntoName ?? proposal.toName;
+      if (proposal.mergeIntoAxisId && p.proposedAxisIds.includes(proposal.mergeIntoAxisId)) {
+        return W.movedTo(targetName);
+      }
+      return W.leaves(proposal.fromName);
+    }
+    return p.proposedAxisIds.includes(proposal.axisId)
+      ? W.staysUnder(proposal.toName)
+      : W.leaves(proposal.toName);
+  }
+
   async function finishWizard() {
     if (!proposal) return;
+    const pKind = (proposal.kind ?? "rename") as RetagKind;
     setApplying(true);
     setApplyError(null);
     try {
+      const axisOps: TaxonomyAxisOp[] | undefined =
+        pKind === "split" && proposal.newAxis
+          ? [{ op: "create", axis: proposal.newAxis }]
+          : pKind === "merge"
+            ? [{ op: "retire", axisId: proposal.axisId }]
+            : undefined;
+      const note =
+        pKind === "split" && proposal.newAxis
+          ? W.applyNoteSplit(proposal.fromName, proposal.toName, proposal.newAxis.name)
+          : pKind === "merge"
+            ? W.applyNoteMerge(proposal.fromName, proposal.mergeIntoName ?? proposal.toName)
+            : W.applyNote(proposal.fromName, proposal.toName);
       const result = await applyMutation.mutateAsync({
         data: {
           actor: W.actor,
-          note: W.applyNote(proposal.fromName, proposal.toName),
-          axisEdit: {
-            axisId: proposal.axisId,
-            name: proposal.toName,
-            description: newDescription.trim() ? newDescription.trim() : null,
-          },
+          note,
+          kind: pKind,
+          axisEdit:
+            pKind === "merge"
+              ? null
+              : {
+                  axisId: proposal.axisId,
+                  name: proposal.toName,
+                  description: newDescription.trim() ? newDescription.trim() : null,
+                },
+          axisOps,
           decisions: proposal.proposals.map((p) => ({
             docId: p.docId,
             accept: decisions[p.docId] !== false,
@@ -139,11 +237,18 @@ export default function GovernanceArea() {
           })),
         },
       });
+      setLastRevert(null);
       setLastApplied(result);
+      const detailTo =
+        pKind === "split" && proposal.newAxis
+          ? `${proposal.toName} + ${proposal.newAxis.name}`
+          : pKind === "merge"
+            ? (proposal.mergeIntoName ?? proposal.toName)
+            : proposal.toName;
       runReclassification(
         W.reclassifiedDetail(
           proposal.fromName,
-          proposal.toName,
+          detailTo,
           result.version,
           result.appliedCount,
           result.rejectedCount,
@@ -159,9 +264,105 @@ export default function GovernanceArea() {
     }
   }
 
-  const stepLabels = W.steps;
+  async function confirmRevert() {
+    if (revertTarget === null) return;
+    setReverting(true);
+    setRevertError(null);
+    try {
+      const result = await rollbackMutation.mutateAsync({
+        data: { toVersion: revertTarget, actor: W.actor },
+      });
+      setLastApplied(null);
+      setLastRevert({
+        toVersion: result.toVersion,
+        newVersion: result.version,
+        docs: result.revertedDocs,
+        qdrant: result.qdrant,
+      });
+      runReclassification(G.revertedDetail(result.toVersion, result.version, result.revertedDocs));
+      await Promise.all([refetchAxes(), refetchTaxonomy()]);
+      setRevertTarget(null);
+    } catch {
+      setRevertError(G.revertError);
+    } finally {
+      setReverting(false);
+    }
+  }
 
+  const stepLabels = W.steps;
   const proposing = proposeMutation.isPending;
+
+  const lastAppliedDescription = lastApplied
+    ? `${G.liveDesc(lastApplied.appliedCount, lastApplied.rejectedCount, lastApplied.qdrant)}${
+        lastApplied.proof
+          ? ` ${G.proofSummary({
+              embedCallsDelta: lastApplied.proof.embedCallsDelta,
+              hashesIdentical: lastApplied.proof.vectorHashes.every((h) => h.identical),
+              checksPassed: lastApplied.proof.filterChecks.filter((c) => c.passed).length,
+              checksTotal: lastApplied.proof.filterChecks.length,
+            })}`
+          : ""
+      }`
+    : "";
+
+  const sortedVersions = taxonomy ? [...taxonomy.versions].sort((a, b) => b.version - a.version) : [];
+
+  function kindLabelFor(k: string | null | undefined): string | null {
+    if (k === "rename") return G.kindLabels.rename;
+    if (k === "split") return G.kindLabels.split;
+    if (k === "merge") return G.kindLabels.merge;
+    if (k === "rollback") return G.kindLabels.rollback;
+    return null;
+  }
+
+  function historyRow(
+    version: number,
+    when: string | null,
+    actor: string,
+    kindKey: string | null | undefined,
+    note: string,
+    retagged: string,
+  ) {
+    const isActive = taxonomy != null && version === taxonomy.activeVersion;
+    const canRevert = taxonomy != null && version < taxonomy.activeVersion;
+    const kindLabel = kindLabelFor(kindKey);
+    return [
+      <Tag type={isActive ? "success" : "inactive"} key={`${version}-v`}>
+        {isActive ? G.versionActive(version) : G.version(version)}
+      </Tag>,
+      <Text2 regular color={skinVars.colors.textPrimary} key={`${version}-w`}>
+        {when ? formatDate(when, lang) : "—"}
+      </Text2>,
+      <Text2 regular color={skinVars.colors.textSecondary} key={`${version}-a`}>
+        {actor}
+      </Text2>,
+      <Inline space={8} alignItems="center" key={`${version}-c`}>
+        {kindLabel && <Tag type="info">{kindLabel}</Tag>}
+        <Text2 regular color={skinVars.colors.textSecondary}>
+          {note}
+        </Text2>
+      </Inline>,
+      <Text2 medium color={skinVars.colors.textPrimary} key={`${version}-n`}>
+        {retagged}
+      </Text2>,
+      canRevert ? (
+        <ButtonSecondary
+          small
+          key={`${version}-r`}
+          onPress={() => {
+            setRevertError(null);
+            setRevertTarget(version);
+          }}
+        >
+          {G.revert}
+        </ButtonSecondary>
+      ) : (
+        <Text2 regular color={skinVars.colors.textSecondary} key={`${version}-r`}>
+          {""}
+        </Text2>
+      ),
+    ];
+  }
 
   return (
     <Stack space={24}>
@@ -206,19 +407,28 @@ export default function GovernanceArea() {
         <Callout
           asset={<IconShieldRegular color={skinVars.colors.success} />}
           title={G.liveTitle(lastApplied.version)}
-          description={G.liveDesc(lastApplied.appliedCount, lastApplied.rejectedCount, lastApplied.qdrant)}
+          description={lastAppliedDescription}
+        />
+      )}
+
+      {lastRevert && (
+        <Callout
+          asset={<IconRefreshRegular color={skinVars.colors.success} />}
+          title={G.liveTitle(lastRevert.newVersion)}
+          description={G.revertedDetail(lastRevert.toVersion, lastRevert.newVersion, lastRevert.docs)}
         />
       )}
 
       <Grid columns={3} gap={12}>
-        {axes?.map((axis, i) => (
+        {allAxes.map((axis, i) => (
           <GridItem key={axis.id}>
             <div
               style={{
-                backgroundColor: applyAlpha(axis.color, 0.1),
+                backgroundColor: applyAlpha(axis.color, axis.retired ? 0.04 : 0.1),
                 borderRadius: skinVars.borderRadii.container,
-                border: `1px solid ${applyAlpha(axis.color, 0.3)}`,
+                border: `1px solid ${applyAlpha(axis.color, axis.retired ? 0.15 : 0.3)}`,
                 height: "100%",
+                opacity: axis.retired ? 0.75 : 1,
               }}
             >
               <Box padding={16}>
@@ -227,7 +437,10 @@ export default function GovernanceArea() {
                     <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
                       {G.axis(i + 1)}
                     </Text1>
-                    <IconWorldDeviceRegular size={16} color={axis.color} />
+                    <Inline space={8} alignItems="center">
+                      {axis.retired && <Tag type="inactive">{G.axisRetired}</Tag>}
+                      <IconWorldDeviceRegular size={16} color={axis.color} />
+                    </Inline>
                   </Inline>
                   <Text2 medium color={skinVars.colors.textPrimary}>
                     {axis.name}
@@ -244,7 +457,7 @@ export default function GovernanceArea() {
         ))}
       </Grid>
 
-      {taxonomy && taxonomy.versions.length > 0 && (
+      {taxonomy && (
         <Stack space={16}>
           <Inline space={8} alignItems="center">
             <IconListRegular size={20} color={skinVars.colors.brand} />
@@ -253,31 +466,55 @@ export default function GovernanceArea() {
           <Text2 regular color={skinVars.colors.textSecondary}>
             {G.historyDesc}
           </Text2>
+          {revertTarget !== null && (
+            <Boxed>
+              <Box padding={16}>
+                <Stack space={12}>
+                  <Text2 medium color={skinVars.colors.textPrimary}>
+                    {G.revertConfirmTitle(revertTarget)}
+                  </Text2>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {G.revertConfirmDesc}
+                  </Text2>
+                  {revertError && (
+                    <Callout
+                      asset={<IconAlertRegular color={skinVars.colors.error} />}
+                      title={G.revertError}
+                      description={revertError}
+                    />
+                  )}
+                  <Inline space={12}>
+                    <ButtonDanger small onPress={() => void confirmRevert()} disabled={reverting}>
+                      {reverting ? W.applying : G.revertConfirm}
+                    </ButtonDanger>
+                    <ButtonSecondary
+                      small
+                      onPress={() => setRevertTarget(null)}
+                      disabled={reverting}
+                    >
+                      {G.revertCancel}
+                    </ButtonSecondary>
+                  </Inline>
+                </Stack>
+              </Box>
+            </Boxed>
+          )}
           <Table
             heading={G.historyHeadings}
-            columnTextAlign={["left", "left", "left", "left", "right"]}
-            content={[...taxonomy.versions]
-              .sort((a, b) => b.version - a.version)
-              .map((v) => [
-                <Tag
-                  type={v.version === taxonomy.activeVersion ? "success" : "inactive"}
-                  key={`${v.version}-v`}
-                >
-                  {v.version === taxonomy.activeVersion ? G.versionActive(v.version) : G.version(v.version)}
-                </Tag>,
-                <Text2 regular color={skinVars.colors.textPrimary} key={`${v.version}-w`}>
-                  {formatDate(v.createdAt, lang)}
-                </Text2>,
-                <Text2 regular color={skinVars.colors.textSecondary} key={`${v.version}-a`}>
-                  {v.actor}
-                </Text2>,
-                <Text2 regular color={skinVars.colors.textSecondary} key={`${v.version}-c`}>
-                  {v.note}
-                </Text2>,
-                <Text2 medium color={skinVars.colors.textPrimary} key={`${v.version}-n`}>
-                  {String(v.retaggedCount)}
-                </Text2>,
-              ])}
+            columnTextAlign={["left", "left", "left", "left", "right", "right"]}
+            content={[
+              ...sortedVersions.map((v) =>
+                historyRow(
+                  v.version,
+                  v.createdAt,
+                  v.actor,
+                  v.kind ?? "rename",
+                  v.note,
+                  String(v.retaggedCount),
+                ),
+              ),
+              historyRow(taxonomy.seedVersion, null, G.seedActor, null, G.seedNote, "—"),
+            ]}
           />
         </Stack>
       )}
@@ -341,34 +578,6 @@ export default function GovernanceArea() {
           description={W.desc}
           onClose={() => setWizardOpen(false)}
           onDismiss={() => setWizardOpen(false)}
-          button={
-            step === 0
-              ? {
-                  text: W.continue,
-                  onPress: () => void startProposal(),
-                  disabled: renameTo.trim().length === 0 || !selectedAxis,
-                }
-              : step < 3
-                ? {
-                    text: W.continue,
-                    onPress: () => setStep((s) => (s + 1) as Step),
-                    disabled: proposing || !proposal,
-                  }
-                : {
-                    text: applying ? W.applying : W.confirmApply,
-                    onPress: () => void finishWizard(),
-                    disabled: applying || !proposal,
-                  }
-          }
-          secondaryButton={
-            step > 0
-              ? {
-                  text: W.back,
-                  onPress: () => setStep((s) => (s - 1) as Step),
-                  disabled: applying,
-                }
-              : { text: W.cancel, onPress: () => setWizardOpen(false) }
-          }
         >
           <Stack space={24}>
             <Inline space={8} alignItems="center">
@@ -410,32 +619,122 @@ export default function GovernanceArea() {
                   {W.step0Desc}
                 </Text2>
                 <Select
+                  name="retag-kind"
+                  label={W.kindLabel}
+                  value={kind}
+                  onChangeValue={(v) => setKind(v as RetagKind)}
+                  options={[
+                    { value: "rename", text: W.kindRename },
+                    { value: "split", text: W.kindSplit },
+                    { value: "merge", text: W.kindMerge },
+                  ]}
+                  fullWidth
+                />
+                <Select
                   name="retag-axis"
                   label={W.axisToEdit}
                   value={effectiveAxisId}
                   onChangeValue={setAxisId}
-                  options={(axes ?? []).map((a) => ({ value: a.id, text: a.name }))}
+                  options={activeAxes.map((a) => ({ value: a.id, text: a.name }))}
                   fullWidth
                 />
-                <TextField
-                  name="renameTo"
-                  label={W.newName}
-                  value={renameTo}
-                  onChangeValue={setRenameTo}
-                  fullWidth
-                />
-                <TextField
-                  name="newDescription"
-                  label={W.newDescription}
-                  value={newDescription}
-                  onChangeValue={setNewDescription}
-                  fullWidth
-                />
+                {kind !== "merge" && (
+                  <TextField
+                    name="renameTo"
+                    label={W.newName}
+                    value={renameTo}
+                    onChangeValue={setRenameTo}
+                    fullWidth
+                  />
+                )}
+                {kind !== "merge" && (
+                  <TextField
+                    name="newDescription"
+                    label={W.newDescription}
+                    value={newDescription}
+                    onChangeValue={setNewDescription}
+                    fullWidth
+                  />
+                )}
+                {kind === "split" && (
+                  <TextField
+                    name="splitName"
+                    label={W.splitNewAxisName}
+                    value={splitName}
+                    onChangeValue={setSplitName}
+                    fullWidth
+                  />
+                )}
+                {kind === "split" && (
+                  <TextField
+                    name="splitDescription"
+                    label={W.splitNewAxisDescription}
+                    value={splitDescription}
+                    onChangeValue={setSplitDescription}
+                    fullWidth
+                  />
+                )}
+                {kind === "merge" && (
+                  <Select
+                    name="mergeInto"
+                    label={W.mergeInto}
+                    value={effectiveMergeTargetId}
+                    onChangeValue={setMergeTargetId}
+                    options={mergeCandidates.map((a) => ({ value: a.id, text: a.name }))}
+                    fullWidth
+                  />
+                )}
               </Stack>
             )}
 
             {step === 1 && (
-              <Stack space={12}>
+              <Stack space={16}>
+                <Stack space={8}>
+                  <Inline space={8} alignItems="center">
+                    <Text2 medium color={skinVars.colors.textPrimary}>
+                      {W.liveMappingTitle}
+                    </Text2>
+                    {affected && (
+                      <Tag type={affected.source === "qdrant" ? "success" : "warning"}>
+                        {affected.source === "qdrant" ? W.liveFromQdrant : W.liveFromMemory}
+                      </Tag>
+                    )}
+                    {affected && affected.qdrantDocCount !== null && (
+                      <Tag type={affected.countsMatch ? "success" : "error"}>
+                        {affected.countsMatch ? W.countsMatch : W.countsMismatch}
+                      </Tag>
+                    )}
+                  </Inline>
+                  {affected && (
+                    <Text2 regular color={skinVars.colors.textSecondary}>
+                      {W.liveCounts(
+                        affected.memoryDocCount,
+                        affected.qdrantDocCount,
+                        affected.totalPoints,
+                      )}
+                    </Text2>
+                  )}
+                </Stack>
+                {affected && affected.docs.length > 0 && (
+                  <Table
+                    heading={W.mappingHeadings}
+                    columnTextAlign={["left", "left", "right"]}
+                    content={affected.docs.map((d) => [
+                      <Text2 medium color={skinVars.colors.textPrimary} key={`${d.docId}-t`}>
+                        {d.title}
+                      </Text2>,
+                      <Text1 regular color={skinVars.colors.textSecondary} key={`${d.docId}-a`}>
+                        {d.axisIds.map((id) => axisNameById.get(id) ?? id).join(" · ")}
+                      </Text1>,
+                      <Text2 medium color={skinVars.colors.textPrimary} key={`${d.docId}-p`}>
+                        {String(d.pointCount)}
+                      </Text2>,
+                    ])}
+                  />
+                )}
+                <Text1 regular color={skinVars.colors.textSecondary}>
+                  {W.sparseNote}
+                </Text1>
                 {proposing && (
                   <Stack space={12}>
                     <Text2 regular color={skinVars.colors.textSecondary}>
@@ -458,15 +757,28 @@ export default function GovernanceArea() {
                     </Text2>
                     <Boxed>
                       <Box padding={16}>
-                        <Inline space={12} alignItems="center">
+                        {(proposal.kind ?? "rename") === "split" && proposal.newAxis ? (
                           <Text2 regular color={skinVars.colors.textSecondary}>
-                            {proposal.fromName}
+                            {W.splitPreview(proposal.toName, proposal.newAxis.name)}
                           </Text2>
-                          <IconArrowLineRightRegular size={16} color={skinVars.colors.brand} />
-                          <Text2 medium color={skinVars.colors.textPrimary}>
-                            {proposal.toName}
+                        ) : (proposal.kind ?? "rename") === "merge" ? (
+                          <Text2 regular color={skinVars.colors.textSecondary}>
+                            {W.mergePreview(
+                              proposal.fromName,
+                              proposal.mergeIntoName ?? proposal.toName,
+                            )}
                           </Text2>
-                        </Inline>
+                        ) : (
+                          <Inline space={12} alignItems="center">
+                            <Text2 regular color={skinVars.colors.textSecondary}>
+                              {proposal.fromName}
+                            </Text2>
+                            <IconArrowLineRightRegular size={16} color={skinVars.colors.brand} />
+                            <Text2 medium color={skinVars.colors.textPrimary}>
+                              {proposal.toName}
+                            </Text2>
+                          </Inline>
+                        )}
                       </Box>
                     </Boxed>
                   </Stack>
@@ -527,41 +839,81 @@ export default function GovernanceArea() {
                   />
                 )}
                 <Stack space={8}>
-                  {proposal.proposals.map((p) => {
-                    const keepsAxis = p.proposedAxisIds.includes(proposal.axisId);
-                    return (
-                      <Boxed key={p.docId}>
-                        <Box padding={12}>
-                          <Inline space={12} alignItems="center">
-                            <Checkbox
-                              name={`accept-${p.docId}`}
-                              checked={decisions[p.docId] !== false}
-                              onChange={(checked) =>
-                                setDecisions((prev) => ({ ...prev, [p.docId]: checked }))
-                              }
-                            />
-                            <Stack space={2}>
-                              <Text2 medium color={skinVars.colors.textPrimary}>
-                                {p.title}
-                              </Text2>
-                              <Text1 regular color={skinVars.colors.textSecondary}>
-                                {keepsAxis
-                                  ? W.staysUnder(proposal.toName)
-                                  : W.leaves(proposal.toName)}{" "}
-                                · {p.rationale}
-                              </Text1>
-                            </Stack>
-                          </Inline>
-                        </Box>
-                      </Boxed>
-                    );
-                  })}
+                  {proposal.proposals.map((p) => (
+                    <Boxed key={p.docId}>
+                      <Box padding={12}>
+                        <Checkbox
+                          name={`accept-${p.docId}`}
+                          checked={decisions[p.docId] !== false}
+                          onChange={(checked) =>
+                            setDecisions((prev) => ({ ...prev, [p.docId]: checked }))
+                          }
+                          dataAttributes={{ testid: `accept-${p.docId}` }}
+                        >
+                          <Stack space={2}>
+                            <Text2 medium color={skinVars.colors.textPrimary}>
+                              {p.title}
+                            </Text2>
+                            <Text1 regular color={skinVars.colors.textSecondary}>
+                              {proposalRowLabel(p)} · {p.rationale}
+                            </Text1>
+                          </Stack>
+                        </Checkbox>
+                      </Box>
+                    </Boxed>
+                  ))}
                 </Stack>
                 <Text2 regular color={skinVars.colors.textSecondary}>
                   {W.accepted(acceptedCount, proposal.proposals.length)}
                 </Text2>
               </Stack>
             )}
+
+            {/* Mística Drawer action buttons always close the drawer before
+                running onPress (close().then(onPress)), which would kill a
+                multi-step wizard — so the step navigation lives in the
+                content instead. */}
+            <Divider />
+            <Inline space={16} alignItems="center">
+              {step === 0 ? (
+                <ButtonPrimary
+                  small
+                  onPress={() => void startProposal()}
+                  disabled={continueDisabled}
+                >
+                  {W.continue}
+                </ButtonPrimary>
+              ) : step < 3 ? (
+                <ButtonPrimary
+                  small
+                  onPress={() => setStep((s) => (s + 1) as Step)}
+                  disabled={proposing || !proposal}
+                >
+                  {W.continue}
+                </ButtonPrimary>
+              ) : (
+                <ButtonPrimary
+                  small
+                  onPress={() => void finishWizard()}
+                  disabled={applying || !proposal}
+                >
+                  {applying ? W.applying : W.confirmApply}
+                </ButtonPrimary>
+              )}
+              {step > 0 ? (
+                <ButtonSecondary
+                  small
+                  onPress={() => setStep((s) => (s - 1) as Step)}
+                  disabled={applying}
+                >
+                  {W.back}
+                </ButtonSecondary>
+              ) : (
+                <ButtonSecondary small onPress={() => setWizardOpen(false)}>
+                  {W.cancel}
+                </ButtonSecondary>
+              )}
+            </Inline>
           </Stack>
         </Drawer>
       )}

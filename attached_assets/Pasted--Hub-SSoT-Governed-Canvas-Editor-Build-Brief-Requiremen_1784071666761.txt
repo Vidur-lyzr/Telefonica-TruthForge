@@ -1,0 +1,171 @@
+# Hub SSoT — Governed Canvas Editor · Build Brief
+
+**Requirement source:** SSoT Critical Points doc, PC4. Canvas-style editing is starred (⭐) in Cases 1, 2 and 3 and named as a shared requirement across all four HOME apps: *"All share the same core (knowledge, permissions, taxonomy, citation) and the same Canvas-style editing experience + multi-format export."*
+
+The doc's exact wording, three times:
+
+- *"Canvas-style editing: the draft appears in an on-screen editor with (a) conversational chat to request specific changes and (b) direct inline editing over the text."*
+- *"Canvas-style editing (editor + chat + inline)"*
+- *"The draft appears in the Canvas-style editor: (a) changes via conversational chat ("refocus section 2", "use the Q1 figure instead of Q4") and (b) inline editing on text and tables."*
+
+---
+
+## 1. What this is — and what it is not
+
+**It is:** a structured document editor beside a governed agent. A draft renders as typed blocks. The user hovers a block, clicks EDIT, and a panel opens with agent actions scoped to that block. They can also click into the text and type directly. Export to `.docx / .pptx / .pdf` on Telefónica corporate templates.
+
+**It is not:** Figma or Canva. No free positioning, no layers, no drag-anywhere layout, no shape tools. The doc never asks for this. Do not build it.
+
+**But it is not plain text either.** Telefónica corporate templates carry cover pages, logos, brand assets and generated charts. Case 3 requires the system to *"generate charts from the retrieved data (not just inserting existing charts)"* and compose *"cover page, sections, texts with cited claims, tables and generated charts."* Visual blocks are first-class. They are typed blocks in a document tree — not free-floating objects on a canvas.
+
+---
+
+## 2. Reference pattern — build this interaction
+
+The AWS ABM workbench already built by this team is the correct interaction model. Replicate it, then deepen it.
+
+**Hover state:** hovering any block outlines it and reveals an `EDIT` affordance at its top-right.
+
+**Click EDIT:** a right-hand panel opens, scoped to that block. The panel shows:
+- Block type label (e.g. "Body paragraph") and document context tag (e.g. "PRESS RELEASE")
+- The block's current content in an editable field
+- `IMPROVE WITH THE AGENT` — a row of preset action buttons
+- `Or describe the change…` — freeform instruction + `Improve`
+- `Reset` / `Save`
+
+**Direct inline editing:** independently of the panel, the user can click into the document body and type. Both paths edit the same document. This is what the doc means by *"direct inline editing over the text"* — it is not a separate mode.
+
+**The deepening (this is what the AWS version lacks):** preset buttons must be **contextual and governed** — derived from the block's actual state in the corpus, not a fixed generic list. See section 5.
+
+---
+
+## 3. Tech decision
+
+**Use Tiptap (MIT core, free).** Headless, built on ProseMirror, framework-agnostic, ~28k stars, production-proven (GitLab, Substack; ProseMirror underneath runs NYT, Guardian, Atlassian).
+
+Why headless rather than a drop-in editor (CKEditor / TinyMCE): citations must be **first-class nodes** in the document model — not text that can be typed, faked or broken. Drop-in editors fight custom node types. Tiptap's extension system is exactly how `[S#]` becomes a real object that survives edits and renumbers correctly.
+
+Why not raw ProseMirror: weeks of extra work for no gain.
+
+**Do NOT buy Tiptap Pro.** Their AI extension and docx conversion are paid ($149/mo) and both are wrong for us:
+- Their AI is ungoverned — ours must be permission-filtered, destination-capped and citation-enforced.
+- Their export doesn't know Telefónica templates or our export gate.
+
+Build both ourselves. Use the free MIT core only.
+
+**Export path:** Tiptap JSON → server-side render. `.docx` via the `docx` npm library on Telefónica templates; `.pptx` via `pptxgenjs`; `.pdf` via server render. All through the existing export gate chain.
+
+---
+
+## 4. Block model
+
+The document is a tree of typed blocks. Each block has an id, a type, content, and — where applicable — a **source binding** (which corpus chunks or numeric facts it derives from).
+
+| Block type | Editable by agent? | Notes |
+|---|---|---|
+| Cover / hero | Layout locked | From Brand Room template. Title/subtitle text editable. |
+| Heading | Yes | |
+| Paragraph | Yes | May contain citation nodes |
+| Bullet list | Yes | |
+| Table | Yes | Data-bound; cited; cells traceable to source |
+| Chart | Yes — via data rebinding | Generated from a numeric series. Editing means re-querying the numeric store, not redrawing pixels. |
+| Executive quote | Yes | Cited to spokesperson + source |
+| Image / logo | **No — locked** | Brand Room asset. Cannot be recoloured, distorted or replaced by the agent. Guardian enforces. |
+| Boilerplate | **No — locked** | Corporate standard text |
+| Disclaimer | Insert/remove only | Guardian may require it |
+| Internal note | Yes | **Flagged, non-exportable to public outputs** (Case 2 requirement) |
+
+Locked blocks must be visibly locked in the UI, not just rejected on save.
+
+---
+
+## 5. Governed contextual suggestions — the depth
+
+This is the part that makes it Telefónica's product rather than a generic AI editor.
+
+**Always available (generic):**
+- `Shorten` · `Sharpen` · `Fix tone` · `Retune audience`
+
+**Conditional — the button only renders when the condition is true in the corpus:**
+
+| Button | Appears when | What it does |
+|---|---|---|
+| `Use Q1 figure instead of Q4` | The block cites a figure that has a sibling period in the numeric store | Re-binds the claim (and any chart/table) to the other period, re-cites |
+| `Update to current version` | A cited source is `historic` / `superseded` | Swaps to the superseding document, re-cites |
+| `Resolve conflict` | The block's claim has a conflicting source (D3) | Shows both values side by side, user picks |
+| `Add citation` | Guardian flags an uncited figure | Retrieves a permitted source for the claim, or fails honestly |
+| `Make external-safe` | The block cites non-public sources and destination is external | Rewrites using public/approved evidence only, or reports what it cannot say |
+| `Add required disclaimer` | Guardian's rulebook requires one for this content | Inserts the correct disclaimer block |
+
+The label must be **specific and generated** — literally *"Use Q1 2026 figure (€8,127M) instead of Q4 2025"*, not a generic "swap data". The doc's own example is *"use the Q1 figure instead of Q4"*; make it real by reading the numeric store.
+
+If the condition isn't met, the button does not render. No dead buttons.
+
+---
+
+## 6. Governance rules — non-negotiable
+
+**The edit path is a new side channel. It must not become a hole.** The architecture doc already states the rule and records that a rank-only check on one side channel was found and closed: *"One resolver, no side doors."* The canvas edit is exactly the kind of path where this regresses.
+
+1. **Every agent edit that retrieves anything goes through `resolveDocAccess`.** Same clearance × area intersection, same early-binding must-filters inside the query. No separate retrieval path for the editor.
+
+2. **The destination cap applies to edits.** If the document's audience is external, an edit cannot pull confidential content in — retrieval is capped to public *before* the model runs, exactly as in Generate. A user editing an external press release cannot ask the agent to "add the headcount detail" and get confidential data.
+
+3. **Edits are scoped to the block.** The agent returns a replacement for the selected range only. Never regenerate the document. Apply it as a ProseMirror transaction on that range — every other block stays byte-identical. This is the doc's *"conversational chat to request **specific** changes"*.
+
+4. **Brand Guardian re-runs on the edited block before Save.** Deterministic rules win — an error-severity hit blocks the save, outside the model.
+
+5. **No claim without a citation.** If the agent adds a factual claim, it must carry a citation from a permitted source. If it cannot cite, it cannot claim — it reports honestly instead.
+
+6. **Every edit is audited:** persona, block id, prompt, the filter expression applied, sources retrieved with access decisions, and before/after content.
+
+---
+
+## 7. Citation integrity
+
+- `[S#]` is a **Tiptap node**, not text. It cannot be typed, pasted or invented.
+- Markers are verified against actually-retrieved chunks; unverified markers are stripped (the existing pipeline already does this — reuse it, don't reimplement).
+- Editing a block preserves surviving citations and renumbers contiguously so inline markers and citation chips never desync.
+- Deleting the last reference to a source removes it from the sources panel.
+- The sources panel shows the full record per citation: **document · version · date · owner · confidentiality · validity · relevance · deep link**.
+
+---
+
+## 8. Export
+
+- Tiptap JSON → server-side render on Telefónica corporate templates.
+- **Internal-note blocks are stripped from external exports** on the server.
+- Export re-runs the full gate chain: Guardian re-run (a blocked draft cannot leave), scheduled approval re-verified against the hash registry, and **every citation's confidentiality re-derived from the server corpus — never from labels the client sent**.
+- External export carrying any non-public cited source → refused with `confidentiality_blocked`.
+- On save, the output re-enters the corpus as a governed E-category document, versioned, tagged, clamped to its most restrictive source.
+
+---
+
+## 9. Build order
+
+1. **Tiptap shell + block model** — three panes: sources left, document centre, agent panel right. Typed blocks rendering.
+2. **Hover → EDIT → panel** — the AWS interaction, working, with generic presets.
+3. **Scoped patching** — agent edits the selected block only, via transaction. Prove the rest of the document is untouched.
+4. **Citation node** — `[S#]` as a real node; survives edits; renumbers.
+5. **Governance wiring** — edit retrieval through `resolveDocAccess`; destination cap; Guardian on save; audit.
+6. **Contextual suggestions** — the conditional buttons in section 5, driven by real corpus state.
+7. **Inline editing** — click and type in the body.
+8. **Visual blocks** — cover/hero, logo (locked), chart re-binding, tables.
+9. **Export** — docx first, then pdf, then pptx.
+
+---
+
+## 10. Verify before claiming — no fakeness
+
+Report **real / partial / faked / missing** for each:
+
+- Editing a block leaves every other block byte-identical (diff the document JSON before/after).
+- An external-audience draft: agent edit **cannot** retrieve confidential content. Test it explicitly — ask the agent to add a confidential figure and confirm it refuses or reports the exclusion.
+- Citation markers survive an edit and renumber correctly. Try to type a fake `[S9]` and confirm it's stripped.
+- Guardian blocks a save when a hard rule is broken.
+- Contextual buttons are **generated from corpus state**, not hardcoded. Change the corpus and confirm the buttons change.
+- Locked blocks (logo, boilerplate) genuinely reject agent edits.
+- Internal-note blocks are absent from an external export file.
+- Every edit produces an audit entry with the filter expression.
+
+State clearly which parts are seeded vs live. Do not narrate the UI — it must be clickable.

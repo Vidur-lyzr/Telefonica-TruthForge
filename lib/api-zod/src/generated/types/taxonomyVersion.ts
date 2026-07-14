@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { TaxonomyAxisEdit } from './taxonomyAxisEdit';
+import type { TaxonomyAxisOp } from './taxonomyAxisOp';
 
 export interface TaxonomyVersion {
   version: number;
@@ -14,4 +15,15 @@ export interface TaxonomyVersion {
   note: string;
   axisEdit: TaxonomyAxisEdit | null;
   retaggedCount: number;
+  /**
+     * rename | split | merge | rollback
+     * @nullable
+     */
+  kind?: string | null;
+  /**
+     * For rollback versions — the version whose state was restored.
+     * @nullable
+     */
+  rolledBackTo?: number | null;
+  axisOps?: TaxonomyAxisOp[];
 }
