@@ -17,6 +17,7 @@ export * from './askDocumentExportInputFormat';
 export * from './askDocumentPackInput';
 export * from './askDocumentPackInputDestination';
 export * from './askDocumentPackInputFormatsItem';
+export * from './askDocumentPreview';
 export * from './askDocumentSummary';
 export * from './askFilters';
 export * from './askHandoffContext';

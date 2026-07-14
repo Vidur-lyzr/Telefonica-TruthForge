@@ -17,6 +17,11 @@ Memory must never grant a persona access a fresh query wouldn't.
   left active or resumable.
 - History sent to the model is re-filtered to turns whose `roleId` matches the
   current persona, as a hard guard on top of session scoping.
+- Slow async completions must not leak across boundaries: persona switch aborts
+  any in-flight ask run (and closes the document workspace panel), and any
+  auto-open/auto-focus side effect fired after an await must first re-check —
+  via a ref — that its conversation is still the one on screen. A captured
+  `convoId` alone is stale by completion time.
 
 **Why:** an earlier version persisted a single unscoped thread and replayed prior
 assistant answers verbatim; switching to a lower-clearance persona would carry a

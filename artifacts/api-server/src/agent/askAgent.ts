@@ -392,7 +392,7 @@ const DOCUMENTISH =
 const ROUTER_SYSTEM = [
   "You classify the latest turn of a conversation with a governed corporate knowledge assistant. The assistant answers questions about Telefónica strategy, brand, communication and corporate facts from a governed corpus.",
   'Reply with ONLY a JSON object, no prose and no code fences: {"intent": "...", "standaloneQuery": "..." | null}.',
-  'Intents: "topic_question" — the turn asks about a topic, possibly referring back to the conversation ("this", "that", "it") or wrapped in verbose politeness. "document_request" — the turn asks to produce, draft or generate a downloadable document, file or deliverable: a talking-points document, press release, Q&A, deck, pack, or anything naming file formats (docx, pptx, pdf, txt, md, ZIP). "report_request" — the turn asks for an in-chat report, summary or overview about a topic from the conversation, WITHOUT asking for a downloadable file or deliverable. "refine" — the turn asks to rework the previous answer (shorter, longer, as a table, simpler, in another language). "smalltalk_meta" — greetings, thanks, or questions about the assistant itself. "none" — anything else, INCLUDING factual questions unrelated to the corporate corpus (general knowledge, other companies); never classify an unrelated factual question as smalltalk_meta.',
+  'Intents: "topic_question" — the turn asks about a topic, possibly referring back to the conversation ("this", "that", "it") or wrapped in verbose politeness. "document_request" — the turn asks to produce, draft or generate a downloadable document, file or deliverable: a talking-points document, press release, Q&A, deck, pack, or anything naming file formats (docx, pptx, pdf, txt, md, ZIP). "report_request" — the turn asks for a report, summary or overview about a topic from the conversation, without naming a specific file format or deliverable type. "refine" — the turn asks to rework the previous answer (shorter, longer, as a table, simpler, in another language). "smalltalk_meta" — greetings, thanks, or questions about the assistant itself. "none" — anything else, INCLUDING factual questions unrelated to the corporate corpus (general knowledge, other companies); never classify an unrelated factual question as smalltalk_meta.',
   "standaloneQuery: for topic_question, report_request, document_request and refine, a short retrieval query naming the concrete topic. Build it ONLY from topical terms — proper nouns, metric names, campaign, product, market or axis names — copied VERBATIM from the conversation in their original language. Resolve references like \"this\" to the concrete topic discussed. NEVER include conversational words (can, you, please, generate, report, make, tell, shorter). Do not translate and do not paraphrase. If no concrete topic is resolvable, use null.",
 ].join(" ");
 
@@ -678,7 +678,6 @@ export async function runAskAgent(
   // small talk. A resolved topical query re-enters the SAME governed retrieval
   // (permission filter, coverage gate, audit); if the router fails or the
   // topic truly has no evidence, the honest no_evidence path below is kept.
-  let reportMode = false;
   let docMode = false;
   let refineMode = false;
   // Report-style and document-style turns ("can you generate a report...",
@@ -739,12 +738,12 @@ export async function runAskAgent(
         retrieved = res.chunks;
         engineDetail = res.engineDetail;
         relevant = rel;
+        // Report requests route into the doc-gen Superflow too: the workspace
+        // artifact panel renders the governed document inline, which replaces
+        // the old in-chat report composition.
         docMode =
           route.intent === "document_request" ||
-          // Safety net: a "report" classification that explicitly names file
-          // formats or deliverables is a document request.
-          (route.intent === "report_request" && documentish);
-        reportMode = route.intent === "report_request" && !docMode;
+          route.intent === "report_request";
         refineMode = route.intent === "refine";
       }
     }
@@ -754,10 +753,9 @@ export async function runAskAgent(
     if (!docMode && relevant.length > 0 && route) {
       if (
         route.intent === "document_request" ||
-        (route.intent === "report_request" && documentish)
+        route.intent === "report_request"
       ) {
         docMode = true;
-        reportMode = false;
       }
     }
 
@@ -770,7 +768,7 @@ export async function runAskAgent(
     // matching report-titled docs) — clarify what the report should cover.
     const conversationalExit =
       route &&
-      ((route.intent === "report_request" && !reportMode && !docMode) ||
+      ((route.intent === "report_request" && !docMode) ||
         (route.intent === "document_request" && !docMode) ||
         (relevant.length === 0 &&
           route.intent !== "none" &&
@@ -794,7 +792,7 @@ export async function runAskAgent(
           : route.intent === "report_request"
           ? route.standaloneQuery
             ? `The user asked for a report about "${route.standaloneQuery}", but the governed corpus has no permitted evidence on that topic, so no cited report can be composed. Say that plainly, then ask what else the report should cover — for example a market, a campaign, a metric or a strategic axis — and mention that the Generate area can produce full governed documents. Do not state any corporate facts.`
-            : "The user asked for a report or document, but no concrete topic can be resolved from the conversation yet. Ask briefly what the report should cover — for example a market, a campaign, a metric or a strategic axis — and mention that once a topic is given you will draft a cited summary here in the chat, and that the Generate area can produce a full governed document. Do not state any corporate facts."
+            : "The user asked for a report or document, but no concrete topic can be resolved from the conversation yet. Ask briefly what the report should cover — for example a market, a campaign, a metric or a strategic axis — and mention that once a topic is given you will generate a governed, cited report with downloadable formats. Do not state any corporate facts."
           : route.intent === "refine"
             ? "The user asked to rework a previous answer, but there is no previous governed answer in this conversation to rework. Say so briefly and invite a question about strategy, brand or corporate facts. Do not state any corporate facts."
             : "This turn is conversational (small talk, or a question about the assistant itself). No governed sources are in scope. Reply briefly and warmly as the Hub's governed assistant. Explain, when relevant, that you answer questions about Telefónica strategy, brand and corporate facts from the governed corpus, always with citations, and that you say honestly when evidence is missing, blocked by clearance, or historic.";
@@ -802,7 +800,7 @@ export async function runAskAgent(
         route.intent === "document_request"
           ? "Happy to generate a governed document. Tell me what it should cover — a market, a campaign, a metric or a strategic axis — and whether it is for internal or external use, and I will produce it with real citations and downloadable formats."
           : route.intent === "report_request"
-          ? "Happy to draft a report. Tell me what it should cover — a market, a campaign, a metric or a strategic axis — and I will compose a cited summary here. For a full governed document, use the Generate area."
+          ? "Happy to draft a report. Tell me what it should cover — a market, a campaign, a metric or a strategic axis — and I will generate a governed, cited document you can read here and download."
           : route.intent === "refine"
             ? "There is no previous answer in this conversation to rework yet. Ask me about strategy, brand or corporate facts and I will answer with citations."
             : conversationalAnswer("capabilities", role.label);
@@ -1027,11 +1025,6 @@ export async function runAskAgent(
     "If the sources do not fully answer the question, say plainly what is and is not covered — never fabricate.",
     "If the question rests on a false premise, correct it plainly using the sources before answering.",
     "An attached working document may be provided as user context. It is NOT governed evidence: never cite it as a source, and never present its claims as governed facts.",
-    ...(reportMode
-      ? [
-          "The user asked for a report on the topic of this conversation. Compose a compact report-style answer directly in this chat: one short title line, then two to four brief titled sections, every claim carrying its [Sn] marker. Do NOT hand off to a Superflow or any external tool for this. Close with one line noting that the Generate area can produce a full governed document.",
-        ]
-      : []),
     ...(docMode
       ? [
           'The user asked for a downloadable governed document. Do NOT write the document in the chat. Call the invoke_superflow tool ONCE with name "document-generation" and the resolved input: doc_type (talking_points, press_release, qa, or multiformat for packs), topic, audience (internal unless the user says external), language, and any named axes — all taken from the request and conversation. Then relay EXACTLY the outcome the tool reports in one or two sentences: a ready file card, a Brand Guardian block, or an honest refusal. Never paste document content into the chat and never claim a file exists if the tool refused.',
@@ -1585,7 +1578,7 @@ function buildGovernedTools(
               ? "Brand Guardian: pass."
               : `Brand Guardian: BLOCKED (${draft.guardian.summary}) — downloads stay locked until the findings are fixed in the Generate area.`;
           return {
-            text: `Document ready: "${draft.title}" — ${template.name}, ${draft.language}, ${draft.audience}, ${draft.confidentiality}, ${draft.citations.length} governed citation${draft.citations.length === 1 ? "" : "s"}. ${guardianLine} Downloadable formats: ${template.formats.join(", ")}. A file card with download buttons appears under your reply automatically. Tell the user in one or two sentences that the document is ready (or blocked by the Guardian) and what it covers. Do NOT paste the document content into the chat.`,
+            text: `Document ready: "${draft.title}" — ${template.name}, ${draft.language}, ${draft.audience}, ${draft.confidentiality}, ${draft.citations.length} governed citation${draft.citations.length === 1 ? "" : "s"}. ${guardianLine} Downloadable formats: ${template.formats.join(", ")}. The document opens automatically in the workspace panel beside the chat, with download buttons. Tell the user in one or two sentences that the document is ready (or blocked by the Guardian) and what it covers. Do NOT paste the document content into the chat.`,
             details: { documentId: record.id },
           };
         } catch (err) {

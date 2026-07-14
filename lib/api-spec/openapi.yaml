@@ -1578,6 +1578,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /ask/documents/{documentId}/preview:
+    get:
+      operationId: getAskDocumentPreview
+      tags: [ask]
+      summary: Full content of an Ask-generated document for the artifact panel
+      description: >
+        Returns the composed sections and citations of a document the doc-gen
+        Superflow registered during an Ask turn, so the workspace can render it
+        inline. Content is served even when the Brand Guardian blocked the
+        draft (the panel shows the findings; downloads stay gated server-side
+        by the export routes). Documents are in-memory and do not survive a
+        server restart.
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The document content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AskDocumentPreview"
+        "404":
+          description: Unknown document id (documents do not survive a server restart)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /generate/editorial-review:
     post:
       operationId: recordEditorialReview
@@ -2609,6 +2641,60 @@ components:
           type: boolean
         note:
           type: ["string", "null"]
+        createdAt:
+          type: string
+
+    AskDocumentPreview:
+      type: object
+      description: >
+        Full content of an Ask-generated document for inline rendering in the
+        workspace artifact panel. Sections and citations come straight from
+        the server-registered draft — never from the model's chat text.
+      required:
+        [id, title, shape, templateName, status, guardianStatus, guardianSummary, guardianFindings, formats, language, audience, confidentiality, historic, sections, citations, createdAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        shape:
+          type: string
+        templateName:
+          type: string
+        status:
+          type: string
+          description: drafted | no_evidence | permission_blocked
+        guardianStatus:
+          type: string
+          description: pass | block
+        guardianSummary:
+          type: string
+        guardianFindings:
+          type: array
+          items:
+            $ref: "#/components/schemas/GuardianFinding"
+        formats:
+          type: array
+          items:
+            type: string
+        language:
+          type: string
+        audience:
+          type: string
+        confidentiality:
+          type: string
+        historic:
+          type: boolean
+        note:
+          type: ["string", "null"]
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/DraftSection"
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Citation"
         createdAt:
           type: string
 

@@ -4181,6 +4181,74 @@ export const ExportAskDocumentPackResponse = zod.unknown()
 
 
 /**
+ * Returns the composed sections and citations of a document the doc-gen Superflow registered during an Ask turn, so the workspace can render it inline. Content is served even when the Brand Guardian blocked the draft (the panel shows the findings; downloads stay gated server-side by the export routes). Documents are in-memory and do not survive a server restart.
+ * @summary Full content of an Ask-generated document for the artifact panel
+ */
+export const GetAskDocumentPreviewParams = zod.object({
+  "documentId": zod.coerce.string()
+})
+
+export const GetAskDocumentPreviewResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "shape": zod.string(),
+  "templateName": zod.string(),
+  "status": zod.string().describe('drafted | no_evidence | permission_blocked'),
+  "guardianStatus": zod.string().describe('pass | block'),
+  "guardianSummary": zod.string(),
+  "guardianFindings": zod.array(zod.object({
+  "severity": zod.string().describe('error | warning'),
+  "rule": zod.string(),
+  "message": zod.string(),
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
+})),
+  "formats": zod.array(zod.string()),
+  "language": zod.string(),
+  "audience": zod.string(),
+  "confidentiality": zod.string(),
+  "historic": zod.boolean(),
+  "note": zod.string().nullish(),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "heading": zod.string(),
+  "axisId": zod.string().nullish(),
+  "body": zod.string(),
+  "citationIds": zod.array(zod.string()),
+  "internalOnly": zod.boolean()
+})),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
+  "confidentiality": zod.string().describe('public | private | confidential | off_the_record'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "createdAt": zod.string()
+}).describe('Full content of an Ask-generated document for inline rendering in the workspace artifact panel. Sections and citations come straight from the server-registered draft — never from the model\'s chat text.\n')
+
+
+/**
  * Registers a human editorial sign-off for a press release, bound to the exact content reviewed (server-side content hash). Press exports are refused until a review exists for the current content; any later edit voids the review. The Brand Guardian must pass before a review can be recorded.
  * @summary Record a mandatory editorial review of a press release
  */

@@ -22,6 +22,10 @@ import {
   type AskStrings,
 } from "@/i18n/ask";
 import { streamAsk, type AskStep } from "@/hooks/ask-stream";
+import {
+  ArtifactPanel,
+  downloadAskDocument,
+} from "@/components/artifact-panel";
 import { Streamdown } from "streamdown";
 import {
   Box,
@@ -168,6 +172,22 @@ function hasActiveFilters(f: AskFilters | null): boolean {
   return Boolean(f.market || f.brand || f.period || f.source || f.axis);
 }
 
+// Below this width the sessions rail yields its space to the artifact panel
+// so the chat column stays readable when a document is open.
+const NARROW_QUERY = "(max-width: 1199px)";
+function useNarrowViewport(): boolean {
+  const [narrow, setNarrow] = React.useState(
+    () => typeof window !== "undefined" && window.matchMedia(NARROW_QUERY).matches,
+  );
+  React.useEffect(() => {
+    const mql = window.matchMedia(NARROW_QUERY);
+    const onChange = () => setNarrow(mql.matches);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
+  }, []);
+  return narrow;
+}
+
 export default function Ask() {
   const { area, roleId, lang, setLang } = useApp();
   const t = ASK_I18N[lang];
@@ -188,6 +208,17 @@ export default function Ask() {
   const [selectedCitation, setSelectedCitation] = React.useState<Citation | null>(
     null,
   );
+  // The document open in the workspace artifact panel. Opened ONLY from
+  // explicit events (a fresh generation landing, or an Open action on a
+  // document card) — never derived from the thread, so a localStorage
+  // rehydration can never pop the panel open on page load.
+  const [openDocId, setOpenDocId] = React.useState<string | null>(null);
+  const narrow = useNarrowViewport();
+  // Live view of the active conversation id, so a doc-generating run that
+  // completes AFTER the user moved to another conversation can be detected
+  // and never auto-opens its document over the wrong thread.
+  const activeIdRef = React.useRef<string | null>(null);
+  activeIdRef.current = activeId;
   const [insights, setInsights] = React.useState<SavedInsight[]>(() =>
     loadInsights(),
   );
@@ -401,12 +432,22 @@ export default function Ask() {
         abort.signal,
       );
       patchTurn({ result, pending: false, streamText: null });
+      // A turn that generated documents opens the newest one in the artifact
+      // panel immediately — the two-panel workspace moment. Guarded: only if
+      // this turn's conversation is still the one on screen, so a slow run
+      // can never pop its document over a different conversation.
+      const docs = result.documents ?? [];
+      if (docs.length > 0 && activeIdRef.current === convoId)
+        setOpenDocId(docs[docs.length - 1].id);
     } catch (err) {
       if (abort.signal.aborted) return;
       if (err instanceof DOMException && err.name === "AbortError") return;
       try {
         const result = await askQuery({ data: body });
         patchTurn({ result, pending: false, streamText: null });
+        const docs = result.documents ?? [];
+        if (docs.length > 0 && activeIdRef.current === convoId)
+          setOpenDocId(docs[docs.length - 1].id);
       } catch {
         patchTurn({ pending: false, error: true, streamText: null });
       }
@@ -441,6 +482,7 @@ export default function Ask() {
     setInput("");
     setAttachment(null);
     setFilters(EMPTY_FILTERS);
+    setOpenDocId(null);
   };
 
   const resumeConversation = (id: string) => {
@@ -448,7 +490,17 @@ export default function Ask() {
     setInput("");
     setAttachment(null);
     setFilters(EMPTY_FILTERS);
+    setOpenDocId(null);
   };
+
+  // Persona switch closes the artifact panel AND aborts any in-flight run:
+  // a lower-clearance persona must never keep reading — or receive — a
+  // document generated under a higher clearance.
+  React.useEffect(() => {
+    setOpenDocId(null);
+    askAbortRef.current?.abort();
+    askAbortRef.current = null;
+  }, [roleId]);
 
   const saveInsight = (turn: Turn) => {
     if (!turn.result) return;
@@ -546,16 +598,19 @@ export default function Ask() {
       )}
 
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
-        <SessionsPanel
-          conversations={personaConversations}
-          activeId={activeId}
-          onNew={newConversation}
-          onResume={resumeConversation}
-          insights={insights}
-          workspaceDocs={workspaceDocs}
-          t={t}
-          lang={lang}
-        />
+        {!(openDocId && narrow) && (
+          <SessionsPanel
+            conversations={personaConversations}
+            activeId={activeId}
+            onNew={newConversation}
+            onResume={resumeConversation}
+            insights={insights}
+            workspaceDocs={workspaceDocs}
+            onOpenDocument={setOpenDocId}
+            t={t}
+            lang={lang}
+          />
+        )}
 
         <div
           style={{
@@ -593,6 +648,7 @@ export default function Ask() {
                     saved={insights.some((i) => i.question === turn.question)}
                     onExport={() => exportToGenerate(turn)}
                     onDrillIn={() => navigate("/data")}
+                    onOpenDocument={setOpenDocId}
                     t={t}
                     lang={lang}
                   />
@@ -619,6 +675,15 @@ export default function Ask() {
             t={t}
           />
         </div>
+
+        {openDocId && (
+          <ArtifactPanel
+            documentId={openDocId}
+            onClose={() => setOpenDocId(null)}
+            onOpenCitation={setSelectedCitation}
+            t={t}
+          />
+        )}
       </div>
 
       {selectedCitation && (
@@ -713,6 +778,7 @@ function SessionsPanel({
   onResume,
   insights,
   workspaceDocs,
+  onOpenDocument,
   t,
   lang,
 }: {
@@ -722,6 +788,7 @@ function SessionsPanel({
   onResume: (id: string) => void;
   insights: SavedInsight[];
   workspaceDocs: AskDocumentSummary[];
+  onOpenDocument: (id: string) => void;
   t: AskStrings;
   lang: Lang;
 }) {
@@ -823,7 +890,13 @@ function SessionsPanel({
             </Box>
             <Stack space={8}>
               {workspaceDocs.map((doc) => (
-                <DocumentCard key={doc.id} doc={doc} compact t={t} />
+                <DocumentCard
+                  key={doc.id}
+                  doc={doc}
+                  compact
+                  onOpen={() => onOpenDocument(doc.id)}
+                  t={t}
+                />
               ))}
             </Stack>
           </>
@@ -1035,6 +1108,7 @@ function TurnBlock({
   saved,
   onExport,
   onDrillIn,
+  onOpenDocument,
   t,
   lang,
 }: {
@@ -1046,6 +1120,7 @@ function TurnBlock({
   saved: boolean;
   onExport: () => void;
   onDrillIn: () => void;
+  onOpenDocument: (id: string) => void;
   t: AskStrings;
   lang: Lang;
 }) {
@@ -1170,6 +1245,7 @@ function TurnBlock({
                 saved={saved}
                 onExport={onExport}
                 onDrillIn={onDrillIn}
+                onOpenDocument={onOpenDocument}
                 t={t}
                 lang={lang}
               />
@@ -1409,6 +1485,7 @@ function AnswerCard({
   saved,
   onExport,
   onDrillIn,
+  onOpenDocument,
   t,
   lang,
 }: {
@@ -1420,6 +1497,7 @@ function AnswerCard({
   saved: boolean;
   onExport: () => void;
   onDrillIn: () => void;
+  onOpenDocument: (id: string) => void;
   t: AskStrings;
   lang: Lang;
 }) {
@@ -1661,7 +1739,12 @@ function AnswerCard({
               </Inline>
               <Stack space={12}>
                 {result.documents.map((doc) => (
-                  <DocumentCard key={doc.id} doc={doc} t={t} />
+                  <DocumentCard
+                    key={doc.id}
+                    doc={doc}
+                    onOpen={() => onOpenDocument(doc.id)}
+                    t={t}
+                  />
                 ))}
               </Stack>
             </Stack>
@@ -1752,57 +1835,21 @@ function AnswerCard({
 
 /* ------------------------------------------------------- generated documents */
 
-// Download one rendered format (or the full ZIP pack) of a document the
-// doc-gen Superflow registered during this conversation. The server re-runs
-// every export governance gate before a single byte is sent.
-async function downloadAskDocument(
-  documentId: string,
-  format?: string,
-): Promise<void> {
-  const isPack = !format;
-  const res = await fetch(
-    isPack ? "/api/ask/documents/export-pack" : "/api/ask/documents/export",
-    {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(isPack ? { documentId } : { documentId, format }),
-    },
-  );
-  if (!res.ok) {
-    let message = "";
-    try {
-      message = ((await res.json()) as { error?: string }).error ?? "";
-    } catch {
-      /* non-JSON error body */
-    }
-    throw new Error(message || `export failed: ${res.status}`);
-  }
-  const blob = await res.blob();
-  const disposition = res.headers.get("content-disposition") ?? "";
-  const match = /filename="([^"]+)"/.exec(disposition);
-  const filename =
-    match?.[1] ?? (isPack ? `${documentId}-pack.zip` : `${documentId}.${format}`);
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
 // A branded file card for one generated document: template + governance meta,
-// one download affordance per offered format, and a ZIP pack download. A
-// Guardian-blocked document renders with downloads locked and the server's
-// own explanation — the buttons are never silently dead.
+// an Open action into the workspace artifact panel, one download affordance
+// per offered format, and a ZIP pack download. A Guardian-blocked document
+// renders with downloads locked and the server's own explanation — the
+// buttons are never silently dead, and its content stays reviewable in the
+// panel alongside the Guardian findings.
 function DocumentCard({
   doc,
   compact,
+  onOpen,
   t,
 }: {
   doc: AskDocumentSummary;
   compact?: boolean;
+  onOpen?: () => void;
   t: AskStrings;
 }) {
   const [busy, setBusy] = React.useState<string | null>(null);
@@ -1857,11 +1904,25 @@ function DocumentCard({
           </Inline>
 
           {blocked ? (
-            <Text1 regular color={skinVars.colors.textSecondary}>
-              {doc.note ?? doc.guardianSummary}
-            </Text1>
+            <Stack space={8}>
+              <Text1 regular color={skinVars.colors.textSecondary}>
+                {doc.note ?? doc.guardianSummary}
+              </Text1>
+              {onOpen && (
+                <Inline space={12}>
+                  <ButtonLink small onPress={onOpen}>
+                    {t.documents.open}
+                  </ButtonLink>
+                </Inline>
+              )}
+            </Stack>
           ) : (
             <Inline space={12} wrap alignItems="center">
+              {onOpen && (
+                <ButtonLink small onPress={onOpen}>
+                  {t.documents.open}
+                </ButtonLink>
+              )}
               {doc.formats.map((format) => (
                 <ButtonLink
                   key={format}

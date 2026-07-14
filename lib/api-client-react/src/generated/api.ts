@@ -24,6 +24,7 @@ import type {
   ApproveInput,
   AskDocumentExportInput,
   AskDocumentPackInput,
+  AskDocumentPreview,
   AskInput,
   AskResult,
   AuditEntry,
@@ -4987,6 +4988,84 @@ export const useExportAskDocumentPack = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getExportAskDocumentPackMutationOptions(options));
     }
+
+export const getGetAskDocumentPreviewUrl = (documentId: string,) => {
+
+
+
+
+  return `/api/ask/documents/${documentId}/preview`
+}
+
+/**
+ * Returns the composed sections and citations of a document the doc-gen Superflow registered during an Ask turn, so the workspace can render it inline. Content is served even when the Brand Guardian blocked the draft (the panel shows the findings; downloads stay gated server-side by the export routes). Documents are in-memory and do not survive a server restart.
+ * @summary Full content of an Ask-generated document for the artifact panel
+ */
+export const getAskDocumentPreview = async (documentId: string, options?: RequestInit): Promise<AskDocumentPreview> => {
+
+  return customFetch<AskDocumentPreview>(getGetAskDocumentPreviewUrl(documentId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAskDocumentPreviewQueryKey = (documentId: string,) => {
+    return [
+    `/api/ask/documents/${documentId}/preview`
+    ] as const;
+    }
+
+
+export const getGetAskDocumentPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getAskDocumentPreview>>, TError = ErrorType<ErrorResponse>>(documentId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAskDocumentPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAskDocumentPreviewQueryKey(documentId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAskDocumentPreview>>> = ({ signal }) => getAskDocumentPreview(documentId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: documentId !== null && documentId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAskDocumentPreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAskDocumentPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAskDocumentPreview>>>
+export type GetAskDocumentPreviewQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Full content of an Ask-generated document for the artifact panel
+ */
+
+export function useGetAskDocumentPreview<TData = Awaited<ReturnType<typeof getAskDocumentPreview>>, TError = ErrorType<ErrorResponse>>(
+ documentId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAskDocumentPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAskDocumentPreviewQueryOptions(documentId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getRecordEditorialReviewUrl = () => {
 

@@ -446,6 +446,32 @@ export interface AskDocumentSummary {
   createdAt: string;
 }
 
+/**
+ * Full content of an Ask-generated document for inline rendering in the workspace artifact panel. Sections and citations come straight from the server-registered draft — never from the model's chat text.
+ */
+export interface AskDocumentPreview {
+  id: string;
+  title: string;
+  shape: string;
+  templateName: string;
+  /** drafted | no_evidence | permission_blocked */
+  status: string;
+  /** pass | block */
+  guardianStatus: string;
+  guardianSummary: string;
+  guardianFindings: GuardianFinding[];
+  formats: string[];
+  language: string;
+  audience: string;
+  confidentiality: string;
+  historic: boolean;
+  /** @nullable */
+  note?: string | null;
+  sections: DraftSection[];
+  citations: Citation[];
+  createdAt: string;
+}
+
 export interface NumericFact {
   label: string;
   value: string;

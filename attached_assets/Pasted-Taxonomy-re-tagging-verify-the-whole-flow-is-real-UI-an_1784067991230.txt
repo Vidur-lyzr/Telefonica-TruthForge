@@ -1,0 +1,20 @@
+Taxonomy re-tagging — verify the whole flow is real, UI and backend, no fakeness. Then close whatever isn't.
+I need the governance re-tag flow to be genuinely functional end to end — a real admin clicking through a real panel, triggering real backend writes, with real persistence. Not narrated, not seeded, not API-only. Go through this, tell me honestly what's real vs faked vs missing, then make the whole thing real.
+The ideal flow, exactly as it must work:
+
+Governance panel — real UI. An admin opens a Taxonomy/Governance screen and sees the current taxonomy: the active version number and the list of Plan axes with their definitions. This is a real page, not a mockup. The admin edits an axis — renames it, or splits one axis into two, or merges — and saves. The edit is a real state change, persisted.
+Mapping table — real query, real list. Immediately after the edit, the panel shows the actual documents affected — pulled live by querying the payload for chunks tagged with the changed axis, not a hardcoded list. If 40 documents carry that axis, I see those 40, with their titles and current tags. The count must match what's actually in Qdrant.
+Zero-shot proposals — real model calls. For each affected document, the model actually reads it and proposes a new axis, with a confidence score. Real inference, real per-document proposals — not pre-written answers. Show me the confidence values; they should vary by document, and ambiguous documents should score lower.
+Validation queue — real human gate that actually gates. The admin sees each proposal and accepts or rejects it in the UI. Rejected proposals do NOT get written. Only accepted ones proceed. Confirm that clicking reject genuinely blocks the write — test it: reject one, and prove that document keeps its old tag.
+Commit — real payload write, real versioning. On commit, accepted tags are written via set_payload on the actual Qdrant points, and a new taxonomy version (v5) is committed with actor, note, timestamp and audit trail. Index writes first, then version commits — confirm that order in the code.
+Persistence — survives restart. Restart the app. The new version, the new tags, and the audit trail are all still there, rebuilt from the index. Nothing lives only in memory.
+
+The anti-fakeness checks — prove each of these, don't just claim them:
+
+Vectors untouched. Log a vector hash for a re-tagged document before and after. They must be identical. Confirm zero embedding-model calls happened during the whole re-tag — instrument the embedding function with a counter and show it stayed at 0.
+The filter actually reflects the change. Before commit: querying the old axis returns the document. After commit: the old axis does NOT return it, the new axis DOES. Show both queries.
+No hardcoding anywhere in the path. The affected-documents list, the proposals, and the final tags must all derive from live data. If any of these is seeded or stubbed, tell me exactly which one.
+The human gate is load-bearing. Prove that with no human approval, nothing is written. Auto-writing proposals without the accept step is a failure — I need the gate real.
+Versioning is real, not cosmetic. Show a rollback: revert to v4 and confirm the documents return to their old tags. If rollback isn't implemented, say so.
+
+Report format: for each of the 6 flow steps and each of the 5 checks — real / partially real / faked / missing. Be blunt. I would rather know step 3 is stubbed now than find out on stage. After the report, fix everything that isn't real so the entire flow — panel to persisted payload — works with no fakeness on either the UI or the backend.

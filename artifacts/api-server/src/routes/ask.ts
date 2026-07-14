@@ -13,7 +13,11 @@ import {
   ExportRefusedError,
   type ExportDestination,
 } from "../export/exportService";
-import type { ExportFormat } from "../export/exportTemplates";
+import {
+  getExportTemplate,
+  defaultTemplateForShape,
+  type ExportFormat,
+} from "../export/exportTemplates";
 
 const router: IRouter = Router();
 
@@ -82,6 +86,43 @@ router.post("/ask/stream", async (req, res) => {
     send("done", {});
     res.end();
   }
+});
+
+// Full content of an Ask-generated document for the workspace artifact panel.
+// Serves the server-registered draft's sections and citations — never model
+// chat text. Content is served even when the Guardian blocked the draft (the
+// panel shows the findings); downloads stay gated by the export routes below.
+router.get("/ask/documents/:documentId/preview", (req, res) => {
+  const record = getAskDocument(req.params.documentId);
+  if (!record) {
+    res.status(404).json({
+      error:
+        "This document is no longer available (chat documents do not survive a server restart). Ask for it again in the conversation.",
+    });
+    return;
+  }
+  const draft = record.draft;
+  const template =
+    getExportTemplate(draft.templateId) ?? defaultTemplateForShape(draft.shape);
+  res.json({
+    id: record.id,
+    title: draft.title,
+    shape: draft.shape,
+    templateName: template.name,
+    status: draft.status,
+    guardianStatus: draft.guardian.status,
+    guardianSummary: draft.guardian.summary,
+    guardianFindings: draft.guardian.findings,
+    formats: template.formats,
+    language: draft.language,
+    audience: draft.audience,
+    confidentiality: draft.confidentiality,
+    historic: draft.historic,
+    note: draft.historicNote ?? draft.note ?? null,
+    sections: draft.sections,
+    citations: draft.citations,
+    createdAt: record.createdAt,
+  });
 });
 
 // Download one format of a document the doc-gen Superflow registered during an

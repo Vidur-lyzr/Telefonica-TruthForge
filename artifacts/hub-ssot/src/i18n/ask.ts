@@ -83,10 +83,19 @@ export interface AskStrings {
   documents: {
     heading: string;
     workspace: string;
+    open: string;
     downloadPack: string;
     guardianBlocked: string;
     downloadFailed: string;
     citationsCount: (n: number) => string;
+  };
+  panel: {
+    close: string;
+    loading: string;
+    unavailable: string;
+    guardianFindings: string;
+    downloads: string;
+    internalOnly: string;
   };
   drawer: {
     citation: (id: string) => string;
@@ -218,10 +227,20 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
     documents: {
       heading: "Generated documents",
       workspace: "Documents in this conversation",
+      open: "Open",
       downloadPack: "Download all (ZIP)",
       guardianBlocked: "Blocked by the Brand Guardian — downloads locked",
       downloadFailed: "Download failed",
       citationsCount: (n) => `${n} citation${n === 1 ? "" : "s"}`,
+    },
+    panel: {
+      close: "Close document",
+      loading: "Loading document…",
+      unavailable:
+        "This document is no longer available — chat documents do not survive a server restart. Ask for it again in the conversation.",
+      guardianFindings: "Brand Guardian findings",
+      downloads: "Downloads",
+      internalOnly: "Internal only",
     },
   },
   ES: {
@@ -335,10 +354,20 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
     documents: {
       heading: "Documentos generados",
       workspace: "Documentos de esta conversación",
+      open: "Abrir",
       downloadPack: "Descargar todo (ZIP)",
       guardianBlocked: "Bloqueado por el Brand Guardian — descargas bloqueadas",
       downloadFailed: "La descarga ha fallado",
       citationsCount: (n) => `${n} cita${n === 1 ? "" : "s"}`,
+    },
+    panel: {
+      close: "Cerrar documento",
+      loading: "Cargando documento…",
+      unavailable:
+        "Este documento ya no está disponible — los documentos del chat no sobreviven a un reinicio del servidor. Pídelo de nuevo en la conversación.",
+      guardianFindings: "Hallazgos del Brand Guardian",
+      downloads: "Descargas",
+      internalOnly: "Solo interno",
     },
   },
   DE: {
@@ -453,10 +482,20 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
     documents: {
       heading: "Erstellte Dokumente",
       workspace: "Dokumente in diesem Gespräch",
+      open: "Öffnen",
       downloadPack: "Alles herunterladen (ZIP)",
       guardianBlocked: "Vom Brand Guardian blockiert — Downloads gesperrt",
       downloadFailed: "Download fehlgeschlagen",
       citationsCount: (n) => `${n} Zitat${n === 1 ? "" : "e"}`,
+    },
+    panel: {
+      close: "Dokument schließen",
+      loading: "Dokument wird geladen…",
+      unavailable:
+        "Dieses Dokument ist nicht mehr verfügbar — Chat-Dokumente überstehen keinen Server-Neustart. Fordern Sie es in der Unterhaltung erneut an.",
+      guardianFindings: "Brand-Guardian-Befunde",
+      downloads: "Downloads",
+      internalOnly: "Nur intern",
     },
   },
   PT: {
@@ -571,10 +610,20 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
     documents: {
       heading: "Documentos gerados",
       workspace: "Documentos desta conversa",
+      open: "Abrir",
       downloadPack: "Transferir tudo (ZIP)",
       guardianBlocked: "Bloqueado pelo Brand Guardian — transferências bloqueadas",
       downloadFailed: "A transferência falhou",
       citationsCount: (n) => `${n} citação${n === 1 ? "" : "s"}`,
+    },
+    panel: {
+      close: "Fechar documento",
+      loading: "A carregar o documento…",
+      unavailable:
+        "Este documento já não está disponível — os documentos do chat não sobrevivem a um reinício do servidor. Peça-o novamente na conversa.",
+      guardianFindings: "Constatações do Brand Guardian",
+      downloads: "Transferências",
+      internalOnly: "Apenas interno",
     },
   },
 };
