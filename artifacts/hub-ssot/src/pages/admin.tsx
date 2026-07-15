@@ -35,7 +35,7 @@ import {
   Table,
   Tabs,
   Tag,
-  Sheet,
+  Drawer,
   Callout,
   Circle,
   TextField,
@@ -1070,9 +1070,12 @@ export default function AdminPage() {
 
       {/* Register / Edit user dialog */}
       {userDialogOpen && (
-        <Sheet onClose={() => setUserDialogOpen(false)}>
-          {({ closeModal }) => (
-            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
+        <Drawer
+          onClose={() => setUserDialogOpen(false)}
+          onDismiss={() => setUserDialogOpen(false)}
+          width={720}
+        >
+            <Box paddingBottom={8}>
               <Stack space={16}>
                 <Stack space={4}>
                   <Title2>{editingUserId ? t.editUser : t.registerUser}</Title2>
@@ -1192,19 +1195,21 @@ export default function AdminPage() {
                   <ButtonPrimary disabled={!draftValid || userMutationBusy} onPress={handleSaveUser}>
                     {editingUserId ? t.saveChanges : t.registerUser}
                   </ButtonPrimary>
-                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
+                  <ButtonSecondary onPress={() => setUserDialogOpen(false)}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>
             </Box>
-          )}
-        </Sheet>
+        </Drawer>
       )}
 
       {/* Over-permissioning confirmation */}
       {pendingUser && (
-        <Sheet onClose={() => setPendingUser(null)}>
-          {({ closeModal }) => (
-            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
+        <Drawer
+          onClose={() => setPendingUser(null)}
+          onDismiss={() => setPendingUser(null)}
+          width={560}
+        >
+            <Box paddingBottom={8}>
               <Stack space={16}>
                 <Inline space={8} alignItems="center">
                   <IconAlertRegular color={skinVars.colors.warning} />
@@ -1225,19 +1230,21 @@ export default function AdminPage() {
                   <ButtonPrimary onPress={commitUser} disabled={userMutationBusy}>
                     {t.grantAccess}
                   </ButtonPrimary>
-                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
+                  <ButtonSecondary onPress={() => setPendingUser(null)}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>
             </Box>
-          )}
-        </Sheet>
+        </Drawer>
       )}
 
       {/* Remove user confirmation */}
       {removeTarget && (
-        <Sheet onClose={() => setRemoveTarget(null)}>
-          {({ closeModal }) => (
-            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
+        <Drawer
+          onClose={() => setRemoveTarget(null)}
+          onDismiss={() => setRemoveTarget(null)}
+          width={560}
+        >
+            <Box paddingBottom={8}>
               <Stack space={16}>
                 <Inline space={8} alignItems="center">
                   <IconAlertRegular color={skinVars.colors.error} />
@@ -1250,19 +1257,21 @@ export default function AdminPage() {
                   <ButtonDanger onPress={confirmRemoveUser} disabled={userMutationBusy}>
                     {t.remove}
                   </ButtonDanger>
-                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
+                  <ButtonSecondary onPress={() => setRemoveTarget(null)}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>
             </Box>
-          )}
-        </Sheet>
+        </Drawer>
       )}
 
       {/* KPI definition create/edit dialog (appends a new version) */}
       {kpiSheetOpen && (
-        <Sheet onClose={() => setKpiEditId(null)}>
-          {({ closeModal }) => (
-            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
+        <Drawer
+          onClose={() => setKpiEditId(null)}
+          onDismiss={() => setKpiEditId(null)}
+          width={720}
+        >
+            <Box paddingBottom={8}>
               <Stack space={16}>
                 <Stack space={4}>
                   <Title2>{kpiCreateMode ? t.newKpiDefinition : t.editKpiDefinition}</Title2>
@@ -1505,19 +1514,21 @@ export default function AdminPage() {
                       ? t.createKpi
                       : t.saveAsVersion((kpiEditRecord?.latestVersion ?? 0) + 1)}
                   </ButtonPrimary>
-                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
+                  <ButtonSecondary onPress={() => setKpiEditId(null)}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>
             </Box>
-          )}
-        </Sheet>
+        </Drawer>
       )}
 
       {/* KPI definition version history */}
       {kpiHistoryRecord && (
-        <Sheet onClose={() => setKpiHistoryId(null)}>
-          {() => (
-            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
+        <Drawer
+          onClose={() => setKpiHistoryId(null)}
+          onDismiss={() => setKpiHistoryId(null)}
+          width={640}
+        >
+            <Box paddingBottom={8}>
               <Stack space={16}>
                 <Stack space={4}>
                   <Title2>{t.versionHistory}</Title2>
@@ -1579,15 +1590,17 @@ export default function AdminPage() {
                   ))}
               </Stack>
             </Box>
-          )}
-        </Sheet>
+        </Drawer>
       )}
 
       {/* Schedule document dialog */}
       {scheduleDialogOpen && (
-        <Sheet onClose={() => setScheduleDialogOpen(false)}>
-          {({ closeModal }) => (
-            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
+        <Drawer
+          onClose={() => setScheduleDialogOpen(false)}
+          onDismiss={() => setScheduleDialogOpen(false)}
+          width={720}
+        >
+            <Box paddingBottom={8}>
               <Stack space={16}>
                 <Stack space={4}>
                   <Title2>{t.scheduleDialogTitle}</Title2>
@@ -1640,12 +1653,11 @@ export default function AdminPage() {
                   <ButtonPrimary disabled={!scheduleValid} onPress={commitSchedule}>
                     {t.createSchedule}
                   </ButtonPrimary>
-                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
+                  <ButtonSecondary onPress={() => setScheduleDialogOpen(false)}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>
             </Box>
-          )}
-        </Sheet>
+        </Drawer>
       )}
     </Box>
   );
