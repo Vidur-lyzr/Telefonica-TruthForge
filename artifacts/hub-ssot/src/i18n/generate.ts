@@ -544,7 +544,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       saveVersion: "Save version",
       assets: "Assets",
       liveEditHint:
-        "The document is live — click anywhere in it to edit. The Guardian rechecks as you type.",
+        "The document opens in reading view. Use Edit document to change it — the Guardian rechecks as you type.",
       exportHeading: "Export",
       formatLabel: "Format",
       exporting: "Exporting...",
@@ -925,7 +925,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       saveVersion: "Guardar versión",
       assets: "Activos",
       liveEditHint:
-        "El documento está en vivo — haz clic en cualquier parte para editar. El Guardian vuelve a verificar mientras escribes.",
+        "El documento se abre en vista de lectura. Usa Editar documento para modificarlo — el Guardian vuelve a verificar mientras escribes.",
       exportHeading: "Exportar",
       formatLabel: "Formato",
       exporting: "Exportando...",
@@ -1311,7 +1311,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       saveVersion: "Version speichern",
       assets: "Assets",
       liveEditHint:
-        "Das Dokument ist live — klicken Sie an eine beliebige Stelle, um zu bearbeiten. Der Guardian prüft erneut, während Sie tippen.",
+        "Das Dokument öffnet sich in der Leseansicht. Über Dokument bearbeiten nehmen Sie Änderungen vor — der Guardian prüft erneut, während Sie tippen.",
       exportHeading: "Export",
       formatLabel: "Format",
       exporting: "Exportiere...",
@@ -1696,7 +1696,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       saveVersion: "Salvar versão",
       assets: "Ativos",
       liveEditHint:
-        "O documento está ativo — clique em qualquer lugar dele para editar. O Guardian reverifica enquanto você digita.",
+        "O documento abre em modo de leitura. Use Editar documento para alterá-lo — o Guardian reverifica enquanto você digita.",
       exportHeading: "Exportar",
       formatLabel: "Formato",
       exporting: "Exportando...",

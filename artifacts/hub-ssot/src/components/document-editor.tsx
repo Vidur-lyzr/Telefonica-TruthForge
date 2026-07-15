@@ -26,6 +26,25 @@ function normalizeIds(inner: string): string {
 type InlineNode = JSONContent;
 
 function parseEmphasis(text: string): InlineNode[] {
+  // ~~strike~~ outermost, then bold/italic inside each segment.
+  const out: InlineNode[] = [];
+  const strikeRe = /~~([^~\n]+)~~/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = strikeRe.exec(text)) !== null) {
+    if (m.index > last) out.push(...parseBoldItalic(text.slice(last, m.index)));
+    out.push(
+      ...parseBoldItalic(m[1]).map((n) =>
+        n.type === "text" ? { ...n, marks: [...(n.marks ?? []), { type: "strike" }] } : n,
+      ),
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(...parseBoldItalic(text.slice(last)));
+  return out;
+}
+
+function parseBoldItalic(text: string): InlineNode[] {
   const out: InlineNode[] = [];
   // **bold** first, then *italic* inside remaining segments.
   const boldRe = /\*\*([^*]+)\*\*/g;
@@ -118,15 +137,26 @@ function preprocessLines(text: string): string[] {
 export function textToDoc(text: string): JSONContent {
   const lines = preprocessLines(text);
   const content: JSONContent[] = [];
-  let bullets: JSONContent[] | null = null;
-  const flushBullets = () => {
-    if (bullets && bullets.length > 0) content.push({ type: "bulletList", content: bullets });
-    bullets = null;
+  let listItems: JSONContent[] | null = null;
+  let listType: "bulletList" | "orderedList" = "bulletList";
+  const flushList = () => {
+    if (listItems && listItems.length > 0) content.push({ type: listType, content: listItems });
+    listItems = null;
+  };
+  const pushListItem = (type: "bulletList" | "orderedList", inner: string) => {
+    if (listItems && listType !== type) flushList();
+    listType = type;
+    const inline = parseInline(inner);
+    listItems = listItems ?? [];
+    listItems.push({
+      type: "listItem",
+      content: [{ type: "paragraph", content: inline.length ? inline : undefined }],
+    });
   };
   for (const line of lines) {
     const headingMatch = line.match(/^(#{2,3})\s+(.*)$/);
     if (headingMatch) {
-      flushBullets();
+      flushList();
       const inline = parseInline(headingMatch[2]);
       content.push({
         type: "heading",
@@ -137,19 +167,19 @@ export function textToDoc(text: string): JSONContent {
     }
     const bulletMatch = line.match(/^\s*[-•]\s+(.*)$/);
     if (bulletMatch) {
-      const inline = parseInline(bulletMatch[1]);
-      bullets = bullets ?? [];
-      bullets.push({
-        type: "listItem",
-        content: [{ type: "paragraph", content: inline.length ? inline : undefined }],
-      });
+      pushListItem("bulletList", bulletMatch[1]);
       continue;
     }
-    flushBullets();
+    const orderedMatch = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    if (orderedMatch) {
+      pushListItem("orderedList", orderedMatch[1]);
+      continue;
+    }
+    flushList();
     const inline = parseInline(line);
     content.push({ type: "paragraph", content: inline.length ? inline : undefined });
   }
-  flushBullets();
+  flushList();
   if (content.length === 0) content.push({ type: "paragraph" });
   return { type: "doc", content };
 }
@@ -166,6 +196,7 @@ function inlineToText(nodes: JSONContent[] | undefined): string {
         if (marks.has("bold") && marks.has("italic")) t = `***${t}***`;
         else if (marks.has("bold")) t = `**${t}**`;
         else if (marks.has("italic")) t = `*${t}*`;
+        if (marks.has("strike")) t = `~~${t}~~`;
         return t;
       }
       return "";
@@ -179,12 +210,14 @@ export function docToText(doc: JSONContent): string {
     if (block.type === "paragraph") {
       lines.push(inlineToText(block.content));
     } else if (block.type === "bulletList" || block.type === "orderedList") {
+      const ordered = block.type === "orderedList";
+      let n = 1;
       for (const item of block.content ?? []) {
         const inner = (item.content ?? [])
           .map((p) => inlineToText(p.content))
           .join(" ")
           .trim();
-        lines.push(`- ${inner}`);
+        lines.push(ordered ? `${n++}. ${inner}` : `- ${inner}`);
       }
     } else if (block.type === "heading") {
       const level = Math.min(Math.max(Number(block.attrs?.level ?? 2), 2), 3);
@@ -336,22 +369,29 @@ export function DocumentToolbar() {
         border: `1px solid ${skinVars.colors.divider}`,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
         <ToolbarButton
-          label={t.bold}
-          disabled={disabled}
-          active={editor?.isActive("bold")}
-          onPress={() => editor?.chain().focus().toggleBold().run()}
+          label={t.undo}
+          disabled={disabled || !editor?.can().undo()}
+          onPress={() => editor?.chain().focus().undo().run()}
         >
-          <span style={{ fontWeight: 700 }}>B</span>
+          <span>&#8630;</span>
         </ToolbarButton>
         <ToolbarButton
-          label={t.italic}
-          disabled={disabled}
-          active={editor?.isActive("italic")}
-          onPress={() => editor?.chain().focus().toggleItalic().run()}
+          label={t.redo}
+          disabled={disabled || !editor?.can().redo()}
+          onPress={() => editor?.chain().focus().redo().run()}
         >
-          <span style={{ fontStyle: "italic" }}>I</span>
+          <span>&#8631;</span>
+        </ToolbarButton>
+        <ToolbarDivider />
+        <ToolbarButton
+          label={t.normalText}
+          disabled={disabled}
+          active={editor?.isActive("paragraph")}
+          onPress={() => editor?.chain().focus().setParagraph().run()}
+        >
+          <span>{t.normalTextShort}</span>
         </ToolbarButton>
         <ToolbarButton
           label={t.heading}
@@ -369,6 +409,41 @@ export function DocumentToolbar() {
         >
           <span style={{ fontWeight: 700 }}>H3</span>
         </ToolbarButton>
+        <ToolbarDivider />
+        <ToolbarButton
+          label={t.bold}
+          disabled={disabled}
+          active={editor?.isActive("bold")}
+          onPress={() => editor?.chain().focus().toggleBold().run()}
+        >
+          <span style={{ fontWeight: 700 }}>B</span>
+        </ToolbarButton>
+        <ToolbarButton
+          label={t.italic}
+          disabled={disabled}
+          active={editor?.isActive("italic")}
+          onPress={() => editor?.chain().focus().toggleItalic().run()}
+        >
+          <span style={{ fontStyle: "italic" }}>I</span>
+        </ToolbarButton>
+        <ToolbarButton
+          label={t.strikethrough}
+          disabled={disabled}
+          active={editor?.isActive("strike")}
+          onPress={() => editor?.chain().focus().toggleStrike().run()}
+        >
+          <span style={{ textDecoration: "line-through" }}>S</span>
+        </ToolbarButton>
+        <ToolbarButton
+          label={t.clearFormatting}
+          disabled={disabled}
+          onPress={() => editor?.chain().focus().unsetAllMarks().setParagraph().run()}
+        >
+          <span>
+            T<sub style={{ fontSize: 10 }}>x</sub>
+          </span>
+        </ToolbarButton>
+        <ToolbarDivider />
         <ToolbarButton
           label={t.bulletList}
           disabled={disabled}
@@ -376,6 +451,14 @@ export function DocumentToolbar() {
           onPress={() => editor?.chain().focus().toggleBulletList().run()}
         >
           <span>&bull; {t.listLabel}</span>
+        </ToolbarButton>
+        <ToolbarButton
+          label={t.numberedList}
+          disabled={disabled}
+          active={editor?.isActive("orderedList")}
+          onPress={() => editor?.chain().focus().toggleOrderedList().run()}
+        >
+          <span>1. {t.listLabel}</span>
         </ToolbarButton>
       </div>
       {disabled && (
@@ -393,6 +476,19 @@ export function DocumentToolbar() {
   );
 }
 
+function ToolbarDivider() {
+  return (
+    <div
+      style={{
+        width: 1,
+        alignSelf: "stretch",
+        backgroundColor: skinVars.colors.divider,
+        margin: "2px 4px",
+      }}
+    />
+  );
+}
+
 // ---- Editor ----------------------------------------------------------------------
 
 export function RichTextEditor({
@@ -401,6 +497,7 @@ export function RichTextEditor({
   onOpenCitation,
   onAskSelection,
   inverse = false,
+  editable = true,
   ariaLabel,
 }: {
   value: string;
@@ -409,6 +506,8 @@ export function RichTextEditor({
   onAskSelection?: (passage: string) => void;
   // Umbrella card renders on the brand background with inverse text.
   inverse?: boolean;
+  // Reading view: content is selectable (Ask agent still works) but not editable.
+  editable?: boolean;
   ariaLabel: string;
 }) {
   const { lang } = useApp();
@@ -434,7 +533,6 @@ export function RichTextEditor({
         blockquote: false,
         codeBlock: false,
         code: false,
-        strike: false,
         horizontalRule: false,
         link: false,
         underline: false,
@@ -442,6 +540,7 @@ export function RichTextEditor({
       CitationChip,
     ],
     content: textToDoc(value),
+    editable,
     editorProps: {
       attributes: {
         class: "hub-doc-editor",
@@ -496,6 +595,16 @@ export function RichTextEditor({
     };
   }, [editor]);
 
+  // Toggle between reading view and edit mode without recreating the editor.
+  React.useEffect(() => {
+    if (!editor) return;
+    editor.setEditable(editable);
+    if (!editable) {
+      focusCtxRef.current?.release(editor);
+      setToolbar(null);
+    }
+  }, [editable, editor]);
+
   // Sync external changes (refine result, opening another draft) into the editor
   // without clobbering the caret during the user's own typing.
   React.useEffect(() => {
@@ -524,7 +633,7 @@ export function RichTextEditor({
       style={{ position: "relative" }}
     >
       <EditorContent editor={editor} />
-      {toolbar && !editor.state.selection.empty && (
+      {toolbar && !editor.state.selection.empty && (editable || askSelectionRef.current) && (
         <div
           style={{
             position: "absolute",
@@ -541,51 +650,57 @@ export function RichTextEditor({
             boxShadow: "0 4px 16px rgba(0, 0, 0, 0.12)",
           }}
         >
-          <ToolbarButton
-            label={t.bold}
-            active={editor.isActive("bold")}
-            onPress={() => editor.chain().focus().toggleBold().run()}
-          >
-            <span style={{ fontWeight: 700 }}>B</span>
-          </ToolbarButton>
-          <ToolbarButton
-            label={t.italic}
-            active={editor.isActive("italic")}
-            onPress={() => editor.chain().focus().toggleItalic().run()}
-          >
-            <span style={{ fontStyle: "italic" }}>I</span>
-          </ToolbarButton>
-          <ToolbarButton
-            label={t.heading}
-            active={editor.isActive("heading", { level: 2 })}
-            onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          >
-            <span style={{ fontWeight: 700 }}>H2</span>
-          </ToolbarButton>
-          <ToolbarButton
-            label={t.subheading}
-            active={editor.isActive("heading", { level: 3 })}
-            onPress={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          >
-            <span style={{ fontWeight: 700 }}>H3</span>
-          </ToolbarButton>
-          <ToolbarButton
-            label={t.bulletList}
-            active={editor.isActive("bulletList")}
-            onPress={() => editor.chain().focus().toggleBulletList().run()}
-          >
-            <span>&bull; {t.listLabel}</span>
-          </ToolbarButton>
+          {editable && (
+            <>
+              <ToolbarButton
+                label={t.bold}
+                active={editor.isActive("bold")}
+                onPress={() => editor.chain().focus().toggleBold().run()}
+              >
+                <span style={{ fontWeight: 700 }}>B</span>
+              </ToolbarButton>
+              <ToolbarButton
+                label={t.italic}
+                active={editor.isActive("italic")}
+                onPress={() => editor.chain().focus().toggleItalic().run()}
+              >
+                <span style={{ fontStyle: "italic" }}>I</span>
+              </ToolbarButton>
+              <ToolbarButton
+                label={t.heading}
+                active={editor.isActive("heading", { level: 2 })}
+                onPress={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              >
+                <span style={{ fontWeight: 700 }}>H2</span>
+              </ToolbarButton>
+              <ToolbarButton
+                label={t.subheading}
+                active={editor.isActive("heading", { level: 3 })}
+                onPress={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+              >
+                <span style={{ fontWeight: 700 }}>H3</span>
+              </ToolbarButton>
+              <ToolbarButton
+                label={t.bulletList}
+                active={editor.isActive("bulletList")}
+                onPress={() => editor.chain().focus().toggleBulletList().run()}
+              >
+                <span>&bull; {t.listLabel}</span>
+              </ToolbarButton>
+            </>
+          )}
           {askSelectionRef.current && (
             <>
-              <div
-                style={{
-                  width: 1,
-                  alignSelf: "stretch",
-                  backgroundColor: skinVars.colors.divider,
-                  margin: "0 2px",
-                }}
-              />
+              {editable && (
+                <div
+                  style={{
+                    width: 1,
+                    alignSelf: "stretch",
+                    backgroundColor: skinVars.colors.divider,
+                    margin: "0 2px",
+                  }}
+                />
+              )}
               <ToolbarButton
                 label={t.askAgentTooltip}
                 onPress={() => {

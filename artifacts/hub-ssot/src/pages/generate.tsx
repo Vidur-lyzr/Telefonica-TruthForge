@@ -54,6 +54,7 @@ import { useApp } from "@/components/app-provider";
 import { GENERATE_I18N } from "@/i18n/generate";
 import { localeFor } from "@/i18n/planning";
 import { RichTextEditor, EditorFocusProvider, DocumentToolbar } from "@/components/document-editor";
+import { DOCUMENT_EDITOR_I18N } from "@/i18n/document-editor";
 import {
   Box,
   Stack,
@@ -435,11 +436,13 @@ function SectionBlock({
   onChange,
   onOpenCitationId,
   onAskSelection,
+  editable = true,
 }: {
   section: DraftSection;
   onChange: (body: string) => void;
   onOpenCitationId: (id: string) => void;
   onAskSelection: (passage: string) => void;
+  editable?: boolean;
 }) {
   const { lang } = useApp();
   const te = GENERATE_I18N[lang].editor;
@@ -458,6 +461,7 @@ function SectionBlock({
         onChange={onChange}
         onOpenCitation={onOpenCitationId}
         onAskSelection={onAskSelection}
+        editable={editable}
         ariaLabel={te.sectionBodyAria(section.heading)}
       />
     </Stack>
@@ -474,18 +478,21 @@ function HoverBlock({
   section,
   active,
   onEdit,
+  enabled = true,
   children,
 }: {
   section: DraftSection;
   active: boolean;
   onEdit: () => void;
+  // Reading view: no hover outline or EDIT affordance.
+  enabled?: boolean;
   children: React.ReactNode;
 }) {
   const { lang } = useApp();
   const tc = GENERATE_I18N[lang].editor.canvas;
   const [hovered, setHovered] = React.useState(false);
   const locked = LOCKED_BLOCK_KINDS.has(section.kind);
-  const outlined = hovered || active;
+  const outlined = enabled && (hovered || active);
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -916,6 +923,7 @@ function QaBlock({
   onNotesChange,
   onOpenCitation,
   onAskSelection,
+  editable = true,
 }: {
   section: DraftSection;
   citations: Citation[];
@@ -924,6 +932,7 @@ function QaBlock({
   onNotesChange: (notes: QaNote[]) => void;
   onOpenCitation: (c: Citation) => void;
   onAskSelection: (passage: string) => void;
+  editable?: boolean;
 }) {
   const { lang } = useApp();
   const te = GENERATE_I18N[lang].editor;
@@ -992,6 +1001,7 @@ function QaBlock({
                   if (cit) onOpenCitation(cit);
                 }}
                 onAskSelection={onAskSelection}
+                editable={editable}
                 ariaLabel={te.answerAria(item.question)}
               />
               {answerCitations.length > 0 ? (
@@ -1022,7 +1032,7 @@ function QaBlock({
                   </Text1>
                 </Inline>
               )}
-              {editing ? (
+              {editable && editing ? (
                 <Stack space={8}>
                   <TextField
                     name={`qaNote-${idx}`}
@@ -1065,23 +1075,25 @@ function QaBlock({
                     <Text2 regular color={c.textPrimary}>
                       {note.note}
                     </Text2>
-                    <Inline space={8}>
-                      <ButtonLink
-                        small
-                        onPress={() => {
-                          setEditingKey(key);
-                          setNoteText(note.note);
-                        }}
-                      >
-                        {te.editNote}
-                      </ButtonLink>
-                      <ButtonLink small onPress={() => removeNote(item.question)}>
-                        {te.remove}
-                      </ButtonLink>
-                    </Inline>
+                    {editable && (
+                      <Inline space={8}>
+                        <ButtonLink
+                          small
+                          onPress={() => {
+                            setEditingKey(key);
+                            setNoteText(note.note);
+                          }}
+                        >
+                          {te.editNote}
+                        </ButtonLink>
+                        <ButtonLink small onPress={() => removeNote(item.question)}>
+                          {te.remove}
+                        </ButtonLink>
+                      </Inline>
+                    )}
                   </Stack>
                 </div>
-              ) : (
+              ) : editable ? (
                 <Inline space={8}>
                   <ButtonLink
                     small
@@ -1094,7 +1106,7 @@ function QaBlock({
                     {te.addInternalNote}
                   </ButtonLink>
                 </Inline>
-              )}
+              ) : null}
             </Stack>
           </div>
         );
@@ -1127,6 +1139,10 @@ function DocumentCanvas({
 }) {
   const { lang } = useApp();
   const te = GENERATE_I18N[lang].editor;
+  const tde = DOCUMENT_EDITOR_I18N[lang];
+  // Reading view by default; the Edit toggle switches the whole document
+  // into full editing format (toolbar, live editors, table inputs).
+  const [editMode, setEditMode] = React.useState(false);
   const externalStripped = draft.audience === "external";
   const visibleSections = externalStripped
     ? draft.sections.filter((s) => !s.internalOnly)
@@ -1144,17 +1160,40 @@ function DocumentCanvas({
           <Box padding={32}>
             <Stack space={32}>
               <Stack space={12}>
-                <Inline space={8} alignItems="center" wrap>
-                  <Tag type="promo">{GENERATE_I18N[lang].form.shapes[draft.shape as Shape]?.name ?? draft.shape}</Tag>
-                  <Tag type={draft.audience === "external" ? "success" : "info"}>{te.audience[draft.audience] ?? draft.audience}</Tag>
-                  <Tag type="inactive">{draft.confidentiality}</Tag>
-                  <Tag type="inactive">{draft.language}</Tag>
-                </Inline>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Inline space={8} alignItems="center" wrap>
+                    <Tag type="promo">{GENERATE_I18N[lang].form.shapes[draft.shape as Shape]?.name ?? draft.shape}</Tag>
+                    <Tag type={draft.audience === "external" ? "success" : "info"}>{te.audience[draft.audience] ?? draft.audience}</Tag>
+                    <Tag type="inactive">{draft.confidentiality}</Tag>
+                    <Tag type="inactive">{draft.language}</Tag>
+                  </Inline>
+                  {editMode ? (
+                    <ButtonPrimary small onPress={() => setEditMode(false)}>
+                      {tde.doneEditing}
+                    </ButtonPrimary>
+                  ) : (
+                    <ButtonSecondary
+                      small
+                      onPress={() => setEditMode(true)}
+                      StartIcon={IconEditPencilRegular}
+                    >
+                      {tde.editDocument}
+                    </ButtonSecondary>
+                  )}
+                </div>
                 <Title2>{draft.title}</Title2>
                 <Divider />
               </Stack>
 
-              <DocumentToolbar />
+              {editMode && <DocumentToolbar />}
 
             {draft.historic && (
               <div
@@ -1224,6 +1263,7 @@ function DocumentCanvas({
                       onOpenCitation={openCitationById}
                       onAskSelection={onAskSelection}
                       inverse
+                      editable={editMode}
                       ariaLabel={te.umbrellaMessage}
                     />
                   </div>
@@ -1238,6 +1278,7 @@ function DocumentCanvas({
                   section={s}
                   active={editingSectionId === s.id}
                   onEdit={() => onEditBlock(s.id)}
+                  enabled={editMode}
                 >
                   {s.kind === "qa" && parseQaBody(s.body).length > 0 ? (
                     <QaBlock
@@ -1248,6 +1289,7 @@ function DocumentCanvas({
                       onNotesChange={onQaNotesChange}
                       onOpenCitation={onOpenCitation}
                       onAskSelection={onAskSelection}
+                      editable={editMode}
                     />
                   ) : (
                     <SectionBlock
@@ -1255,6 +1297,7 @@ function DocumentCanvas({
                       onChange={(body) => onSectionChange(s.id, body)}
                       onOpenCitationId={openCitationById}
                       onAskSelection={onAskSelection}
+                      editable={editMode}
                     />
                   )}
                 </HoverBlock>
@@ -1275,7 +1318,9 @@ function DocumentCanvas({
                   <DraftTable
                     key={t.id}
                     table={t}
-                    onCellChange={(ri, ci, v) => onTableChange(t.id, ri, ci, v)}
+                    onCellChange={
+                      editMode ? (ri, ci, v) => onTableChange(t.id, ri, ci, v) : undefined
+                    }
                   />
                 ))}
               </Stack>
