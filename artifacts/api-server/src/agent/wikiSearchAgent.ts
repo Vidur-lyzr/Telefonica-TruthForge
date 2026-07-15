@@ -651,8 +651,15 @@ async function doCompile(
   role: Role,
   log: Logger,
   emit?: WikiEmit,
-  _signal?: AbortSignal,
+  signal?: AbortSignal,
 ): Promise<WikiSearchResult> {
+  // Client disconnects must stop the expensive compile and, critically,
+  // must never persist a page for a request nobody is waiting on.
+  const throwIfAborted = () => {
+    if (signal?.aborted) {
+      throw Object.assign(new Error("wiki compile aborted"), { name: "AbortError" });
+    }
+  };
   // Governed retrieval: the question alone (never chat wording — coverage
   // dilution), the persona's clearance and area as must-filters.
   emit?.({
@@ -770,6 +777,7 @@ async function doCompile(
 
   let parsed: z.infer<typeof compiledJsonSchema> | null = null;
   for (let attempt = 0; attempt < 2 && !parsed; attempt += 1) {
+    throwIfAborted();
     try {
       const message = await meteredCreate("wiki", {
         model: MODEL,
@@ -856,6 +864,7 @@ async function doCompile(
     }
   }
 
+  throwIfAborted();
   let page: CompiledPage;
   if (existingPage) {
     // Filed earlier (or by a concurrent compile under this same scope) —
