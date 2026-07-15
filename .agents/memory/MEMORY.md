@@ -33,3 +33,4 @@
 - [Ask document-request routing](ask-docmode-routing.md) — downloadable-doc turns need their own router intent and the router-resolved topic, not the raw question.
 - [Stale codegen after merges](post-merge-stale-codegen.md) — a merged task changing openapi.yaml can leave generated hooks stale; missing-export typecheck errors mean re-run api-spec codegen.
 - [PDF export tooling](pdf-export-tooling.md) — no headless browser; use pdfkit via createRequire; keep pdfkit margins.bottom tiny when paginating manually or footers spawn blank pages.
+- [Section-body sanitiser](section-body-sanitiser.md) — LLM bodies need prompt + server sanitiser + client pre-pass; grouped-pipe-row detection pitfalls (dash dividers, lone prose pipes, negative numbers).

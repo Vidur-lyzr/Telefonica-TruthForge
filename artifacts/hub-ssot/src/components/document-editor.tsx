@@ -71,8 +71,52 @@ function parseInline(line: string): InlineNode[] {
   return out;
 }
 
+// Defensive pre-pass for legacy bodies that predate the server-side
+// sanitiser: drops code fences and horizontal rules, and converts grouped
+// pipe-table rows into bullets. Lone pipe lines are left as prose.
+function preprocessLines(text: string): string[] {
+  const out: string[] = [];
+  let pipeRows: string[] = [];
+  let sawSeparator = false;
+  const flushPipeBlock = () => {
+    if (pipeRows.length === 0) return;
+    if (pipeRows.length < 2 && !sawSeparator) {
+      out.push(...pipeRows);
+    } else {
+      for (const row of pipeRows) {
+        const cells = row
+          .replace(/^\s*\|/, "")
+          .replace(/\|\s*$/, "")
+          .split("|")
+          .map((cell) => cell.replace(/^[\s•·]+/, "").replace(/^-\s+/, "").trim())
+          .filter((cell) => cell.length > 0);
+        if (cells.length === 0) continue;
+        out.push(`- ${cells.length === 1 ? cells[0] : `**${cells[0]}** — ${cells.slice(1).join(" · ")}`}`);
+      }
+    }
+    pipeRows = [];
+    sawSeparator = false;
+  };
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (/^`{3,}/.test(trimmed) || /^(-{3,}|_{3,}|\*{3,})$/.test(trimmed)) continue;
+    if (trimmed.includes("|") && /^[\s|:\-–—]+$/.test(trimmed)) {
+      if (pipeRows.length > 0) sawSeparator = true;
+      continue;
+    }
+    if (/(^\|)|(\|$)|( \| )/.test(trimmed) && trimmed !== "|") {
+      pipeRows.push(trimmed);
+      continue;
+    }
+    flushPipeBlock();
+    out.push(line);
+  }
+  flushPipeBlock();
+  return out;
+}
+
 export function textToDoc(text: string): JSONContent {
-  const lines = text.split("\n");
+  const lines = preprocessLines(text);
   const content: JSONContent[] = [];
   let bullets: JSONContent[] | null = null;
   const flushBullets = () => {

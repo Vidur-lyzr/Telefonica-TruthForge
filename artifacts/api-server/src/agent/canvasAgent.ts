@@ -34,6 +34,7 @@ import {
 } from "../data/corpus";
 import { getTemplate, DISCLAIMERS } from "../data/assets";
 import { runBrandGuardian, checkBrandText } from "./brandGuardian";
+import { sanitizeSectionBody } from "./bodyText";
 import type {
   GeneratedDraft,
   DraftSection,
@@ -263,6 +264,7 @@ export async function editCanvasBlock(
     "Every factual claim must carry a source marker like [S1]. You may only use markers listed as existing citations or provided as numbered sources. Never invent a marker, figure, quote or fact.",
     "If the instruction asks for material none of the provided sources support, do NOT fabricate: return the block unchanged and explain honestly in the note field what could not be done and why.",
     "Voice: clear, human, confident. Sentence case. No emoji. No unapproved superlatives ('European leader', 'the largest', 'number one').",
+    "The body is plain prose with optional '-' bullet lists, **bold** and *italic*. NEVER draw charts or tables in text: no ASCII art, no pipe '|' column layouts, no markdown tables, no fenced code blocks (```), no horizontal rules.",
     `Write in the same language as the current block (document language: ${draft.language}).`,
     "Return ONLY a single JSON object: { \"body\": string, \"note\": string | null }.",
   ].join(" ");
@@ -342,6 +344,7 @@ Rewrite ONLY this block. Return JSON: { "body": string, "note": string | null }`
     .replace(/\s+([.,;:])/g, "$1")
     .replace(/[ \t]{2,}/g, " ")
     .trim();
+  newBody = sanitizeSectionBody(newBody);
 
   if (!newBody || newBody === section.body.trim()) {
     finalizeRetrievalAudit(auditId, "edit_no_change");

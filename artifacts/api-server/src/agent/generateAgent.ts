@@ -36,6 +36,7 @@ import {
 } from "../data/assets";
 import { runBrandGuardian } from "./brandGuardian";
 import { parseQaBody, serializeQaPairs, normalizeQuestion } from "./qa";
+import { sanitizeSectionBody } from "./bodyText";
 
 const MODEL = "claude-sonnet-4-6";
 const COVERAGE_MIN = 0.33;
@@ -862,6 +863,7 @@ async function compose(
     "Only cite markers that were provided. If a section cannot be supported by a source, write a brief honest note instead of a fabricated claim.",
     "The umbrella message, when present, must also end with at least one source marker.",
     "Voice: clear, human, confident. Sentence case for headings. No jargon. Never use emoji. No unapproved superlatives (e.g. 'European leader', 'the largest', 'number one', 'best network in the world').",
+    "Section bodies are plain prose with optional '-' bullet lists, **bold** and *italic*. NEVER draw charts or tables in text: no ASCII art, no pipe '|' column layouts, no markdown tables, no fenced code blocks (```), no horizontal rules ('---'). Numeric charts and data tables are attached separately by the engine — if figures merit a visual, present them as a bullet list instead.",
     "Spokesperson notes and any internal-only guidance draw on the internal guidance sources [G#]; these support the drafter and must never be phrased as external-facing copy.",
     `Write the document in ${languageName(language)}.`,
     "Return ONLY a single JSON object, no prose around it.",
@@ -983,7 +985,7 @@ ${jsonShape}${refineBlock}`;
       .trim();
 
   const sections: DraftSection[] = rawSections.map((s) => {
-    const body = rewriteMarkers(s.body ?? "");
+    const body = sanitizeSectionBody(rewriteMarkers(s.body ?? ""));
     const citationIds = [...new Set([...body.matchAll(/S\s*(\d+)/gi)].map((m) => `S${Number(m[1])}`))];
     return {
       id: newId("sec"),

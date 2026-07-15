@@ -97,6 +97,7 @@ import {
   IconBarChartRegular,
   IconBookmarkRegular,
   IconEditPencilRegular,
+  IconCloseRegular,
   IconRefreshRegular,
   IconSearchRegular,
   IconPenRegular,
@@ -584,6 +585,7 @@ function BlockEditPanel({
   onClose,
   onDraftUpdated,
   onLocalSave,
+  onOpenCitationId,
 }: {
   draft: GeneratedDraft;
   section: DraftSection;
@@ -591,6 +593,7 @@ function BlockEditPanel({
   onClose: () => void;
   onDraftUpdated: (draft: GeneratedDraft) => void;
   onLocalSave: (body: string) => void;
+  onOpenCitationId: (id: string) => void;
 }) {
   const { lang } = useApp();
   const t = GENERATE_I18N[lang];
@@ -658,24 +661,44 @@ function BlockEditPanel({
   return (
     <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
       <Stack space={16}>
-        <Inline space={8} alignItems="center">
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <IconEditPencilRegular size={16} color={c.brand} />
-          <Text2 medium color={c.textPrimary}>
-            {tc.blockPanelContext}
-          </Text2>
-        </Inline>
+          <div style={{ flex: 1 }}>
+            <Text2 medium color={c.textPrimary}>
+              {tc.blockPanelContext}
+            </Text2>
+          </div>
+          <IconButton
+            aria-label={tc.backToDocument}
+            onPress={onClose}
+            Icon={IconCloseRegular}
+            small
+          />
+        </div>
         <Inline space={8} alignItems="center" wrap>
           <Tag type="active">{tc.blockTypeLabels[section.kind] ?? section.kind}</Tag>
           <Tag type="promo">{shapeName.toUpperCase()}</Tag>
         </Inline>
-        <TextField
-          name="blockContent"
-          label={tc.contentLabel}
-          value={body}
-          onChangeValue={setBody}
-          multiline
-          fullWidth
-        />
+        <Stack space={8}>
+          <Text1 medium color={c.textSecondary}>
+            {tc.contentLabel}
+          </Text1>
+          <div
+            style={{
+              backgroundColor: c.background,
+              border: `1px solid ${c.divider}`,
+              borderRadius: skinVars.borderRadii.container,
+              padding: "4px 12px",
+            }}
+          >
+            <RichTextEditor
+              value={body}
+              onChange={setBody}
+              onOpenCitation={onOpenCitationId}
+              ariaLabel={tc.contentLabel}
+            />
+          </div>
+        </Stack>
         <Inline space={8}>
           <ButtonSecondary small onPress={() => setBody(section.body)} disabled={!dirty}>
             {tc.reset}
@@ -2871,6 +2894,10 @@ export default function Generate() {
                   onClose={() => setEditingSectionId(null)}
                   onDraftUpdated={setDraft}
                   onLocalSave={(body) => updateSection(editingSectionId, body)}
+                  onOpenCitationId={(id) => {
+                    const cit = draft.citations.find((x) => x.id === id);
+                    if (cit) setSelectedCitation(cit);
+                  }}
                 />
               ) : (
               <>
