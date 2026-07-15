@@ -24,6 +24,7 @@ import {
   Divider,
   Circle,
   Tag,
+  ThemeVariant,
   Callout,
   ProgressBar,
   Table,
@@ -409,6 +410,7 @@ export default function GovernanceArea() {
 
   return (
     <Stack space={24}>
+      <ThemeVariant variant="brand">
       <div
         style={{
           backgroundColor: skinVars.colors.navigationBarBackground,
@@ -454,6 +456,7 @@ export default function GovernanceArea() {
           </Stack>
         </Box>
       </div>
+      </ThemeVariant>
 
       {lastApplied && (
         <Callout
