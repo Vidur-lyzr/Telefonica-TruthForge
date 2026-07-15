@@ -5,7 +5,7 @@ generated = []
 id = "jA1xJ6-BFDcBRGTTP4xXm"
 uri = "file://docs/RAG_COVERAGE.md"
 type = "text"
-title = "RAG Requirements Coverage — PC2–PC5"
+title = "RAG requirement coverage matrix"
 
 [[outputs]]
 id = "4UcPGHKjUt0PeABKxrKQe"
@@ -41,4 +41,4 @@ title = "Hub SSoT — Governed-RAG Solution (PDF)"
 id = "ShbEM1DmttpRcfy4hs8M5"
 uri = "file://docs/GOVERNED_RAG_SOLUTION.md"
 type = "text"
-title = "Governed-RAG Solution Document (Markdown)"
+title = "Governed RAG — architecture & live verification"

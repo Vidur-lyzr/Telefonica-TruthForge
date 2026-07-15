@@ -19,7 +19,7 @@
 //    before/after content.
 
 import { meteredCreate } from "./metering";
-import { retrieve, resolveDoc } from "../adapters/kb";
+import { retrieveGoverned, resolveDoc } from "../adapters/kb";
 import {
   beginRetrievalAudit,
   finalizeRetrievalAudit,
@@ -194,10 +194,12 @@ export async function editCanvasBlock(
   // and are then capped to the destination rank before anything reaches the
   // model — identical to the Generate dual filter.
   const contextQuery = [draft.params.topic, section.heading].filter(Boolean).join(" ");
-  const passes = [
-    retrieve({ question: contextQuery, clearance, topK: 8, audit: { id: auditId } }),
-    retrieve({ question: instruction, clearance, topK: 6, audit: { id: auditId } }),
-  ];
+  const passes = (
+    await Promise.all([
+      retrieveGoverned({ question: contextQuery, clearance, topK: 8, audit: { id: auditId } }),
+      retrieveGoverned({ question: instruction, clearance, topK: 6, audit: { id: auditId } }),
+    ])
+  ).map((r) => r.chunks);
   const seen = new Set<string>();
   const relevant = passes
     .flat()

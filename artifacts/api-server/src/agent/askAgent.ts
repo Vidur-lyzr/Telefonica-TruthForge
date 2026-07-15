@@ -17,7 +17,6 @@
 import { meteredCreate } from "./metering";
 import { recordUsage, estimateTokens } from "../data/usageMeter";
 import {
-  retrieve,
   retrieveGoverned,
   resolveDoc,
   type RetrieveFilters,
@@ -1463,14 +1462,22 @@ function buildGovernedTools(
         required: ["query"],
       },
       async (args: { query: string }) => {
-        const hits = retrieve({
-          question: String(args.query ?? ""),
-          clearance,
-          area,
-          topK: 4,
-          filters,
-          audit: auditId ? { id: auditId } : null,
-        }).filter((c) => c.accessible);
+        let hits: Awaited<ReturnType<typeof retrieveGoverned>>["chunks"];
+        try {
+          const res = await retrieveGoverned({
+            question: String(args.query ?? ""),
+            clearance,
+            area,
+            topK: 4,
+            filters,
+            audit: auditId ? { id: auditId } : null,
+          });
+          hits = res.chunks.filter((c) => c.accessible);
+        } catch {
+          // Fail honestly, never silently degrade: the model is told the tool
+          // is unavailable instead of receiving ungoverned or partial results.
+          return "Governed retrieval is temporarily unavailable. Answer only from the sources already provided; do not guess.";
+        }
         if (hits.length === 0) {
           return "No accessible governed passages match this query.";
         }

@@ -1,6 +1,12 @@
 ---
 name: track-goal
 description: A KPI, objective, or target question — "how is X doing", "why is X moving", "are we on target". Reads the governed numeric zone and explains drivers with citations.
+confidence: 0.95
+usage_count: 1
+success_count: 0
+failure_count: 1
+negative_examples:
+  - Target figure not present in governed sources — gap to target could not be quantified; partial answer delivered with honest state
 ---
 
 # SKILL: track-goal

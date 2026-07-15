@@ -13,7 +13,7 @@
 //    permission_blocked state WITHOUT calling the model. We never fabricate.
 
 import { meteredCreate } from "./metering";
-import { retrieve, resolveDoc, chunksForDoc } from "../adapters/kb";
+import { retrieveGoverned, resolveDoc, chunksForDoc } from "../adapters/kb";
 import {
   beginRetrievalAudit,
   finalizeRetrievalAudit,
@@ -518,22 +518,26 @@ async function compose(
   // relevant sources the dual filter excluded. Nothing above the effective
   // (dual-filtered) rank ever reaches the model: permitted is re-capped below.
   onStage?.("retrieving");
-  const retrieved = retrieve({
-    question: retrievalQuery,
-    clearance,
-    topK: 12,
-    audit: { id: auditId },
-  });
+  const retrieved = (
+    await retrieveGoverned({
+      question: retrievalQuery,
+      clearance,
+      topK: 12,
+      audit: { id: auditId },
+    })
+  ).chunks;
   if (askQueryText && askQueryText !== input.topic) {
     // Ask handoff: also retrieve for the original question itself (its own
     // coverage-gated pass, never folded into the main query — coverage is a
     // ratio, so mixing two texts would dilute both).
-    const extra = retrieve({
-      question: askQueryText,
-      clearance,
-      topK: 8,
-      audit: { id: auditId },
-    });
+    const extra = (
+      await retrieveGoverned({
+        question: askQueryText,
+        clearance,
+        topK: 8,
+        audit: { id: auditId },
+      })
+    ).chunks;
     const seen = new Set(retrieved.map((c) => c.chunkId));
     for (const c of extra) {
       if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
@@ -548,13 +552,19 @@ async function compose(
     // so mixing texts starves all of them). This is what makes the sources
     // behind the panel citeable [S#] evidence in the report body.
     const seen = new Set(retrieved.map((c) => c.chunkId));
-    for (const k of kpiCards.slice(0, 10)) {
-      const extra = retrieve({
-        question: k.name,
-        clearance,
-        topK: 3,
-        audit: { id: auditId },
-      });
+    const kpiSlice = kpiCards.slice(0, 10);
+    const kpiRetrievals = await Promise.all(
+      kpiSlice.map((k) =>
+        retrieveGoverned({
+          question: k.name,
+          clearance,
+          topK: 3,
+          audit: { id: auditId },
+        }),
+      ),
+    );
+    for (const [ki, k] of kpiSlice.entries()) {
+      const extra = kpiRetrievals[ki]?.chunks ?? [];
       for (const c of extra) {
         if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
           seen.add(c.chunkId);
@@ -581,12 +591,14 @@ async function compose(
     // Refine: also retrieve for the instruction itself (e.g. "add the dividend
     // figure") so newly requested material can enter, judged by its own
     // coverage against the instruction query alone.
-    const extra = retrieve({
-      question: instruction,
-      clearance,
-      topK: 6,
-      audit: { id: auditId },
-    });
+    const extra = (
+      await retrieveGoverned({
+        question: instruction,
+        clearance,
+        topK: 6,
+        audit: { id: auditId },
+      })
+    ).chunks;
     const seen = new Set(retrieved.map((c) => c.chunkId));
     for (const c of extra) {
       if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
@@ -810,12 +822,14 @@ async function compose(
     // persona clearance: for an external audience this caps guidance to public
     // material so no confidential / internal / off-the-record chunk can reach
     // the model prompt, even indirectly via spokesperson notes.
-    const gRetrieved = retrieve({
-      question: `${retrievalQuery} spokesperson holding line do not confirm guidance`,
-      clearance: bodyClearance,
-      topK: 8,
-      audit: { id: auditId },
-    });
+    const gRetrieved = (
+      await retrieveGoverned({
+        question: `${retrievalQuery} spokesperson holding line do not confirm guidance`,
+        clearance: bodyClearance,
+        topK: 8,
+        audit: { id: auditId },
+      })
+    ).chunks;
     guidanceChunks = gRetrieved
       .filter((c) => c.accessible)
       .filter((c) => GUIDANCE_TYPES.has(resolveDoc(c.docId)?.type ?? ""))

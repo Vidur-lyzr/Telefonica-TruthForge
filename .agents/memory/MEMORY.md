@@ -24,6 +24,7 @@
 - [Lazy schedule runs](lazy-schedule-runs.md) — no-daemon recurring runs: mark-run-before-compose on lazy reads, compose-before-persist on create, 400 on unknown roleId (never fallback).
 - [Q&A internal notes keying](qa-notes-keying.md) — notes keyed by normalized question (survive refine), excluded from content hash, stripped server-side for external exports.
 - [Corpus parallel authoring](corpus-parallel-authoring.md) — unique id prefixes + shared brief let parallel authors scale the corpus collision-free; .gitagent state self-mutates.
+- [Qdrant seed parity](qdrant-seed-parity.md) — index staleness after corpus growth is silent (queries still work over a subset); verify points_count == chunk count, and agents must only use retrieveGoverned.
 - [DOCX fixed table widths](docx-fixed-table-widths.md) — percentage-only docx tables collapse in non-Word viewers; always FIXED layout + DXA widths on grid and every cell.
 - [Guardian template disclaimers](guardian-template-disclaimers.md) — every GeneratedDraft compose path must attach template-required disclaimers or drafts are permanently unapprovable.
 - [Q&A body parsing](qa-body-parsing.md) — model output often omits "A:" prefixes; intolerant parsers silently drop provenance/notes. Marker renumbering must cover headings, not just bodies.

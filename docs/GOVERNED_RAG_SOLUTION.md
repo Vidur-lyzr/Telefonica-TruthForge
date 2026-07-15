@@ -26,7 +26,7 @@ A conventional RAG pipeline fails all three: it filters (if at all) after retrie
 The demo is a pnpm monorepo with a contract-first API:
 
 - **Governed corpus** — a synthetic but fully governed Telefónica corpus: internal (A), external (B) and SSoT-generated (E) documents, each carrying country, brand, legal entity, period, type, confidentiality (`public` / `private` / `confidential` / `off_the_record`), owner, validity (`approved` / `historic` / `review` / `superseded`) and area scope (Comunicación, Marca, Gabinete). External sources carry a pre-ingest filter record (keywords, competitors, executives, topics, sentiment) — filtered before ingestion, never a raw dump.
-- **Vector index** — hybrid retrieval (dense semantic vectors + sparse BM25 from one shared multilingual tokenizer) with all governance labels stored as point payload. Runtime-ingested documents persist their full governed payload, so a restart rebuilds the corpus from the index.
+- **Vector index — Qdrant Cloud** — a real managed Qdrant collection (`hub_ssot_chunks`) holding one point per chunk: a 384-dimension dense semantic vector (all-MiniLM-L6-v2, embedded server-side by Qdrant Cloud Inference at upsert) plus a sparse BM25 vector from one shared multilingual tokenizer, fused at query time with Reciprocal Rank Fusion. All governance labels are stored as point payload. Runtime-ingested documents persist their full governed payload, so a restart rebuilds the live corpus from the index.
 - **One access resolver** — a single `area × clearance` intersection rule (`resolveDocAccess`) that every retrieval path, side channel, downstream flow and export gate must use. Clearance is checked first, then area scope.
 - **Agents** — Ask (governed Q&A), Generate (governed content creation), Brand Guardian (two-pass review), KPI chat (governed figures), a schedule runner (recurring drafts with human approval) and an export service (final server-side gates). Composition uses Claude behind Lyzr-named adapter interfaces (`kb`, `kg`, `numeric`, `text`), so a real Lyzr backend can be swapped in without touching the agents or routes.
 - **Audit** — every retrieval, on every surface, is logged with the persona, the filters applied, every hit and its access decision, and the final outcome.
@@ -43,7 +43,7 @@ A question travels through six ordered stages. The first four are deterministic 
 
 **Stage 1 — Identity first.** The persona's `roleId` resolves to an area and a clearance level — the user axis. A retrieval audit entry is opened before any data is touched. Permissions are re-resolved on every conversation turn, and conversation memory is persona-scoped: history is filtered by the current role so a lower-clearance persona can never inherit a higher-clearance turn.
 
-**Stage 2 — Governed retrieval.** The query runs as a hybrid search (dense + sparse, reciprocal-rank fusion) with the persona's clearance and area injected as **must-filters inside the query itself**. This is early binding as PC2 defines it: the governance filter *is* the search, not a post-filter applied by an agent. A separate blocked-side probe returns **ids only** — used solely to distinguish "nothing exists" from "something exists that you cannot see", never to fetch snippets — and a live-label re-check on those ids fails closed.
+**Stage 2 — Governed retrieval.** The query runs against Qdrant as a hybrid search (dense + sparse, reciprocal-rank fusion) with the persona's clearance and area injected as **must-filters inside the query itself**. This is early binding as PC2 defines it: the governance filter *is* the search, not a post-filter applied by an agent. A separate blocked-side probe returns **ids only** — used solely to distinguish "nothing exists" from "something exists that you cannot see", never to fetch snippets — and a live-label re-check on those ids fails closed.
 
 **Stage 3 — Relevance by coverage, not raw score.** A chunk only counts as relevant if it covers at least 33% of the query's idf mass (`COVERAGE_MIN`). This is a deliberate departure from absolute BM25 thresholds: generic brand words ("Telefónica") or stray verbs ("strategy") carry little idf mass, so they cannot make an unrelated public document look like an answer. The gate is what makes `no_evidence` trustworthy.
 
@@ -142,7 +142,7 @@ The index is shaped by one requirement: governance and taxonomy must live entire
 
 1. **Governed documents** carry the full mandatory metadata (section 2). External (B) documents additionally record what the pre-ingest filter matched.
 2. **Chunks** carry a heading and a breadcrumb back to the exact location in the source (document › section › slide), so every citation points to a real place a human can verify.
-3. **Embeddings are computed once.** Each chunk gets a dense semantic vector and a sparse BM25 vector from the same multilingual tokenizer (accent folding first, then a curated EN/ES/DE/PT synonym map). The vectors encode only the text — no tags, no labels.
+3. **Embeddings are computed once.** Each chunk gets a dense semantic vector (all-MiniLM-L6-v2, computed by Qdrant Cloud Inference at upsert) and a sparse BM25 vector from the same multilingual tokenizer (accent folding first, then a curated EN/ES/DE/PT synonym map). The vectors encode only the text — no tags, no labels.
 4. **Payload tags are applied after embedding**: confidentiality, area scope, `axisIds`, topics, validity and the taxonomy version. These payload fields are exactly what the early-binding query filters match on.
 5. **Every subsequent change is a payload update.** A sensitivity-label change or a strategy re-tag is `set_payload` on existing points; vectors are never recomputed. Live-ingested documents persist their full governed payload in the index, so a restart hydrates the corpus from it.
 
@@ -152,7 +152,7 @@ This is the structural reason the taxonomy promise holds: because the vectors ne
 
 ## 9. Auditability
 
-Every retrieval, on every surface (Ask, Generate, KPI chat), writes an audit entry containing the surface, persona (`roleId`, label, clearance, area), the query, the exact filter expression applied, every hit with its score and access decision, and the final status. Entries are persisted to disk with a debounced writer and are queryable by document or persona — so a governance owner can answer both "who retrieved this document?" and "what did this persona see?" after the fact. The entry is opened **before** retrieval and finalised with the outcome, so even refused turns leave a trace.
+Every text retrieval, on every surface that retrieves text (Ask, Generate, the live draft editor), writes an audit entry containing the surface, persona (`roleId`, label, clearance, area), the query, the engine that served it (`qdrant`), the exact filter expression applied, every hit with its score and access decision, and the final status. KPI chat performs no text retrieval — it reads the governed numeric zone, access-checked through the same shared resolver. Entries are persisted to disk with a debounced writer and are queryable by document or persona — so a governance owner can answer both "who retrieved this document?" and "what did this persona see?" after the fact. The entry is opened **before** retrieval and finalised with the outcome, so even refused turns leave a trace.
 
 ---
 
@@ -166,10 +166,44 @@ The demo is honest about its own boundaries:
 | The full honesty-state decision pipeline, pre-model | Purview/MIP label inheritance (labels are seeded on the corpus) |
 | Versioned taxonomy with human-validated re-tagging, payload-only | Source connectors (SharePoint sync, API feeds are labelled provenance) |
 | Claude composition with citation verification and renumbering | The corpus content itself (synthetic, clearly marked fictional) |
-| Guardian two-pass, schedule approval registry, export gate chain | Lyzr platform (native engine behind Lyzr-named adapter interfaces) |
+| Guardian two-pass, schedule approval registry, export gate chain | Lyzr platform (real Qdrant Cloud + Claude sit behind Lyzr-named adapter interfaces) |
+| Hybrid retrieval on a managed Qdrant Cloud collection — dense + sparse vectors, RRF fusion, governance filters inside the query | Source connectors' binary parsing (documents arrive pre-extracted) |
 | Retrieval audit log with per-hit access decisions | Real authentication (persona switching is client-asserted) |
 
 The swap path is explicit: identity plugs in at the single access resolver, real sensitivity labels plug in at the document metadata, and a real Lyzr backend plugs in behind the existing `kb` / `kg` / `numeric` adapter interfaces — none of which requires touching the agents, the gates or the routes.
+
+---
+
+## 11. Live verification — measured on the running system (15 July 2026)
+
+Everything below was measured against the live Qdrant Cloud collection and the running API server on the date above — none of it is asserted from code reading alone.
+
+**The collection is real, healthy and complete.**
+
+| Measured | Value |
+| --- | --- |
+| Collection | `hub_ssot_chunks`, status `green` |
+| Points | 1,279 — exactly 1,274 seed-corpus chunks + 5 chunks from 3 live-ingested documents |
+| Indexed vectors | 1,279 (dense 384-dim cosine + sparse BM25 per point) |
+| By category | A (internal) 687 · B (external) 387 · E (SSoT-generated) 205 |
+| By confidentiality | public 403 · private 525 · confidential 333 · off_the_record 18 |
+
+Every breakdown sums to the total and matches the in-memory governed corpus, count for count — ingestion parity is exact.
+
+**Every surface retrieves through the same governed front door.** The retrieval audit log records, for each event, the engine that served it. Live entries captured after real requests:
+
+- Ask, press persona (public clearance): `engine: qdrant`, filter `confidentiality<=public; area in {Comunicación, cross-area}` — answered from public results documents; two over-clearance talking-points documents appear in the log as **blocked, ids only**.
+- Ask, super-user persona: `engine: qdrant`, filter `confidentiality<=off_the_record`.
+- Generate, director persona, external audience: two passes in one entry — body at `confidentiality<=confidential`, guidance capped to `confidentiality<=public` by the audience gate — both `engine: qdrant`.
+
+**Re-tagging provably never re-embeds.** Applying a taxonomy version returns a machine-checkable proof object: point counts before and after (unchanged), and dense-vector content hashes for sampled changed documents before and after the `set_payload` operation (identical), alongside the payload fields that did change.
+
+**Found and fixed during this verification.** An honest audit reports its own findings:
+
+1. The index had been seeded before the corpus was last expanded — it held 218 points against 1,279 corpus chunks, so hybrid retrieval was silently running over 17% of the knowledge base. The idempotent seeder was re-run; parity is now exact (and the seeder replays applied source-sync label deltas, so post-delta governance labels were preserved).
+2. The Generate agent, the live draft editor and Ask's follow-up retrieve tool were still calling the local BM25 engine directly instead of the governed Qdrant front door. Governance filtering was identical on both paths (same shared resolver), so this was never a leak — but those surfaces were not hybrid retrieval. All retrieval call sites now go through the single governed entry point, verified live: every new audit event on every surface reports `engine: qdrant`.
+
+The native BM25 engine remains in the codebase for exactly one purpose: an explicit dev-mode fallback when Qdrant credentials are not configured, labelled as such in the audit log (`engine: native`). When Qdrant is configured there is no silent fallback — a Qdrant failure surfaces as an error, never as quietly degraded retrieval.
 
 ---
 

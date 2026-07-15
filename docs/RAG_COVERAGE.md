@@ -45,7 +45,7 @@ today. It covers two perspectives per the synthesis structure:
 
 | # | Requirement | Status | How it is solved |
 | --- | --- | --- | --- |
-| R1 | Hybrid retrieval | Covered | Qdrant dense (semantic) + sparse BM25 vectors fused with Reciprocal Rank Fusion, with a native TF-IDF/BM25 fallback engine behind the same interface. |
+| R1 | Hybrid retrieval | Covered | Qdrant dense (semantic) + sparse BM25 vectors fused with Reciprocal Rank Fusion, with a native TF-IDF/BM25 fallback engine behind the same interface (dev-mode only, used when Qdrant is unconfigured). All text-retrieval surfaces — Ask, Generate, the live draft editor — go through the same governed Qdrant front door; the retrieval audit log records `engine: qdrant` per event. (KPI chat retrieves no text; it reads the governed numeric zone via the shared access resolver.) |
 | R2 | Answers only when evidence genuinely supports them | Covered | A coverage gate (`COVERAGE_MIN = 0.33` of the query's IDF mass) prevents generic brand words from making an unrelated document look like an answer. Below the gate → honest `no_evidence`. |
 | R3 | Citation on every claim | Covered | Every claim carries an `[S#]` marker bound to a citation object (document, version, date, owner, confidentiality). Markers are parsed (including composites like `[S1, S2]`), stray/hallucinated markers stripped, then renumbered contiguously so text and citation chips never desync. |
 | R4 | Retrieval auditability | Covered | Every retrieval writes an audit record (query, persona, filters, outcome classification) surfaced in Admin — the F3 retrieval log. |

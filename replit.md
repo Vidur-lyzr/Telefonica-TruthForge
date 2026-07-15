@@ -19,7 +19,7 @@ A governed, agentic Single Source of Truth for Telefónica's Communication & Bra
 - API: Express 5 (async handlers; `req.log`, never `console.log`)
 - Frontend: React + Vite, official Mística React library (@telefonica/mistica, Telefónica skin) — no Tailwind/shadcn/lucide; all styling via skinVars tokens
 - Answer composition: Claude (`claude-sonnet-4-6`) via the Replit Anthropic integration
-- Retrieval: local TF-IDF + BM25 hybrid over an in-memory synthetic corpus (no DB)
+- Retrieval: Qdrant Cloud hybrid (dense all-MiniLM-L6-v2 384-d via Cloud Inference + sparse BM25, RRF fusion, collection `hub_ssot_chunks`) with governance must-filters inside the query; native TF-IDF/BM25 engine is a dev-only fallback when Qdrant is unconfigured. All agents retrieve via `retrieveGoverned` in `adapters/kb.ts` — never call the native `retrieve` directly from agents. Re-seed with `pnpm --filter @workspace/api-server run qdrant:seed` after corpus changes (idempotent). No SQL database.
 - Validation: Zod (`zod/v4`); API codegen via Orval from the OpenAPI spec
 
 ## Where things live
