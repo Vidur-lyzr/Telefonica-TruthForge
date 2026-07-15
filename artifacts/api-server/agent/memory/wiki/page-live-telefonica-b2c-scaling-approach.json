@@ -1,0 +1,50 @@
+{
+  "id": "page-live-telefonica-b2c-scaling-approach",
+  "nodeId": "page-live-telefonica-b2c-scaling-approach",
+  "title": "Telefónica B2C Scaling Approach",
+  "axisId": "ax-core",
+  "confidentiality": "public",
+  "validity": "approved",
+  "summary": "The available evidence addresses sector-wide AI adoption in customer care and network operations but does not contain Telefónica-specific detail on how the company is scaling its B2C business.",
+  "position": "The governed evidence available covers a sector-level outlook noting that artificial intelligence adoption in network operations and customer care is expected to lower cost-to-serve across the European telecoms sector, with early adopters reporting double-digit efficiency gains in care and field operations [E1]. Responsible AI governance is identified as a prerequisite for scaling these deployments in customer-facing contexts [E1]. No Telefónica-specific B2C scaling strategy, programme or figure is present in the current compiled corporate memory.",
+  "evidence": [
+    {
+      "marker": "E1",
+      "docId": "doc-sector-report-gsma-2026",
+      "chunkId": "doc-sector-report-gsma-2026#d11",
+      "note": "AI in operations"
+    }
+  ],
+  "resolvedFacts": [],
+  "openItems": [],
+  "relatedPageIds": [
+    "page-core-revenue"
+  ],
+  "changeLog": [
+    {
+      "id": "cl-1784120354079",
+      "at": "2026-07-15",
+      "by": "Wiki query agent",
+      "summary": "Compiled on demand from 1 governed source(s) in answer to a query."
+    }
+  ],
+  "owners": [
+    "Wiki query agent"
+  ],
+  "sourceDocIds": [
+    "doc-sector-report-gsma-2026"
+  ],
+  "lastRefinedBy": "Wiki query agent",
+  "lastRefinedAt": "2026-07-15",
+  "refined": true,
+  "keywords": [
+    "b2c",
+    "scaling",
+    "customer care",
+    "artificial intelligence",
+    "cost-to-serve",
+    "efficiency",
+    "customer-facing",
+    "telecoms"
+  ]
+}

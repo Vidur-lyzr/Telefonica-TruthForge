@@ -603,6 +603,6 @@ export const DOC_FRESHNESS: DocFreshness[] = FRESHNESS_SEED.map((f) => {
     lastReviewed: f.lastReviewed,
     slaMonths: f.slaMonths,
     monthsSinceReview,
-    overdue: monthsSinceReview > 6,
+    overdue: monthsSinceReview > f.slaMonths,
   };
 });

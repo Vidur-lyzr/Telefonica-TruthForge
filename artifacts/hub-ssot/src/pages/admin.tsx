@@ -610,7 +610,7 @@ export default function AdminPage() {
         </Stack>
 
         {adminTab === 0 && (
-          <>
+          <Stack space={32}>
         {/* Profiles overview */}
         <Stack space={16}>
           <Inline space={8} alignItems="center">
@@ -800,7 +800,7 @@ export default function AdminPage() {
             />
           )}
         </Stack>
-          </>
+          </Stack>
         )}
 
         {adminTab === 1 && (

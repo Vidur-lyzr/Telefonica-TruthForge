@@ -1,0 +1,85 @@
+{
+  "id": "page-live-current-institutional-position-no-live-data-avai",
+  "nodeId": "page-live-current-institutional-position-no-live-data-avai",
+  "title": "Current Institutional Position: No Live Data Available",
+  "axisId": "ax-digital",
+  "confidentiality": "confidential",
+  "validity": "approved",
+  "summary": "The governed evidence available does not contain current or live figures; all sourced materials are historic, superseded, or sustainability-related and cannot be presented as a present-state answer.",
+  "position": "The Q2 2026 UK Milestone Plan is confirmed closed and superseded by the Q3 2026 plan, rendering its data historic [E1]. The UK market revenue figure of £1,540M relates solely to Q3 2025 and must not be presented as current; it is retained only for trend analysis [E2, E6]. Approved Q1 messaging talking points have been retired and superseded within the 48-hour refresh cadence [E5]. No governed excerpt provides a live or current operational figure suitable for publication.",
+  "evidence": [
+    {
+      "marker": "E1",
+      "docId": "doc-a-milestones-uk-q2-2026",
+      "chunkId": "doc-a-milestones-uk-q2-2026#1",
+      "note": "Quarter close"
+    },
+    {
+      "marker": "E2",
+      "docId": "doc-a-results-uk-q3-2025",
+      "chunkId": "doc-a-results-uk-q3-2025#1",
+      "note": "UK revenue"
+    },
+    {
+      "marker": "E3",
+      "docId": "doc-sustainability-2025",
+      "chunkId": "doc-sustainability-2025#d4",
+      "note": "Circular economy"
+    },
+    {
+      "marker": "E4",
+      "docId": "doc-sustainability-2025",
+      "chunkId": "doc-sustainability-2025#d10",
+      "note": "Supply chain"
+    },
+    {
+      "marker": "E5",
+      "docId": "doc-approved-messaging-q1",
+      "chunkId": "doc-approved-messaging-q1#d8",
+      "note": "Embargo and distribution"
+    },
+    {
+      "marker": "E6",
+      "docId": "doc-a-results-uk-q3-2025",
+      "chunkId": "doc-a-results-uk-q3-2025#d8",
+      "note": "Handling note"
+    }
+  ],
+  "resolvedFacts": [],
+  "openItems": [],
+  "relatedPageIds": [
+    "page-simplify",
+    "page-netzero"
+  ],
+  "changeLog": [
+    {
+      "id": "cl-1784120403633",
+      "at": "2026-07-15",
+      "by": "Wiki query agent",
+      "summary": "Compiled on demand from 4 governed source(s) in answer to a query."
+    }
+  ],
+  "owners": [
+    "Wiki query agent"
+  ],
+  "sourceDocIds": [
+    "doc-a-milestones-uk-q2-2026",
+    "doc-a-results-uk-q3-2025",
+    "doc-approved-messaging-q1",
+    "doc-sustainability-2025"
+  ],
+  "lastRefinedBy": "Wiki query agent",
+  "lastRefinedAt": "2026-07-15",
+  "refined": true,
+  "keywords": [
+    "historic data",
+    "superseded documents",
+    "uk market",
+    "current figures",
+    "embargo",
+    "sustainability",
+    "revenue",
+    "milestone plan",
+    "data handling"
+  ]
+}
