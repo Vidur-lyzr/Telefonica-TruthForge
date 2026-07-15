@@ -739,10 +739,44 @@ export interface PlatformUser {
   email: string;
   /** Comunicación | Marca | Gabinete */
   area: string;
-  /** superadmin | admin | editor | user | auditor */
+  /** Primary profile (first of profileIds), kept for display: superadmin | admin | editor | user | auditor */
   profileId: string;
+  /**
+     * All profiles held by the user. Effective capability level is the per-capability maximum across held profiles.
+     * @minItems 1
+     */
+  profileIds: string[];
   /** public | private | confidential | off_the_record */
   clearance: string;
+}
+
+export interface PlatformUserCreateRequest {
+  /** Acting persona (capability check + audit actor) */
+  roleId: string;
+  name: string;
+  email: string;
+  area: string;
+  /** @minItems 1 */
+  profileIds: string[];
+  clearance: string;
+}
+
+export interface PlatformUserUpdateRequest {
+  /** Acting persona (capability check + audit actor) */
+  roleId: string;
+  userId: string;
+  name?: string;
+  email?: string;
+  area?: string;
+  /** @minItems 1 */
+  profileIds?: string[];
+  clearance?: string;
+}
+
+export interface PlatformUserRemoveRequest {
+  /** Acting persona (capability check + audit actor) */
+  roleId: string;
+  userId: string;
 }
 
 export interface ScheduledDocument {

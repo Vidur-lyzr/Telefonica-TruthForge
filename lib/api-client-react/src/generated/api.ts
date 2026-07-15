@@ -153,6 +153,9 @@ import type {
   PlanningSimulateInput,
   PlanningSyncRecord,
   PlatformUser,
+  PlatformUserCreateRequest,
+  PlatformUserRemoveRequest,
+  PlatformUserUpdateRequest,
   PublishReviewItemResult,
   QualityClassifyBody,
   QualityEvalRun,
@@ -1178,6 +1181,219 @@ export function useListPlatformUsers<TData = Awaited<ReturnType<typeof listPlatf
 
 
 
+
+export const getCreatePlatformUserUrl = () => {
+
+
+
+
+  return `/api/admin/users`
+}
+
+/**
+ * Requires the manage_users_roles capability. Partial-level admins can only register users into their own area. The change is persisted and recorded in the audit trail as a "user" event.
+ * @summary Register a new platform user
+ */
+export const createPlatformUser = async (platformUserCreateRequest: PlatformUserCreateRequest, options?: RequestInit): Promise<PlatformUser> => {
+
+  return customFetch<PlatformUser>(getCreatePlatformUserUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(platformUserCreateRequest)
+  }
+);}
+
+
+
+
+export const getCreatePlatformUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlatformUser>>, TError,{data: BodyType<PlatformUserCreateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPlatformUser>>, TError,{data: BodyType<PlatformUserCreateRequest>}, TContext> => {
+
+const mutationKey = ['createPlatformUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPlatformUser>>, {data: BodyType<PlatformUserCreateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPlatformUser(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePlatformUserMutationResult = NonNullable<Awaited<ReturnType<typeof createPlatformUser>>>
+    export type CreatePlatformUserMutationBody = BodyType<PlatformUserCreateRequest>
+    export type CreatePlatformUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Register a new platform user
+ */
+export const useCreatePlatformUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPlatformUser>>, TError,{data: BodyType<PlatformUserCreateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createPlatformUser>>,
+        TError,
+        {data: BodyType<PlatformUserCreateRequest>},
+        TContext
+      > => {
+      return useMutation(getCreatePlatformUserMutationOptions(options));
+    }
+
+export const getUpdatePlatformUserUrl = () => {
+
+
+
+
+  return `/api/admin/users/update`
+}
+
+/**
+ * Requires the manage_users_roles capability. Partial-level admins are bounded by their own area on both the user's current and new area. The change is persisted and recorded in the audit trail as a "permission" event.
+ * @summary Update a platform user (grant / revoke area, clearance, profiles)
+ */
+export const updatePlatformUser = async (platformUserUpdateRequest: PlatformUserUpdateRequest, options?: RequestInit): Promise<PlatformUser> => {
+
+  return customFetch<PlatformUser>(getUpdatePlatformUserUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(platformUserUpdateRequest)
+  }
+);}
+
+
+
+
+export const getUpdatePlatformUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformUser>>, TError,{data: BodyType<PlatformUserUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updatePlatformUser>>, TError,{data: BodyType<PlatformUserUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updatePlatformUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updatePlatformUser>>, {data: BodyType<PlatformUserUpdateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updatePlatformUser(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdatePlatformUserMutationResult = NonNullable<Awaited<ReturnType<typeof updatePlatformUser>>>
+    export type UpdatePlatformUserMutationBody = BodyType<PlatformUserUpdateRequest>
+    export type UpdatePlatformUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Update a platform user (grant / revoke area, clearance, profiles)
+ */
+export const useUpdatePlatformUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updatePlatformUser>>, TError,{data: BodyType<PlatformUserUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updatePlatformUser>>,
+        TError,
+        {data: BodyType<PlatformUserUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdatePlatformUserMutationOptions(options));
+    }
+
+export const getRemovePlatformUserUrl = () => {
+
+
+
+
+  return `/api/admin/users/remove`
+}
+
+/**
+ * Requires the manage_users_roles capability. Partial-level admins can only remove users of their own area. The removal is persisted and recorded in the audit trail as a "user" event.
+ * @summary Remove a platform user
+ */
+export const removePlatformUser = async (platformUserRemoveRequest: PlatformUserRemoveRequest, options?: RequestInit): Promise<PlatformUser> => {
+
+  return customFetch<PlatformUser>(getRemovePlatformUserUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(platformUserRemoveRequest)
+  }
+);}
+
+
+
+
+export const getRemovePlatformUserMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePlatformUser>>, TError,{data: BodyType<PlatformUserRemoveRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removePlatformUser>>, TError,{data: BodyType<PlatformUserRemoveRequest>}, TContext> => {
+
+const mutationKey = ['removePlatformUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removePlatformUser>>, {data: BodyType<PlatformUserRemoveRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  removePlatformUser(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemovePlatformUserMutationResult = NonNullable<Awaited<ReturnType<typeof removePlatformUser>>>
+    export type RemovePlatformUserMutationBody = BodyType<PlatformUserRemoveRequest>
+    export type RemovePlatformUserMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Remove a platform user
+ */
+export const useRemovePlatformUser = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePlatformUser>>, TError,{data: BodyType<PlatformUserRemoveRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removePlatformUser>>,
+        TError,
+        {data: BodyType<PlatformUserRemoveRequest>},
+        TContext
+      > => {
+      return useMutation(getRemovePlatformUserMutationOptions(options));
+    }
 
 export const getListScheduledDocumentsUrl = (params: ListScheduledDocumentsParams,) => {
   const normalizedParams = new URLSearchParams();

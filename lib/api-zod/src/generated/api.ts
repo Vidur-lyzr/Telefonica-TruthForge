@@ -423,15 +423,103 @@ export const ListPlatformUsersQueryParams = zod.object({
   "roleId": zod.coerce.string()
 })
 
+
+
+
 export const ListPlatformUsersResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "email": zod.string(),
   "area": zod.string().describe('Comunicación | Marca | Gabinete'),
-  "profileId": zod.string().describe('superadmin | admin | editor | user | auditor'),
+  "profileId": zod.string().describe('Primary profile (first of profileIds), kept for display: superadmin | admin | editor | user | auditor\n'),
+  "profileIds": zod.array(zod.string()).min(1).describe('All profiles held by the user. Effective capability level is the per-capability maximum across held profiles.\n'),
   "clearance": zod.string().describe('public | private | confidential | off_the_record')
 })
 export const ListPlatformUsersResponse = zod.array(ListPlatformUsersResponseItem)
+
+
+/**
+ * Requires the manage_users_roles capability. Partial-level admins can only register users into their own area. The change is persisted and recorded in the audit trail as a "user" event.
+ * @summary Register a new platform user
+ */
+
+
+
+export const CreatePlatformUserBody = zod.object({
+  "roleId": zod.string().describe('Acting persona (capability check + audit actor)'),
+  "name": zod.string(),
+  "email": zod.string(),
+  "area": zod.string(),
+  "profileIds": zod.array(zod.string()).min(1),
+  "clearance": zod.string()
+})
+
+
+
+
+export const CreatePlatformUserResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "area": zod.string().describe('Comunicación | Marca | Gabinete'),
+  "profileId": zod.string().describe('Primary profile (first of profileIds), kept for display: superadmin | admin | editor | user | auditor\n'),
+  "profileIds": zod.array(zod.string()).min(1).describe('All profiles held by the user. Effective capability level is the per-capability maximum across held profiles.\n'),
+  "clearance": zod.string().describe('public | private | confidential | off_the_record')
+})
+
+
+/**
+ * Requires the manage_users_roles capability. Partial-level admins are bounded by their own area on both the user's current and new area. The change is persisted and recorded in the audit trail as a "permission" event.
+ * @summary Update a platform user (grant / revoke area, clearance, profiles)
+ */
+
+
+
+export const UpdatePlatformUserBody = zod.object({
+  "roleId": zod.string().describe('Acting persona (capability check + audit actor)'),
+  "userId": zod.string(),
+  "name": zod.string().optional(),
+  "email": zod.string().optional(),
+  "area": zod.string().optional(),
+  "profileIds": zod.array(zod.string()).min(1).optional(),
+  "clearance": zod.string().optional()
+})
+
+
+
+
+export const UpdatePlatformUserResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "area": zod.string().describe('Comunicación | Marca | Gabinete'),
+  "profileId": zod.string().describe('Primary profile (first of profileIds), kept for display: superadmin | admin | editor | user | auditor\n'),
+  "profileIds": zod.array(zod.string()).min(1).describe('All profiles held by the user. Effective capability level is the per-capability maximum across held profiles.\n'),
+  "clearance": zod.string().describe('public | private | confidential | off_the_record')
+})
+
+
+/**
+ * Requires the manage_users_roles capability. Partial-level admins can only remove users of their own area. The removal is persisted and recorded in the audit trail as a "user" event.
+ * @summary Remove a platform user
+ */
+export const RemovePlatformUserBody = zod.object({
+  "roleId": zod.string().describe('Acting persona (capability check + audit actor)'),
+  "userId": zod.string()
+})
+
+
+
+
+export const RemovePlatformUserResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "area": zod.string().describe('Comunicación | Marca | Gabinete'),
+  "profileId": zod.string().describe('Primary profile (first of profileIds), kept for display: superadmin | admin | editor | user | auditor\n'),
+  "profileIds": zod.array(zod.string()).min(1).describe('All profiles held by the user. Effective capability level is the per-capability maximum across held profiles.\n'),
+  "clearance": zod.string().describe('public | private | confidential | off_the_record')
+})
 
 
 /**
@@ -682,13 +770,17 @@ export const GetUserVisibilityMatrixQueryParams = zod.object({
   "roleId": zod.coerce.string().describe('Acting persona — must hold the manage_access_control capability')
 })
 
+
+
+
 export const GetUserVisibilityMatrixResponse = zod.object({
   "user": zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "email": zod.string(),
   "area": zod.string().describe('Comunicación | Marca | Gabinete'),
-  "profileId": zod.string().describe('superadmin | admin | editor | user | auditor'),
+  "profileId": zod.string().describe('Primary profile (first of profileIds), kept for display: superadmin | admin | editor | user | auditor\n'),
+  "profileIds": zod.array(zod.string()).min(1).describe('All profiles held by the user. Effective capability level is the per-capability maximum across held profiles.\n'),
   "clearance": zod.string().describe('public | private | confidential | off_the_record')
 }),
   "visibleCount": zod.number(),

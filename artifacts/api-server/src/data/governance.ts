@@ -261,6 +261,12 @@ export function listTaxonomyVersions(): TaxonomyVersion[] {
 
 // Governance audit entries are persisted with the taxonomy versions and
 // rehydrated at boot — the audit trail survives a restart, same as the tags.
+// Public wrapper so other stores (platform users) can feed the SAME persisted
+// audit trail instead of growing a parallel one.
+export function recordAudit(entry: Omit<AuditEntry, "id" | "timestamp">): AuditEntry {
+  return pushAudit(entry);
+}
+
 function pushAudit(entry: Omit<AuditEntry, "id" | "timestamp">): AuditEntry {
   const full: AuditEntry = {
     ...entry,

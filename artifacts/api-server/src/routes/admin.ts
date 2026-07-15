@@ -11,6 +11,12 @@ import {
 import {
   ListAdminProfilesResponse,
   ListPlatformUsersResponse,
+  CreatePlatformUserBody,
+  CreatePlatformUserResponse,
+  UpdatePlatformUserBody,
+  UpdatePlatformUserResponse,
+  RemovePlatformUserBody,
+  RemovePlatformUserResponse,
   ListScheduledDocumentsResponse,
   ListAuditEntriesResponse,
   GetUserVisibilityMatrixResponse,
@@ -25,20 +31,33 @@ import {
 import { getUsage } from "../data/usageMeter";
 import {
   ADMIN_PROFILES,
-  PLATFORM_USERS,
   SCHEDULED_DOCS,
   AUDIT_LOG,
   DOCS,
   getDoc,
   resolveScheduleStatus,
   AGENT_REPO_ROLE_IDS,
+  type Area,
+  type Clearance,
+  type ProfileId,
 } from "../data/corpus";
+import {
+  listManagedUsers,
+  getManagedUser,
+  findManagedUserByEmail,
+  createManagedUser,
+  updateManagedUser,
+  removeManagedUser,
+  VALID_AREAS,
+  VALID_CLEARANCES,
+  VALID_PROFILE_IDS,
+} from "../data/platformUsers";
 import {
   AGENT_DIR,
   DISALLOWED_TOOLS,
 } from "../agent/gitagentRuntime";
 import { describeGovernedTools } from "../agent/askAgent";
-import { resolveDocAccess } from "../data/governance";
+import { resolveDocAccess, recordAudit } from "../data/governance";
 import { queryRetrievalLog } from "../data/retrievalLog";
 import {
   getSourceSyncState,
@@ -46,7 +65,12 @@ import {
   runBatchSync,
   isValidClearance,
 } from "../data/sourceSync";
-import { requireCapability, capabilitiesOf } from "../data/accessControl";
+import {
+  requireCapability,
+  capabilitiesOf,
+  PROFILE_LABELS,
+  type CapabilityGrant,
+} from "../data/accessControl";
 import { ROLES } from "../data/corpus";
 
 const router: IRouter = Router();
@@ -65,11 +89,234 @@ router.get("/admin/users", (req, res) => {
   const grant = requireCapability(req, res, "manage_users_roles");
   if (!grant) return;
   // Partial (admin): only the users of the admin's own area.
+  const all = listManagedUsers();
   const users =
     grant.level === "partial" && grant.role.area
-      ? PLATFORM_USERS.filter((u) => u.area === grant.role.area)
-      : PLATFORM_USERS;
+      ? all.filter((u) => u.area === grant.role.area)
+      : all;
   res.json(ListPlatformUsersResponse.parse(users));
+});
+
+// ---------------------------------------------------------------------------
+// G1 + I2 — interactive user administration. All three mutations are
+// body-based POSTs (roleId rides in the body), persist to the runtime user
+// store, and feed the REAL persisted audit trail — the same one the taxonomy
+// governance writes to.
+// ---------------------------------------------------------------------------
+
+const CLEARANCE_TITLES: Record<Clearance, string> = {
+  public: "Public",
+  private: "Private",
+  confidential: "Confidential",
+  off_the_record: "Off the record",
+};
+
+interface ValidatedUserFields {
+  area: Area;
+  clearance: Clearance;
+  profileIds: ProfileId[];
+}
+
+// Validates the enum-ish fields against the allowed lists. Writes the 400 and
+// returns null when something is off.
+function validateUserFields(
+  res: import("express").Response,
+  fields: { area: string; clearance: string; profileIds: string[] },
+): ValidatedUserFields | null {
+  if (!VALID_AREAS.includes(fields.area as Area)) {
+    res.status(400).json({
+      error: `Unknown area "${fields.area}". Expected one of: ${VALID_AREAS.join(", ")}.`,
+      code: "invalid_body",
+    });
+    return null;
+  }
+  if (!VALID_CLEARANCES.includes(fields.clearance as Clearance)) {
+    res.status(400).json({
+      error: `Unknown clearance "${fields.clearance}". Expected one of: ${VALID_CLEARANCES.join(", ")}.`,
+      code: "invalid_body",
+    });
+    return null;
+  }
+  const bad = fields.profileIds.find((p) => !VALID_PROFILE_IDS.includes(p as ProfileId));
+  if (bad !== undefined || fields.profileIds.length === 0) {
+    res.status(400).json({
+      error:
+        fields.profileIds.length === 0
+          ? "At least one profile is required."
+          : `Unknown profile "${bad}". Expected one of: ${VALID_PROFILE_IDS.join(", ")}.`,
+      code: "invalid_body",
+    });
+    return null;
+  }
+  return {
+    area: fields.area as Area,
+    clearance: fields.clearance as Clearance,
+    profileIds: [...new Set(fields.profileIds)] as ProfileId[],
+  };
+}
+
+// Partial (admin) rule shared by all three mutations: a domain admin may only
+// touch users of their own area. Writes the 403 and returns false when blocked.
+function requireAreaScope(
+  res: import("express").Response,
+  grant: CapabilityGrant,
+  targetArea: Area,
+  action: string,
+): boolean {
+  // A partial grant without an area is a misconfigured persona — fail closed
+  // rather than silently granting cross-area scope.
+  if (grant.level === "partial" && !grant.role.area) {
+    res.status(403).json({
+      error: "Your admin scope has no area assigned — user management is blocked.",
+      code: "area_blocked",
+      capability: "manage_users_roles",
+      profile: grant.role.profileId,
+    });
+    return false;
+  }
+  if (grant.level === "partial" && grant.role.area && targetArea !== grant.role.area) {
+    res.status(403).json({
+      error: `As a domain admin for ${grant.role.area}, you can only ${action} users of ${grant.role.area}.`,
+      code: "area_blocked",
+      capability: "manage_users_roles",
+      profile: grant.role.profileId,
+    });
+    return false;
+  }
+  return true;
+}
+
+function profileSummary(profileIds: ProfileId[]): string {
+  return profileIds.map((p) => PROFILE_LABELS[p]).join(" + ");
+}
+
+router.post("/admin/users", (req, res) => {
+  const parsed = CreatePlatformUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body.", code: "invalid_body" });
+    return;
+  }
+  const body = parsed.data;
+  const grant = requireCapability(req, res, "manage_users_roles", "partial", body.roleId);
+  if (!grant) return;
+  const name = body.name.trim();
+  const email = body.email.trim();
+  if (name.length === 0 || email.length === 0) {
+    res.status(400).json({ error: "Name and email are required.", code: "invalid_body" });
+    return;
+  }
+  const fields = validateUserFields(res, body);
+  if (!fields) return;
+  if (!requireAreaScope(res, grant, fields.area, "register")) return;
+  if (findManagedUserByEmail(email)) {
+    res.status(409).json({
+      error: `A user with the email ${email} already exists.`,
+      code: "duplicate_email",
+    });
+    return;
+  }
+  const user = createManagedUser({ name, email, ...fields });
+  recordAudit({
+    actor: grant.role.name,
+    action: "Registered user",
+    target: user.name,
+    kind: "user",
+    detail: `New ${profileSummary(user.profileIds)} in ${user.area} with ${CLEARANCE_TITLES[user.clearance]} clearance.`,
+  });
+  req.log.info({ userId: user.id, actor: grant.role.id }, "admin: user registered");
+  res.json(CreatePlatformUserResponse.parse(user));
+});
+
+router.post("/admin/users/update", (req, res) => {
+  const parsed = UpdatePlatformUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body.", code: "invalid_body" });
+    return;
+  }
+  const body = parsed.data;
+  const grant = requireCapability(req, res, "manage_users_roles", "partial", body.roleId);
+  if (!grant) return;
+  const current = getManagedUser(body.userId);
+  if (!current) {
+    res.status(404).json({ error: "Unknown user id.", code: "not_found" });
+    return;
+  }
+  if (
+    (body.name !== undefined && body.name.trim().length === 0) ||
+    (body.email !== undefined && body.email.trim().length === 0)
+  ) {
+    res.status(400).json({ error: "Name and email cannot be empty.", code: "invalid_body" });
+    return;
+  }
+  const fields = validateUserFields(res, {
+    area: body.area ?? current.area,
+    clearance: body.clearance ?? current.clearance,
+    profileIds: body.profileIds ?? current.profileIds,
+  });
+  if (!fields) return;
+  // Domain admins are bounded by their area on BOTH ends: they cannot touch a
+  // user of another area, and cannot move one of theirs out of it.
+  if (!requireAreaScope(res, grant, current.area, "update")) return;
+  if (!requireAreaScope(res, grant, fields.area, "move")) return;
+  if (body.email !== undefined) {
+    const existing = findManagedUserByEmail(body.email);
+    if (existing && existing.id !== current.id) {
+      res.status(409).json({
+        error: `A user with the email ${body.email.trim()} already exists.`,
+        code: "duplicate_email",
+      });
+      return;
+    }
+  }
+  const user = updateManagedUser(current.id, {
+    name: body.name,
+    email: body.email,
+    ...fields,
+  });
+  if (!user) {
+    res.status(404).json({ error: "Unknown user id.", code: "not_found" });
+    return;
+  }
+  recordAudit({
+    actor: grant.role.name,
+    action: "Permission change",
+    target: user.name,
+    kind: "permission",
+    detail: `Set ${user.area} · ${profileSummary(user.profileIds)} · ${CLEARANCE_TITLES[user.clearance]} clearance.`,
+  });
+  req.log.info({ userId: user.id, actor: grant.role.id }, "admin: user updated");
+  res.json(UpdatePlatformUserResponse.parse(user));
+});
+
+router.post("/admin/users/remove", (req, res) => {
+  const parsed = RemovePlatformUserBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body.", code: "invalid_body" });
+    return;
+  }
+  const body = parsed.data;
+  const grant = requireCapability(req, res, "manage_users_roles", "partial", body.roleId);
+  if (!grant) return;
+  const current = getManagedUser(body.userId);
+  if (!current) {
+    res.status(404).json({ error: "Unknown user id.", code: "not_found" });
+    return;
+  }
+  if (!requireAreaScope(res, grant, current.area, "remove")) return;
+  const removed = removeManagedUser(current.id);
+  if (!removed) {
+    res.status(404).json({ error: "Unknown user id.", code: "not_found" });
+    return;
+  }
+  recordAudit({
+    actor: grant.role.name,
+    action: "User removed",
+    target: removed.name,
+    kind: "user",
+    detail: `Removed ${removed.email} (${removed.area}, ${profileSummary(removed.profileIds)}).`,
+  });
+  req.log.info({ userId: removed.id, actor: grant.role.id }, "admin: user removed");
+  res.json(RemovePlatformUserResponse.parse(removed));
 });
 
 router.get("/admin/schedules", (req, res) => {
@@ -88,7 +335,7 @@ router.get("/admin/schedules", (req, res) => {
 router.get("/admin/visibility", (req, res) => {
   const grant = requireCapability(req, res, "manage_access_control");
   if (!grant) return;
-  const user = PLATFORM_USERS.find((u) => u.id === String(req.query.userId ?? ""));
+  const user = getManagedUser(String(req.query.userId ?? ""));
   if (!user) {
     res.status(404).json({ error: "Unknown user" });
     return;
@@ -160,7 +407,7 @@ function auditEntryVisibleToArea(
 ): boolean {
   const actorRole = ROLES.find((r) => r.name === entry.actor);
   if (actorRole?.area === area) return true;
-  const actorUser = PLATFORM_USERS.find((u) => u.name === entry.actor);
+  const actorUser = listManagedUsers().find((u) => u.name === entry.actor);
   if (actorUser?.area === area) return true;
   if (`${entry.target} ${entry.detail}`.includes(area)) return true;
   return entry.actor === "System";

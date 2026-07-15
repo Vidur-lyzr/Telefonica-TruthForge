@@ -55,7 +55,15 @@ const UPLOAD_LANGUAGES = [
   { value: "pt", text: "Português" },
 ];
 
-const ACCEPTED_EXTENSIONS = [".pdf", ".docx", ".txt", ".md", ".markdown"];
+const ACCEPTED_EXTENSIONS = [
+  ".pdf",
+  ".docx",
+  ".pptx",
+  ".xlsx",
+  ".txt",
+  ".md",
+  ".markdown",
+];
 const ACCEPT_ATTR = ACCEPTED_EXTENSIONS.join(",");
 
 function hasAcceptedExtension(name: string): boolean {

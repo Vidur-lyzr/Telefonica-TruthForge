@@ -499,7 +499,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       language: "Language",
       file: "File",
       chooseFile: "Choose file",
-      fileHint: "PDF, Word (.docx), plain text or Markdown — up to 15 MB.",
+      fileHint:
+        "PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx), plain text or Markdown — up to 15 MB.",
       uploadFailed: "The upload failed.",
       inCorpus: (chunks: number) =>
         `In corpus · ${chunks} ${chunks === 1 ? "chunk" : "chunks"} indexed`,
@@ -779,7 +780,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noMatches: "No documents match the current filters.",
       uploadButton: "Upload document",
       uploadCardTitle: "Add a document to the governed corpus",
-      uploadCardDesc: "Drag and drop or browse a PDF, Word, text or Markdown file. It is classified, chunked and indexed so Ask and the Wiki can cite it.",
+      uploadCardDesc: "Drag and drop or browse a PDF, Word, PowerPoint, Excel, text or Markdown file. It is classified, chunked and indexed so Ask and the Wiki can cite it.",
       sortLabel: "Sort",
       sortNewest: "Newest first",
       sortOldest: "Oldest first",
@@ -925,7 +926,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       language: "Idioma",
       file: "Archivo",
       chooseFile: "Elegir archivo",
-      fileHint: "PDF, Word (.docx), texto plano o Markdown — hasta 15 MB.",
+      fileHint:
+        "PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx), texto plano o Markdown — hasta 15 MB.",
       uploadFailed: "La carga ha fallado.",
       inCorpus: (chunks: number) =>
         `En el corpus · ${chunks} ${chunks === 1 ? "fragmento indexado" : "fragmentos indexados"}`,
@@ -1206,7 +1208,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noMatches: "Ningún documento coincide con los filtros actuales.",
       uploadButton: "Subir documento",
       uploadCardTitle: "Añadir un documento al corpus gobernado",
-      uploadCardDesc: "Arrastra y suelta o busca un archivo PDF, Word, texto o Markdown. Se clasifica, trocea e indexa para que Ask y la Wiki puedan citarlo.",
+      uploadCardDesc: "Arrastra y suelta o busca un archivo PDF, Word, PowerPoint, Excel, texto o Markdown. Se clasifica, trocea e indexa para que Ask y la Wiki puedan citarlo.",
       sortLabel: "Ordenar",
       sortNewest: "Más recientes primero",
       sortOldest: "Más antiguos primero",
@@ -1347,7 +1349,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       language: "Sprache",
       file: "Datei",
       chooseFile: "Datei auswählen",
-      fileHint: "PDF, Word (.docx), Text oder Markdown — bis 15 MB.",
+      fileHint:
+        "PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx), Text oder Markdown — bis 15 MB.",
       uploadFailed: "Der Upload ist fehlgeschlagen.",
       inCorpus: (chunks: number) =>
         `Im Korpus · ${chunks} ${chunks === 1 ? "Abschnitt" : "Abschnitte"} indexiert`,
@@ -1629,7 +1632,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noMatches: "Keine Dokumente entsprechen den aktuellen Filtern.",
       uploadButton: "Dokument hochladen",
       uploadCardTitle: "Dokument zum kontrollierten Korpus hinzufügen",
-      uploadCardDesc: "PDF-, Word-, Text- oder Markdown-Datei per Drag-and-drop ablegen oder auswählen. Sie wird klassifiziert, zerlegt und indexiert, damit Ask und das Wiki sie zitieren können.",
+      uploadCardDesc: "PDF-, Word-, PowerPoint-, Excel-, Text- oder Markdown-Datei per Drag-and-drop ablegen oder auswählen. Sie wird klassifiziert, zerlegt und indexiert, damit Ask und das Wiki sie zitieren können.",
       sortLabel: "Sortieren",
       sortNewest: "Neueste zuerst",
       sortOldest: "Älteste zuerst",
@@ -1773,7 +1776,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       language: "Idioma",
       file: "Arquivo",
       chooseFile: "Escolher arquivo",
-      fileHint: "PDF, Word (.docx), texto simples ou Markdown — até 15 MB.",
+      fileHint:
+        "PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx), texto simples ou Markdown — até 15 MB.",
       uploadFailed: "O envio falhou.",
       inCorpus: (chunks: number) =>
         `No corpus · ${chunks} ${chunks === 1 ? "fragmento indexado" : "fragmentos indexados"}`,
@@ -2054,7 +2058,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noMatches: "Nenhum documento corresponde aos filtros atuais.",
       uploadButton: "Carregar documento",
       uploadCardTitle: "Adicionar um documento ao corpus governado",
-      uploadCardDesc: "Arraste e largue ou procure um ficheiro PDF, Word, texto ou Markdown. É classificado, segmentado e indexado para que o Ask e a Wiki o possam citar.",
+      uploadCardDesc: "Arraste e largue ou procure um ficheiro PDF, Word, PowerPoint, Excel, texto ou Markdown. É classificado, segmentado e indexado para que o Ask e a Wiki o possam citar.",
       sortLabel: "Ordenar",
       sortNewest: "Mais recentes primeiro",
       sortOldest: "Mais antigos primeiro",

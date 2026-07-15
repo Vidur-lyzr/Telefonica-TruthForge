@@ -280,6 +280,128 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createPlatformUser
+      tags: [admin]
+      summary: Register a new platform user
+      description: >
+        Requires the manage_users_roles capability. Partial-level admins can
+        only register users into their own area. The change is persisted and
+        recorded in the audit trail as a "user" event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserCreateRequest"
+      responses:
+        "200":
+          description: The created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformUser"
+        "400":
+          description: Invalid body (code invalid_body)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Capability or area blocked (code capability_blocked | area_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: A user with this email already exists (code duplicate_email)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/update:
+    post:
+      operationId: updatePlatformUser
+      tags: [admin]
+      summary: Update a platform user (grant / revoke area, clearance, profiles)
+      description: >
+        Requires the manage_users_roles capability. Partial-level admins are
+        bounded by their own area on both the user's current and new area.
+        The change is persisted and recorded in the audit trail as a
+        "permission" event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserUpdateRequest"
+      responses:
+        "200":
+          description: The updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformUser"
+        "400":
+          description: Invalid body (code invalid_body)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Capability or area blocked (code capability_blocked | area_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown user id (code not_found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/users/remove:
+    post:
+      operationId: removePlatformUser
+      tags: [admin]
+      summary: Remove a platform user
+      description: >
+        Requires the manage_users_roles capability. Partial-level admins can
+        only remove users of their own area. The removal is persisted and
+        recorded in the audit trail as a "user" event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformUserRemoveRequest"
+      responses:
+        "200":
+          description: The removed user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformUser"
+        "400":
+          description: Invalid body (code invalid_body)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Capability or area blocked (code capability_blocked | area_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown user id (code not_found)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/schedules:
     get:
@@ -3954,7 +4076,7 @@ components:
 
     PlatformUser:
       type: object
-      required: [id, name, email, area, profileId, clearance]
+      required: [id, name, email, area, profileId, profileIds, clearance]
       properties:
         id:
           type: string
@@ -3967,10 +4089,74 @@ components:
           description: Comunicación | Marca | Gabinete
         profileId:
           type: string
-          description: superadmin | admin | editor | user | auditor
+          description: >
+            Primary profile (first of profileIds), kept for display:
+            superadmin | admin | editor | user | auditor
+        profileIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: >
+            All profiles held by the user. Effective capability level is the
+            per-capability maximum across held profiles.
         clearance:
           type: string
           description: public | private | confidential | off_the_record
+
+    PlatformUserCreateRequest:
+      type: object
+      required: [roleId, name, email, area, profileIds, clearance]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona (capability check + audit actor)
+        name:
+          type: string
+        email:
+          type: string
+        area:
+          type: string
+        profileIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        clearance:
+          type: string
+
+    PlatformUserUpdateRequest:
+      type: object
+      required: [roleId, userId]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona (capability check + audit actor)
+        userId:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        area:
+          type: string
+        profileIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        clearance:
+          type: string
+
+    PlatformUserRemoveRequest:
+      type: object
+      required: [roleId, userId]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona (capability check + audit actor)
+        userId:
+          type: string
 
     ScheduledDocument:
       type: object

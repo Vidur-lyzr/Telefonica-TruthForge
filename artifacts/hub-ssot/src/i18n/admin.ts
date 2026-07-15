@@ -116,6 +116,13 @@ const ADMIN_EN = {
   colProfile: "Profile",
   colConfidentialityTier: "Confidentiality tier",
   edit: "Edit",
+  confirmRemoveTitle: "Remove user",
+  removeUserBody: (name: string) =>
+    `This permanently removes ${name} from the platform. Their audit history is kept, but they lose all access immediately. Continue?`,
+  fieldProfiles: "Profiles",
+  profilesHint:
+    "A person can hold several profiles. Their effective permissions are the highest level per capability across all held profiles.",
+  unifiedCapabilities: "Unified capabilities",
 
   visibilityTitle: "Document visibility by user",
   visibilityIntro:
@@ -573,6 +580,13 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     colProfile: "Perfil",
     colConfidentialityTier: "Nivel de confidencialidad",
     edit: "Editar",
+    confirmRemoveTitle: "Eliminar usuario",
+    removeUserBody: (name: string) =>
+      `Esto elimina permanentemente a ${name} de la plataforma. Su historial de auditoría se conserva, pero pierde todo acceso de inmediato. ¿Continuar?`,
+    fieldProfiles: "Perfiles",
+    profilesHint:
+      "Una persona puede tener varios perfiles. Sus permisos efectivos son el nivel más alto por capacidad entre todos los perfiles asignados.",
+    unifiedCapabilities: "Capacidades unificadas",
 
     visibilityTitle: "Visibilidad de documentos por usuario",
     visibilityIntro:
@@ -1007,6 +1021,13 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     colProfile: "Profil",
     colConfidentialityTier: "Vertraulichkeitsstufe",
     edit: "Bearbeiten",
+    confirmRemoveTitle: "Nutzer entfernen",
+    removeUserBody: (name: string) =>
+      `Damit wird ${name} dauerhaft von der Plattform entfernt. Der Audit-Verlauf bleibt erhalten, aber der Zugriff erlischt sofort. Fortfahren?`,
+    fieldProfiles: "Profile",
+    profilesHint:
+      "Eine Person kann mehrere Profile besitzen. Die effektiven Berechtigungen entsprechen je Fähigkeit der höchsten Stufe aller zugewiesenen Profile.",
+    unifiedCapabilities: "Zusammengeführte Fähigkeiten",
 
     visibilityTitle: "Dokumentsichtbarkeit nach Nutzer",
     visibilityIntro:
@@ -1442,6 +1463,13 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     colProfile: "Perfil",
     colConfidentialityTier: "Nível de confidencialidade",
     edit: "Editar",
+    confirmRemoveTitle: "Remover usuário",
+    removeUserBody: (name: string) =>
+      `Isso remove permanentemente ${name} da plataforma. O histórico de auditoria é mantido, mas o acesso é perdido imediatamente. Continuar?`,
+    fieldProfiles: "Perfis",
+    profilesHint:
+      "Uma pessoa pode ter vários perfis. As permissões efetivas são o nível mais alto por capacidade entre todos os perfis atribuídos.",
+    unifiedCapabilities: "Capacidades unificadas",
 
     visibilityTitle: "Visibilidade de documentos por usuário",
     visibilityIntro:

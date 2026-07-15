@@ -340,7 +340,7 @@ router.post(
     }
 
     try {
-      const { text, sourceFormat } = await extractUploadText(
+      const { text, sourceFormat, structured } = await extractUploadText(
         file.originalname,
         file.buffer,
       );
@@ -367,6 +367,7 @@ router.post(
         docType,
         topics,
         axisIds,
+        structured,
       });
 
       // Index FIRST, commit to the corpus after: a failed vector write must

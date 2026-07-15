@@ -1,7 +1,11 @@
 import React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useListAdminProfiles,
   useListPlatformUsers,
+  useCreatePlatformUser,
+  useUpdatePlatformUser,
+  useRemovePlatformUser,
   useListScheduledDocuments,
   useListAuditEntries,
   useGetUserVisibilityMatrix,
@@ -39,6 +43,7 @@ import {
   Checkbox,
   ButtonPrimary,
   ButtonSecondary,
+  ButtonDanger,
   ButtonLink,
   Text1,
   Text2,
@@ -77,13 +82,6 @@ const CLEARANCE_RANK: Record<Clearance, number> = {
   confidential: 2,
   off_the_record: 3,
 };
-const CLEARANCE_LABEL: Record<Clearance, string> = {
-  public: "Public",
-  private: "Private",
-  confidential: "Confidential",
-  off_the_record: "Off the record",
-};
-
 const PROFILE_ICON: Record<ProfileId, IconType> = {
   superadmin: IconTrophyRegular,
   admin: IconSettingsRegular,
@@ -171,16 +169,29 @@ function formatTimestamp(iso: string, lang: Lang) {
   });
 }
 
-interface SessionUser extends PlatformUser {}
 interface SessionSchedule extends ScheduledDocument {}
+
+const LEVEL_RANK: Record<string, number> = { none: 0, partial: 1, full: 2 };
 
 const emptyUserDraft = {
   name: "",
   email: "",
   area: "Comunicación" as Area,
-  profileId: "editor" as ProfileId,
+  profileIds: ["editor"] as ProfileId[],
   clearance: "private" as Clearance,
 };
+
+// Pull the server's own message out of a failed mutation ({ error, code }).
+function apiErrorMessage(err: unknown): string {
+  if (err && typeof err === "object" && "data" in err) {
+    const data = (err as { data?: unknown }).data;
+    if (data && typeof data === "object" && "error" in data) {
+      const msg = (data as { error?: unknown }).error;
+      if (typeof msg === "string" && msg.length > 0) return msg;
+    }
+  }
+  return err instanceof Error ? err.message : String(err);
+}
 
 export default function AdminPage() {
   const { lang, roleId } = useApp();
@@ -199,9 +210,8 @@ export default function AdminPage() {
     { query: { enabled: roleId.length > 0, queryKey: ["audit-entries", roleId] } },
   );
 
-  // Session-only overlays layered on the seeded data (no database).
-  const [sessionUsers, setSessionUsers] = React.useState<SessionUser[]>([]);
-  const [userEdits, setUserEdits] = React.useState<Record<string, Partial<PlatformUser>>>({});
+  // Schedules and their audit rows remain session-only overlays; user
+  // management is fully server-backed (persisted store + real audit trail).
   const [sessionSchedules, setSessionSchedules] = React.useState<SessionSchedule[]>([]);
   const [sessionAudit, setSessionAudit] = React.useState<AuditEntry[]>([]);
 
@@ -211,10 +221,7 @@ export default function AdminPage() {
     return map;
   }, [profiles]);
 
-  const users: PlatformUser[] = React.useMemo(() => {
-    const merged = [...(seedUsers ?? []), ...sessionUsers];
-    return merged.map((u) => ({ ...u, ...userEdits[u.id] }));
-  }, [seedUsers, sessionUsers, userEdits]);
+  const users: PlatformUser[] = seedUsers ?? [];
 
   const schedules: ScheduledDocument[] = React.useMemo(
     () => [...(seedSchedules ?? []), ...sessionSchedules],
@@ -239,15 +246,31 @@ export default function AdminPage() {
     ]);
   }
 
-  // ---- User register / edit ----
+  // ---- User register / edit / remove (server-backed, persisted) ----
+  const queryClient = useQueryClient();
+  const createUserMutation = useCreatePlatformUser();
+  const updateUserMutation = useUpdatePlatformUser();
+  const removeUserMutation = useRemovePlatformUser();
+  const userMutationBusy =
+    createUserMutation.isPending || updateUserMutation.isPending || removeUserMutation.isPending;
+
   const [userDialogOpen, setUserDialogOpen] = React.useState(false);
   const [editingUserId, setEditingUserId] = React.useState<string | null>(null);
   const [userDraft, setUserDraft] = React.useState({ ...emptyUserDraft });
   const [pendingUser, setPendingUser] = React.useState<null | { isEdit: boolean }>(null);
+  const [userError, setUserError] = React.useState<string | null>(null);
+  const [removeTarget, setRemoveTarget] = React.useState<PlatformUser | null>(null);
+
+  function invalidateUserData() {
+    queryClient.invalidateQueries({ queryKey: ["platform-users"] });
+    queryClient.invalidateQueries({ queryKey: ["audit-entries"] });
+    queryClient.invalidateQueries({ queryKey: ["visibility-matrix"] });
+  }
 
   function openRegister() {
     setEditingUserId(null);
-    setUserDraft({ ...emptyUserDraft });
+    setUserDraft({ ...emptyUserDraft, profileIds: [...emptyUserDraft.profileIds] });
+    setUserError(null);
     setUserDialogOpen(true);
   }
 
@@ -257,55 +280,82 @@ export default function AdminPage() {
       name: u.name,
       email: u.email,
       area: u.area as Area,
-      profileId: u.profileId as ProfileId,
+      profileIds: (u.profileIds.length > 0 ? [...u.profileIds] : [u.profileId]) as ProfileId[],
       clearance: u.clearance as Clearance,
     });
+    setUserError(null);
     setUserDialogOpen(true);
   }
 
+  function toggleDraftProfile(p: ProfileId) {
+    setUserDraft((prev) => ({
+      ...prev,
+      profileIds: prev.profileIds.includes(p)
+        ? prev.profileIds.filter((x) => x !== p)
+        : [...prev.profileIds, p],
+    }));
+  }
+
   function commitUser() {
+    setUserError(null);
+    const onSuccess = () => {
+      invalidateUserData();
+      setUserDialogOpen(false);
+      setPendingUser(null);
+      setEditingUserId(null);
+    };
+    const onError = (err: unknown) => {
+      setPendingUser(null);
+      setUserError(apiErrorMessage(err));
+    };
     if (editingUserId) {
-      setUserEdits((prev) => ({
-        ...prev,
-        [editingUserId]: {
-          name: userDraft.name,
-          email: userDraft.email,
-          area: userDraft.area,
-          profileId: userDraft.profileId,
-          clearance: userDraft.clearance,
-        },
-      }));
-      pushAudit({
-        actor: "You (session)",
-        action: "Permission change",
-        target: userDraft.name,
-        kind: "permission",
-        detail: `Set ${userDraft.area} · ${profileLabel[userDraft.profileId] ?? userDraft.profileId} · ${CLEARANCE_LABEL[userDraft.clearance]} clearance.`,
-      });
-    } else {
-      const id = `user-session-${Date.now()}`;
-      setSessionUsers((prev) => [
-        ...prev,
+      updateUserMutation.mutate(
         {
-          id,
-          name: userDraft.name,
-          email: userDraft.email,
-          area: userDraft.area,
-          profileId: userDraft.profileId,
-          clearance: userDraft.clearance,
+          data: {
+            roleId,
+            userId: editingUserId,
+            name: userDraft.name,
+            email: userDraft.email,
+            area: userDraft.area,
+            profileIds: userDraft.profileIds,
+            clearance: userDraft.clearance,
+          },
         },
-      ]);
-      pushAudit({
-        actor: "You (session)",
-        action: "Registered user",
-        target: userDraft.name,
-        kind: "user",
-        detail: `New ${profileLabel[userDraft.profileId] ?? userDraft.profileId} in ${userDraft.area} with ${CLEARANCE_LABEL[userDraft.clearance]} clearance.`,
-      });
+        { onSuccess, onError },
+      );
+    } else {
+      createUserMutation.mutate(
+        {
+          data: {
+            roleId,
+            name: userDraft.name,
+            email: userDraft.email,
+            area: userDraft.area,
+            profileIds: userDraft.profileIds,
+            clearance: userDraft.clearance,
+          },
+        },
+        { onSuccess, onError },
+      );
     }
-    setUserDialogOpen(false);
-    setPendingUser(null);
-    setEditingUserId(null);
+  }
+
+  function confirmRemoveUser() {
+    if (!removeTarget) return;
+    setUserError(null);
+    removeUserMutation.mutate(
+      { data: { roleId, userId: removeTarget.id } },
+      {
+        onSuccess: () => {
+          invalidateUserData();
+          setRemoveTarget(null);
+        },
+        onError: (err: unknown) => {
+          setRemoveTarget(null);
+          setUserError(apiErrorMessage(err));
+        },
+      },
+    );
   }
 
   function handleSaveUser() {
@@ -317,7 +367,25 @@ export default function AdminPage() {
     commitUser();
   }
 
-  const draftValid = userDraft.name.trim().length > 0 && userDraft.email.trim().length > 0;
+  const draftValid =
+    userDraft.name.trim().length > 0 &&
+    userDraft.email.trim().length > 0 &&
+    userDraft.profileIds.length > 0;
+
+  // I2 — unified capability preview: per-capability MAXIMUM across the
+  // profiles selected in the draft, computed from the same server matrix the
+  // enforcement layer uses.
+  const draftCapabilities = React.useMemo(() => {
+    const byId = new Map((profiles ?? []).map((p) => [p.id, p.capabilities]));
+    return CAPABILITY_ORDER.map((cap) => {
+      let best = "none";
+      for (const pid of userDraft.profileIds) {
+        const level = byId.get(pid)?.[cap] ?? "none";
+        if ((LEVEL_RANK[level] ?? 0) > (LEVEL_RANK[best] ?? 0)) best = level;
+      }
+      return { cap, level: best };
+    });
+  }, [profiles, userDraft.profileIds]);
 
   // ---- Schedule create ----
   const [scheduleDialogOpen, setScheduleDialogOpen] = React.useState(false);
@@ -364,8 +432,11 @@ export default function AdminPage() {
 
   // ---- Visibility matrix (resolved server-side by the real access engine) ----
   const [visibilityUserId, setVisibilityUserId] = React.useState<string>("");
-  const effectiveVisibilityUserId =
-    visibilityUserId || (seedUsers && seedUsers.length > 0 ? seedUsers[0].id : "");
+  // Falls back to the first user when nothing is selected OR when the selected
+  // user was just removed from the server store.
+  const effectiveVisibilityUserId = users.some((u) => u.id === visibilityUserId)
+    ? visibilityUserId
+    : (users[0]?.id ?? "");
   const { data: visibility, isLoading: visibilityLoading } = useGetUserVisibilityMatrix(
     { userId: effectiveVisibilityUserId, roleId },
     {
@@ -684,6 +755,13 @@ export default function AdminPage() {
               {t.registerUser}
             </ButtonPrimary>
           </Inline>
+          {userError && !userDialogOpen && (
+            <Callout
+              asset={<IconAlertRegular color={skinVars.colors.error} />}
+              title=""
+              description={userError}
+            />
+          )}
           <Table
             heading={[t.colName, t.colArea, t.colProfile, t.colConfidentialityTier, ""]}
             content={users.map((u) => [
@@ -699,7 +777,9 @@ export default function AdminPage() {
                 {u.area}
               </Text2>,
               <Text2 medium color={skinVars.colors.textPrimary} key={`${u.id}-profile`}>
-                {profileLabel[u.profileId] ?? u.profileId}
+                {(u.profileIds.length > 0 ? u.profileIds : [u.profileId])
+                  .map((p) => profileLabel[p] ?? p)
+                  .join(" + ")}
               </Text2>,
               <Tag type={clearanceTagType(u.clearance)} key={`${u.id}-clearance`}>
                 {t.clearanceLabels[u.clearance] ?? u.clearance}
@@ -708,11 +788,12 @@ export default function AdminPage() {
                 <ButtonLink small onPress={() => openEdit(u)}>
                   {t.edit}
                 </ButtonLink>
-                {(seedUsers ?? []).some((su) => su.id === u.id) && (
-                  <ButtonLink small onPress={() => setVisibilityUserId(u.id)}>
-                    {t.viewDocuments}
-                  </ButtonLink>
-                )}
+                <ButtonLink small onPress={() => setVisibilityUserId(u.id)}>
+                  {t.viewDocuments}
+                </ButtonLink>
+                <ButtonLink small onPress={() => setRemoveTarget(u)}>
+                  {t.remove}
+                </ButtonLink>
               </Inline>,
             ])}
           />
@@ -736,7 +817,7 @@ export default function AdminPage() {
                 label={t.inspectUser}
                 value={effectiveVisibilityUserId}
                 onChangeValue={setVisibilityUserId}
-                options={(seedUsers ?? []).map((u) => ({
+                options={users.map((u) => ({
                   value: u.id,
                   text: t.userSelectOption(
                     u.name,
@@ -1025,22 +1106,39 @@ export default function AdminPage() {
                     fullWidth
                   />
                   <Select
-                    name="user-profile"
-                    label={t.colProfile}
-                    value={userDraft.profileId}
-                    onChangeValue={(v) => setUserDraft({ ...userDraft, profileId: v as ProfileId })}
-                    options={(profiles ?? []).map((p) => ({ value: p.id, text: p.label }))}
+                    name="user-clearance"
+                    label={t.confidentialityTierMax}
+                    value={userDraft.clearance}
+                    onChangeValue={(v) => setUserDraft({ ...userDraft, clearance: v as Clearance })}
+                    options={CLEARANCES.map((c) => ({ value: c, text: t.clearanceLabels[c] ?? c }))}
                     fullWidth
                   />
                 </Grid>
-                <Select
-                  name="user-clearance"
-                  label={t.confidentialityTierMax}
-                  value={userDraft.clearance}
-                  onChangeValue={(v) => setUserDraft({ ...userDraft, clearance: v as Clearance })}
-                  options={CLEARANCES.map((c) => ({ value: c, text: t.clearanceLabels[c] ?? c }))}
-                  fullWidth
-                />
+
+                {/* I2 — profile composition: several profiles can be held at
+                    once; capabilities merge to the highest level each. */}
+                <Stack space={8}>
+                  <Text2 medium color={skinVars.colors.textPrimary}>
+                    {t.fieldProfiles}
+                  </Text2>
+                  <Inline space={16} alignItems="center" wrap>
+                    {(profiles ?? []).map((p) => (
+                      <Checkbox
+                        name={`user-profile-${p.id}`}
+                        key={p.id}
+                        checked={userDraft.profileIds.includes(p.id as ProfileId)}
+                        onChange={() => toggleDraftProfile(p.id as ProfileId)}
+                      >
+                        <Text2 regular color={skinVars.colors.textPrimary}>
+                          {p.label}
+                        </Text2>
+                      </Checkbox>
+                    ))}
+                  </Inline>
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    {t.profilesHint}
+                  </Text1>
+                </Stack>
 
                 {/* Effective access preview */}
                 <Boxed>
@@ -1056,7 +1154,7 @@ export default function AdminPage() {
                         </Text2>
                         {t.previewAs}
                         <Text2 as="span" medium color={skinVars.colors.textPrimary}>
-                          {profileLabel[userDraft.profileId] ?? userDraft.profileId}
+                          {userDraft.profileIds.map((p) => profileLabel[p] ?? p).join(" + ")}
                         </Text2>
                         {t.previewMid}
                         <Text2 as="span" medium color={skinVars.colors.textPrimary}>
@@ -1064,6 +1162,17 @@ export default function AdminPage() {
                         </Text2>
                         {t.previewSuffix}
                       </Text2>
+                      <Divider />
+                      <Text1 medium color={skinVars.colors.brand} transform="uppercase">
+                        {t.unifiedCapabilities}
+                      </Text1>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {draftCapabilities.map(({ cap, level }) => (
+                          <Tag key={cap} type={levelTagType(level)}>
+                            {`${t.capabilityLabels[cap] ?? cap}: ${t.levelLabels[level] ?? level}`}
+                          </Tag>
+                        ))}
+                      </div>
                       <Text1 regular color={skinVars.colors.textSecondary}>
                         {t.appliedAtRetrieval}
                       </Text1>
@@ -1071,8 +1180,16 @@ export default function AdminPage() {
                   </Box>
                 </Boxed>
 
+                {userError && (
+                  <Callout
+                    asset={<IconAlertRegular color={skinVars.colors.error} />}
+                    title=""
+                    description={userError}
+                  />
+                )}
+
                 <Inline space={16} alignItems="center">
-                  <ButtonPrimary disabled={!draftValid} onPress={handleSaveUser}>
+                  <ButtonPrimary disabled={!draftValid || userMutationBusy} onPress={handleSaveUser}>
                     {editingUserId ? t.saveChanges : t.registerUser}
                   </ButtonPrimary>
                   <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
@@ -1105,7 +1222,34 @@ export default function AdminPage() {
                   {t.elevatedPost}
                 </Text2>
                 <Inline space={16} alignItems="center">
-                  <ButtonPrimary onPress={commitUser}>{t.grantAccess}</ButtonPrimary>
+                  <ButtonPrimary onPress={commitUser} disabled={userMutationBusy}>
+                    {t.grantAccess}
+                  </ButtonPrimary>
+                  <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
+                </Inline>
+              </Stack>
+            </Box>
+          )}
+        </Sheet>
+      )}
+
+      {/* Remove user confirmation */}
+      {removeTarget && (
+        <Sheet onClose={() => setRemoveTarget(null)}>
+          {({ closeModal }) => (
+            <Box paddingX={24} paddingTop={40} paddingBottom={32}>
+              <Stack space={16}>
+                <Inline space={8} alignItems="center">
+                  <IconAlertRegular color={skinVars.colors.error} />
+                  <Title2>{t.confirmRemoveTitle}</Title2>
+                </Inline>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  {t.removeUserBody(removeTarget.name)}
+                </Text2>
+                <Inline space={16} alignItems="center">
+                  <ButtonDanger onPress={confirmRemoveUser} disabled={userMutationBusy}>
+                    {t.remove}
+                  </ButtonDanger>
                   <ButtonSecondary onPress={closeModal}>{t.cancel}</ButtonSecondary>
                 </Inline>
               </Stack>

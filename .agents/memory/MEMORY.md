@@ -44,3 +44,4 @@
 - [PDF export tooling](pdf-export-tooling.md) — no headless browser; use pdfkit via createRequire; keep pdfkit margins.bottom tiny when paginating manually or footers spawn blank pages.
 - [Section-body sanitiser](section-body-sanitiser.md) — LLM bodies need prompt + server sanitiser + client pre-pass; pipe-row grouping has pitfalls.
 - [Sentinel intent routing](sentinel-intent-routing.md) — in-view chat agents: no lexical gates; model judges intent via suppressed sentinel tokens; governance stays pre-model.
+- [Structured upload chunking](structured-upload-chunking.md) — slide/spreadsheet extraction must emit `##` markers + structured flag; the prose heading heuristic eats every terse line and yields zero chunks.
