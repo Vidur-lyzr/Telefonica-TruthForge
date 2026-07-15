@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import {
   useSaveVersion,
   useListRoles,
@@ -29,8 +30,9 @@ import {
   IconLockClosedRegular,
 } from "@telefonica/mistica";
 
-// Full-screen governed canvas editor for the planning forecast draft. The
-// draft itself is always built server-side; this overlay only lets the user
+// Centered popup editor for the planning forecast draft, rendered through a
+// portal on document.body so no transformed ancestor can offset it. The
+// draft itself is always built server-side; this dialog only lets the user
 // edit section bodies and save through the existing version pipeline, where
 // the Brand Guardian re-checks the document before anything is persisted.
 export function ForecastEditor({
@@ -89,21 +91,55 @@ export function ForecastEditor({
     );
   };
 
-  return (
+  React.useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
+  // Close only on a true backdrop click: the press must start AND end on the
+  // backdrop itself, so a text-selection drag that starts inside the editor
+  // and releases outside can never silently discard unsaved edits.
+  const backdropPress = React.useRef(false);
+
+  return createPortal(
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={draft.title}
+      onMouseDown={(e) => {
+        backdropPress.current = e.target === e.currentTarget;
+      }}
+      onClick={(e) => {
+        if (backdropPress.current && e.target === e.currentTarget) onClose();
+        backdropPress.current = false;
+      }}
       style={{
         position: "fixed",
         inset: 0,
         zIndex: 40,
-        backgroundColor: skinVars.colors.background,
-        overflowY: "auto",
+        backgroundColor: skinVars.colors.backgroundOverlay,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
       }}
     >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={draft.title}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "min(880px, 100%)",
+          maxHeight: "calc(100vh - 64px)",
+          overflowY: "auto",
+          backgroundColor: skinVars.colors.background,
+          borderRadius: skinVars.borderRadii.container,
+          boxShadow: "0 16px 48px rgba(0, 0, 0, 0.24)",
+        }}
+      >
       <EditorFocusProvider>
-        <div style={{ maxWidth: 880, margin: "0 auto", padding: "24px 16px 64px" }}>
+        <div style={{ padding: "24px 24px 32px" }}>
           <Stack space={16}>
             <Inline space="between" alignItems="center">
               <Text3 medium color={skinVars.colors.textPrimary}>
@@ -210,6 +246,8 @@ export function ForecastEditor({
           </Stack>
         </div>
       </EditorFocusProvider>
-    </div>
+      </div>
+    </div>,
+    document.body,
   );
 }

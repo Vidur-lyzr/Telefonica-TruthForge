@@ -2,7 +2,6 @@ import React from "react";
 import { clearanceLabel } from "@/components/data-center/helpers";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  usePlanningForecast,
   useSchedulePlanningForecast,
   useListPlanningForecastSchedules,
   useCreatePlanningForecastSchedule,
@@ -13,6 +12,8 @@ import {
   type GeneratedDraft,
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
+import { streamPlanningForecast } from "@/hooks/planning-forecast-stream";
+import type { PlanningAskStep } from "@/hooks/planning-ask-stream";
 import { PLANNING_I18N, localeFor } from "@/i18n/planning";
 import { AnswerMarkdown } from "@/components/answer-markdown";
 import { ForecastEditor } from "./forecast-editor";
@@ -43,6 +44,8 @@ import {
   IconTimeRegular,
   IconEditPencilRegular,
   IconFolderRegular,
+  IconCheckRegular,
+  IconChevronDownRegular,
 } from "@telefonica/mistica";
 import { formatDay, formatDayShort } from "./utils";
 import { AlertsPanel } from "./alerts-panel";
@@ -101,6 +104,81 @@ function CitationChip({
   );
 }
 
+// Live agent steps while the forecast is being generated: the real pipeline
+// (scope -> evidence -> risks -> compose) streamed from the server as it
+// happens, with a spinner on the active step. After the run, the trail
+// collapses into a one-line summary that expands on demand.
+function ForecastStepList({ steps, pending }: { steps: PlanningAskStep[]; pending: boolean }) {
+  return (
+    <div style={{ paddingLeft: 4 }}>
+      <Stack space={8}>
+        {steps.map((s) => {
+          const active = pending && s.state === "active";
+          return (
+            <div key={s.id} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexShrink: 0,
+                  width: 14,
+                  justifyContent: "center",
+                  paddingTop: 2,
+                }}
+              >
+                {active ? (
+                  <Spinner size={12} />
+                ) : (
+                  <IconCheckRegular size={12} color={skinVars.colors.success} />
+                )}
+              </div>
+              <Text1
+                regular
+                color={active ? skinVars.colors.textPrimary : skinVars.colors.textSecondary}
+              >
+                {s.label}
+                {s.detail ? ` — ${s.detail}` : ""}
+              </Text1>
+            </div>
+          );
+        })}
+      </Stack>
+    </div>
+  );
+}
+
+function ForecastStepTrail({ steps }: { steps: PlanningAskStep[] }) {
+  const { lang } = useApp();
+  const t = PLANNING_I18N[lang];
+  const [open, setOpen] = React.useState(false);
+  if (steps.length === 0) return null;
+  return (
+    <Stack space={8}>
+      <Touchable
+        onPress={() => setOpen((v) => !v)}
+        aria-label={open ? t.hideAgentActions : t.showAgentActions}
+      >
+        <Inline space={8} alignItems="center">
+          <IconCheckRegular size={14} color={skinVars.colors.success} />
+          <Text1 regular color={skinVars.colors.textSecondary}>
+            {t.agentActionsDone(steps.length)}
+          </Text1>
+          <div
+            aria-hidden
+            style={{
+              display: "inline-flex",
+              transition: "transform 0.15s ease",
+              transform: open ? "rotate(180deg)" : "none",
+            }}
+          >
+            <IconChevronDownRegular size={14} color={skinVars.colors.textSecondary} />
+          </div>
+        </Inline>
+      </Touchable>
+      {open && <ForecastStepList steps={steps} pending={false} />}
+    </Stack>
+  );
+}
+
 const FREQUENCIES = ["daily", "weekly", "monthly"] as const;
 type Frequency = (typeof FREQUENCIES)[number];
 
@@ -117,8 +195,49 @@ export function ForecastSection({ onOpenEvent }: { onOpenEvent?: (id: string) =>
   const [selected, setSelected] = React.useState<Citation | null>(null);
   const [frequency, setFrequency] = React.useState<Frequency>("weekly");
   const [editorDraft, setEditorDraft] = React.useState<GeneratedDraft | null>(null);
-  const { mutate, isPending, data } = usePlanningForecast();
-  const forecast = data as PlanningForecast | undefined;
+  // Forecast generation streams over SSE so the user watches the real agent
+  // pipeline (scope -> evidence -> risks -> compose) instead of a blind wait.
+  const [forecast, setForecast] = React.useState<PlanningForecast | undefined>(undefined);
+  const [isPending, setIsPending] = React.useState(false);
+  const [genSteps, setGenSteps] = React.useState<PlanningAskStep[]>([]);
+  const [genError, setGenError] = React.useState<string | null>(null);
+  const genAbort = React.useRef<AbortController | null>(null);
+  React.useEffect(() => () => genAbort.current?.abort(), []);
+
+  const generate = () => {
+    if (isPending || !roleId) return;
+    genAbort.current?.abort();
+    const ctrl = new AbortController();
+    genAbort.current = ctrl;
+    setGenError(null);
+    setGenSteps([]);
+    setIsPending(true);
+    streamPlanningForecast(
+      { area, roleId },
+      {
+        onStep: (step) =>
+          setGenSteps((prev) => {
+            const i = prev.findIndex((s) => s.id === step.id);
+            if (i !== -1) return prev.map((s, j) => (j === i ? step : s));
+            // A new step becoming active implies earlier steps are done.
+            return [...prev.map((s) => ({ ...s, state: "done" as const })), step];
+          }),
+      },
+      ctrl.signal,
+    )
+      .then((result) => {
+        if (ctrl.signal.aborted) return;
+        setForecast(result);
+        setGenSteps((prev) => prev.map((s) => ({ ...s, state: "done" as const })));
+      })
+      .catch((err) => {
+        if (ctrl.signal.aborted) return;
+        setGenError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!ctrl.signal.aborted) setIsPending(false);
+      });
+  };
   const {
     mutate: schedule,
     isPending: scheduling,
@@ -216,11 +335,13 @@ export function ForecastSection({ onOpenEvent }: { onOpenEvent?: (id: string) =>
                     )}
                     <ButtonPrimary
                       small
+                      showSpinner={isPending}
                       onPress={() => {
+                        if (isPending) return;
                         resetScheduled();
-                        mutate({ data: { area, roleId } });
+                        generate();
                       }}
-                      disabled={isPending || !roleId}
+                      disabled={!roleId}
                     >
                       {isPending ? t.generating : forecast ? t.refresh : t.generate}
                     </ButtonPrimary>
@@ -237,14 +358,35 @@ export function ForecastSection({ onOpenEvent }: { onOpenEvent?: (id: string) =>
         </ThemeVariant>
 
         <Box padding={24}>
+          {genError && !isPending && (
+            <Box paddingBottom={16}>
+              <div
+                style={{
+                  backgroundColor: applyAlpha(skinVars.rawColors.error, 0.08),
+                  borderRadius: skinVars.borderRadii.container,
+                  padding: 16,
+                }}
+              >
+                <Inline space={12} alignItems="center">
+                  <IconWarningRegular size={20} color={skinVars.colors.error} />
+                  <Text2 regular color={skinVars.colors.textPrimary}>
+                    {genError}
+                  </Text2>
+                </Inline>
+              </div>
+            </Box>
+          )}
           {isPending ? (
             <Box paddingY={16}>
-              <Inline space={12} alignItems="center">
-                <Spinner size={24} />
-                <Text2 medium color={skinVars.colors.textPrimary}>
-                  {t.composingForecast}
-                </Text2>
-              </Inline>
+              <Stack space={16}>
+                <Inline space={12} alignItems="center">
+                  <Spinner size={24} />
+                  <Text2 medium color={skinVars.colors.textPrimary}>
+                    {t.composingForecast}
+                  </Text2>
+                </Inline>
+                <ForecastStepList steps={genSteps} pending />
+              </Stack>
             </Box>
           ) : forecast && forecast.status === "no_activity" ? (
             <div
@@ -263,6 +405,7 @@ export function ForecastSection({ onOpenEvent }: { onOpenEvent?: (id: string) =>
             </div>
           ) : generated ? (
             <Stack space={24}>
+              <ForecastStepTrail steps={genSteps} />
               {/* Stat strip */}
               <div
                 style={{

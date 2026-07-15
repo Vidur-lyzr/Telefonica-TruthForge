@@ -588,13 +588,40 @@ function isoAddDays(date: string, days: number): string {
 export async function runPlanningForecast(
   input: { area: string; roleId: string },
   log: Logger,
+  emit?: PlanningStepEmitter,
+  signal?: AbortSignal,
 ): Promise<PlanningForecastResult> {
+  const throwIfAborted = () => {
+    if (signal?.aborted) {
+      const err = new Error("aborted");
+      err.name = "AbortError";
+      throw err;
+    }
+  };
+
   const role = ROLES.find((r) => r.id === input.roleId) ?? ROLES[0];
   const scope: PersonaScope = { clearance: role.clearance, area: role.area };
+
+  emit?.({ type: "step", id: "scope", label: "Resolving persona scope", state: "active" });
   const { from, to, events, insights } = forecastWindow(scope, 10);
   const generatedAt = new Date().toISOString();
+  emit?.({
+    type: "step",
+    id: "scope",
+    label: "Resolving persona scope",
+    state: "done",
+    detail: `${role.label} — ${events.length} permitted ${events.length === 1 ? "event" : "events"} in the 10-day window`,
+  });
+  throwIfAborted();
 
   if (events.length === 0) {
+    emit?.({
+      type: "step",
+      id: "evidence",
+      label: "Binding citations to governed activity",
+      state: "done",
+      detail: "Empty window reported honestly — nothing is invented to fill it",
+    });
     log.info({ roleId: role.id }, "planning-forecast: no_activity");
     return {
       status: "no_activity",
@@ -618,10 +645,23 @@ export async function runPlanningForecast(
   // Deterministic evidence base: every permitted event in the window gets a
   // citation up front (S1..Sn), so day entries, risks and prepared lines can
   // all point at governed evidence without depending on what the model cites.
+  emit?.({
+    type: "step",
+    id: "evidence",
+    label: "Binding citations to governed activity",
+    state: "active",
+  });
   const citations = ordered.map((e, i) =>
     eventToCitation(e, `S${i + 1}`, Number(Math.max(0.6, 0.95 - i * 0.03).toFixed(2))),
   );
   const markerFor = new Map(ordered.map((e, i) => [e.id, `S${i + 1}`]));
+  emit?.({
+    type: "step",
+    id: "evidence",
+    label: "Binding citations to governed activity",
+    state: "done",
+    detail: `${citations.length} ${citations.length === 1 ? "event" : "events"} cited S1–S${citations.length}`,
+  });
 
   // Day-by-day timeline, clear days included honestly.
   const days: ForecastDay[] = [];
@@ -666,6 +706,14 @@ export async function runPlanningForecast(
     seenRisk.add(r.text);
     return true;
   });
+  emit?.({
+    type: "step",
+    id: "risks",
+    label: "Scanning conflicts and risk signals",
+    state: "done",
+    detail: `${insights.conflicts.length} ${insights.conflicts.length === 1 ? "conflict" : "conflicts"}, ${dedupedRisks.length} governed risk ${dedupedRisks.length === 1 ? "note" : "notes"}`,
+  });
+  throwIfAborted();
 
   const conflictLine = insights.conflicts.length
     ? `\n\nKnown conflicts in this window: ${insights.conflicts.map((c) => c.suggestion).join(" ")}`
@@ -713,8 +761,16 @@ export async function runPlanningForecast(
     return lines;
   };
 
+  emit?.({
+    type: "step",
+    id: "compose",
+    label: "Composing the cited outlook",
+    state: "active",
+    detail: `${ordered.length} governed ${ordered.length === 1 ? "event" : "events"} in scope`,
+  });
   let outlook = "";
   let preparedLines: string[] = [];
+  let modelOk = false;
   try {
     const message = await meteredCreate("planning", {
       model: MODEL,
@@ -728,11 +784,23 @@ export async function runPlanningForecast(
     preparedLines = parsed.preparedLines
       .map((l) => sanitizeMarkers(l, ordered.length))
       .filter((l) => l.length > 0);
+    modelOk = outlook.length > 0;
+    throwIfAborted();
   } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") throw err;
     log.error({ err }, "planning-forecast: model call failed, using extractive fallback");
   }
   if (!outlook) outlook = fallbackOutlook();
   if (preparedLines.length === 0) preparedLines = fallbackPreparedLines();
+  emit?.({
+    type: "step",
+    id: "compose",
+    label: "Composing the cited outlook",
+    state: "done",
+    detail: modelOk
+      ? "Outlook and prepared lines composed against the cited events"
+      : "Model unavailable — extractive cited fallback used",
+  });
 
   const liveCount = ordered.filter((e) => e.status === "live" || e.status === "in_progress").length;
   const riskCount =

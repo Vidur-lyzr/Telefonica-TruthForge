@@ -28,6 +28,25 @@ import {
 } from "./utils";
 import { useApp } from "@/components/app-provider";
 import { PLANNING_I18N } from "@/i18n/planning";
+import {
+  AsanaLogo,
+  JiraLogo,
+  GoogleCalendarLogo,
+  ConfluenceLogo,
+  ExcelLogo,
+  SharePointLogo,
+} from "@/components/data-center/source-logos";
+
+// Event pills show the origin system as its real logo instead of a text
+// label; the accessible name still carries the source via eventAria.
+const SOURCE_LOGO_BY_NAME: Record<string, React.ComponentType<{ size?: number }>> = {
+  Asana: AsanaLogo,
+  Jira: JiraLogo,
+  "Google Calendar": GoogleCalendarLogo,
+  Confluence: ConfluenceLogo,
+  Excel: ExcelLogo,
+  SharePoint: SharePointLogo,
+};
 
 export type CalendarView = "month" | "week" | "day";
 
@@ -100,20 +119,40 @@ function EventBlock({
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0, marginTop: 2 }}>
-          {event.source && (
-            <div
-              style={{
-                flexShrink: 0,
-                padding: "0 4px",
-                borderRadius: skinVars.borderRadii.chip,
-                backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.25),
-              }}
-            >
-              <Text1 medium color={skinVars.colors.textPrimaryInverse}>
-                {event.source}
-              </Text1>
-            </div>
-          )}
+          {event.source &&
+            (() => {
+              const Logo = SOURCE_LOGO_BY_NAME[event.source ?? ""];
+              return Logo ? (
+                <div
+                  title={event.source}
+                  style={{
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: 16,
+                    height: 16,
+                    borderRadius: skinVars.borderRadii.chip,
+                    backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.92),
+                  }}
+                >
+                  <Logo size={11} />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    flexShrink: 0,
+                    padding: "0 4px",
+                    borderRadius: skinVars.borderRadii.chip,
+                    backgroundColor: applyAlpha(skinVars.rawColors.inverse, 0.25),
+                  }}
+                >
+                  <Text1 medium color={skinVars.colors.textPrimaryInverse}>
+                    {event.source}
+                  </Text1>
+                </div>
+              );
+            })()}
           {context && (
             <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               <Text1 regular color={applyAlpha(skinVars.rawColors.inverse, 0.9)}>{context}</Text1>

@@ -26,27 +26,30 @@ export interface PlanningAskStreamHandlers {
   onStep: (step: PlanningAskStep) => void;
 }
 
-// POST to the planning agent SSE endpoint and parse step / result / error
-// events. Resolves with the final result.
-export async function streamPlanningAsk(
-  body: { question: string; area: string; roleId: string },
+// POST to a planning agent SSE endpoint and parse step / result / error
+// events. Resolves with the final result. Shared by the ask and forecast
+// streaming hooks, which mirror the same server framing.
+export async function streamAgentEndpoint<TResult>(
+  url: string,
+  body: unknown,
   handlers: PlanningAskStreamHandlers,
+  fallbackError: string,
   signal?: AbortSignal,
-): Promise<PlanningAskStreamResult> {
-  const response = await fetch("/api/planning/ask/stream", {
+): Promise<TResult> {
+  const response = await fetch(url, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
     signal,
   });
   if (!response.ok || !response.body) {
-    throw new Error(`planning ask stream failed: ${response.status}`);
+    throw new Error(`agent stream failed: ${response.status}`);
   }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let result: PlanningAskStreamResult | null = null;
+  let result: TResult | null = null;
   let streamError: string | null = null;
 
   const handleFrame = (frame: string) => {
@@ -67,11 +70,9 @@ export async function streamPlanningAsk(
     if (event === "step") {
       handlers.onStep(data as PlanningAskStep);
     } else if (event === "result") {
-      result = data as PlanningAskStreamResult;
+      result = data as TResult;
     } else if (event === "error") {
-      streamError =
-        (data as { error?: string }).error ??
-        "The calendar agent could not complete this request.";
+      streamError = (data as { error?: string }).error ?? fallbackError;
     }
   };
 
@@ -109,6 +110,21 @@ export async function streamPlanningAsk(
   if (buffer.trim()) handleFrame(buffer);
 
   if (streamError) throw new Error(streamError);
-  if (!result) throw new Error("planning ask stream ended without a result");
+  if (result === null) throw new Error("agent stream ended without a result");
   return result;
+}
+
+// POST to the planning ask agent SSE endpoint. Resolves with the final result.
+export async function streamPlanningAsk(
+  body: { question: string; area: string; roleId: string },
+  handlers: PlanningAskStreamHandlers,
+  signal?: AbortSignal,
+): Promise<PlanningAskStreamResult> {
+  return streamAgentEndpoint<PlanningAskStreamResult>(
+    "/api/planning/ask/stream",
+    body,
+    handlers,
+    "The calendar agent could not complete this request.",
+    signal,
+  );
 }

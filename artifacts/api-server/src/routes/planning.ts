@@ -194,6 +194,57 @@ router.post("/planning/ask/stream", async (req, res) => {
   }
 });
 
+// Streaming variant of /planning/forecast: Server-Sent Events with live agent
+// steps (scope -> evidence -> risks -> compose) followed by the final result,
+// with the governed draft attached server-side exactly like the sync route.
+// Out of the OpenAPI contract by design, mirroring /planning/ask/stream.
+router.post("/planning/forecast/stream", async (req, res) => {
+  const parsed = PlanningForecastBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  let closed = false;
+  const abort = new AbortController();
+  res.on("close", () => {
+    closed = true;
+    abort.abort();
+  });
+
+  const send = (event: string, data: unknown) => {
+    if (closed) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  try {
+    const result = await runPlanningForecast(
+      parsed.data,
+      req.log,
+      (step) => send("step", step),
+      abort.signal,
+    );
+    const draft =
+      result.status === "generated" ? buildForecastDraft(result, parsed.data) : null;
+    send("result", { ...result, draft });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      req.log.info("planning forecast stream cancelled: client disconnected");
+    } else {
+      req.log.error({ err }, "planning forecast stream failed");
+      send("error", { error: "The forecast agent could not complete this request." });
+    }
+  } finally {
+    send("done", {});
+    res.end();
+  }
+});
+
 // A persona label for sync records — who asked for the change.
 function labelFor(roleId: string): string {
   const role = ROLES.find((r) => r.id === roleId) ?? ROLES[0];
