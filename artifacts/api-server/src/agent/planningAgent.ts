@@ -16,6 +16,7 @@ import {
   type Insights,
   type PersonaScope,
 } from "../adapters/planning";
+import { getTemplate, getDisclaimer } from "../data/assets";
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -604,10 +605,21 @@ export function buildForecastDraft(
     `Activities or signals flagged as at risk: ${forecast.highlights.riskCount}.`,
   ].join(" ");
 
+  // The Brand Guardian resolves the template by the draft's shape and blocks
+  // approval when a template-required disclaimer is missing, so attach them
+  // here exactly like the Generate engine does. A forward-looking forecast is
+  // precisely the content those disclaimers exist for. The shape const is
+  // shared with the draft fields below so the template lookup can never drift.
+  const shape = "multiformat" as const;
+  const disclaimers = (getTemplate(shape)?.requiredDisclaimerIds ?? [])
+    .map((id) => getDisclaimer(id))
+    .filter((d): d is NonNullable<typeof d> => Boolean(d))
+    .map((d) => ({ id: d.id, name: d.name, text: d.text }));
+
   return {
     id: `draft-forecast-${Date.now().toString(36)}`,
     status: "drafted",
-    shape: "multiformat",
+    shape,
     templateId: PLANNING_FORECAST_TEMPLATE_ID,
     title: `10-day planning forecast — ${rangeLabel}`,
     language: "en",
@@ -648,7 +660,7 @@ export function buildForecastDraft(
     charts: [],
     tables: [],
     citations: forecast.citations,
-    disclaimers: [],
+    disclaimers,
     axisIds,
     guardian: {
       status: "pass",
@@ -661,7 +673,7 @@ export function buildForecastDraft(
     note: `Scheduled planning forecast for the ${input.area} area, generated for ${role.label}.`,
     createdAt: forecast.generatedAt,
     params: {
-      shape: "multiformat",
+      shape,
       topic: `10-day planning forecast (${rangeLabel})`,
       roleId: role.id,
       audience: "internal",
