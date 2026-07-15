@@ -511,8 +511,15 @@ export default function Ask() {
 
   // Persona switch closes the artifact panel AND aborts any in-flight run:
   // a lower-clearance persona must never keep reading — or receive — a
-  // document generated under a higher clearance.
+  // document generated under a higher clearance. This must fire ONLY on a
+  // real persona-to-persona switch, never on the initial ("" -> persona)
+  // establishment — otherwise it races the Home `?q=` auto-run and aborts
+  // the very first governed request the moment it starts.
+  const prevRoleIdRef = React.useRef<string>(roleId);
   React.useEffect(() => {
+    const prev = prevRoleIdRef.current;
+    prevRoleIdRef.current = roleId;
+    if (!prev || prev === roleId) return;
     setOpenDocId(null);
     askAbortRef.current?.abort();
     askAbortRef.current = null;
