@@ -2021,7 +2021,33 @@ export const SchedulePlanningForecastResponse = zod.object({
   "horizonDays": zod.number(),
   "rangeStart": zod.string(),
   "rangeEnd": zod.string(),
-  "summary": zod.string(),
+  "summary": zod.string().describe('Model-composed outlook narrative with [S#] citation markers.'),
+  "days": zod.array(zod.object({
+  "date": zod.string(),
+  "clear": zod.boolean(),
+  "entries": zod.array(zod.object({
+  "citationId": zod.string(),
+  "eventId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "status": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "owner": zod.string(),
+  "isStart": zod.boolean()
+}))
+})),
+  "risks": zod.array(zod.object({
+  "kind": zod.string().describe('conflict | risk | signal'),
+  "text": zod.string(),
+  "citationIds": zod.array(zod.string())
+})),
+  "preparedLines": zod.array(zod.string()),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -2049,7 +2075,133 @@ export const SchedulePlanningForecastResponse = zod.object({
   "liveCount": zod.number(),
   "conflictCount": zod.number(),
   "riskCount": zod.number()
-})
+}),
+  "draft": zod.union([zod.object({
+  "id": zod.string(),
+  "status": zod.string().describe('drafted | no_evidence | permission_blocked'),
+  "shape": zod.string(),
+  "templateId": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "audience": zod.string(),
+  "confidentiality": zod.string(),
+  "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "heading": zod.string(),
+  "axisId": zod.string().nullish(),
+  "body": zod.string(),
+  "citationIds": zod.array(zod.string()),
+  "internalOnly": zod.boolean()
+})),
+  "spokesperson": zod.array(zod.object({
+  "question": zod.string(),
+  "guidance": zod.string(),
+  "doNotSay": zod.string().nullish()
+})),
+  "charts": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "type": zod.string().describe('bar | line'),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "points": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+}))
+})),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
+  "confidentiality": zod.string().describe('public | private | confidential | off_the_record'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
+  "axisIds": zod.array(zod.string()),
+  "guardian": zod.object({
+  "status": zod.string().describe('pass | block'),
+  "summary": zod.string(),
+  "findings": zod.array(zod.object({
+  "severity": zod.string().describe('error | warning'),
+  "rule": zod.string(),
+  "message": zod.string(),
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
+}))
+}),
+  "historic": zod.boolean(),
+  "historicNote": zod.string().nullish(),
+  "permissionNote": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "params": zod.object({
+  "shape": zod.string(),
+  "topic": zod.string(),
+  "roleId": zod.string(),
+  "audience": zod.string(),
+  "language": zod.string(),
+  "confidentiality": zod.string(),
+  "format": zod.string(),
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
+}),
+  "origin": zod.string().optional().describe('manual | scheduled'),
+  "reviewItemId": zod.string().nullish(),
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+}),zod.null()]).optional().describe('Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.')
 })
 })
 
@@ -2256,7 +2408,33 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "horizonDays": zod.number(),
   "rangeStart": zod.string(),
   "rangeEnd": zod.string(),
-  "summary": zod.string(),
+  "summary": zod.string().describe('Model-composed outlook narrative with [S#] citation markers.'),
+  "days": zod.array(zod.object({
+  "date": zod.string(),
+  "clear": zod.boolean(),
+  "entries": zod.array(zod.object({
+  "citationId": zod.string(),
+  "eventId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "status": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "owner": zod.string(),
+  "isStart": zod.boolean()
+}))
+})),
+  "risks": zod.array(zod.object({
+  "kind": zod.string().describe('conflict | risk | signal'),
+  "text": zod.string(),
+  "citationIds": zod.array(zod.string())
+})),
+  "preparedLines": zod.array(zod.string()),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -2284,7 +2462,133 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "liveCount": zod.number(),
   "conflictCount": zod.number(),
   "riskCount": zod.number()
-})
+}),
+  "draft": zod.union([zod.object({
+  "id": zod.string(),
+  "status": zod.string().describe('drafted | no_evidence | permission_blocked'),
+  "shape": zod.string(),
+  "templateId": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "audience": zod.string(),
+  "confidentiality": zod.string(),
+  "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "heading": zod.string(),
+  "axisId": zod.string().nullish(),
+  "body": zod.string(),
+  "citationIds": zod.array(zod.string()),
+  "internalOnly": zod.boolean()
+})),
+  "spokesperson": zod.array(zod.object({
+  "question": zod.string(),
+  "guidance": zod.string(),
+  "doNotSay": zod.string().nullish()
+})),
+  "charts": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "type": zod.string().describe('bar | line'),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "points": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+}))
+})),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
+  "confidentiality": zod.string().describe('public | private | confidential | off_the_record'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
+  "axisIds": zod.array(zod.string()),
+  "guardian": zod.object({
+  "status": zod.string().describe('pass | block'),
+  "summary": zod.string(),
+  "findings": zod.array(zod.object({
+  "severity": zod.string().describe('error | warning'),
+  "rule": zod.string(),
+  "message": zod.string(),
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
+}))
+}),
+  "historic": zod.boolean(),
+  "historicNote": zod.string().nullish(),
+  "permissionNote": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "params": zod.object({
+  "shape": zod.string(),
+  "topic": zod.string(),
+  "roleId": zod.string(),
+  "audience": zod.string(),
+  "language": zod.string(),
+  "confidentiality": zod.string(),
+  "format": zod.string(),
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
+}),
+  "origin": zod.string().optional().describe('manual | scheduled'),
+  "reviewItemId": zod.string().nullish(),
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+}),zod.null()]).optional().describe('Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.')
 })
 })
 
@@ -2358,7 +2662,33 @@ export const PlanningForecastResponse = zod.object({
   "horizonDays": zod.number(),
   "rangeStart": zod.string(),
   "rangeEnd": zod.string(),
-  "summary": zod.string(),
+  "summary": zod.string().describe('Model-composed outlook narrative with [S#] citation markers.'),
+  "days": zod.array(zod.object({
+  "date": zod.string(),
+  "clear": zod.boolean(),
+  "entries": zod.array(zod.object({
+  "citationId": zod.string(),
+  "eventId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "status": zod.string(),
+  "market": zod.string(),
+  "brand": zod.string(),
+  "owner": zod.string(),
+  "isStart": zod.boolean()
+}))
+})),
+  "risks": zod.array(zod.object({
+  "kind": zod.string().describe('conflict | risk | signal'),
+  "text": zod.string(),
+  "citationIds": zod.array(zod.string())
+})),
+  "preparedLines": zod.array(zod.string()),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
   "docId": zod.string(),
@@ -2386,7 +2716,133 @@ export const PlanningForecastResponse = zod.object({
   "liveCount": zod.number(),
   "conflictCount": zod.number(),
   "riskCount": zod.number()
-})
+}),
+  "draft": zod.union([zod.object({
+  "id": zod.string(),
+  "status": zod.string().describe('drafted | no_evidence | permission_blocked'),
+  "shape": zod.string(),
+  "templateId": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "audience": zod.string(),
+  "confidentiality": zod.string(),
+  "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "heading": zod.string(),
+  "axisId": zod.string().nullish(),
+  "body": zod.string(),
+  "citationIds": zod.array(zod.string()),
+  "internalOnly": zod.boolean()
+})),
+  "spokesperson": zod.array(zod.object({
+  "question": zod.string(),
+  "guidance": zod.string(),
+  "doNotSay": zod.string().nullish()
+})),
+  "charts": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "type": zod.string().describe('bar | line'),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "points": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+}))
+})),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
+  "confidentiality": zod.string().describe('public | private | confidential | off_the_record'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
+  "axisIds": zod.array(zod.string()),
+  "guardian": zod.object({
+  "status": zod.string().describe('pass | block'),
+  "summary": zod.string(),
+  "findings": zod.array(zod.object({
+  "severity": zod.string().describe('error | warning'),
+  "rule": zod.string(),
+  "message": zod.string(),
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
+}))
+}),
+  "historic": zod.boolean(),
+  "historicNote": zod.string().nullish(),
+  "permissionNote": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "params": zod.object({
+  "shape": zod.string(),
+  "topic": zod.string(),
+  "roleId": zod.string(),
+  "audience": zod.string(),
+  "language": zod.string(),
+  "confidentiality": zod.string(),
+  "format": zod.string(),
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
+}),
+  "origin": zod.string().optional().describe('manual | scheduled'),
+  "reviewItemId": zod.string().nullish(),
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+}),zod.null()]).optional().describe('Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.')
 })
 
 
@@ -4149,8 +4605,13 @@ export const PublishReviewItemResponse = zod.object({
 
 
 /**
+ * When roleId is supplied, the list is scoped to versions saved from that persona's own drafts (fail-closed: an unknown roleId is rejected). This keeps persona-scoped surfaces such as Planning from exposing versions authored under a different clearance.
  * @summary Saved document versions (file-backed; survive restarts)
  */
+export const ListVersionsQueryParams = zod.object({
+  "roleId": zod.coerce.string().optional().describe('Optional persona id; scopes the list to that persona\'s own saved versions')
+})
+
 export const ListVersionsResponseItem = zod.object({
   "id": zod.string(),
   "version": zod.number(),

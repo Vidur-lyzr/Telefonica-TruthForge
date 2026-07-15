@@ -37,10 +37,9 @@ import { SOURCE_LOGOS } from "@/components/data-center/source-logos";
 import { PlanningCalendar, type CalendarView } from "@/components/planning/calendar";
 import { EventDrawer } from "@/components/planning/event-drawer";
 import { EventForm } from "@/components/planning/event-form";
-import { AlertsPanel } from "@/components/planning/alerts-panel";
 import { PredictiveStrip } from "@/components/planning/predictive-strip";
 import { PlanningChat } from "@/components/planning/planning-chat";
-import { ForecastPanel } from "@/components/planning/forecast-panel";
+import { ForecastSection } from "@/components/planning/forecast-section";
 import {
   addDays,
   endOfMonth,
@@ -507,8 +506,8 @@ export default function Planning() {
               </Stack>
             </GridSpan>
 
-            {/* All three side panels stay mounted so switching tabs never
-                discards a running forecast or an in-flight conversation. */}
+            {/* Both side panels stay mounted so switching tabs never
+                discards an in-flight conversation. */}
             <Stack space={16}>
               <div
                 role="tablist"
@@ -522,7 +521,7 @@ export default function Planning() {
                   padding: 2,
                 }}
               >
-                {[t.tabForecastAlerts, t.askCalendar, t.tabSignals].map((label, i) => (
+                {[t.askCalendar, t.tabSignals].map((label, i) => (
                   <div key={i} style={{ flex: 1, display: "flex" }}>
                     <Touchable
                       onPress={() => setSideTab(i)}
@@ -558,16 +557,10 @@ export default function Planning() {
                   </div>
                 ))}
               </div>
-              <div style={{ display: sideTab === 0 ? "block" : "none" }}>
-                <Stack space={24}>
-                  <ForecastPanel />
-                  {!disconnected && <AlertsPanel onOpenEvent={setOpenEvent} />}
-                </Stack>
-              </div>
-              <div style={{ display: sideTab === 1 ? "flex" : "none", minHeight: 480 }}>
+              <div style={{ display: sideTab === 0 ? "flex" : "none", minHeight: 480 }}>
                 <PlanningChat />
               </div>
-              <div style={{ display: sideTab === 2 ? "block" : "none" }}>
+              <div style={{ display: sideTab === 1 ? "block" : "none" }}>
                 {!disconnected && insights ? (
                   <PredictiveStrip
                     insights={insights}
@@ -582,6 +575,9 @@ export default function Planning() {
               </div>
             </Stack>
           </Grid>
+
+          {/* Full-width governed forecast below the calendar */}
+          <ForecastSection onOpenEvent={setOpenEvent} />
         </Stack>
       </Box>
 

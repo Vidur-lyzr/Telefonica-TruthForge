@@ -556,7 +556,12 @@ router.post("/planning/forecast", async (req, res) => {
   }
   try {
     const result = await runPlanningForecast(parsed.data, req.log);
-    res.json(PlanningForecastResponse.parse(result));
+    // Attach the server-built governed draft so "Open in editor" edits exactly
+    // what the review/version pipeline would see — the client never assembles
+    // draft content or governance metadata itself.
+    const draft =
+      result.status === "generated" ? buildForecastDraft(result, parsed.data) : null;
+    res.json(PlanningForecastResponse.parse({ ...result, draft }));
   } catch (err) {
     req.log.error({ err }, "planning-forecast route failed");
     res.status(500).json({ error: "The Hub could not complete this request." });

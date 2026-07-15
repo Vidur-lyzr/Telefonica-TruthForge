@@ -1647,6 +1647,18 @@ paths:
       operationId: listVersions
       tags: [generate]
       summary: Saved document versions (file-backed; survive restarts)
+      description: >-
+        When roleId is supplied, the list is scoped to versions saved from that
+        persona's own drafts (fail-closed: an unknown roleId is rejected). This
+        keeps persona-scoped surfaces such as Planning from exposing versions
+        authored under a different clearance.
+      parameters:
+        - name: roleId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Optional persona id; scopes the list to that persona's own saved versions
       responses:
         "200":
           description: Saved versions
@@ -5588,9 +5600,59 @@ components:
         roleId:
           type: string
 
+    PlanningForecastDayEntry:
+      type: object
+      required: [citationId, eventId, title, type, status, market, brand, owner, isStart]
+      properties:
+        citationId:
+          type: string
+        eventId:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        market:
+          type: string
+        brand:
+          type: string
+        owner:
+          type: string
+        isStart:
+          type: boolean
+
+    PlanningForecastDay:
+      type: object
+      required: [date, clear, entries]
+      properties:
+        date:
+          type: string
+        clear:
+          type: boolean
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanningForecastDayEntry"
+
+    PlanningForecastRisk:
+      type: object
+      required: [kind, text, citationIds]
+      properties:
+        kind:
+          type: string
+          description: conflict | risk | signal
+        text:
+          type: string
+        citationIds:
+          type: array
+          items:
+            type: string
+
     PlanningForecast:
       type: object
-      required: [status, generatedAt, horizonDays, rangeStart, rangeEnd, summary, citations, highlights]
+      required: [status, generatedAt, horizonDays, rangeStart, rangeEnd, summary, days, risks, preparedLines, disclaimers, citations, highlights]
       properties:
         status:
           type: string
@@ -5605,6 +5667,31 @@ components:
           type: string
         summary:
           type: string
+          description: Model-composed outlook narrative with [S#] citation markers.
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanningForecastDay"
+        risks:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanningForecastRisk"
+        preparedLines:
+          type: array
+          items:
+            type: string
+        disclaimers:
+          type: array
+          items:
+            type: object
+            required: [id, name, text]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              text:
+                type: string
         citations:
           type: array
           items:
@@ -5619,6 +5706,11 @@ components:
               type: integer
             riskCount:
               type: integer
+        draft:
+          description: Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.
+          anyOf:
+            - $ref: "#/components/schemas/GeneratedDraft"
+            - type: "null"
 
     PlanningEventCreateInput:
       type: object

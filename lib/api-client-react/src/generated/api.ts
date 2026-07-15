@@ -106,6 +106,7 @@ import type {
   ListPlanningSyncParams,
   ListRadarParams,
   ListRetrievalLogParams,
+  ListVersionsParams,
   ListWikiLineageParams,
   ListWikiPagesParams,
   LiveIngestAcceptInput,
@@ -5335,20 +5336,28 @@ export const usePublishReviewItem = <TError = ErrorType<ErrorResponse>,
       return useMutation(getPublishReviewItemMutationOptions(options));
     }
 
-export const getListVersionsUrl = () => {
+export const getListVersionsUrl = (params?: ListVersionsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/generate/versions`
+  return stringifiedParams.length > 0 ? `/api/generate/versions?${stringifiedParams}` : `/api/generate/versions`
 }
 
 /**
+ * When roleId is supplied, the list is scoped to versions saved from that persona's own drafts (fail-closed: an unknown roleId is rejected). This keeps persona-scoped surfaces such as Planning from exposing versions authored under a different clearance.
  * @summary Saved document versions (file-backed; survive restarts)
  */
-export const listVersions = async ( options?: RequestInit): Promise<SavedVersion[]> => {
+export const listVersions = async (params?: ListVersionsParams, options?: RequestInit): Promise<SavedVersion[]> => {
 
-  return customFetch<SavedVersion[]>(getListVersionsUrl(),
+  return customFetch<SavedVersion[]>(getListVersionsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -5361,23 +5370,23 @@ export const listVersions = async ( options?: RequestInit): Promise<SavedVersion
 
 
 
-export const getListVersionsQueryKey = () => {
+export const getListVersionsQueryKey = (params?: ListVersionsParams,) => {
     return [
-    `/api/generate/versions`
+    `/api/generate/versions`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListVersionsQueryOptions = <TData = Awaited<ReturnType<typeof listVersions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVersions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListVersionsQueryOptions = <TData = Awaited<ReturnType<typeof listVersions>>, TError = ErrorType<unknown>>(params?: ListVersionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVersions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListVersionsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListVersionsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVersions>>> = ({ signal }) => listVersions({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listVersions>>> = ({ signal }) => listVersions(params, { signal, ...requestOptions });
 
 
 
@@ -5395,11 +5404,11 @@ export type ListVersionsQueryError = ErrorType<unknown>
  */
 
 export function useListVersions<TData = Awaited<ReturnType<typeof listVersions>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVersions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params?: ListVersionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listVersions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListVersionsQueryOptions(options)
+  const queryOptions = getListVersionsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

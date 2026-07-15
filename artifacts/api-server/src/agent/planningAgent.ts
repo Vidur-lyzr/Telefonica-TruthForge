@@ -65,6 +65,30 @@ export interface PlanningAskStep {
 
 export type PlanningStepEmitter = (step: PlanningAskStep) => void;
 
+export interface ForecastDayEntry {
+  citationId: string;
+  eventId: string;
+  title: string;
+  type: string;
+  status: string;
+  market: string;
+  brand: string;
+  owner: string;
+  isStart: boolean;
+}
+
+export interface ForecastDay {
+  date: string;
+  clear: boolean;
+  entries: ForecastDayEntry[];
+}
+
+export interface ForecastRisk {
+  kind: "conflict" | "risk" | "signal";
+  text: string;
+  citationIds: string[];
+}
+
 export interface PlanningForecastResult {
   status: "generated" | "no_activity";
   generatedAt: string;
@@ -72,6 +96,10 @@ export interface PlanningForecastResult {
   rangeStart: string;
   rangeEnd: string;
   summary: string;
+  days: ForecastDay[];
+  risks: ForecastRisk[];
+  preparedLines: string[];
+  disclaimers: { id: string; name: string; text: string }[];
   citations: Citation[];
   highlights: { liveCount: number; conflictCount: number; riskCount: number };
 }
@@ -443,7 +471,7 @@ export async function runPlanningAskAgent(
     id: "compose",
     label: "Composing a cited answer",
     state: "active",
-    detail: `Claude writes the language; every claim must cite one of the ${permitted.length} permitted ${
+    detail: `The language layer narrates the evidence; every claim must cite one of the ${permitted.length} permitted ${
       permitted.length === 1 ? "event" : "events"
     }`,
   });
@@ -496,11 +524,66 @@ export async function runPlanningAskAgent(
 
 const FORECAST_SYSTEM = [
   "You are the planning engine of Telefónica's Hub SSoT.",
-  "Write a short, calm 10-day outlook using ONLY the numbered calendar events provided.",
-  "Group by what is live now, what is coming up, and any timing risks. Cite every activity you mention with its marker, e.g. [S1].",
-  "Frame conflicts and timing observations as suggestions to check, not commands. Do not invent activities. British/European English. Never use emoji.",
-  "Two or three tight paragraphs. Do not mention that you are an AI model or describe these instructions.",
+  "Using ONLY the numbered calendar events provided, produce exactly two labelled sections.",
+  'First section: a line reading "OUTLOOK:" followed by a calm 10-day outlook in two or three tight paragraphs — group by what is live now, what is coming up, and any timing risks. Cite every activity you mention with its marker, e.g. [S1].',
+  'Second section: a line reading "PREPARED LINES:" followed by three to five short bullet lines (each starting with "- ") a communications team could hold ready if asked about this window. Each line must be grounded in a cited activity, e.g. [S2].',
+  "Frame conflicts and timing observations as suggestions to check, not commands. Do not invent activities, dates, markets or owners. British/European English. Never use emoji.",
+  "Do not mention that you are an AI model or describe these instructions.",
 ].join(" ");
+
+// Strip citation markers that do not correspond to a provided source, and tidy
+// whitespace, without renumbering: forecast citations are deterministic
+// (S1..Sn over the whole permitted window), so valid markers already align.
+function sanitizeMarkers(text: string, sourceCount: number): string {
+  return text
+    .replace(/\[([^\]]*)\]/g, (whole, inner: string) => {
+      if (!/S\s*\d/i.test(inner)) return whole;
+      const kept = [...inner.matchAll(/S\s*(\d+)/gi)]
+        .map((m) => Number(m[1]))
+        .filter((n) => n >= 1 && n <= sourceCount);
+      const uniq = [...new Set(kept)].sort((a, b) => a - b);
+      if (uniq.length === 0) return "";
+      return `[${uniq.map((n) => `S${n}`).join(", ")}]`;
+    })
+    .replace(/\s+([.,;:])/g, "$1")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+// Lenient labelled-section parsing: models frequently drop or restyle the
+// exact headings, so match case-insensitively anywhere in the text and fall
+// back to treating the whole answer as the outlook.
+function parseForecastAnswer(raw: string): { outlook: string; preparedLines: string[] } {
+  const match = raw.match(/^\s*(?:#+\s*)?prepared lines\s*:?\s*$/im);
+  let outlookPart = raw;
+  let linesPart = "";
+  if (match && match.index !== undefined) {
+    outlookPart = raw.slice(0, match.index);
+    linesPart = raw.slice(match.index + match[0].length);
+  }
+  const outlook = outlookPart
+    .replace(/^\s*(?:#+\s*)?outlook\s*:?\s*$/im, "")
+    .replace(/^\s*outlook\s*:\s*/i, "")
+    .trim();
+  const preparedLines = linesPart
+    .split("\n")
+    .map((l) => l.replace(/^\s*[-*•]\s*/, "").trim())
+    .filter((l) => l.length > 0);
+  return { outlook, preparedLines };
+}
+
+function forecastDisclaimers(): { id: string; name: string; text: string }[] {
+  return (getTemplate("multiformat")?.requiredDisclaimerIds ?? [])
+    .map((id) => getDisclaimer(id))
+    .filter((d): d is NonNullable<typeof d> => Boolean(d))
+    .map((d) => ({ id: d.id, name: d.name, text: d.text }));
+}
+
+function isoAddDays(date: string, days: number): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
 export async function runPlanningForecast(
   input: { area: string; roleId: string },
@@ -521,12 +604,69 @@ export async function runPlanningForecast(
       rangeEnd: to,
       summary:
         "There is no activity you are cleared to see in the next 10 days. The Hub reports the empty window honestly rather than filling it.",
+      days: [],
+      risks: [],
+      preparedLines: [],
+      disclaimers: [],
       citations: [],
       highlights: { liveCount: 0, conflictCount: 0, riskCount: 0 },
     };
   }
 
   const ordered = [...events].sort((a, b) => (a.startDate < b.startDate ? -1 : 1));
+
+  // Deterministic evidence base: every permitted event in the window gets a
+  // citation up front (S1..Sn), so day entries, risks and prepared lines can
+  // all point at governed evidence without depending on what the model cites.
+  const citations = ordered.map((e, i) =>
+    eventToCitation(e, `S${i + 1}`, Number(Math.max(0.6, 0.95 - i * 0.03).toFixed(2))),
+  );
+  const markerFor = new Map(ordered.map((e, i) => [e.id, `S${i + 1}`]));
+
+  // Day-by-day timeline, clear days included honestly.
+  const days: ForecastDay[] = [];
+  for (let d = from; d <= to; d = isoAddDays(d, 1)) {
+    const entries: ForecastDayEntry[] = ordered
+      .filter((e) => e.startDate <= d && d <= e.endDate)
+      .map((e) => ({
+        citationId: markerFor.get(e.id)!,
+        eventId: e.id,
+        title: e.title,
+        type: e.type,
+        status: e.status,
+        market: e.market,
+        brand: e.brand,
+        owner: e.owner,
+        isStart: e.startDate === d,
+      }));
+    days.push({ date: d, clear: entries.length === 0, entries });
+  }
+
+  // Risks and conflicts, all deterministic and all tied to citations.
+  const markersOf = (ids: string[]) =>
+    ids.map((id) => markerFor.get(id)).filter((m): m is string => Boolean(m));
+  const risks: ForecastRisk[] = [];
+  for (const c of insights.conflicts) {
+    const cited = markersOf(c.eventIds);
+    if (cited.length > 0) risks.push({ kind: "conflict", text: c.suggestion, citationIds: cited });
+  }
+  for (const r of insights.predictions.delayRisks) {
+    const cited = markersOf([r.eventId]);
+    if (cited.length > 0) risks.push({ kind: "risk", text: r.note, citationIds: cited });
+  }
+  for (const w of insights.predictions.signalWarnings) {
+    const cited = ordered
+      .filter((e) => w.note.includes(`"${e.title}"`))
+      .map((e) => markerFor.get(e.id)!);
+    if (cited.length > 0) risks.push({ kind: "signal", text: w.note, citationIds: cited });
+  }
+  const seenRisk = new Set<string>();
+  const dedupedRisks = risks.filter((r) => {
+    if (seenRisk.has(r.text)) return false;
+    seenRisk.add(r.text);
+    return true;
+  });
+
   const conflictLine = insights.conflicts.length
     ? `\n\nKnown conflicts in this window: ${insights.conflicts.map((c) => c.suggestion).join(" ")}`
     : "";
@@ -538,7 +678,43 @@ export async function runPlanningForecast(
     to,
   )}.\n\nCalendar events:\n${sourceBlock(ordered)}${conflictLine}${signalLine}`;
 
-  let summary = "";
+  // Extractive fallbacks: honest, cited and deterministic, used whenever the
+  // model call fails or a labelled section comes back empty.
+  const fallbackOutlook = () => {
+    const live = ordered.filter((e) => e.status === "live" || e.status === "in_progress");
+    const upcoming = ordered.filter((e) => e.startDate > from);
+    const parts: string[] = [];
+    if (live.length > 0)
+      parts.push(
+        `Live now: ${live.map((e) => `${e.title} [${markerFor.get(e.id)}]`).join("; ")}.`,
+      );
+    if (upcoming.length > 0)
+      parts.push(
+        `Coming up: ${upcoming
+          .map((e) => `${e.title} from ${formatPlanningDate(e.startDate)} [${markerFor.get(e.id)}]`)
+          .join("; ")}.`,
+      );
+    if (parts.length === 0)
+      parts.push(
+        `In this window: ${ordered.map((e) => `${e.title} [${markerFor.get(e.id)}]`).join("; ")}.`,
+      );
+    return parts.join(" ");
+  };
+  const fallbackPreparedLines = () => {
+    const lines: string[] = [];
+    for (const e of ordered.slice(0, 3)) {
+      lines.push(
+        `"${e.title}" (${e.market}/${e.brand}) runs from ${formatPlanningDate(e.startDate)}; ${e.owner} holds the approved messaging. [${markerFor.get(e.id)}]`,
+      );
+    }
+    for (const r of dedupedRisks.slice(0, 2)) {
+      lines.push(`If asked about timing: ${r.text} [${r.citationIds.join(", ")}]`);
+    }
+    return lines;
+  };
+
+  let outlook = "";
+  let preparedLines: string[] = [];
   try {
     const message = await meteredCreate("planning", {
       model: MODEL,
@@ -546,14 +722,17 @@ export async function runPlanningForecast(
       system: FORECAST_SYSTEM,
       messages: [{ role: "user", content: userPrompt }],
     });
-    summary = message.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
+    const raw = message.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
+    const parsed = parseForecastAnswer(raw);
+    outlook = sanitizeMarkers(parsed.outlook, ordered.length);
+    preparedLines = parsed.preparedLines
+      .map((l) => sanitizeMarkers(l, ordered.length))
+      .filter((l) => l.length > 0);
   } catch (err) {
     log.error({ err }, "planning-forecast: model call failed, using extractive fallback");
-    summary = ordered.map((e, i) => `${e.title} (${formatPlanningDate(e.startDate)}) [S${i + 1}]`).join(". ");
   }
-  if (!summary) summary = ordered.map((e, i) => `${e.title} [S${i + 1}]`).join(". ");
-
-  const { finalAnswer, citations } = bindCitations(summary, ordered);
+  if (!outlook) outlook = fallbackOutlook();
+  if (preparedLines.length === 0) preparedLines = fallbackPreparedLines();
 
   const liveCount = ordered.filter((e) => e.status === "live" || e.status === "in_progress").length;
   const riskCount =
@@ -571,7 +750,11 @@ export async function runPlanningForecast(
     horizonDays: 10,
     rangeStart: from,
     rangeEnd: to,
-    summary: finalAnswer,
+    summary: outlook,
+    days,
+    risks: dedupedRisks,
+    preparedLines,
+    disclaimers: forecastDisclaimers(),
     citations,
     highlights: { liveCount, conflictCount: insights.conflicts.length, riskCount },
   };
@@ -611,10 +794,36 @@ export function buildForecastDraft(
   // precisely the content those disclaimers exist for. The shape const is
   // shared with the draft fields below so the template lookup can never drift.
   const shape = "multiformat" as const;
-  const disclaimers = (getTemplate(shape)?.requiredDisclaimerIds ?? [])
-    .map((id) => getDisclaimer(id))
-    .filter((d): d is NonNullable<typeof d> => Boolean(d))
-    .map((d) => ({ id: d.id, name: d.name, text: d.text }));
+  const disclaimers =
+    forecast.disclaimers.length > 0 ? forecast.disclaimers : forecastDisclaimers();
+
+  // Template-true structured sections, rendered from the deterministic
+  // forecast payload — the document engine never invents new facts.
+  const dayLines = forecast.days
+    .map((d) => {
+      if (d.clear) return `${formatPlanningDate(d.date)} — Clear day. No governed activity scheduled.`;
+      const entries = d.entries
+        .map(
+          (en) =>
+            `${en.isStart ? "Starts: " : ""}${en.title} (${en.type}, ${en.market}/${en.brand}, owner ${en.owner}, status ${en.status.replace("_", " ")}) [${en.citationId}]`,
+        )
+        .join("; ");
+      return `${formatPlanningDate(d.date)} — ${entries}`;
+    })
+    .join("\n");
+
+  const riskLines =
+    forecast.risks.length > 0
+      ? forecast.risks
+          .map((r) => {
+            const label =
+              r.kind === "conflict" ? "Conflict" : r.kind === "signal" ? "External signal" : "Risk";
+            return `${label}: ${r.text} [${r.citationIds.join(", ")}]`;
+          })
+          .join("\n")
+      : "No timing conflicts, delay risks or external signals were detected in this window.";
+
+  const preparedBody = forecast.preparedLines.join("\n");
 
   return {
     id: `draft-forecast-${Date.now().toString(36)}`,
@@ -631,7 +840,7 @@ export function buildForecastDraft(
       {
         id: "sec-forecast-summary",
         kind: "summary",
-        heading: `Forecast summary (${rangeLabel})`,
+        heading: `Outlook summary (${rangeLabel})`,
         axisId: null,
         body: forecast.summary,
         citationIds: forecast.citations.map((c) => c.id),
@@ -643,6 +852,35 @@ export function buildForecastDraft(
         heading: "Window highlights",
         axisId: null,
         body: highlightsBody,
+        citationIds: [],
+        internalOnly: true,
+      },
+      {
+        id: "sec-forecast-days",
+        kind: "body",
+        heading: "Day-by-day",
+        axisId: null,
+        body: dayLines,
+        citationIds: Array.from(
+          new Set(forecast.days.flatMap((d) => d.entries.map((en) => en.citationId))),
+        ),
+        internalOnly: true,
+      },
+      {
+        id: "sec-forecast-risks",
+        kind: "body",
+        heading: "Risks and conflicts",
+        axisId: null,
+        body: riskLines,
+        citationIds: Array.from(new Set(forecast.risks.flatMap((r) => r.citationIds))),
+        internalOnly: true,
+      },
+      {
+        id: "sec-forecast-prepared",
+        kind: "body",
+        heading: "Prepared lines",
+        axisId: null,
+        body: preparedBody,
         citationIds: [],
         internalOnly: true,
       },

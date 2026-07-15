@@ -463,8 +463,23 @@ router.post("/generate/inbox/:id/publish", async (req, res) => {
   }
 });
 
-router.get("/generate/versions", async (_req, res) => {
-  res.json(ListVersionsResponse.parse(listVersions()));
+router.get("/generate/versions", async (req, res) => {
+  const roleId = typeof req.query.roleId === "string" ? req.query.roleId : undefined;
+  if (roleId === undefined) {
+    res.json(ListVersionsResponse.parse(listVersions()));
+    return;
+  }
+  // Persona-scoped listing — fail closed. An unknown persona gets a 400, not
+  // an empty (or worse, unscoped) list. Scoping is by the persona that
+  // authored the underlying draft, so a lower-clearance persona can never
+  // reopen a version generated under a higher clearance.
+  const role = ROLES.find((r) => r.id === roleId);
+  if (!role) {
+    res.status(400).json({ error: "Unknown roleId" });
+    return;
+  }
+  const scoped = listVersions().filter((v) => v.draft.params.roleId === roleId);
+  res.json(ListVersionsResponse.parse(scoped));
 });
 
 router.post("/generate/versions", async (req, res) => {

@@ -1848,6 +1848,37 @@ export interface PlanningForecastInput {
   roleId: string;
 }
 
+export interface PlanningForecastDayEntry {
+  citationId: string;
+  eventId: string;
+  title: string;
+  type: string;
+  status: string;
+  market: string;
+  brand: string;
+  owner: string;
+  isStart: boolean;
+}
+
+export interface PlanningForecastDay {
+  date: string;
+  clear: boolean;
+  entries: PlanningForecastDayEntry[];
+}
+
+export interface PlanningForecastRisk {
+  /** conflict | risk | signal */
+  kind: string;
+  text: string;
+  citationIds: string[];
+}
+
+export type PlanningForecastDisclaimersItem = {
+  id: string;
+  name: string;
+  text: string;
+};
+
 export type PlanningForecastHighlights = {
   liveCount: number;
   conflictCount: number;
@@ -1861,9 +1892,16 @@ export interface PlanningForecast {
   horizonDays: number;
   rangeStart: string;
   rangeEnd: string;
+  /** Model-composed outlook narrative with [S#] citation markers. */
   summary: string;
+  days: PlanningForecastDay[];
+  risks: PlanningForecastRisk[];
+  preparedLines: string[];
+  disclaimers: PlanningForecastDisclaimersItem[];
   citations: Citation[];
   highlights: PlanningForecastHighlights;
+  /** Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint. */
+  draft?: GeneratedDraft | null;
 }
 
 export interface PlanningEventCreateInput {
@@ -3213,6 +3251,13 @@ roleId: string;
 
 export type ListPlanningForecastSchedulesParams = {
 roleId: string;
+};
+
+export type ListVersionsParams = {
+/**
+ * Optional persona id; scopes the list to that persona's own saved versions
+ */
+roleId?: string;
 };
 
 export type GetWikiGraphParams = {

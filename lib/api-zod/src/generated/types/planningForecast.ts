@@ -6,7 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { Citation } from './citation';
+import type { GeneratedDraft } from './generatedDraft';
+import type { PlanningForecastDay } from './planningForecastDay';
+import type { PlanningForecastDisclaimersItem } from './planningForecastDisclaimersItem';
 import type { PlanningForecastHighlights } from './planningForecastHighlights';
+import type { PlanningForecastRisk } from './planningForecastRisk';
 
 export interface PlanningForecast {
   /** generated | no_activity */
@@ -15,7 +19,14 @@ export interface PlanningForecast {
   horizonDays: number;
   rangeStart: string;
   rangeEnd: string;
+  /** Model-composed outlook narrative with [S#] citation markers. */
   summary: string;
+  days: PlanningForecastDay[];
+  risks: PlanningForecastRisk[];
+  preparedLines: string[];
+  disclaimers: PlanningForecastDisclaimersItem[];
   citations: Citation[];
   highlights: PlanningForecastHighlights;
+  /** Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint. */
+  draft?: GeneratedDraft | null;
 }

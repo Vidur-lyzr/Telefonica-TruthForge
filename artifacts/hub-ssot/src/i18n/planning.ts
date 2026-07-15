@@ -153,7 +153,6 @@ export interface PlanningStrings {
   prompts: string[];
   evidenceAria: (id: string | number, title: string) => string;
   askCalendar: string;
-  tabForecastAlerts: string;
   tabSignals: string;
   rightPanelAria: string;
   chatIntro: string;
@@ -200,6 +199,29 @@ export interface PlanningStrings {
   frequencyAria: (f: string) => string;
   frequencies: { daily: string; weekly: string; monthly: string };
   createRecurring: string;
+
+  // Deep forecast section
+  outlookTitle: string;
+  dayByDay: string;
+  clearDay: string;
+  startsLabel: string;
+  risksTitle: string;
+  noRisks: string;
+  riskKinds: { conflict: string; risk: string; signal: string };
+  preparedLinesTitle: string;
+  disclaimersTitle: string;
+  openInEditor: string;
+  savedVersions: string;
+  noSavedVersions: string;
+  openVersionAria: (title: string) => string;
+  editorHint: string;
+  closeEditor: string;
+  saveVersionBtn: string;
+  savingVersion: string;
+  versionSaved: (title: string) => string;
+  saveError: string;
+  alertGroupWarning: string;
+  alertGroupInfo: string;
 }
 
 export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
@@ -354,7 +376,6 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     ],
     evidenceAria: (id, title) => `Citation ${id}: ${title}`,
     askCalendar: "Ask the calendar",
-    tabForecastAlerts: "Forecast & alerts",
     tabSignals: "Signals",
     rightPanelAria: "Planning side panel",
     chatIntro: "Every answer is scoped to your persona and cited to governed activity.",
@@ -404,6 +425,28 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     frequencyAria: (f) => `Frequency ${f}`,
     frequencies: { daily: "Daily", weekly: "Weekly", monthly: "Monthly" },
     createRecurring: "Create recurring forecast",
+    outlookTitle: "Outlook",
+    dayByDay: "Day-by-day",
+    clearDay: "Clear day — no governed activity scheduled.",
+    startsLabel: "Starts",
+    risksTitle: "Risks & conflicts",
+    noRisks: "No timing conflicts, delay risks or external signals detected in this window.",
+    riskKinds: { conflict: "Conflict", risk: "Risk", signal: "External signal" },
+    preparedLinesTitle: "Prepared lines",
+    disclaimersTitle: "Disclaimers",
+    openInEditor: "Open in editor",
+    savedVersions: "Saved forecast versions",
+    noSavedVersions: "No saved forecast versions yet.",
+    openVersionAria: (title) => `Open saved version: ${title}`,
+    editorHint:
+      "Edits stay governed: the Brand Guardian re-checks the document on save, and citations remain bound to calendar evidence.",
+    closeEditor: "Close editor",
+    saveVersionBtn: "Save version",
+    savingVersion: "Saving…",
+    versionSaved: (title) => `Saved as "${title}" in the version library.`,
+    saveError: "The version could not be saved.",
+    alertGroupWarning: "Needs attention",
+    alertGroupInfo: "For awareness",
   },
   ES: {
     title: "Planificación unificada",
@@ -556,7 +599,6 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     ],
     evidenceAria: (id, title) => `Cita ${id}: ${title}`,
     askCalendar: "Pregunta al calendario",
-    tabForecastAlerts: "Previsión y alertas",
     tabSignals: "Señales",
     rightPanelAria: "Panel lateral de planificación",
     chatIntro: "Cada respuesta se acota a tu persona y se cita a actividad gobernada.",
@@ -606,6 +648,28 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     frequencyAria: (f) => `Frecuencia ${f}`,
     frequencies: { daily: "Diario", weekly: "Semanal", monthly: "Mensual" },
     createRecurring: "Crear pronóstico recurrente",
+    outlookTitle: "Perspectiva",
+    dayByDay: "Día a día",
+    clearDay: "Día libre — sin actividad gobernada programada.",
+    startsLabel: "Comienza",
+    risksTitle: "Riesgos y conflictos",
+    noRisks: "No se detectaron conflictos, riesgos de retraso ni señales externas en esta ventana.",
+    riskKinds: { conflict: "Conflicto", risk: "Riesgo", signal: "Señal externa" },
+    preparedLinesTitle: "Líneas preparadas",
+    disclaimersTitle: "Avisos legales",
+    openInEditor: "Abrir en el editor",
+    savedVersions: "Versiones de pronóstico guardadas",
+    noSavedVersions: "Aún no hay versiones de pronóstico guardadas.",
+    openVersionAria: (title) => `Abrir versión guardada: ${title}`,
+    editorHint:
+      "Las ediciones siguen gobernadas: el Brand Guardian vuelve a revisar el documento al guardar y las citas permanecen vinculadas a la evidencia del calendario.",
+    closeEditor: "Cerrar editor",
+    saveVersionBtn: "Guardar versión",
+    savingVersion: "Guardando…",
+    versionSaved: (title) => `Guardado como "${title}" en la biblioteca de versiones.`,
+    saveError: "No se pudo guardar la versión.",
+    alertGroupWarning: "Requiere atención",
+    alertGroupInfo: "Para conocimiento",
   },
   DE: {
     title: "Einheitliche Planung",
@@ -759,7 +823,6 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     ],
     evidenceAria: (id, title) => `Beleg ${id}: ${title}`,
     askCalendar: "Kalender fragen",
-    tabForecastAlerts: "Prognose & Warnungen",
     tabSignals: "Signale",
     rightPanelAria: "Planungs-Seitenbereich",
     chatIntro:
@@ -810,6 +873,28 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     frequencyAria: (f) => `Häufigkeit ${f}`,
     frequencies: { daily: "Täglich", weekly: "Wöchentlich", monthly: "Monatlich" },
     createRecurring: "Wiederkehrende Prognose erstellen",
+    outlookTitle: "Ausblick",
+    dayByDay: "Tag für Tag",
+    clearDay: "Freier Tag — keine governte Aktivität geplant.",
+    startsLabel: "Beginnt",
+    risksTitle: "Risiken & Konflikte",
+    noRisks: "Keine Terminkonflikte, Verzögerungsrisiken oder externen Signale in diesem Zeitfenster erkannt.",
+    riskKinds: { conflict: "Konflikt", risk: "Risiko", signal: "Externes Signal" },
+    preparedLinesTitle: "Vorbereitete Aussagen",
+    disclaimersTitle: "Hinweise",
+    openInEditor: "Im Editor öffnen",
+    savedVersions: "Gespeicherte Prognoseversionen",
+    noSavedVersions: "Noch keine gespeicherten Prognoseversionen.",
+    openVersionAria: (title) => `Gespeicherte Version öffnen: ${title}`,
+    editorHint:
+      "Änderungen bleiben governt: Der Brand Guardian prüft das Dokument beim Speichern erneut, und Zitate bleiben an Kalender-Evidenz gebunden.",
+    closeEditor: "Editor schließen",
+    saveVersionBtn: "Version speichern",
+    savingVersion: "Wird gespeichert…",
+    versionSaved: (title) => `Als "${title}" in der Versionsbibliothek gespeichert.`,
+    saveError: "Die Version konnte nicht gespeichert werden.",
+    alertGroupWarning: "Braucht Aufmerksamkeit",
+    alertGroupInfo: "Zur Kenntnis",
   },
   PT: {
     title: "Planejamento unificado",
@@ -962,7 +1047,6 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     ],
     evidenceAria: (id, title) => `Citação ${id}: ${title}`,
     askCalendar: "Pergunte ao calendário",
-    tabForecastAlerts: "Previsão e alertas",
     tabSignals: "Sinais",
     rightPanelAria: "Painel lateral de planejamento",
     chatIntro: "Cada resposta é restrita à sua persona e citada a partir de atividade governada.",
@@ -1012,5 +1096,27 @@ export const PLANNING_I18N: Record<Lang, PlanningStrings> = {
     frequencyAria: (f) => `Frequência ${f}`,
     frequencies: { daily: "Diário", weekly: "Semanal", monthly: "Mensal" },
     createRecurring: "Criar previsão recorrente",
+    outlookTitle: "Perspectiva",
+    dayByDay: "Dia a dia",
+    clearDay: "Dia livre — sem atividade governada programada.",
+    startsLabel: "Começa",
+    risksTitle: "Riscos e conflitos",
+    noRisks: "Nenhum conflito, risco de atraso ou sinal externo detectado nesta janela.",
+    riskKinds: { conflict: "Conflito", risk: "Risco", signal: "Sinal externo" },
+    preparedLinesTitle: "Linhas preparadas",
+    disclaimersTitle: "Avisos",
+    openInEditor: "Abrir no editor",
+    savedVersions: "Versões de previsão salvas",
+    noSavedVersions: "Ainda não há versões de previsão salvas.",
+    openVersionAria: (title) => `Abrir versão salva: ${title}`,
+    editorHint:
+      "As edições permanecem governadas: o Brand Guardian verifica o documento novamente ao salvar e as citações continuam vinculadas à evidência do calendário.",
+    closeEditor: "Fechar editor",
+    saveVersionBtn: "Salvar versão",
+    savingVersion: "Salvando…",
+    versionSaved: (title) => `Salvo como "${title}" na biblioteca de versões.`,
+    saveError: "Não foi possível salvar a versão.",
+    alertGroupWarning: "Requer atenção",
+    alertGroupInfo: "Para conhecimento",
   },
 };
