@@ -39,6 +39,122 @@ import {
   IconCloseRegular,
 } from "@telefonica/mistica";
 
+type ChunkBlock =
+  | { kind: "prose"; text: string }
+  | { kind: "table"; header: string[]; rows: string[][] };
+
+function parseChunkBlocks(text: string): ChunkBlock[] {
+  const blocks: ChunkBlock[] = [];
+  let prose: string[] = [];
+  let table: string[][] = [];
+  const flushProse = () => {
+    if (prose.length > 0) {
+      blocks.push({ kind: "prose", text: prose.join("\n").trim() });
+      prose = [];
+    }
+  };
+  const flushTable = () => {
+    if (table.length > 0) {
+      const [header, ...rows] = table;
+      blocks.push({ kind: "table", header, rows });
+      table = [];
+    }
+  };
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("|") && trimmed.endsWith("|") && trimmed.length > 2) {
+      flushProse();
+      table.push(
+        trimmed
+          .slice(1, -1)
+          .split("|")
+          .map((c) => c.trim()),
+      );
+    } else {
+      flushTable();
+      if (trimmed.length > 0) prose.push(trimmed);
+    }
+  }
+  flushProse();
+  flushTable();
+  return blocks;
+}
+
+function ChunkTable({
+  header,
+  rows,
+}: {
+  header: string[];
+  rows: string[][];
+}) {
+  const cellStyle: React.CSSProperties = {
+    padding: "6px 12px",
+    textAlign: "left",
+    borderBottom: `1px solid ${skinVars.colors.divider}`,
+    fontSize: 14,
+    color: skinVars.colors.textSecondary,
+    whiteSpace: "nowrap",
+  };
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ borderCollapse: "collapse", width: "100%" }}>
+        <thead>
+          <tr>
+            {header.map((h, i) => (
+              <th
+                key={i}
+                style={{
+                  ...cellStyle,
+                  color: skinVars.colors.textPrimary,
+                  fontWeight: 500,
+                  borderBottom: `2px solid ${skinVars.colors.divider}`,
+                }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              {r.map((cell, j) => (
+                <td key={j} style={cellStyle}>
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ChunkText({ text }: { text: string }) {
+  const blocks = parseChunkBlocks(text);
+  if (blocks.length === 1 && blocks[0].kind === "prose") {
+    return (
+      <Text2 regular color={skinVars.colors.textSecondary}>
+        "{text}"
+      </Text2>
+    );
+  }
+  return (
+    <Stack space={8}>
+      {blocks.map((b, i) =>
+        b.kind === "prose" ? (
+          <Text2 key={i} regular color={skinVars.colors.textSecondary}>
+            {b.text}
+          </Text2>
+        ) : (
+          <ChunkTable key={i} header={b.header} rows={b.rows} />
+        ),
+      )}
+    </Stack>
+  );
+}
+
 function StatCard({
   icon: Icon,
   iconColor,
@@ -626,10 +742,19 @@ export default function CorpusArea() {
                   {c.chunksCount(docDetail.chunks.length)}
                 </Text1>
                 <Stack space={12}>
-                  {docDetail.chunks.map((chunk) => (
+                  {docDetail.chunks.map((chunk, chunkIndex) => (
                     <Boxed key={chunk.id}>
                       <Box padding={16}>
                         <Stack space={8}>
+                          {docDetail.document.sourceFormat ===
+                            "Self-explanatory PPT" && (
+                            <Tag type="inactive">
+                              {c.slideLabel(
+                                chunkIndex + 1,
+                                docDetail.chunks.length,
+                              )}
+                            </Tag>
+                          )}
                           <Text1
                             medium
                             color={skinVars.colors.textSecondary}
@@ -640,9 +765,7 @@ export default function CorpusArea() {
                           <Text3 medium color={skinVars.colors.textPrimary}>
                             {chunk.heading}
                           </Text3>
-                          <Text2 regular color={skinVars.colors.textSecondary}>
-                            "{chunk.text}"
-                          </Text2>
+                          <ChunkText text={chunk.text} />
                         </Stack>
                       </Box>
                     </Boxed>

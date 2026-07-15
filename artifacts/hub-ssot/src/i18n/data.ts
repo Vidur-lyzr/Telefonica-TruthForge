@@ -324,6 +324,7 @@ export interface DataStrings {
     topic: (k: string) => string;
     filterNote: string;
     chunksCount: (n: number) => string;
+    slideLabel: (n: number, total: number) => string;
     failedToLoad: string;
     searchLabel: string;
     filterCategory: string;
@@ -717,6 +718,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       filterNote:
         "Only material matching the configured keyword, competitor, executive and topic filters was ingested — never a raw dump.",
       chunksCount: (n) => `Document chunks (${n})`,
+      slideLabel: (n, total) => `Slide ${n} of ${total}`,
       failedToLoad: "Failed to load document",
       searchLabel: "Search documents",
       filterCategory: "Category",
@@ -1114,6 +1116,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       filterNote:
         "Solo se ingirió el material que coincide con los filtros configurados de palabra clave, competidor, directivo y tema — nunca un volcado en bruto.",
       chunksCount: (n) => `Fragmentos del documento (${n})`,
+      slideLabel: (n, total) => `Diapositiva ${n} de ${total}`,
       failedToLoad: "No se pudo cargar el documento",
       searchLabel: "Buscar documentos",
       filterCategory: "Categoría",
@@ -1506,6 +1509,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       filterNote:
         "Nur Material, das den konfigurierten Schlüsselwort-, Wettbewerber-, Führungskraft- und Themenfiltern entspricht, wurde aufgenommen — nie ein Rohabzug.",
       chunksCount: (n) => `Dokument-Chunks (${n})`,
+      slideLabel: (n, total) => `Folie ${n} von ${total}`,
       failedToLoad: "Dokument konnte nicht geladen werden",
       searchLabel: "Dokumente durchsuchen",
       filterCategory: "Kategorie",
@@ -1902,6 +1906,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       filterNote:
         "Apenas material que corresponde aos filtros configurados de palavra-chave, concorrente, executivo e tema foi ingerido — nunca um despejo bruto.",
       chunksCount: (n) => `Fragmentos do documento (${n})`,
+      slideLabel: (n, total) => `Slide ${n} de ${total}`,
       failedToLoad: "Falha ao carregar o documento",
       searchLabel: "Pesquisar documentos",
       filterCategory: "Categoria",

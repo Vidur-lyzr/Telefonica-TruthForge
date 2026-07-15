@@ -6,6 +6,7 @@ import { INTERNAL_EXPANSION_DOCS } from "./expansion/internalDocs";
 import { EXTERNAL_EXPANSION_DOCS } from "./expansion/externalDocs";
 import { GENERATED_EXPANSION_DOCS } from "./expansion/generatedDocs";
 import { DENSIFICATION_DOCS } from "./expansion/densificationDocs";
+import { EXTRA_CHUNKS } from "./expansion/densify";
 
 // RFP vocabulary (Purview/MIP-aligned): public | private | confidential | off_the_record.
 export type Clearance = "public" | "private" | "confidential" | "off_the_record";
@@ -384,7 +385,7 @@ export const ROLES: Role[] = [
 // Agent tab. Server-enforced; everyone else sees the tree but not the bytes.
 export const AGENT_REPO_ROLE_IDS: ReadonlySet<string> = new Set(["role-superuser"]);
 
-export const DOCS: CorpusDoc[] = [
+const BASE_DOCS: CorpusDoc[] = [
   {
     id: "doc-q1-2026-results",
     category: "A",
@@ -1729,6 +1730,16 @@ export const DOCS: CorpusDoc[] = [
   ...GENERATED_EXPANSION_DOCS,
   ...DENSIFICATION_DOCS,
 ];
+
+// Densification overlay: append authored extra chunks ("<docId>#dN") to their
+// documents. Existing chunk ids are never renamed or removed, so citations,
+// lineage and KPI mentions stay valid.
+export const DOCS: CorpusDoc[] = BASE_DOCS.map((doc) => {
+  const extra = EXTRA_CHUNKS[doc.id];
+  return extra && extra.length > 0
+    ? { ...doc, chunks: [...doc.chunks, ...extra] }
+    : doc;
+});
 
 export const NUMERIC_FACTS: NumericFact[] = [
   {
