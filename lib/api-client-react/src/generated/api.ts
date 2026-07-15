@@ -71,6 +71,7 @@ import type {
   GetBrandTemplateParams,
   GetBrandTemplatesParams,
   GetCorpusStatsParams,
+  GetExportTemplatePreviewParams,
   GetHomeSummaryParams,
   GetPlanningEventParams,
   GetPlanningInsightsParams,
@@ -7830,6 +7831,91 @@ export function useGetExportTemplates<TData = Awaited<ReturnType<typeof getExpor
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetExportTemplatesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetExportTemplatePreviewUrl = (params: GetExportTemplatePreviewParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/brand/export-template-preview?${stringifiedParams}` : `/api/brand/export-template-preview`
+}
+
+/**
+ * A deterministic PNG rendering of one page (cover or body) of the given export template, drawn from the same theme tokens, chart engine and brand fonts the real exporters use — the preview IS the design the downloaded document will follow.
+ * @summary Server-rendered page preview of an export template
+ */
+export const getExportTemplatePreview = async (params: GetExportTemplatePreviewParams, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetExportTemplatePreviewUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetExportTemplatePreviewQueryKey = (params?: GetExportTemplatePreviewParams,) => {
+    return [
+    `/api/brand/export-template-preview`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetExportTemplatePreviewQueryOptions = <TData = Awaited<ReturnType<typeof getExportTemplatePreview>>, TError = ErrorType<ErrorResponse>>(params: GetExportTemplatePreviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExportTemplatePreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetExportTemplatePreviewQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getExportTemplatePreview>>> = ({ signal }) => getExportTemplatePreview(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getExportTemplatePreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetExportTemplatePreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getExportTemplatePreview>>>
+export type GetExportTemplatePreviewQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Server-rendered page preview of an export template
+ */
+
+export function useGetExportTemplatePreview<TData = Awaited<ReturnType<typeof getExportTemplatePreview>>, TError = ErrorType<ErrorResponse>>(
+ params: GetExportTemplatePreviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getExportTemplatePreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetExportTemplatePreviewQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

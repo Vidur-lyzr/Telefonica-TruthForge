@@ -34,6 +34,7 @@ import {
   PRESS_CONTACT,
   type DocShape,
 } from "../data/assets";
+import { TONE_PRINCIPLES, BRAND_RULES } from "../data/brandRoom";
 import { runBrandGuardian } from "./brandGuardian";
 import { parseQaBody, serializeQaPairs, normalizeQuestion } from "./qa";
 import { sanitizeSectionBody } from "./bodyText";
@@ -938,6 +939,14 @@ async function compose(
     "Q&A answers must be complete spokesperson-ready responses of three to six sentences, not one-liners. Spokesperson guidance must be specific and actionable, not generic advice.",
     "Section bodies are plain prose with optional '-' bullet lists, **bold** and *italic*. NEVER draw charts or tables in text: no ASCII art, no pipe '|' column layouts, no markdown tables, no fenced code blocks (```), no horizontal rules ('---'). Numeric charts and data tables are attached separately by the engine — if figures merit a visual, present them as a bullet list instead.",
     "Spokesperson notes and any internal-only guidance draw on the internal guidance sources [G#]; these support the drafter and must never be phrased as external-facing copy.",
+    // Brand Room tone of voice: every draft is composed under the same
+    // governed principles and hard rules the Brand Guardian later enforces.
+    `BRAND ROOM TONE OF VOICE — write every sentence under these governed principles: ${TONE_PRINCIPLES.map(
+      (p) => `${p.title}: ${p.guidance} Do: ${p.dos.join("; ")}. Don't: ${p.donts.join("; ")}.`,
+    ).join(" ")}`,
+    `HARD BRAND RULES (enforced after drafting — violations are rejected): ${BRAND_RULES.map(
+      (r) => `${r.rule} — ${r.detail}`,
+    ).join(" ")}`,
     `Write the document in ${languageName(language)}.`,
     "Return ONLY a single JSON object, no prose around it.",
   ].join(" ");

@@ -172,6 +172,8 @@ export interface GenerateStrings {
     liveEditHint: string;
     exportHeading: string;
     formatLabel: string;
+    templateLabel: string;
+    templateAuto: string;
     exporting: string;
     exportButton: string;
     exportPack: string;
@@ -547,6 +549,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         "The document opens in reading view. Use Edit document to change it — the Guardian rechecks as you type.",
       exportHeading: "Export",
       formatLabel: "Format",
+      templateLabel: "Template",
+      templateAuto: "Automatic (matches document shape)",
       exporting: "Exporting...",
       exportButton: "Export",
       exportPack: "Download pack (ZIP)",
@@ -928,6 +932,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         "El documento se abre en vista de lectura. Usa Editar documento para modificarlo — el Guardian vuelve a verificar mientras escribes.",
       exportHeading: "Exportar",
       formatLabel: "Formato",
+      templateLabel: "Plantilla",
+      templateAuto: "Automática (según el formato del documento)",
       exporting: "Exportando...",
       exportButton: "Exportar",
       exportPack: "Descargar pack (ZIP)",
@@ -1314,6 +1320,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         "Das Dokument öffnet sich in der Leseansicht. Über Dokument bearbeiten nehmen Sie Änderungen vor — der Guardian prüft erneut, während Sie tippen.",
       exportHeading: "Export",
       formatLabel: "Format",
+      templateLabel: "Vorlage",
+      templateAuto: "Automatisch (entspricht der Dokumentform)",
       exporting: "Exportiere...",
       exportButton: "Exportieren",
       exportPack: "Paket herunterladen (ZIP)",
@@ -1699,6 +1707,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         "O documento abre em modo de leitura. Use Editar documento para alterá-lo — o Guardian reverifica enquanto você digita.",
       exportHeading: "Exportar",
       formatLabel: "Formato",
+      templateLabel: "Modelo",
+      templateAuto: "Automático (segue o formato do documento)",
       exporting: "Exportando...",
       exportButton: "Exportar",
       exportPack: "Baixar pacote (ZIP)",

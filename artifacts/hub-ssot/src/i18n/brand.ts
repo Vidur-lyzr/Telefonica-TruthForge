@@ -25,6 +25,11 @@ export interface BrandStrings {
   permissionBlockedTitle: string;
   permissionBlocked: (count: number, noun: BrandNoun) => string;
   templatesIntro: string;
+  exportTemplatesTitle: string;
+  exportTemplatesIntro: string;
+  exportCoverLabel: string;
+  exportBodyLabel: string;
+  exportPreviewAria: (name: string) => string;
   meta: { owner: string; format: string; version: string; sections: string };
   viewStructure: string;
   openTemplateAria: (name: string) => string;
@@ -108,6 +113,12 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     },
     templatesIntro:
       "Governed document blueprints — each with its owner, format, version and validity. Select a template to see the section structure and required disclaimers every published document must follow.",
+    exportTemplatesTitle: "Corporate export templates",
+    exportTemplatesIntro:
+      "The six corporate designs every export follows — Word, PDF and PowerPoint are laid out exactly as previewed here. Pick one in the Generate workspace, or let the document shape choose automatically.",
+    exportCoverLabel: "Cover",
+    exportBodyLabel: "Body page",
+    exportPreviewAria: (name) => `Preview of export template ${name}`,
     meta: { owner: "Owner", format: "Format", version: "Version", sections: "Sections" },
     viewStructure: "View structure",
     openTemplateAria: (name) => `Open template ${name}`,
@@ -203,6 +214,12 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     },
     templatesIntro:
       "Planos de documentos gobernados — cada uno con su responsable, formato, versión y validez. Selecciona una plantilla para ver la estructura de secciones y los avisos legales obligatorios que todo documento publicado debe seguir.",
+    exportTemplatesTitle: "Plantillas corporativas de exportación",
+    exportTemplatesIntro:
+      "Los seis diseños corporativos que sigue cada exportación — Word, PDF y PowerPoint se maquetan exactamente como se previsualizan aquí. Elige una en el espacio Generar, o deja que el formato del documento la seleccione automáticamente.",
+    exportCoverLabel: "Portada",
+    exportBodyLabel: "Página interior",
+    exportPreviewAria: (name) => `Vista previa de la plantilla de exportación ${name}`,
     meta: { owner: "Responsable", format: "Formato", version: "Versión", sections: "Secciones" },
     viewStructure: "Ver estructura",
     openTemplateAria: (name) => `Abrir plantilla ${name}`,
@@ -300,6 +317,12 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     },
     templatesIntro:
       "Kontrollierte Dokumentvorlagen — jeweils mit Verantwortlichem, Format, Version und Gültigkeit. Wählen Sie eine Vorlage, um die Abschnittsstruktur und die erforderlichen Hinweise zu sehen, die jedes veröffentlichte Dokument befolgen muss.",
+    exportTemplatesTitle: "Corporate-Exportvorlagen",
+    exportTemplatesIntro:
+      "Die sechs Corporate-Designs, denen jeder Export folgt — Word, PDF und PowerPoint werden exakt so gesetzt wie hier in der Vorschau. Wählen Sie eine im Bereich Erstellen, oder lassen Sie die Dokumentform automatisch entscheiden.",
+    exportCoverLabel: "Titelseite",
+    exportBodyLabel: "Innenseite",
+    exportPreviewAria: (name) => `Vorschau der Exportvorlage ${name}`,
     meta: { owner: "Verantwortlich", format: "Format", version: "Version", sections: "Abschnitte" },
     viewStructure: "Struktur ansehen",
     openTemplateAria: (name) => `Vorlage ${name} öffnen`,
@@ -397,6 +420,12 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     },
     templatesIntro:
       "Modelos de documentos governados — cada um com seu responsável, formato, versão e validade. Selecione um modelo para ver a estrutura de seções e os avisos obrigatórios que todo documento publicado deve seguir.",
+    exportTemplatesTitle: "Modelos corporativos de exportação",
+    exportTemplatesIntro:
+      "Os seis designs corporativos que toda exportação segue — Word, PDF e PowerPoint são diagramados exatamente como pré-visualizados aqui. Escolha um no espaço Gerar, ou deixe o formato do documento selecionar automaticamente.",
+    exportCoverLabel: "Capa",
+    exportBodyLabel: "Página interna",
+    exportPreviewAria: (name) => `Pré-visualização do modelo de exportação ${name}`,
     meta: { owner: "Responsável", format: "Formato", version: "Versão", sections: "Seções" },
     viewStructure: "Ver estrutura",
     openTemplateAria: (name) => `Abrir modelo ${name}`,

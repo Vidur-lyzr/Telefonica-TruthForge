@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ExportTemplateBlock } from './exportTemplateBlock';
+import type { ExportTemplateDesign } from './exportTemplateDesign';
 import type { ExportTemplateFormatsItem } from './exportTemplateFormatsItem';
 import type { ExportTemplatePreview } from './exportTemplatePreview';
 
@@ -20,4 +21,5 @@ export interface ExportTemplate {
   formats: ExportTemplateFormatsItem[];
   blocks: ExportTemplateBlock[];
   preview: ExportTemplatePreview;
+  design: ExportTemplateDesign;
 }

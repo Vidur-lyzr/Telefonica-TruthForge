@@ -24,6 +24,7 @@ import {
   useRecordEditorialReview,
   useExportDocument,
   useExportDocumentPack,
+  useGetExportTemplates,
   useCanvasSuggestions,
   useCanvasEditBlock,
   useGetBrandTemplates,
@@ -2872,8 +2873,17 @@ export default function Generate() {
   const exportPack = useExportDocumentPack();
   const recordReview = useRecordEditorialReview();
   const [exportFormat, setExportFormat] = React.useState<"docx" | "pptx" | "pdf" | "txt" | "md">("docx");
+  const [exportTemplateId, setExportTemplateId] = React.useState<string>("auto");
   const [reviewedDraft, setReviewedDraft] = React.useState<string | null>(null);
   const [exportError, setExportError] = React.useState<string | null>(null);
+
+  // Corporate export templates: "auto" keeps the draft shape's default; the
+  // picker only offers templates that support the chosen format.
+  const exportTemplatesQ = useGetExportTemplates();
+  const exportTemplates = exportTemplatesQ.data ?? [];
+  const formatTemplates = exportTemplates.filter((tpl) => tpl.formats.includes(exportFormat));
+  const chosenTemplate = formatTemplates.find((tpl) => tpl.id === exportTemplateId);
+  const effectiveTemplateId = chosenTemplate ? chosenTemplate.id : null;
 
   const draftSignature = draft
     ? JSON.stringify([draft.id, draft.umbrella, draft.sections.map((s) => s.body)])
@@ -2901,6 +2911,7 @@ export default function Generate() {
           draft,
           format: exportFormat,
           destination: draft.audience === "external" ? "external" : "internal",
+          templateId: effectiveTemplateId,
         },
       },
       {
@@ -2943,6 +2954,7 @@ export default function Generate() {
         data: {
           draft,
           destination: draft.audience === "external" ? "external" : "internal",
+          templateId: effectiveTemplateId,
         },
       },
       {
@@ -3182,6 +3194,19 @@ export default function Generate() {
                         {exportDoc.isPending ? te.exporting : te.exportButton}
                       </ButtonPrimary>
                     </Inline>
+                    {formatTemplates.length > 0 && (
+                      <Select
+                        name="exportTemplate"
+                        label={te.templateLabel}
+                        value={chosenTemplate ? chosenTemplate.id : "auto"}
+                        onChangeValue={(v) => setExportTemplateId(v)}
+                        options={[
+                          { value: "auto", text: te.templateAuto },
+                          ...formatTemplates.map((tpl) => ({ value: tpl.id, text: tpl.name })),
+                        ]}
+                        fullWidth
+                      />
+                    )}
                     <ButtonSecondary
                       small
                       onPress={handleExportPack}

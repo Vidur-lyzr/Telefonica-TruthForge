@@ -2551,6 +2551,74 @@ export interface ExportTemplatePreview {
   lines: string[];
 }
 
+/**
+ * Cover page layout variant.
+ */
+export type ExportTemplateDesignCoverStyle = typeof ExportTemplateDesignCoverStyle[keyof typeof ExportTemplateDesignCoverStyle];
+
+
+export const ExportTemplateDesignCoverStyle = {
+  'navy-full': 'navy-full',
+  'brand-full': 'brand-full',
+  'brand-band': 'brand-band',
+  masthead: 'masthead',
+  split: 'split',
+  minimal: 'minimal',
+} as const;
+
+/**
+ * Which theme colour drives heading rules and emphasis.
+ */
+export type ExportTemplateDesignAccent = typeof ExportTemplateDesignAccent[keyof typeof ExportTemplateDesignAccent];
+
+
+export const ExportTemplateDesignAccent = {
+  brand: 'brand',
+  navy: 'navy',
+} as const;
+
+/**
+ * Section heading treatment — left bar, bottom hairline rule, or tinted block.
+ */
+export type ExportTemplateDesignHeadingStyle = typeof ExportTemplateDesignHeadingStyle[keyof typeof ExportTemplateDesignHeadingStyle];
+
+
+export const ExportTemplateDesignHeadingStyle = {
+  bar: 'bar',
+  rule: 'rule',
+  block: 'block',
+} as const;
+
+/**
+ * Table header row style.
+ */
+export type ExportTemplateDesignTableHeader = typeof ExportTemplateDesignTableHeader[keyof typeof ExportTemplateDesignTableHeader];
+
+
+export const ExportTemplateDesignTableHeader = {
+  navy: 'navy',
+  brand: 'brand',
+  light: 'light',
+} as const;
+
+/**
+ * The deterministic Telefónica design spec the renderers follow for this template — cover layout, accent colour role, heading treatment, table header style and footer label. Every value maps onto the shared export theme tokens; renderers never invent design values.
+ */
+export interface ExportTemplateDesign {
+  /** Cover page layout variant. */
+  coverStyle: ExportTemplateDesignCoverStyle;
+  /** Which theme colour drives heading rules and emphasis. */
+  accent: ExportTemplateDesignAccent;
+  /** Section heading treatment — left bar, bottom hairline rule, or tinted block. */
+  headingStyle: ExportTemplateDesignHeadingStyle;
+  /** Table header row style. */
+  tableHeader: ExportTemplateDesignTableHeader;
+  /** Template-specific footer wording on every content page. */
+  footerLabel: string;
+  /** One-line voice guidance shown with the template. */
+  tone: string;
+}
+
 export type ExportTemplateFormatsItem = typeof ExportTemplateFormatsItem[keyof typeof ExportTemplateFormatsItem];
 
 
@@ -2573,6 +2641,7 @@ export interface ExportTemplate {
   formats: ExportTemplateFormatsItem[];
   blocks: ExportTemplateBlock[];
   preview: ExportTemplatePreview;
+  design: ExportTemplateDesign;
 }
 
 export interface SavedVersion {
@@ -3020,4 +3089,17 @@ export type GetBrandResourcesParams = {
  */
 roleId?: string;
 };
+
+export type GetExportTemplatePreviewParams = {
+templateId: string;
+page: GetExportTemplatePreviewPage;
+};
+
+export type GetExportTemplatePreviewPage = typeof GetExportTemplatePreviewPage[keyof typeof GetExportTemplatePreviewPage];
+
+
+export const GetExportTemplatePreviewPage = {
+  cover: 'cover',
+  body: 'body',
+} as const;
 

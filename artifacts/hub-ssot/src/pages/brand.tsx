@@ -2,6 +2,8 @@ import React from "react";
 import {
   useGetBrandTemplates,
   useGetBrandTemplate,
+  useGetExportTemplates,
+  type ExportTemplate,
   useGetBrandTone,
   useGetBrandResources,
   useGetBrandSkill,
@@ -327,6 +329,86 @@ function TemplatesArea({ roleId }: { roleId?: string }) {
           )}
         </Sheet>
       )}
+      <ExportTemplateGallery />
+    </Stack>
+  );
+}
+
+// ---- Corporate export templates ---------------------------------------------
+
+function exportPreviewUrl(templateId: string, page: "cover" | "body"): string {
+  return `${import.meta.env.BASE_URL}api/brand/export-template-preview?templateId=${encodeURIComponent(templateId)}&page=${page}`;
+}
+
+function ExportTemplateCard({ tpl }: { tpl: ExportTemplate }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
+  const [page, setPage] = React.useState<"cover" | "body">("cover");
+  return (
+    <Boxed>
+      <Box padding={16}>
+        <Stack space={12}>
+          <div
+            style={{
+              borderRadius: 8,
+              overflow: "hidden",
+              border: `1px solid ${skinVars.colors.border}`,
+              background: skinVars.colors.backgroundAlternative,
+              lineHeight: 0,
+            }}
+          >
+            <img
+              src={exportPreviewUrl(tpl.id, page)}
+              alt={t.exportPreviewAria(tpl.name)}
+              loading="lazy"
+              style={{ width: "100%", height: "auto", display: "block" }}
+            />
+          </div>
+          <Inline space={8}>
+            <Touchable onPress={() => setPage("cover")} aria-pressed={page === "cover"}>
+              <Tag type={page === "cover" ? "active" : "inactive"}>{t.exportCoverLabel}</Tag>
+            </Touchable>
+            <Touchable onPress={() => setPage("body")} aria-pressed={page === "body"}>
+              <Tag type={page === "body" ? "active" : "inactive"}>{t.exportBodyLabel}</Tag>
+            </Touchable>
+          </Inline>
+          <Stack space={4}>
+            <Title3>{tpl.name}</Title3>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {tpl.description}
+            </Text2>
+          </Stack>
+          <Inline space={8}>
+            {tpl.formats.map((f) => (
+              <Tag key={f} type="inactive">
+                {f.toUpperCase()}
+              </Tag>
+            ))}
+          </Inline>
+        </Stack>
+      </Box>
+    </Boxed>
+  );
+}
+
+function ExportTemplateGallery() {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
+  const { data, isLoading } = useGetExportTemplates();
+  if (isLoading || !data || data.length === 0) return null;
+  return (
+    <Stack space={16}>
+      <Stack space={4}>
+        <Title2>{t.exportTemplatesTitle}</Title2>
+        <Text2 regular color={skinVars.colors.textSecondary}>
+          {t.exportTemplatesIntro}
+        </Text2>
+      </Stack>
+      <Grid columns={3} gap={24}>
+        {data.map((tpl) => (
+          <ExportTemplateCard key={tpl.id} tpl={tpl} />
+        ))}
+      </Grid>
     </Stack>
   );
 }

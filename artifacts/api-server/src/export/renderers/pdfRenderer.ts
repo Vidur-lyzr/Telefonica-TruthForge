@@ -7,6 +7,7 @@
 
 import PDFDocument from "pdfkit";
 import type { ExportDocumentModel } from "../exportService";
+import type { TemplateDesign } from "../exportTemplates";
 import { brandFontPath, brandMarkPng } from "../brandAssets";
 import {
   THEME_COLORS,
@@ -27,6 +28,25 @@ const ZEBRA = THEME_COLORS.backgroundAlt;
 const MARGIN = PDF_PAGE.margin;
 const CONTENT_W = PDF_PAGE.contentWidth;
 
+// The template design drives every stylistic choice below: which theme colour
+// is the accent, how section headings are treated, how table headers are
+// filled and what the running footer says. Renderers never invent a value —
+// they map the design spec onto theme tokens.
+function accentOf(design: TemplateDesign): string {
+  return design.accent === "navy" ? NAVY : BRAND;
+}
+
+function tableHeaderStyleOf(design: TemplateDesign): { fill: string; color: string } {
+  switch (design.tableHeader) {
+    case "brand":
+      return { fill: BRAND, color: THEME_COLORS.inverse };
+    case "light":
+      return { fill: ZEBRA, color: NAVY };
+    default:
+      return { fill: NAVY, color: THEME_COLORS.inverse };
+  }
+}
+
 // Registered font names — Hanken Grotesk, embedded from local TTFs.
 const F = "Brand";
 const FB = "Brand-Bold";
@@ -43,16 +63,52 @@ function ensureSpace(doc: PDFKit.PDFDocument, needed: number): void {
   }
 }
 
-function heading(doc: PDFKit.PDFDocument, text: string): void {
+function heading(doc: PDFKit.PDFDocument, text: string, design: TemplateDesign): void {
   ensureSpace(doc, 60);
   doc.moveDown(1);
+  const accent = accentOf(design);
   const y = doc.y;
-  doc.rect(MARGIN, y + 2, 3, 14).fill(BRAND);
-  doc
-    .font(FB)
-    .fontSize(TYPE_SCALE_PT.h1)
-    .fillColor(NAVY)
-    .text(text, MARGIN + 12, y, { width: CONTENT_W - 12 });
+  switch (design.headingStyle) {
+    case "rule": {
+      doc
+        .font(FB)
+        .fontSize(TYPE_SCALE_PT.h1)
+        .fillColor(NAVY)
+        .text(text, MARGIN, y, { width: CONTENT_W });
+      const ry = doc.y + 3;
+      doc
+        .moveTo(MARGIN, ry)
+        .lineTo(MARGIN + CONTENT_W, ry)
+        .strokeColor(accent)
+        .lineWidth(1.2)
+        .stroke();
+      doc.y = ry + 4;
+      break;
+    }
+    case "block": {
+      doc.font(FB).fontSize(TYPE_SCALE_PT.h1);
+      const h = doc.heightOfString(text, { width: CONTENT_W - 24 });
+      doc
+        .rect(MARGIN, y, CONTENT_W, h + 12)
+        .fill(design.accent === "navy" ? ZEBRA : THEME_COLORS.brandLow);
+      doc
+        .font(FB)
+        .fontSize(TYPE_SCALE_PT.h1)
+        .fillColor(NAVY)
+        .text(text, MARGIN + 12, y + 6, { width: CONTENT_W - 24 });
+      doc.y = y + h + 12;
+      break;
+    }
+    default: {
+      doc.rect(MARGIN, y + 2, 3, 14).fill(accent);
+      doc
+        .font(FB)
+        .fontSize(TYPE_SCALE_PT.h1)
+        .fillColor(NAVY)
+        .text(text, MARGIN + 12, y, { width: CONTENT_W - 12 });
+      break;
+    }
+  }
   doc.x = MARGIN;
   doc.moveDown(0.4);
 }
@@ -142,12 +198,14 @@ function brandedTable(
   columns: string[],
   rows: string[][],
   weights: readonly number[],
+  design: TemplateDesign,
 ): void {
   const widths = pdfColumnWidths(weights);
+  const headerStyle = tableHeaderStyleOf(design);
   const headerStyles: CellStyle[] = columns.map(() => ({
     font: FB,
     size: TYPE_SCALE_PT.small,
-    color: THEME_COLORS.inverse,
+    color: headerStyle.color,
   }));
   const rowStyles: CellStyle[] = columns.map((_, i) => ({
     font: i === 0 ? FB : F,
@@ -162,13 +220,13 @@ function brandedTable(
     );
     ensureSpace(doc, headerH + 24);
     const y = doc.y;
-    doc.rect(MARGIN, y, CONTENT_W, headerH).fill(NAVY);
+    doc.rect(MARGIN, y, CONTENT_W, headerH).fill(headerStyle.fill);
     let x = MARGIN;
     columns.forEach((label, i) => {
       doc
         .font(FB)
         .fontSize(TYPE_SCALE_PT.small)
-        .fillColor(THEME_COLORS.inverse)
+        .fillColor(headerStyle.color)
         .text(label, x + CELL_PAD_H, y + CELL_PAD_V, { width: widths[i] - CELL_PAD_H * 2 });
       x += widths[i];
     });
@@ -215,56 +273,250 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
   });
 
-  // ---- Branded cover page: full navy page, five-dot mark, wordmark, title.
+  // ---- Cover page — layout variant chosen by the template design spec.
+  const design = model.template.design;
+  const accent = accentOf(design);
   const pw = doc.page.width;
   const ph = doc.page.height;
-  doc.rect(0, 0, pw, ph).fill(NAVY);
-  doc.rect(0, 0, 10, ph).fill(BRAND);
-  doc.image(brandMarkPng(160, BRAND), MARGIN, 88, { width: 40 });
-  doc.font(FB).fontSize(19).fillColor(THEME_COLORS.inverse).text("Telefónica", MARGIN + 52, 98);
-  doc
-    .font(FB)
-    .fontSize(TYPE_SCALE_PT.coverTitle + 2)
-    .fillColor(THEME_COLORS.inverse)
-    .text(model.title, MARGIN, 300, { width: CONTENT_W, lineGap: 4 });
-  doc.moveDown(0.5);
-  doc
-    .font(FM)
-    .fontSize(TYPE_SCALE_PT.coverSubtitle)
-    .fillColor(THEME_COLORS.inverseSecondary)
-    .text(model.subtitle, { width: CONTENT_W });
-  doc.moveDown(0.4);
-  doc
-    .font(F)
-    .fontSize(TYPE_SCALE_PT.coverMeta)
-    .fillColor(THEME_COLORS.inverseTertiary)
-    .text(
-      `Generated ${new Date(model.generatedAt).toLocaleDateString("en-GB", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })} · Hub SSoT governed output · every figure cited`,
-      { width: CONTENT_W },
-    );
-  doc
-    .font(FM)
-    .fontSize(TYPE_SCALE_PT.small)
-    .fillColor(THEME_COLORS.inverseTertiary)
-    .text(model.confidentiality.toUpperCase(), MARGIN, ph - 72, { width: CONTENT_W });
+  const generatedLine = `Generated ${new Date(model.generatedAt).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })} · Hub SSoT governed output · every figure cited`;
+
+  switch (design.coverStyle) {
+    case "brand-full": {
+      doc.rect(0, 0, pw, ph).fill(BRAND);
+      doc.rect(0, ph - 250, pw, 250).fill(NAVY);
+      doc.image(brandMarkPng(160, THEME_COLORS.inverse), MARGIN, 88, { width: 40 });
+      doc.font(FB).fontSize(19).fillColor(THEME_COLORS.inverse).text("Telefónica", MARGIN + 52, 98);
+      doc
+        .font(FB)
+        .fontSize(TYPE_SCALE_PT.coverTitle + 2)
+        .fillColor(THEME_COLORS.inverse)
+        .text(model.title, MARGIN, 290, { width: CONTENT_W, lineGap: 4 });
+      doc.rect(MARGIN, ph - 222, 120, 2).fill(THEME_COLORS.inverse);
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.coverSubtitle)
+        .fillColor(THEME_COLORS.inverseSecondary)
+        .text(model.subtitle, MARGIN, ph - 198, { width: CONTENT_W });
+      doc
+        .font(F)
+        .fontSize(TYPE_SCALE_PT.coverMeta)
+        .fillColor(THEME_COLORS.inverseTertiary)
+        .text(generatedLine, MARGIN, ph - 172, { width: CONTENT_W });
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.small)
+        .fillColor(THEME_COLORS.inverseTertiary)
+        .text(model.confidentiality.toUpperCase(), MARGIN, ph - 72, { width: CONTENT_W });
+      break;
+    }
+    case "brand-band": {
+      doc.rect(0, 0, pw, ph).fill(THEME_COLORS.background);
+      doc.image(brandMarkPng(160, BRAND), MARGIN, 72, { width: 36 });
+      doc.font(FB).fontSize(17).fillColor(NAVY).text("Telefónica", MARGIN + 48, 82);
+      doc.rect(0, 200, pw, 230).fill(BRAND);
+      doc
+        .font(FB)
+        .fontSize(TYPE_SCALE_PT.coverTitle)
+        .fillColor(THEME_COLORS.inverse)
+        .text(model.title, MARGIN, 250, { width: CONTENT_W, lineGap: 4 });
+      doc.moveDown(0.5);
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.coverSubtitle)
+        .fillColor(THEME_COLORS.inverseSecondary)
+        .text(model.subtitle, { width: CONTENT_W });
+      doc
+        .font(F)
+        .fontSize(TYPE_SCALE_PT.coverMeta)
+        .fillColor(MUTED)
+        .text(generatedLine, MARGIN, 470, { width: CONTENT_W });
+      doc
+        .moveTo(MARGIN, ph - 88)
+        .lineTo(pw - MARGIN, ph - 88)
+        .strokeColor(DIVIDER)
+        .lineWidth(1)
+        .stroke();
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.small)
+        .fillColor(MUTED)
+        .text(`${design.footerLabel} · ${model.confidentiality.toUpperCase()}`, MARGIN, ph - 72, {
+          width: CONTENT_W,
+        });
+      break;
+    }
+    case "masthead": {
+      doc.rect(0, 0, pw, ph).fill(THEME_COLORS.background);
+      doc.rect(MARGIN, 64, CONTENT_W, 4).fill(NAVY);
+      doc
+        .moveTo(MARGIN, 76)
+        .lineTo(pw - MARGIN, 76)
+        .strokeColor(NAVY)
+        .lineWidth(1)
+        .stroke();
+      doc.image(brandMarkPng(160, NAVY), MARGIN, 96, { width: 30 });
+      doc.font(FB).fontSize(21).fillColor(NAVY).text("Telefónica", MARGIN + 42, 104);
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.small)
+        .fillColor(MUTED)
+        .text(model.template.name.toUpperCase(), MARGIN, 112, {
+          width: CONTENT_W,
+          align: "right",
+        });
+      doc
+        .moveTo(MARGIN, 148)
+        .lineTo(pw - MARGIN, 148)
+        .strokeColor(DIVIDER)
+        .lineWidth(1)
+        .stroke();
+      doc
+        .font(FB)
+        .fontSize(TYPE_SCALE_PT.coverTitle - 2)
+        .fillColor(NAVY)
+        .text(model.title, MARGIN, 220, { width: CONTENT_W, lineGap: 4 });
+      doc.moveDown(0.6);
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.coverSubtitle)
+        .fillColor(MUTED)
+        .text(model.subtitle, { width: CONTENT_W });
+      doc.moveDown(0.8);
+      const ruleY = doc.y;
+      doc.rect(MARGIN, ruleY, 140, 2).fill(NAVY);
+      doc
+        .font(F)
+        .fontSize(TYPE_SCALE_PT.coverMeta)
+        .fillColor(MUTED)
+        .text(generatedLine, MARGIN, ruleY + 16, { width: CONTENT_W });
+      doc
+        .moveTo(MARGIN, ph - 88)
+        .lineTo(pw - MARGIN, ph - 88)
+        .strokeColor(NAVY)
+        .lineWidth(1)
+        .stroke();
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.small)
+        .fillColor(MUTED)
+        .text(`${design.footerLabel} · ${model.confidentiality.toUpperCase()}`, MARGIN, ph - 72, {
+          width: CONTENT_W,
+        });
+      break;
+    }
+    case "split": {
+      const panelW = 200;
+      doc.rect(0, 0, pw, ph).fill(THEME_COLORS.background);
+      doc.rect(0, 0, panelW, ph).fill(NAVY);
+      doc.rect(panelW, 0, 5, ph).fill(BRAND);
+      doc.image(brandMarkPng(160, BRAND), 40, 88, { width: 36 });
+      doc.font(FB).fontSize(16).fillColor(THEME_COLORS.inverse).text("Telefónica", 40, 146);
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.footer)
+        .fillColor(THEME_COLORS.inverseTertiary)
+        .text(model.confidentiality.toUpperCase(), 40, ph - 88, { width: panelW - 80 });
+      const colX = panelW + 48;
+      const colW = pw - colX - MARGIN;
+      doc
+        .font(FB)
+        .fontSize(TYPE_SCALE_PT.coverTitle - 4)
+        .fillColor(NAVY)
+        .text(model.title, colX, 320, { width: colW, lineGap: 4 });
+      doc.moveDown(0.6);
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.coverSubtitle)
+        .fillColor(MUTED)
+        .text(model.subtitle, { width: colW });
+      doc
+        .font(F)
+        .fontSize(TYPE_SCALE_PT.coverMeta)
+        .fillColor(MUTED)
+        .text(generatedLine, colX, ph - 88, { width: colW });
+      break;
+    }
+    case "minimal": {
+      doc.rect(0, 0, pw, ph).fill(THEME_COLORS.background);
+      doc.image(brandMarkPng(320, BRAND), pw / 2 - 52, 200, { width: 104 });
+      doc
+        .font(FB)
+        .fontSize(TYPE_SCALE_PT.coverTitle - 4)
+        .fillColor(NAVY)
+        .text(model.title, MARGIN, 380, { width: CONTENT_W, align: "center", lineGap: 4 });
+      doc.moveDown(0.6);
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.coverSubtitle)
+        .fillColor(MUTED)
+        .text(model.subtitle, { width: CONTENT_W, align: "center" });
+      doc.rect(pw / 2 - 60, ph - 132, 120, 2).fill(BRAND);
+      doc
+        .font(F)
+        .fontSize(TYPE_SCALE_PT.coverMeta)
+        .fillColor(MUTED)
+        .text(generatedLine, MARGIN, ph - 108, { width: CONTENT_W, align: "center" });
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.small)
+        .fillColor(MUTED)
+        .text(model.confidentiality.toUpperCase(), MARGIN, ph - 72, {
+          width: CONTENT_W,
+          align: "center",
+        });
+      break;
+    }
+    default: {
+      // navy-full
+      doc.rect(0, 0, pw, ph).fill(NAVY);
+      doc.rect(0, 0, 10, ph).fill(BRAND);
+      doc.image(brandMarkPng(160, BRAND), MARGIN, 88, { width: 40 });
+      doc.font(FB).fontSize(19).fillColor(THEME_COLORS.inverse).text("Telefónica", MARGIN + 52, 98);
+      doc
+        .font(FB)
+        .fontSize(TYPE_SCALE_PT.coverTitle + 2)
+        .fillColor(THEME_COLORS.inverse)
+        .text(model.title, MARGIN, 300, { width: CONTENT_W, lineGap: 4 });
+      doc.moveDown(0.5);
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.coverSubtitle)
+        .fillColor(THEME_COLORS.inverseSecondary)
+        .text(model.subtitle, { width: CONTENT_W });
+      doc.moveDown(0.4);
+      doc
+        .font(F)
+        .fontSize(TYPE_SCALE_PT.coverMeta)
+        .fillColor(THEME_COLORS.inverseTertiary)
+        .text(generatedLine, { width: CONTENT_W });
+      doc
+        .font(FM)
+        .fontSize(TYPE_SCALE_PT.small)
+        .fillColor(THEME_COLORS.inverseTertiary)
+        .text(model.confidentiality.toUpperCase(), MARGIN, ph - 72, { width: CONTENT_W });
+      break;
+    }
+  }
 
   doc.addPage();
-  doc.rect(0, 0, pw, 8).fill(BRAND);
+  doc.rect(0, 0, pw, 8).fill(accent);
   doc.y = 72;
   doc.x = MARGIN;
 
   if (model.umbrella) {
-    heading(doc, "Umbrella message");
+    heading(doc, "Umbrella message", design);
     doc.font(FB).fontSize(TYPE_SCALE_PT.h2);
     const umbH = doc.heightOfString(model.umbrella, { width: CONTENT_W - 24, lineGap: 3 });
     ensureSpace(doc, umbH + 20);
     const y = doc.y;
-    doc.rect(MARGIN, y, CONTENT_W, umbH + 16).fill(THEME_COLORS.brandLow);
-    doc.rect(MARGIN, y, 3, umbH + 16).fill(BRAND);
+    doc
+      .rect(MARGIN, y, CONTENT_W, umbH + 16)
+      .fill(design.accent === "navy" ? ZEBRA : THEME_COLORS.brandLow);
+    doc.rect(MARGIN, y, 3, umbH + 16).fill(accent);
     doc
       .font(FB)
       .fontSize(TYPE_SCALE_PT.h2)
@@ -280,7 +532,7 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
   // unformatted text blob.
   for (const section of model.sections) {
     if (section.isQa && model.qa.length > 0) continue;
-    heading(doc, section.heading);
+    heading(doc, section.heading, design);
     if (section.internalOnly) {
       doc
         .font(FI)
@@ -295,7 +547,7 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
   // Structured Q&A block: styled question, answer, provenance and (internal
   // exports only) the internal note.
   if (model.qa.length > 0) {
-    heading(doc, model.qaHeading ?? "Q&A");
+    heading(doc, model.qaHeading ?? "Q&A", design);
     for (const item of model.qa) {
       ensureSpace(doc, 70);
       doc
@@ -348,7 +600,7 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
   }
 
   for (const table of model.tables) {
-    heading(doc, table.title);
+    heading(doc, table.title, design);
     doc
       .font(F)
       .fontSize(TYPE_SCALE_PT.small)
@@ -360,11 +612,11 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
         { width: CONTENT_W },
       );
     doc.moveDown(0.4);
-    brandedTable(doc, table.columns, table.rows, dataTableWeights(table.columns.length));
+    brandedTable(doc, table.columns, table.rows, dataTableWeights(table.columns.length), design);
   }
 
   if (model.spokesperson.length > 0) {
-    heading(doc, "Spokesperson guidance (internal only)");
+    heading(doc, "Spokesperson guidance (internal only)", design);
     for (const note of model.spokesperson) {
       ensureSpace(doc, 60);
       doc
@@ -386,7 +638,7 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
   }
 
   if (model.citations.length > 0) {
-    heading(doc, "Evidence and citations");
+    heading(doc, "Evidence and citations", design);
     brandedTable(
       doc,
       ["Ref", "Source", "Location", "Owner"],
@@ -397,11 +649,12 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
         `${c.owner} · ${c.confidentiality}`,
       ]),
       CITATION_TABLE_WEIGHTS,
+      design,
     );
   }
 
   if (model.disclaimers.length > 0) {
-    heading(doc, "Disclaimers");
+    heading(doc, "Disclaimers", design);
     for (const d of model.disclaimers) {
       ensureSpace(doc, 36);
       doc
@@ -426,7 +679,7 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
       .fontSize(TYPE_SCALE_PT.footer)
       .fillColor(MUTED)
       .text(
-        `Telefónica — Hub SSoT governed export · ${model.confidentiality} · page ${i + 1} of ${range.count}`,
+        `Telefónica · ${design.footerLabel} · ${model.confidentiality} · page ${i + 1} of ${range.count}`,
         MARGIN,
         doc.page.height - 40,
         { width: CONTENT_W, align: "center", lineBreak: false },

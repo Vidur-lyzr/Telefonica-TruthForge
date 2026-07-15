@@ -13,6 +13,7 @@ import {
   ResetBrandSkillResponse,
 } from "@workspace/api-zod";
 import { EXPORT_TEMPLATES } from "../export/exportTemplates";
+import { renderTemplatePreview } from "../export/templatePreview";
 import {
   accessibleTemplates,
   accessibleTemplate,
@@ -63,6 +64,26 @@ router.get("/brand/resources", (req, res) => {
 
 router.get("/brand/export-templates", (_req, res) => {
   res.json(GetExportTemplatesResponse.parse(EXPORT_TEMPLATES));
+});
+
+// Deterministic server-rendered page preview (PNG) of an export template.
+// Drawn from the same theme tokens, chart engine and brand fonts the real
+// exporters use — the preview IS the design of the downloaded document.
+router.get("/brand/export-template-preview", (req, res) => {
+  const templateId = typeof req.query.templateId === "string" ? req.query.templateId : "";
+  const page = req.query.page === "body" ? "body" : req.query.page === "cover" ? "cover" : null;
+  if (!templateId || !page) {
+    res.status(400).json({ error: "templateId and page (cover|body) are required" });
+    return;
+  }
+  const png = renderTemplatePreview(templateId, page);
+  if (!png) {
+    res.status(404).json({ error: "Unknown export template" });
+    return;
+  }
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.send(png);
 });
 
 router.post("/brand/check", (req, res) => {

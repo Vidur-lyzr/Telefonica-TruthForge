@@ -2404,6 +2404,43 @@ paths:
                 items:
                   $ref: "#/components/schemas/ExportTemplate"
 
+  /brand/export-template-preview:
+    get:
+      operationId: getExportTemplatePreview
+      tags: [brand-room]
+      summary: Server-rendered page preview of an export template
+      description: >
+        A deterministic PNG rendering of one page (cover or body) of the given
+        export template, drawn from the same theme tokens, chart engine and
+        brand fonts the real exporters use — the preview IS the design the
+        downloaded document will follow.
+      parameters:
+        - name: templateId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [cover, body]
+      responses:
+        "200":
+          description: The rendered preview page
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Unknown template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /brand/skill:
     get:
       operationId: getBrandSkill
@@ -6832,9 +6869,41 @@ components:
           items:
             type: string
 
+    ExportTemplateDesign:
+      type: object
+      description: >
+        The deterministic Telefónica design spec the renderers follow for this
+        template — cover layout, accent colour role, heading treatment, table
+        header style and footer label. Every value maps onto the shared export
+        theme tokens; renderers never invent design values.
+      required: [coverStyle, accent, headingStyle, tableHeader, footerLabel, tone]
+      properties:
+        coverStyle:
+          type: string
+          enum: [navy-full, brand-full, brand-band, masthead, split, minimal]
+          description: Cover page layout variant.
+        accent:
+          type: string
+          enum: [brand, navy]
+          description: Which theme colour drives heading rules and emphasis.
+        headingStyle:
+          type: string
+          enum: [bar, rule, block]
+          description: Section heading treatment — left bar, bottom hairline rule, or tinted block.
+        tableHeader:
+          type: string
+          enum: [navy, brand, light]
+          description: Table header row style.
+        footerLabel:
+          type: string
+          description: Template-specific footer wording on every content page.
+        tone:
+          type: string
+          description: One-line voice guidance shown with the template.
+
     ExportTemplate:
       type: object
-      required: [id, name, description, owner, version, shapes, formats, blocks, preview]
+      required: [id, name, description, owner, version, shapes, formats, blocks, preview, design]
       properties:
         id:
           type: string
@@ -6862,6 +6931,8 @@ components:
             $ref: "#/components/schemas/ExportTemplateBlock"
         preview:
           $ref: "#/components/schemas/ExportTemplatePreview"
+        design:
+          $ref: "#/components/schemas/ExportTemplateDesign"
 
     SavedVersion:
       type: object

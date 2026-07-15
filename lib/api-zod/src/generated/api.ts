@@ -6333,9 +6333,29 @@ export const GetExportTemplatesResponseItem = zod.object({
   "preview": zod.object({
   "heading": zod.string(),
   "lines": zod.array(zod.string())
-})
+}),
+  "design": zod.object({
+  "coverStyle": zod.enum(['navy-full', 'brand-full', 'brand-band', 'masthead', 'split', 'minimal']).describe('Cover page layout variant.'),
+  "accent": zod.enum(['brand', 'navy']).describe('Which theme colour drives heading rules and emphasis.'),
+  "headingStyle": zod.enum(['bar', 'rule', 'block']).describe('Section heading treatment — left bar, bottom hairline rule, or tinted block.'),
+  "tableHeader": zod.enum(['navy', 'brand', 'light']).describe('Table header row style.'),
+  "footerLabel": zod.string().describe('Template-specific footer wording on every content page.'),
+  "tone": zod.string().describe('One-line voice guidance shown with the template.')
+}).describe('The deterministic Telefónica design spec the renderers follow for this template — cover layout, accent colour role, heading treatment, table header style and footer label. Every value maps onto the shared export theme tokens; renderers never invent design values.\n')
 })
 export const GetExportTemplatesResponse = zod.array(GetExportTemplatesResponseItem)
+
+
+/**
+ * A deterministic PNG rendering of one page (cover or body) of the given export template, drawn from the same theme tokens, chart engine and brand fonts the real exporters use — the preview IS the design the downloaded document will follow.
+ * @summary Server-rendered page preview of an export template
+ */
+export const GetExportTemplatePreviewQueryParams = zod.object({
+  "templateId": zod.coerce.string(),
+  "page": zod.enum(['cover', 'body'])
+})
+
+export const GetExportTemplatePreviewResponse = zod.unknown()
 
 
 /**

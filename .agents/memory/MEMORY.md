@@ -24,7 +24,7 @@
 - [Lazy schedule runs](lazy-schedule-runs.md) — no-daemon recurring runs: mark-run-before-compose on lazy reads, compose-before-persist on create, 400 on unknown roleId (never fallback).
 - [Q&A internal notes keying](qa-notes-keying.md) — notes keyed by normalized question (survive refine), excluded from content hash, stripped server-side for external exports.
 - [Corpus parallel authoring](corpus-parallel-authoring.md) — unique id prefixes + shared brief let parallel authors scale the corpus collision-free; .gitagent state self-mutates.
-- [DOCX fixed table widths](docx-fixed-table-widths.md) — percentage-only docx tables collapse to vertical one-char columns in non-Word viewers; always FIXED layout + DXA widths on grid and every cell.
+- [DOCX fixed table widths](docx-fixed-table-widths.md) — percentage-only docx tables collapse in non-Word viewers; always FIXED layout + DXA widths on grid and every cell.
 - [Guardian template disclaimers](guardian-template-disclaimers.md) — every GeneratedDraft compose path must attach template-required disclaimers or drafts are permanently unapprovable.
 - [Q&A body parsing](qa-body-parsing.md) — model output often omits "A:" prefixes; intolerant parsers silently drop provenance/notes. Marker renumbering must cover headings, not just bodies.
 - [Brief-chat structured questions](brief-chat-structured-questions.md) — model extraction enum must match UI option values; guard model next-questions against already-filled fields server-side.
