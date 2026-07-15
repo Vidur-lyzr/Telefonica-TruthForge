@@ -34,12 +34,24 @@ export function parseQaBody(body: string): QaPair[] {
 
   const flush = () => {
     if (question && answer) {
-      const q = question.join(" ").replace(/\s+/g, " ").trim();
+      const q = question
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .replace(/^\*+|\*+$/g, "")
+        .trim();
       const a = answer.join("\n").trim();
       if (q && a) pairs.push({ question: q, answer: a });
     }
     question = null;
     answer = null;
+  };
+
+  // Models often bold the question and omit the "A:" prefix entirely
+  // ("**Q: ...?**" followed directly by answer prose). Once the question line
+  // looks terminated, the next non-marker line starts the answer.
+  const questionComplete = (q: string[]): boolean => {
+    const last = (q[q.length - 1] ?? "").trim();
+    return /[?.!:]\**$/.test(last) || /\*\*$/.test(last);
   };
 
   for (const line of lines) {
@@ -52,7 +64,13 @@ export function parseQaBody(body: string): QaPair[] {
     } else if (answer) {
       answer.push(line.trim());
     } else if (question) {
-      question.push(line.trim());
+      const t = line.trim();
+      if (!t) continue;
+      if (questionComplete(question)) {
+        answer = [t];
+      } else {
+        question.push(t);
+      }
     }
   }
   flush();

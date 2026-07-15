@@ -830,12 +830,23 @@ function parseQaBody(body: string): QaPair[] {
   let answer: string[] | null = null;
   const flush = () => {
     if (question && answer) {
-      const q = question.join(" ").replace(/\s+/g, " ").trim();
+      const q = question
+        .join(" ")
+        .replace(/\s+/g, " ")
+        .replace(/^\*+|\*+$/g, "")
+        .trim();
       const a = answer.join("\n").trim();
       if (q && a) pairs.push({ question: q, answer: a });
     }
     question = null;
     answer = null;
+  };
+  // Mirrors the server-side parser: models often bold the question and omit
+  // the "A:" prefix; once the question looks terminated, the next non-marker
+  // line starts the answer.
+  const questionComplete = (q: string[]): boolean => {
+    const last = (q[q.length - 1] ?? "").trim();
+    return /[?.!:]\**$/.test(last) || /\*\*$/.test(last);
   };
   for (const line of body.split("\n")) {
     if (QA_Q_START.test(line)) {
@@ -847,7 +858,13 @@ function parseQaBody(body: string): QaPair[] {
     } else if (answer) {
       answer.push(line.trim());
     } else if (question) {
-      question.push(line.trim());
+      const t = line.trim();
+      if (!t) continue;
+      if (questionComplete(question)) {
+        answer = [t];
+      } else {
+        question.push(t);
+      }
     }
   }
   flush();

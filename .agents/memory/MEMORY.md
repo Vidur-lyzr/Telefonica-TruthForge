@@ -24,6 +24,7 @@
 - [Lazy schedule runs](lazy-schedule-runs.md) — no-daemon recurring runs: mark-run-before-compose on lazy reads, compose-before-persist on create, 400 on unknown roleId (never fallback).
 - [Q&A internal notes keying](qa-notes-keying.md) — notes keyed by normalized question (survive refine), excluded from content hash, stripped server-side for external exports.
 - [Corpus parallel authoring](corpus-parallel-authoring.md) — unique id prefixes + shared brief let parallel authors scale the corpus collision-free; .gitagent state self-mutates.
+- [Q&A body parsing](qa-body-parsing.md) — model output often omits "A:" prefixes; intolerant parsers silently drop provenance/notes. Marker renumbering must cover headings, not just bodies.
 - [Brief-chat structured questions](brief-chat-structured-questions.md) — model extraction enum must match UI option values; guard model next-questions against already-filled fields server-side.
 - [Perplexity sonar structured output](perplexity-structured-output.md) — sonar ignores prose "JSON only" instructions; enforce response_format json_schema + search_results fallback.
 - [Guardian two-pass agent design](guardian-two-pass.md) — LLM review only ADDS findings; deterministic rules and block status stay outside the model; quote→span via indexOf with per-quote cursor.

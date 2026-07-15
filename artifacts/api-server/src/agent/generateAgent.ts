@@ -963,7 +963,10 @@ ${jsonShape}${refineBlock}`;
       if (n >= 1 && n <= sources.length) referencedOld.add(n);
     }
   };
-  for (const s of rawSections) scanText(s.body ?? "");
+  for (const s of rawSections) {
+    scanText(s.body ?? "");
+    scanText(s.heading ?? "");
+  }
   const usedOld =
     referencedOld.size > 0 ? [...referencedOld].sort((a, b) => a - b) : [];
   const oldToNew = new Map<number, number>();
@@ -986,11 +989,23 @@ ${jsonShape}${refineBlock}`;
 
   const sections: DraftSection[] = rawSections.map((s) => {
     const body = sanitizeSectionBody(rewriteMarkers(s.body ?? ""));
-    const citationIds = [...new Set([...body.matchAll(/S\s*(\d+)/gi)].map((m) => `S${Number(m[1])}`))];
+    // Headings (notably the press-release headline) may carry source markers.
+    // Renumber them like body markers, fold them into the section's citation
+    // ids for traceability, then strip the brackets from the display text —
+    // a rendered headline must not show raw "[S1]" markers.
+    const headingRewritten = rewriteMarkers(s.heading ?? "");
+    const headingIds = [...headingRewritten.matchAll(/S\s*(\d+)/gi)].map((m) => `S${Number(m[1])}`);
+    const heading = headingRewritten
+      .replace(/\[S\d+(?:,\s*S\d+)*\]/g, "")
+      .replace(/[ \t]{2,}/g, " ")
+      .trim();
+    const citationIds = [
+      ...new Set([...[...body.matchAll(/S\s*(\d+)/gi)].map((m) => `S${Number(m[1])}`), ...headingIds]),
+    ];
     return {
       id: newId("sec"),
       kind: s.kind ?? "body",
-      heading: s.heading ?? "",
+      heading,
       axisId: s.axisId ?? null,
       body,
       citationIds,
