@@ -1806,10 +1806,25 @@ export interface WikiStats {
   windowLabel: string;
 }
 
+export type WikiChatTurnRole = typeof WikiChatTurnRole[keyof typeof WikiChatTurnRole];
+
+
+export const WikiChatTurnRole = {
+  user: 'user',
+  assistant: 'assistant',
+} as const;
+
+export interface WikiChatTurn {
+  role: WikiChatTurnRole;
+  content: string;
+}
+
 export interface WikiSearchInput {
   /** @minLength 1 */
   question: string;
   roleId: string;
+  /** Prior turns of this knowledge-graph conversation (oldest first). Used only for conversational continuity — retrieval relevance is always scored against the current question alone. */
+  history?: WikiChatTurn[];
 }
 
 export interface PlanningAskResult {
@@ -2805,8 +2820,21 @@ export interface SavedVersion {
   draft: GeneratedDraft;
 }
 
+export interface WikiTraversalEdge {
+  from: string;
+  to: string;
+}
+
+/**
+ * The graph path the answer was built from — node ids and the connections between them, so the Map can highlight the traversal.
+ */
+export interface WikiTraversal {
+  nodeIds: string[];
+  edges: WikiTraversalEdge[];
+}
+
 export interface WikiSearchResult {
-  /** answered | no_evidence | permission_blocked */
+  /** answered | no_evidence | permission_blocked | conversational */
   status: string;
   answer: string;
   evidence: WikiEvidenceRef[];
@@ -2814,6 +2842,7 @@ export interface WikiSearchResult {
   historic: boolean;
   /** @nullable */
   permissionNote?: string | null;
+  traversal?: WikiTraversal | null;
 }
 
 export interface VisibilityRow {

@@ -71,6 +71,34 @@ export function isDocAccessible(target: AccessTarget, subject: AccessSubject): b
   return resolveDocAccess(target, subject).accessible;
 }
 
+// Compiled pages carry no `areas` of their own — their area scope is the
+// union of their governed sources' areas. An empty union (or a source-less
+// page) is cross-area, same as documents with an empty `areas` list.
+export function resolvePageAccess(
+  page: { confidentiality: Clearance; sourceDocIds: string[] },
+  subject: AccessSubject,
+): AccessDecision {
+  const areas = new Set<Area>();
+  for (const docId of page.sourceDocIds) {
+    const doc = getDoc(docId);
+    if (doc) for (const a of doc.areas) areas.add(a);
+  }
+  return resolveDocAccess(
+    { confidentiality: page.confidentiality, areas: [...areas] },
+    subject,
+  );
+}
+
+// Resolves a persona/role id to the access subject every wiki/knowledge-graph
+// endpoint must gate with. Unknown roles fail closed (null).
+export function subjectForRole(
+  roles: { id: string; area: Area | null; clearance: Clearance }[],
+  roleId: string,
+): AccessSubject | null {
+  const role = roles.find((r) => r.id === roleId);
+  return role ? { area: role.area, clearance: role.clearance } : null;
+}
+
 // ---------------------------------------------------------------------------
 // Versioned taxonomy configuration store (file-backed, applied in memory).
 // ---------------------------------------------------------------------------

@@ -2121,6 +2121,25 @@ export const GRAPH_EDGES: GraphEdge[] = [
   { from: "fig-spain-revenue-q1", to: "mkt-spain", relation: "measured for", type: "relationship" },
   { from: "fig-group-nps-q2", to: "ax-core", relation: "tracks", type: "relationship" },
   { from: "fig-fibre-spain-q3", to: "ax-networks", relation: "evidences", type: "relationship" },
+  // Entities ↔ compiled pages — named relations that make the map traversable
+  // from raw entities into the compiled knowledge layer.
+  { from: "exec-cfo", to: "page-core-revenue", relation: "presents", type: "relationship", confidence: 0.85 },
+  { from: "fig-revenue-q1", to: "page-core-revenue", relation: "anchors", type: "relationship", confidence: 0.95 },
+  { from: "fig-ebitda-q1", to: "page-core-revenue", relation: "supports", type: "relationship", confidence: 0.9 },
+  { from: "fig-revenue-q4", to: "page-core-revenue", relation: "superseded baseline of", type: "relationship", confidence: 0.6 },
+  { from: "mkt-spain", to: "page-core-revenue", relation: "largest contributor to", type: "relationship", confidence: 0.8 },
+  { from: "exec-ceo", to: "page-networks", relation: "presented at MWC", type: "relationship", confidence: 0.9 },
+  { from: "fig-fibre-spain-q3", to: "page-networks", relation: "evidences", type: "relationship", confidence: 0.85 },
+  { from: "mkt-germany", to: "page-networks", relation: "5G rollout market of", type: "relationship", confidence: 0.75 },
+  { from: "brand-tech", to: "page-b2b", relation: "executes", type: "relationship", confidence: 0.92 },
+  { from: "prod-tech-cyber", to: "page-b2b", relation: "flagship offer of", type: "relationship", confidence: 0.8 },
+  { from: "exec-comms-director", to: "page-simplify", relation: "owns messaging for", type: "relationship", confidence: 0.7 },
+  { from: "prod-fusion", to: "page-simplify", relation: "example of", type: "relationship", confidence: 0.6 },
+  { from: "fig-netzero", to: "page-netzero", relation: "target anchoring", type: "relationship", confidence: 0.95 },
+  { from: "brand-movistar", to: "page-netzero", relation: "carries green claims of", type: "relationship", confidence: 0.6 },
+  { from: "brand-o2", to: "ax-networks", relation: "deploys under", type: "relationship", confidence: 0.8 },
+  { from: "brand-vivo", to: "page-core-revenue", relation: "growth driver of", type: "relationship", confidence: 0.75 },
+  { from: "fig-group-nps-q2", to: "page-simplify", relation: "outcome measure of", type: "relationship", confidence: 0.7 },
 ];
 
 export const COMPILED_PAGES: CompiledPage[] = [

@@ -14,6 +14,7 @@ import {
   type WikiLineage,
   type WikiEvidenceRef,
   type WikiRelatedPage,
+  type WikiSearchResult,
 } from "@workspace/api-client-react";
 import { useApp, type Lang } from "@/components/app-provider";
 import { KnowledgeGraph } from "@/components/wiki/knowledge-graph";
@@ -49,7 +50,6 @@ import {
   IconBookRegular,
   IconDocumentsRegular,
   IconLockClosedRegular,
-  IconSearchRegular,
   IconSendRegular,
   IconFileTextRegular,
   IconWaitClockRegular,
@@ -75,6 +75,12 @@ const FILTER_DEFAULT: Record<FilterKey, string> = {
 };
 
 const WIKI_LINK_SPLIT = /(\[\[[^\]]+\]\]|\[E\d+(?:,\s*E\d+)*\])/g;
+
+interface ChatMsg {
+  role: "user" | "assistant";
+  text: string;
+  result?: WikiSearchResult;
+}
 
 const BLUE = skinVars.colors.brand;
 const NAVY = skinVars.colors.textPrimary;
@@ -297,7 +303,7 @@ export default function Wiki() {
   const [snippet, setSnippet] = React.useState<WikiEvidenceRef | null>(null);
 
   const [question, setQuestion] = React.useState("");
-  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [chat, setChat] = React.useState<ChatMsg[]>([]);
   const [filters, setFilters] = React.useState<Record<FilterKey, string>>(FILTER_DEFAULT);
 
   const graphQuery = useGetWikiGraph(
@@ -322,12 +328,13 @@ export default function Wiki() {
       },
     },
   );
-  const {
-    mutate: runSearch,
-    data: searchResult,
-    isPending: searching,
-    reset: resetSearch,
-  } = useSearchWiki();
+  const { mutate: runSearch, isPending: searching } = useSearchWiki();
+
+  // The most recent governed answer drives traversal highlighting on the Map.
+  const lastResult = useMemo(
+    () => [...chat].reverse().find((m) => m.result)?.result ?? null,
+    [chat],
+  );
 
   const selectedNode = useMemo(
     () => graphQuery.data?.nodes.find((n) => n.id === selectedNodeId) ?? null,
@@ -400,20 +407,30 @@ export default function Wiki() {
   }, [pagesQuery.data]);
 
   // Nodes lit up on the Map by the current focus: the selected node, the open
-  // page's related pages, and any wiki-links surfaced by the compiled-layer Ask.
+  // page's related pages, and the traversal of the latest governed answer.
   const highlightIds = useMemo(() => {
     const s = new Set<string>();
     if (selectedNodeId) s.add(selectedNodeId);
     pageQuery.data?.page?.relatedPages.forEach((r) => {
       if (!r.locked) s.add(r.nodeId);
     });
-    if (searchResult?.status === "answered") {
-      searchResult.wikiLinks.forEach((w) => {
+    if (lastResult?.status === "answered") {
+      lastResult.wikiLinks.forEach((w) => {
         if (!w.locked) s.add(w.nodeId);
       });
+      lastResult.traversal?.nodeIds.forEach((id) => s.add(id));
     }
     return s;
-  }, [selectedNodeId, pageQuery.data, searchResult]);
+  }, [selectedNodeId, pageQuery.data, lastResult]);
+
+  // Traversal edges (keyed "from|to") for path highlighting on the Map.
+  const highlightEdges = useMemo(() => {
+    const s = new Set<string>();
+    if (lastResult?.status === "answered") {
+      lastResult.traversal?.edges.forEach((e) => s.add(`${e.from}|${e.to}`));
+    }
+    return s;
+  }, [lastResult]);
 
   const setFilter = (key: FilterKey, value: string) =>
     setFilters((f) => ({ ...f, [key]: value }));
@@ -450,11 +467,42 @@ export default function Wiki() {
     if (page) openPage(page.id, page.nodeId);
   };
 
-  const handleAsk = () => {
-    if (!question.trim() || !roleId) return;
-    resetSearch();
-    setSearchOpen(true);
-    runSearch({ data: { question, roleId } });
+  // Live counts for the chat explainer, derived from the persona-visible graph.
+  const graphCounts = useMemo(() => {
+    const ns = graphQuery.data?.nodes ?? [];
+    return {
+      pages: ns.filter((n) => n.kind === "compiled_page" && !n.locked).length,
+      docs: ns.filter((n) => n.kind === "document" && !n.locked).length,
+      figures: ns.filter((n) => n.kind === "figure" && !n.locked).length,
+    };
+  }, [graphQuery.data]);
+
+  const threadRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [chat, searching]);
+
+  // Conversational send: the last turns travel as presentation-only history;
+  // retrieval on the server is always scored against the new question alone.
+  const sendChat = (text?: string) => {
+    const q = (text ?? question).trim();
+    if (!q || !roleId || searching) return;
+    const history = chat.slice(-6).map((m) => ({ role: m.role, content: m.text }));
+    setChat((c) => [...c, { role: "user" as const, text: q }]);
+    setQuestion("");
+    runSearch(
+      { data: { question: q, roleId, history } },
+      {
+        onSuccess: (res) =>
+          setChat((c) => [
+            ...c,
+            { role: "assistant" as const, text: res.answer, result: res },
+          ]),
+        onError: () =>
+          setChat((c) => [...c, { role: "assistant" as const, text: t.chat.error }]),
+      },
+    );
   };
 
   const tabs = [
@@ -594,6 +642,7 @@ export default function Wiki() {
                     axisColors={axisColors}
                     selectedId={selectedNodeId}
                     highlightIds={highlightIds}
+                    highlightEdges={highlightEdges}
                     onSelect={handleNodeSelect}
                   />
                 )}
@@ -707,17 +756,27 @@ export default function Wiki() {
               </div>
             </div>
 
-            {/* Info panel */}
+            {/* Right panel: node card (when selected) + persistent governed chat */}
             <div
               style={{
-                width: 320,
+                width: 360,
                 flexShrink: 0,
                 borderLeft: `1px solid ${BORDER}`,
                 background: SURFACE,
-                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                minHeight: 0,
               }}
             >
-              {selectedNode ? (
+              {selectedNode && (
+                <div
+                  style={{
+                    maxHeight: "45%",
+                    overflowY: "auto",
+                    borderBottom: `1px solid ${BORDER}`,
+                    flexShrink: 0,
+                  }}
+                >
                 <Box padding={24}>
                   <Stack space={16}>
                     <Inline space={0} alignItems="center">
@@ -887,30 +946,264 @@ export default function Wiki() {
                     )}
                   </Stack>
                 </Box>
-              ) : (
-                <div
-                  style={{
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    textAlign: "center",
-                    padding: 24,
-                  }}
-                >
-                  <Stack space={12}>
-                    <Inline space={0} alignItems="center">
-                      <div style={{ margin: "0 auto" }}>
-                        <IconShareRegular size={40} color={MUTED} />
-                      </div>
-                    </Inline>
-                    <Text2 regular color={MUTED}>
-                      {t.panel.empty}
-                    </Text2>
-                  </Stack>
                 </div>
               )}
+
+              {/* Governed chat */}
+              <div
+                style={{
+                  flex: 1,
+                  minHeight: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "12px 16px",
+                    borderBottom: `1px solid ${BORDER}`,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <Eyebrow>{t.chat.title}</Eyebrow>
+                  </div>
+                  {chat.length > 0 && (
+                    <ButtonLink small onPress={() => setChat([])}>
+                      {t.chat.clear}
+                    </ButtonLink>
+                  )}
+                </div>
+
+                <div
+                  ref={threadRef}
+                  style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: 16 }}
+                >
+                  {chat.length === 0 ? (
+                    <Stack space={16}>
+                      <Text2 regular color={MUTED}>
+                        {t.chat.explainer(
+                          graphCounts.pages,
+                          graphCounts.docs,
+                          graphCounts.figures,
+                        )}
+                      </Text2>
+                      <Stack space={8}>
+                        {t.chat.starters.map((s, i) => (
+                          <Touchable
+                            key={i}
+                            onPress={() => sendChat(s)}
+                            style={{
+                              width: "100%",
+                              textAlign: "left",
+                              padding: "10px 12px",
+                              borderRadius: RADIUS,
+                              border: `1px solid ${applyAlpha(skinVars.rawColors.brand, 0.3)}`,
+                              background: BLUE_TINT,
+                            }}
+                          >
+                            <Text2 medium color={BLUE}>
+                              {s}
+                            </Text2>
+                          </Touchable>
+                        ))}
+                      </Stack>
+                    </Stack>
+                  ) : (
+                    <Stack space={12}>
+                      {chat.map((m, i) => {
+                        if (m.role === "user") {
+                          return (
+                            <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
+                              <div
+                                style={{
+                                  maxWidth: "85%",
+                                  background: BLUE,
+                                  color: skinVars.colors.textPrimaryInverse,
+                                  padding: "8px 12px",
+                                  borderRadius: RADIUS,
+                                }}
+                              >
+                                <Text2 regular color={skinVars.colors.textPrimaryInverse}>
+                                  {m.text}
+                                </Text2>
+                              </div>
+                            </div>
+                          );
+                        }
+                        const res = m.result;
+                        const blocked = res?.status === "permission_blocked";
+                        const noEvidence = res?.status === "no_evidence";
+                        const bubbleBg = blocked
+                          ? applyAlpha(skinVars.rawColors.error, 0.12)
+                          : noEvidence
+                            ? applyAlpha(skinVars.rawColors.warning, 0.15)
+                            : ALT;
+                        return (
+                          <div key={i} style={{ display: "flex", justifyContent: "flex-start" }}>
+                            <div
+                              style={{
+                                maxWidth: "92%",
+                                background: bubbleBg,
+                                padding: "10px 12px",
+                                borderRadius: RADIUS,
+                              }}
+                            >
+                              <Stack space={8}>
+                                {(blocked || noEvidence) && (
+                                  <Inline space={4} alignItems="center">
+                                    {blocked ? (
+                                      <IconShieldRegular size={14} color={skinVars.colors.error} />
+                                    ) : (
+                                      <IconAlertRegular size={14} color={skinVars.colors.warning} />
+                                    )}
+                                    <Text1 medium color={blocked ? skinVars.colors.error : NAVY}>
+                                      {blocked
+                                        ? t.search.permissionRestricted
+                                        : t.search.noEvidence}
+                                    </Text1>
+                                  </Inline>
+                                )}
+                                {m.text.split("\n").filter(Boolean).map((para, j) => (
+                                  <Text2 regular color={NAVY} key={j}>
+                                    {para}
+                                  </Text2>
+                                ))}
+                                {blocked && res?.permissionNote && (
+                                  <Text1 regular color={MUTED}>
+                                    {res.permissionNote}
+                                  </Text1>
+                                )}
+                                {res?.status === "answered" && res.historic && (
+                                  <Inline space={4} alignItems="center">
+                                    <IconWaitClockRegular size={14} color={skinVars.colors.warning} />
+                                    <Text1 regular color={MUTED}>
+                                      {t.search.historic}
+                                    </Text1>
+                                  </Inline>
+                                )}
+                                {res?.status === "answered" && res.wikiLinks.length > 0 && (
+                                  <Inline space={4} alignItems="center" wrap>
+                                    {res.wikiLinks.map((w) => (
+                                      <Touchable
+                                        key={w.id}
+                                        onPress={() => {
+                                          if (w.locked) return;
+                                          openPage(w.id, w.nodeId);
+                                        }}
+                                        style={{
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 4,
+                                          padding: "2px 10px",
+                                          borderRadius: skinVars.borderRadii.chip,
+                                          border: w.locked
+                                            ? `1px dashed ${BORDER}`
+                                            : `1px solid ${applyAlpha(skinVars.rawColors.brand, 0.3)}`,
+                                          background: w.locked ? "transparent" : BLUE_TINT,
+                                          cursor: w.locked ? "not-allowed" : "pointer",
+                                        }}
+                                      >
+                                        {w.locked && (
+                                          <IconLockClosedRegular size={12} color={MUTED} />
+                                        )}
+                                        <Text1 medium color={w.locked ? MUTED : BLUE}>
+                                          {w.title}
+                                        </Text1>
+                                      </Touchable>
+                                    ))}
+                                  </Inline>
+                                )}
+                                {res?.status === "answered" && res.evidence.length > 0 && (
+                                  <Inline space={4} alignItems="center" wrap>
+                                    {res.evidence.map((ev, j) => (
+                                      <Touchable
+                                        key={j}
+                                        onPress={() => setSnippet(ev)}
+                                        aria-label={ev.docTitle}
+                                        style={{
+                                          display: "inline-flex",
+                                          background: BLUE_TINT,
+                                          borderRadius: skinVars.borderRadii.chip,
+                                          padding: "0 6px",
+                                        }}
+                                      >
+                                        <Text1 medium color={BLUE}>
+                                          {ev.marker}
+                                        </Text1>
+                                      </Touchable>
+                                    ))}
+                                  </Inline>
+                                )}
+                                {res?.status === "answered" &&
+                                  (res.traversal?.nodeIds.length ?? 0) > 0 && (
+                                    <Inline space={4} alignItems="center">
+                                      <IconShareRegular size={12} color={MUTED} />
+                                      <Text1 regular color={MUTED}>
+                                        {t.chat.traversal}
+                                      </Text1>
+                                    </Inline>
+                                  )}
+                              </Stack>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {searching && (
+                        <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                          <div
+                            style={{
+                              background: ALT,
+                              padding: "8px 12px",
+                              borderRadius: RADIUS,
+                            }}
+                          >
+                            <Text2 regular color={MUTED}>
+                              {t.chat.thinking}
+                            </Text2>
+                          </div>
+                        </div>
+                      )}
+                    </Stack>
+                  )}
+                </div>
+
+                <div
+                  style={{
+                    borderTop: `1px solid ${BORDER}`,
+                    padding: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <div
+                    style={{ flex: 1, minWidth: 0 }}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendChat();
+                      }
+                    }}
+                  >
+                    <TextField
+                      name="graph-chat"
+                      label={t.chat.placeholder}
+                      value={question}
+                      onChangeValue={setQuestion}
+                      fullWidth
+                    />
+                  </div>
+                  <IconButton
+                    aria-label={t.chat.send}
+                    Icon={IconSendRegular}
+                    onPress={() => sendChat()}
+                    disabled={!question.trim() || searching || !roleId}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -1047,204 +1340,6 @@ export default function Wiki() {
           </div>
         )}
       </div>
-
-      {/* Persistent compiled-layer Ask bar */}
-      <div
-        style={{
-          borderTop: `1px solid ${BORDER}`,
-          background: SURFACE,
-          padding: "16px 32px",
-        }}
-      >
-        <div style={{ maxWidth: 960, margin: "0 auto" }}>
-          <Inline space={8} alignItems="center" expand={0}>
-            <div
-              onKeyDown={(e: React.KeyboardEvent) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleAsk();
-                }
-              }}
-            >
-              <TextField
-                name="ask"
-                label={t.ask.label}
-                value={question}
-                onChangeValue={setQuestion}
-                fullWidth
-              />
-            </div>
-            <IconButton
-              aria-label={t.ask.aria}
-              Icon={IconSendRegular}
-              onPress={handleAsk}
-              disabled={!question.trim() || searching || !roleId}
-            />
-          </Inline>
-        </div>
-      </div>
-
-      {/* Search results drawer */}
-      {searchOpen && (
-        <Drawer
-          title={t.search.title}
-          description={question}
-          onClose={() => setSearchOpen(false)}
-          onDismiss={() => setSearchOpen(false)}
-        >
-          {searching && (
-            <Box paddingY={40}>
-              <Stack space={12}>
-                <Inline space={0} alignItems="center">
-                  <div style={{ margin: "0 auto" }}>
-                    <Circle size={48} backgroundColor={BLUE_TINT}>
-                      <IconSearchRegular size={24} color={BLUE} />
-                    </Circle>
-                  </div>
-                </Inline>
-                <Text2 medium color={NAVY} textAlign="center">
-                  {t.search.searching}
-                </Text2>
-              </Stack>
-            </Box>
-          )}
-
-          {searchResult && !searching && (
-            <Stack space={24}>
-              {searchResult.status === "no_evidence" && (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    background: applyAlpha(skinVars.rawColors.warning, 0.15),
-                    padding: 20,
-                    borderRadius: RADIUS,
-                  }}
-                >
-                  <IconAlertRegular size={24} color={skinVars.colors.warning} />
-                  <Stack space={4}>
-                    <Text3 medium color={NAVY}>
-                      {t.search.noEvidence}
-                    </Text3>
-                    <Text2 regular color={NAVY}>
-                      {searchResult.answer}
-                    </Text2>
-                  </Stack>
-                </div>
-              )}
-
-              {searchResult.status === "permission_blocked" && (
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 12,
-                    background: applyAlpha(skinVars.rawColors.error, 0.15),
-                    padding: 20,
-                    borderRadius: RADIUS,
-                  }}
-                >
-                  <IconShieldRegular size={24} color={skinVars.colors.error} />
-                  <Stack space={4}>
-                    <Text3 medium color={NAVY}>
-                      {t.search.permissionRestricted}
-                    </Text3>
-                    <Text2 regular color={NAVY}>
-                      {searchResult.answer}
-                    </Text2>
-                    {searchResult.permissionNote && (
-                      <div
-                        style={{
-                          background: applyAlpha(skinVars.rawColors.backgroundContainer, 0.6),
-                          padding: "8px 12px",
-                          borderRadius: RADIUS,
-                        }}
-                      >
-                        <Text2 medium color={NAVY}>
-                          {searchResult.permissionNote}
-                        </Text2>
-                      </div>
-                    )}
-                  </Stack>
-                </div>
-              )}
-
-              {searchResult.status === "answered" && (
-                <>
-                  {searchResult.historic && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        background: applyAlpha(skinVars.rawColors.warning, 0.15),
-                        padding: "12px 16px",
-                        borderRadius: RADIUS,
-                      }}
-                    >
-                      <IconWaitClockRegular size={20} color={skinVars.colors.warning} />
-                      <Text2 medium color={NAVY}>
-                        {t.search.historic}
-                      </Text2>
-                    </div>
-                  )}
-                  <Stack space={8}>
-                    {searchResult.answer.split("\n").map((para, i) => (
-                      <Text3 regular color={NAVY} key={i}>
-                        {para}
-                      </Text3>
-                    ))}
-                  </Stack>
-
-                  {searchResult.wikiLinks.length > 0 && (
-                    <Inline space={8} alignItems="center" wrap>
-                      <Eyebrow>{t.search.pages}</Eyebrow>
-                      {searchResult.wikiLinks.map((w) => (
-                        <Touchable
-                          key={w.id}
-                          onPress={() => {
-                            if (w.locked) return;
-                            setSearchOpen(false);
-                            openPage(w.id, w.nodeId);
-                          }}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "4px 12px",
-                            borderRadius: skinVars.borderRadii.chip,
-                            border: w.locked ? `1px dashed ${BORDER}` : `1px solid ${applyAlpha(skinVars.rawColors.brand, 0.3)}`,
-                            background: w.locked ? "transparent" : BLUE_TINT,
-                            color: w.locked ? MUTED : BLUE,
-                            cursor: w.locked ? "not-allowed" : "pointer",
-                          }}
-                        >
-                          {w.locked && <IconLockClosedRegular size={12} color={MUTED} />}
-                          <Text2 medium color={w.locked ? MUTED : BLUE}>
-                            {w.title}
-                          </Text2>
-                        </Touchable>
-                      ))}
-                    </Inline>
-                  )}
-
-                  {searchResult.evidence.length > 0 && (
-                    <Stack space={12}>
-                      <Divider />
-                      <Inline space={8} alignItems="center">
-                        <IconFileTextRegular size={16} color={MUTED} />
-                        <Eyebrow>{t.search.evidence}</Eyebrow>
-                      </Inline>
-                      {searchResult.evidence.map((ev, i) => (
-                        <EvidenceRow key={i} ev={ev} onOpen={() => setSnippet(ev)} />
-                      ))}
-                    </Stack>
-                  )}
-                </>
-              )}
-            </Stack>
-          )}
-        </Drawer>
-      )}
 
       {/* Page detail drawer */}
       {openPageId && (

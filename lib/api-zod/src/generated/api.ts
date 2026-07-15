@@ -6144,11 +6144,15 @@ export const GetWikiStatsResponse = zod.object({
 
 export const SearchWikiBody = zod.object({
   "question": zod.string().min(1),
-  "roleId": zod.string()
+  "roleId": zod.string(),
+  "history": zod.array(zod.object({
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string()
+})).optional().describe('Prior turns of this knowledge-graph conversation (oldest first). Used only for conversational continuity — retrieval relevance is always scored against the current question alone.\n')
 })
 
 export const SearchWikiResponse = zod.object({
-  "status": zod.string().describe('answered | no_evidence | permission_blocked'),
+  "status": zod.string().describe('answered | no_evidence | permission_blocked | conversational'),
   "answer": zod.string(),
   "evidence": zod.array(zod.object({
   "marker": zod.string(),
@@ -6167,7 +6171,14 @@ export const SearchWikiResponse = zod.object({
   "locked": zod.boolean()
 })),
   "historic": zod.boolean(),
-  "permissionNote": zod.string().nullish()
+  "permissionNote": zod.string().nullish(),
+  "traversal": zod.union([zod.object({
+  "nodeIds": zod.array(zod.string()),
+  "edges": zod.array(zod.object({
+  "from": zod.string(),
+  "to": zod.string()
+}))
+}).describe('The graph path the answer was built from — node ids and the connections between them, so the Map can highlight the traversal.\n'),zod.null()]).optional()
 })
 
 

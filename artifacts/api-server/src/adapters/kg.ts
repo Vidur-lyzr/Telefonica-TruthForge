@@ -8,12 +8,16 @@ import {
   AXES,
   DOCS,
   COMPILED_PAGES,
-  CLEARANCE_RANK,
   type GraphKind,
   type GraphEdge,
   type Clearance,
   type Validity,
 } from "../data/corpus";
+import {
+  isDocAccessible,
+  resolvePageAccess,
+  type AccessSubject,
+} from "../data/governance";
 import { tokenize } from "./text";
 
 export interface TraversedEntity {
@@ -128,10 +132,11 @@ export interface WikiGraph {
   edges: WikiGraphEdge[];
 }
 
-export function buildWikiGraph(clearance: Clearance): WikiGraph {
-  const roleRank = CLEARANCE_RANK[clearance];
-  const accessible = (c: Clearance | undefined | null) =>
-    c == null ? true : CLEARANCE_RANK[c] <= roleRank;
+export function buildWikiGraph(subject: AccessSubject): WikiGraph {
+  // Full governance intersection (area × clearance) via the shared resolver —
+  // never a clearance-rank-only check. Fails closed.
+  const docAccessible = (d: { confidentiality: Clearance; areas: import("../data/corpus").Area[] }) =>
+    isDocAccessible(d, subject);
   const docById = new Map(DOCS.map((d) => [d.id, d]));
 
   const nodes: WikiGraphNode[] = [];
@@ -197,7 +202,7 @@ export function buildWikiGraph(clearance: Clearance): WikiGraph {
       docId: null,
       figure: null,
     };
-    push(accessible(p.confidentiality) ? base : lock(base));
+    push(resolvePageAccess(p, subject).accessible ? base : lock(base));
   }
 
   // Documents.
@@ -218,14 +223,17 @@ export function buildWikiGraph(clearance: Clearance): WikiGraph {
       docId: d.id,
       figure: null,
     };
-    push(accessible(d.confidentiality) ? base : lock(base));
+    push(docAccessible(d) ? base : lock(base));
   }
 
   // Entities (markets, brands, products, executives, figures).
   for (const e of GRAPH_NODES) {
     // Figures fail closed on their source document's clearance.
+    // Fail closed: a figure whose source document is missing is inaccessible.
     const figDoc = e.figure ? docById.get(e.figure.docId) ?? null : null;
-    const figAccessible = figDoc ? accessible(figDoc.confidentiality) : true;
+    const figAccessible = e.figure
+      ? figDoc != null && docAccessible(figDoc)
+      : true;
     const base: WikiGraphNode = {
       id: e.id,
       name: e.name,

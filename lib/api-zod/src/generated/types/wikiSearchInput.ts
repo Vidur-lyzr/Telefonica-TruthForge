@@ -5,9 +5,12 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { WikiChatTurn } from './wikiChatTurn';
 
 export interface WikiSearchInput {
   /** @minLength 1 */
   question: string;
   roleId: string;
+  /** Prior turns of this knowledge-graph conversation (oldest first). Used only for conversational continuity — retrieval relevance is always scored against the current question alone. */
+  history?: WikiChatTurn[];
 }

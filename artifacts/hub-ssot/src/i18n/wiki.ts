@@ -1,9 +1,9 @@
 import type { Lang } from "../components/app-provider";
 
 const EN = {
-  title: "Knowledge Wiki",
+  title: "Knowledge Graph",
   subtitle:
-    "The compiled corporate memory. Every page, figure and claim is traced to governed sources and filtered to your clearance.",
+    "The governed knowledge graph. Every page, figure and relation is traced to governed sources, filtered to your clearance, and explorable in conversation.",
   stats: {
     factsResolved: "Facts resolved",
     conflictsSettled: "Conflicts settled",
@@ -60,6 +60,22 @@ const EN = {
   sourceRestricted: "Restricted — above your clearance",
   chunks: (n: number) => `${n} chunks`,
   ask: { label: "Ask the compiled memory", aria: "Ask" },
+  chat: {
+    title: "Graph assistant",
+    explainer: (pages: number, docs: number, figures: number) =>
+      `Ask the governed graph. ${pages} compiled pages, ${docs} sources and ${figures} figures are visible to your persona — answers cite their evidence and light up the path on the map.`,
+    starters: [
+      "What is the Q1 2026 group revenue?",
+      "What can I ask on this map?",
+      "How is Telefónica scaling B2B?",
+    ],
+    placeholder: "Ask the knowledge graph",
+    send: "Send",
+    thinking: "Consulting the governed graph...",
+    error: "The graph could not answer right now. Please try again.",
+    clear: "Clear conversation",
+    traversal: "Path highlighted on the map",
+  },
   search: {
     title: "Compiled memory",
     searching: "Searching compiled pages...",
@@ -100,9 +116,9 @@ export type WikiStrings = typeof EN;
 export const WIKI_I18N: Record<Lang, WikiStrings> = {
   EN,
   ES: {
-    title: "Wiki de conocimiento",
+    title: "Grafo de conocimiento",
     subtitle:
-      "La memoria corporativa compilada. Cada página, cifra y afirmación se rastrea hasta fuentes gobernadas y se filtra según tu nivel de acceso.",
+      "El grafo de conocimiento gobernado. Cada página, cifra y relación se rastrea hasta fuentes gobernadas, se filtra según tu nivel de acceso y se puede explorar en conversación.",
     stats: {
       factsResolved: "Hechos resueltos",
       conflictsSettled: "Conflictos resueltos",
@@ -159,6 +175,22 @@ export const WIKI_I18N: Record<Lang, WikiStrings> = {
     sourceRestricted: "Restringido — por encima de tu nivel de acceso",
     chunks: (n: number) => `${n} fragmentos`,
     ask: { label: "Pregunta a la memoria compilada", aria: "Preguntar" },
+    chat: {
+      title: "Asistente del grafo",
+      explainer: (pages: number, docs: number, figures: number) =>
+        `Pregunta al grafo gobernado. ${pages} páginas compiladas, ${docs} fuentes y ${figures} cifras son visibles para tu persona — las respuestas citan su evidencia e iluminan el camino en el mapa.`,
+      starters: [
+        "¿Cuáles son los ingresos del grupo del T1 2026?",
+        "¿Qué puedo preguntar en este mapa?",
+        "¿Cómo escala Telefónica el B2B?",
+      ],
+      placeholder: "Pregunta al grafo de conocimiento",
+      send: "Enviar",
+      thinking: "Consultando el grafo gobernado...",
+      error: "El grafo no pudo responder ahora. Inténtalo de nuevo.",
+      clear: "Borrar conversación",
+      traversal: "Camino resaltado en el mapa",
+    },
     search: {
       title: "Memoria compilada",
       searching: "Buscando en páginas compiladas...",
@@ -192,9 +224,9 @@ export const WIKI_I18N: Record<Lang, WikiStrings> = {
     snippet: { extracted: "Fragmento extraído" },
   },
   DE: {
-    title: "Wissens-Wiki",
+    title: "Wissensgraph",
     subtitle:
-      "Das kompilierte Unternehmensgedächtnis. Jede Seite, Kennzahl und Aussage ist auf kontrollierte Quellen zurückverfolgbar und nach Ihrer Berechtigung gefiltert.",
+      "Der kontrollierte Wissensgraph. Jede Seite, Kennzahl und Relation ist auf kontrollierte Quellen zurückverfolgbar, nach Ihrer Berechtigung gefiltert und im Dialog erkundbar.",
     stats: {
       factsResolved: "Geklärte Fakten",
       conflictsSettled: "Beigelegte Konflikte",
@@ -251,6 +283,22 @@ export const WIKI_I18N: Record<Lang, WikiStrings> = {
     sourceRestricted: "Eingeschränkt — über Ihrer Berechtigung",
     chunks: (n: number) => `${n} Segmente`,
     ask: { label: "Das kompilierte Gedächtnis fragen", aria: "Fragen" },
+    chat: {
+      title: "Graph-Assistent",
+      explainer: (pages: number, docs: number, figures: number) =>
+        `Fragen Sie den kontrollierten Graphen. ${pages} kompilierte Seiten, ${docs} Quellen und ${figures} Kennzahlen sind für Ihre Persona sichtbar — Antworten zitieren ihre Belege und markieren den Pfad auf der Karte.`,
+      starters: [
+        "Wie hoch ist der Konzernumsatz im Q1 2026?",
+        "Was kann ich auf dieser Karte fragen?",
+        "Wie skaliert Telefónica das B2B-Geschäft?",
+      ],
+      placeholder: "Den Wissensgraphen fragen",
+      send: "Senden",
+      thinking: "Der kontrollierte Graph wird befragt...",
+      error: "Der Graph konnte gerade nicht antworten. Bitte erneut versuchen.",
+      clear: "Verlauf löschen",
+      traversal: "Pfad auf der Karte hervorgehoben",
+    },
     search: {
       title: "Kompiliertes Gedächtnis",
       searching: "Kompilierte Seiten werden durchsucht...",
@@ -285,9 +333,9 @@ export const WIKI_I18N: Record<Lang, WikiStrings> = {
     snippet: { extracted: "Extrahierter Auszug" },
   },
   PT: {
-    title: "Wiki de conhecimento",
+    title: "Grafo de conhecimento",
     subtitle:
-      "A memória corporativa compilada. Cada página, número e afirmação é rastreado até fontes governadas e filtrado conforme o seu nível de acesso.",
+      "O grafo de conhecimento governado. Cada página, número e relação é rastreado até fontes governadas, filtrado conforme o seu nível de acesso e explorável em conversa.",
     stats: {
       factsResolved: "Fatos resolvidos",
       conflictsSettled: "Conflitos resolvidos",
@@ -344,6 +392,22 @@ export const WIKI_I18N: Record<Lang, WikiStrings> = {
     sourceRestricted: "Restrito — acima do seu nível de acesso",
     chunks: (n: number) => `${n} fragmentos`,
     ask: { label: "Pergunte à memória compilada", aria: "Perguntar" },
+    chat: {
+      title: "Assistente do grafo",
+      explainer: (pages: number, docs: number, figures: number) =>
+        `Pergunte ao grafo governado. ${pages} páginas compiladas, ${docs} fontes e ${figures} números são visíveis para a sua persona — as respostas citam suas evidências e iluminam o caminho no mapa.`,
+      starters: [
+        "Qual é a receita do grupo no T1 2026?",
+        "O que posso perguntar neste mapa?",
+        "Como a Telefónica escala o B2B?",
+      ],
+      placeholder: "Pergunte ao grafo de conhecimento",
+      send: "Enviar",
+      thinking: "Consultando o grafo governado...",
+      error: "O grafo não pôde responder agora. Tente novamente.",
+      clear: "Limpar conversa",
+      traversal: "Caminho destacado no mapa",
+    },
     search: {
       title: "Memória compilada",
       searching: "Buscando em páginas compiladas...",

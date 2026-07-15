@@ -7,9 +7,10 @@
  */
 import type { WikiEvidenceRef } from './wikiEvidenceRef';
 import type { WikiRelatedPage } from './wikiRelatedPage';
+import type { WikiTraversal } from './wikiTraversal';
 
 export interface WikiSearchResult {
-  /** answered | no_evidence | permission_blocked */
+  /** answered | no_evidence | permission_blocked | conversational */
   status: string;
   answer: string;
   evidence: WikiEvidenceRef[];
@@ -17,4 +18,5 @@ export interface WikiSearchResult {
   historic: boolean;
   /** @nullable */
   permissionNote?: string | null;
+  traversal?: WikiTraversal | null;
 }

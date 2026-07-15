@@ -18,18 +18,30 @@ import {
   COMPILED_PAGES,
   DOC_LINEAGE,
   WIKI_STATS,
-  CLEARANCE_RANK,
   getDoc,
-  type Clearance,
 } from "../data/corpus";
+import {
+  isDocAccessible,
+  resolvePageAccess,
+  subjectForRole,
+  type AccessSubject,
+} from "../data/governance";
 import { buildWikiGraph } from "../adapters/kg";
 import { runWikiSearch } from "../agent/wikiSearchAgent";
 
 const router: IRouter = Router();
 
-function clearanceForRole(roleId: string): Clearance {
-  const role = ROLES.find((r) => r.id === roleId) ?? ROLES[0];
-  return role.clearance;
+// Every knowledge-graph endpoint gates through the shared area × clearance
+// resolver. Unknown roles fail closed with a 400 — never a default persona.
+function requireSubject(
+  roleId: string,
+  res: { status: (code: number) => { json: (body: unknown) => void } },
+): AccessSubject | null {
+  const subject = subjectForRole(ROLES, roleId);
+  if (!subject) {
+    res.status(400).json({ error: "Unknown role" });
+  }
+  return subject;
 }
 
 router.get("/wiki/graph", (req, res) => {
@@ -38,8 +50,9 @@ router.get("/wiki/graph", (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const clearance = clearanceForRole(params.data.roleId);
-  res.json(GetWikiGraphResponse.parse(buildWikiGraph(clearance)));
+  const subject = requireSubject(params.data.roleId, res);
+  if (!subject) return;
+  res.json(GetWikiGraphResponse.parse(buildWikiGraph(subject)));
 });
 
 router.get("/wiki/pages", (req, res) => {
@@ -48,18 +61,18 @@ router.get("/wiki/pages", (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const clearance = clearanceForRole(params.data.roleId);
-  const roleRank = CLEARANCE_RANK[clearance];
+  const subject = requireSubject(params.data.roleId, res);
+  if (!subject) return;
 
   const items = COMPILED_PAGES.map((p) => {
-    const locked = CLEARANCE_RANK[p.confidentiality] > roleRank;
+    const locked = !resolvePageAccess(p, subject).accessible;
     return {
       id: p.id,
       nodeId: p.nodeId,
       title: locked ? "Restricted page" : p.title,
       axisId: p.axisId,
       summary: locked
-        ? "This compiled page is above your clearance."
+        ? "This compiled page is outside your permission scope."
         : p.summary,
       confidentiality: p.confidentiality,
       validity: p.validity,
@@ -80,15 +93,15 @@ router.get("/wiki/page", (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const clearance = clearanceForRole(params.data.roleId);
-  const roleRank = CLEARANCE_RANK[clearance];
+  const subject = requireSubject(params.data.roleId, res);
+  if (!subject) return;
   const page = COMPILED_PAGES.find((p) => p.id === params.data.id);
   if (!page) {
     res.status(404).json({ error: "Page not found" });
     return;
   }
 
-  if (CLEARANCE_RANK[page.confidentiality] > roleRank) {
+  if (!resolvePageAccess(page, subject).accessible) {
     res.json(
       GetWikiPageResponse.parse({
         locked: true,
@@ -104,7 +117,7 @@ router.get("/wiki/page", (req, res) => {
   const evidence = page.evidence
     .filter((ev) => {
       const doc = getDoc(ev.docId);
-      return doc && CLEARANCE_RANK[doc.confidentiality] <= roleRank; // fail closed
+      return doc && isDocAccessible(doc, subject); // fail closed
     })
     .map((ev) => {
       const doc = getDoc(ev.docId);
@@ -137,7 +150,7 @@ router.get("/wiki/page", (req, res) => {
 
   const relatedPages = page.relatedPageIds.map((rid) => {
     const rp = COMPILED_PAGES.find((p) => p.id === rid);
-    const locked = rp ? CLEARANCE_RANK[rp.confidentiality] > roleRank : true;
+    const locked = rp ? !resolvePageAccess(rp, subject).accessible : true;
     return {
       id: rid,
       nodeId: rp?.nodeId ?? rid,
@@ -181,12 +194,12 @@ router.get("/wiki/lineage", (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const clearance = clearanceForRole(params.data.roleId);
-  const roleRank = CLEARANCE_RANK[clearance];
+  const subject = requireSubject(params.data.roleId, res);
+  if (!subject) return;
   const lineageByDoc = new Map(DOC_LINEAGE.map((l) => [l.docId, l]));
 
   const items = DOCS.map((d) => {
-    const locked = CLEARANCE_RANK[d.confidentiality] > roleRank;
+    const locked = !isDocAccessible(d, subject);
     const lineage = lineageByDoc.get(d.id);
     if (locked) {
       return {
@@ -232,8 +245,10 @@ router.post("/wiki/search", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  const subject = requireSubject(parsed.data.roleId, res);
+  if (!subject) return;
   try {
-    const result = await runWikiSearch(parsed.data, req.log);
+    const result = await runWikiSearch(parsed.data, subject, req.log);
     res.json(SearchWikiResponse.parse(result));
     return;
   } catch (err) {

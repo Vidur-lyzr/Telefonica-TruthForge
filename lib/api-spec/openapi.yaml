@@ -5498,6 +5498,16 @@ components:
         windowLabel:
           type: string
 
+    WikiChatTurn:
+      type: object
+      required: [role, content]
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+
     WikiSearchInput:
       type: object
       required: [question, roleId]
@@ -5507,6 +5517,14 @@ components:
           minLength: 1
         roleId:
           type: string
+        history:
+          type: array
+          description: >
+            Prior turns of this knowledge-graph conversation (oldest first).
+            Used only for conversational continuity — retrieval relevance is
+            always scored against the current question alone.
+          items:
+            $ref: "#/components/schemas/WikiChatTurn"
 
     PlanningAskResult:
       type: object
@@ -7234,13 +7252,38 @@ components:
           $ref: "#/components/schemas/VersionGovernance"
         draft:
           $ref: "#/components/schemas/GeneratedDraft"
+    WikiTraversalEdge:
+      type: object
+      required: [from, to]
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+
+    WikiTraversal:
+      type: object
+      required: [nodeIds, edges]
+      description: >
+        The graph path the answer was built from — node ids and the
+        connections between them, so the Map can highlight the traversal.
+      properties:
+        nodeIds:
+          type: array
+          items:
+            type: string
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/WikiTraversalEdge"
+
     WikiSearchResult:
       type: object
       required: [status, answer, evidence, wikiLinks, historic]
       properties:
         status:
           type: string
-          description: answered | no_evidence | permission_blocked
+          description: answered | no_evidence | permission_blocked | conversational
         answer:
           type: string
         evidence:
@@ -7255,6 +7298,10 @@ components:
           type: boolean
         permissionNote:
           type: ["string", "null"]
+        traversal:
+          oneOf:
+            - $ref: "#/components/schemas/WikiTraversal"
+            - type: "null"
 
     VisibilityRow:
       type: object
