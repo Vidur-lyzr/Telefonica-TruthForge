@@ -130,7 +130,7 @@ export interface AxisOp {
   description?: string | null;
 }
 
-export type TaxonomyVersionKind = "rename" | "split" | "merge" | "rollback";
+export type TaxonomyVersionKind = "rename" | "split" | "merge" | "rollback" | "manual";
 
 export interface TaxonomyVersion {
   version: number; // v5, v6, ... (seed corpus is v4)

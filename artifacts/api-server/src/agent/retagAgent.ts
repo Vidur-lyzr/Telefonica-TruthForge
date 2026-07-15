@@ -6,7 +6,7 @@
 // Proposals are NEVER applied here: a human validates each one first.
 
 import { meteredCreate } from "./metering";
-import { AXES, type StrategicAxis } from "../data/corpus";
+import { AXES, getDoc, type StrategicAxis } from "../data/corpus";
 import {
   retagCandidatesForAxis,
   makeAxisId,
@@ -304,5 +304,112 @@ export async function proposeRetag(
       engine: "deterministic",
       proposals: deterministicProposals(candidates, kind, axis.id, mergeTarget?.id ?? null),
     };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Per-document tag suggestions — used by the direct "Edit tags" surface.
+// The model classifies each document against the ACTIVE axis catalogue and
+// proposes a topic list; a deterministic keep-current fallback is always
+// labelled. Nothing is applied here — the human editor stays authoritative.
+// ---------------------------------------------------------------------------
+
+export interface DocTagSuggestResult {
+  engine: "llm" | "deterministic";
+  suggestions: RetagProposal[];
+}
+
+interface DocSuggestVerdict {
+  docId: string;
+  axisIds?: string[];
+  topics?: string[];
+  confidence?: number;
+  rationale?: string;
+}
+
+export async function suggestDocTags(
+  docIds: string[],
+  log: Logger,
+): Promise<DocTagSuggestResult> {
+  const docs = docIds.map((id) => getDoc(id)!).filter(Boolean);
+  const activeAxes = AXES.filter((a) => !a.retired);
+  const activeIds = new Set(activeAxes.map((a) => a.id));
+
+  const keepCurrent = (): RetagProposal[] =>
+    docs.map((d) => ({
+      docId: d.id,
+      title: d.title,
+      type: d.type,
+      currentAxisIds: d.axisIds,
+      proposedAxisIds: d.axisIds.filter((id) => activeIds.has(id)),
+      currentTopics: d.topics,
+      proposedTopics: d.topics,
+      confidence: 0.5,
+      rationale:
+        "Deterministic mapping: current tags kept (retired axes dropped). Model-assisted suggestions were unavailable.",
+    }));
+
+  if (docs.length === 0) return { engine: "deterministic", suggestions: [] };
+
+  const prompt = [
+    `You classify governed corpus documents against a strategic taxonomy.`,
+    `Active axes (the ONLY valid axis ids):`,
+    ...activeAxes.map((a) => `- id: ${a.id} — "${a.name}": ${a.description}`),
+    ``,
+    `For each document below, propose zero-shot the set of axis ids it serves (1-3 axes, ids from the list above ONLY) and a concise topic list (3-6 short lowercase topics, keep current topics that still fit).`,
+    ``,
+    `Documents:`,
+    ...docs.map(
+      (d) =>
+        `- id: ${d.id}\n  title: ${d.title}\n  type: ${d.type}\n  current axes: ${d.axisIds.join(", ")}\n  current topics: ${d.topics.join(", ")}\n  summary: ${d.summary}`,
+    ),
+    ``,
+    `Respond with ONLY a JSON array, one object per document:`,
+    `[{"docId": "...", "axisIds": ["..."], "topics": ["..."], "confidence": 0.0-1.0, "rationale": "one short sentence"}]`,
+  ].join("\n");
+
+  try {
+    const message = await meteredCreate("data", {
+      model: MODEL,
+      max_tokens: 4096,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = message.content
+      .map((b) => (b.type === "text" ? b.text : ""))
+      .join("");
+    const jsonStart = text.indexOf("[");
+    const jsonEnd = text.lastIndexOf("]");
+    if (jsonStart === -1 || jsonEnd === -1)
+      throw new Error("no JSON array in model output");
+    const verdicts = JSON.parse(
+      text.slice(jsonStart, jsonEnd + 1),
+    ) as DocSuggestVerdict[];
+    const byId = new Map(verdicts.map((v) => [v.docId, v]));
+
+    const suggestions: RetagProposal[] = docs.map((d) => {
+      const v = byId.get(d.id);
+      const proposedAxisIds = (v?.axisIds ?? []).filter((id) => activeIds.has(id));
+      if (!v || proposedAxisIds.length === 0) return keepCurrent().find((k) => k.docId === d.id)!;
+      return {
+        docId: d.id,
+        title: d.title,
+        type: d.type,
+        currentAxisIds: d.axisIds,
+        proposedAxisIds,
+        currentTopics: d.topics,
+        proposedTopics:
+          Array.isArray(v.topics) && v.topics.length > 0 ? v.topics.map(String) : d.topics,
+        confidence: Math.max(0, Math.min(1, Number(v.confidence ?? 0.7))),
+        rationale: String(v.rationale ?? "Model-assisted zero-shot classification."),
+      };
+    });
+    log.info(
+      { docs: docs.length, verdicts: byId.size },
+      "retag: per-document LLM tag suggestions generated",
+    );
+    return { engine: "llm", suggestions };
+  } catch (err) {
+    log.warn({ err }, "retag: model unavailable, deterministic keep-current suggestions");
+    return { engine: "deterministic", suggestions: keepCurrent() };
   }
 }

@@ -1,6 +1,7 @@
 import React from "react";
 import {
   useListAxes,
+  useListDocuments,
   useListDocumentFreshness,
   useGetTaxonomyState,
   useProposeRetag,
@@ -47,6 +48,7 @@ import {
   IconListRegular,
 } from "@telefonica/mistica";
 import { useDataCenter } from "./state";
+import { EditTagsDrawer, type EditTagsDoc } from "./edit-tags-drawer";
 import { formatDate } from "./helpers";
 import { useApp } from "../app-provider";
 import { DATA_I18N } from "../../i18n/data";
@@ -60,6 +62,7 @@ export default function GovernanceArea() {
   const G = t.governance;
   const W = G.wizard;
   const { data: axes, refetch: refetchAxes } = useListAxes();
+  const { data: allDocuments } = useListDocuments();
   const { data: freshness } = useListDocumentFreshness();
   const { data: taxonomy, refetch: refetchTaxonomy } = useGetTaxonomyState();
   const proposeMutation = useProposeRetag();
@@ -82,6 +85,7 @@ export default function GovernanceArea() {
   const [applying, setApplying] = React.useState(false);
   const [applyError, setApplyError] = React.useState<string | null>(null);
   const [lastApplied, setLastApplied] = React.useState<RetagApplyResult | null>(null);
+  const [editDoc, setEditDoc] = React.useState<EditTagsDoc | null>(null);
   const [revertTarget, setRevertTarget] = React.useState<number | null>(null);
   const [reverting, setReverting] = React.useState(false);
   const [revertError, setRevertError] = React.useState<string | null>(null);
@@ -314,6 +318,7 @@ export default function GovernanceArea() {
     if (k === "split") return G.kindLabels.split;
     if (k === "merge") return G.kindLabels.merge;
     if (k === "rollback") return G.kindLabels.rollback;
+    if (k === "manual") return G.kindLabels.manual;
     return null;
   }
 
@@ -565,14 +570,43 @@ export default function GovernanceArea() {
             <Text2 regular color={skinVars.colors.textSecondary} key={`${f.docId}-s`}>
               {G.everyMonths(f.slaMonths)}
             </Text2>,
-            <Inline space={0} alignItems="center" key={`${f.docId}-st`}>
+            <Inline space={8} alignItems="center" key={`${f.docId}-st`}>
               <Tag type={f.overdue ? "warning" : "success"}>
                 {G.monthsStatus(f.monthsSinceReview, f.overdue)}
               </Tag>
+              {(() => {
+                const doc = (allDocuments ?? []).find((d) => d.id === f.docId);
+                return doc ? (
+                  <ButtonSecondary
+                    small
+                    onPress={() =>
+                      setEditDoc({
+                        id: doc.id,
+                        title: doc.title,
+                        axisIds: doc.axisIds,
+                        topics: doc.topics,
+                      })
+                    }
+                  >
+                    {G.editTags.open}
+                  </ButtonSecondary>
+                ) : null;
+              })()}
             </Inline>,
           ])}
         />
       </Stack>
+
+      {editDoc && (
+        <EditTagsDrawer
+          doc={editDoc}
+          onClose={() => setEditDoc(null)}
+          onApplied={(result) => {
+            setLastRevert(null);
+            setLastApplied(result);
+          }}
+        />
+      )}
 
       {wizardOpen && (
         <Drawer

@@ -3215,7 +3215,7 @@ export interface TaxonomyVersion {
   axisEdit: TaxonomyAxisEdit | null;
   retaggedCount: number;
   /**
-     * rename | split | merge | rollback
+     * rename | split | merge | rollback | manual
      * @nullable
      */
   kind?: string | null;
@@ -3406,6 +3406,34 @@ export interface AxisAffectedDocuments {
   totalPoints: number | null;
   /** Whether the index-derived document count equals the in-memory count. */
   countsMatch: boolean;
+}
+
+export interface DocumentTagSuggestInput {
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
+  /** @minItems 1 */
+  docIds: string[];
+}
+
+export interface DocumentTagSuggestResult {
+  /** llm | deterministic */
+  engine: string;
+  suggestions: RetagProposal[];
+}
+
+export interface DocumentRetagEdit {
+  docId: string;
+  axisIds: string[];
+  topics: string[];
+}
+
+export interface DocumentRetagInput {
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
+  actor: string;
+  note: string;
+  /** @minItems 1 */
+  docs: DocumentRetagEdit[];
 }
 
 export interface TaxonomyRollbackInput {

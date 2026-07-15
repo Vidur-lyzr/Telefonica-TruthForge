@@ -940,7 +940,7 @@ export const GetTaxonomyStateResponse = zod.object({
   "description": zod.string().nullable()
 }),zod.null()]),
   "retaggedCount": zod.number(),
-  "kind": zod.string().nullish().describe('rename | split | merge | rollback'),
+  "kind": zod.string().nullish().describe('rename | split | merge | rollback | manual'),
   "rolledBackTo": zod.number().nullish().describe('For rollback versions — the version whose state was restored.'),
   "axisOps": zod.array(zod.object({
   "op": zod.string().describe('create | retire | rename'),
@@ -1119,6 +1119,84 @@ export const RollbackTaxonomyResponse = zod.object({
   "pointsBefore": zod.number().describe('Vector point count before Apply'),
   "pointsAfter": zod.number().describe('Vector point count after Apply (identical — nothing re-embedded)')
 }).describe('Evidence that Apply issued set_payload only — no re-embedding, no re-ingestion'),zod.null()]).optional()
+})
+
+
+/**
+ * Given one or more document ids, proposes an axis assignment and topic list per document against the ACTIVE axis catalogue (LLM zero-shot, with a deterministic keep-current fallback when the model is unavailable). Nothing is applied — the human editing the tags stays authoritative.
+ * @summary Model-assisted tag suggestions for specific documents
+ */
+
+
+
+export const SuggestDocumentTagsBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the manage_data_center capability'),
+  "docIds": zod.array(zod.string()).min(1)
+})
+
+export const SuggestDocumentTagsResponse = zod.object({
+  "engine": zod.string().describe('llm | deterministic'),
+  "suggestions": zod.array(zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "type": zod.string(),
+  "currentAxisIds": zod.array(zod.string()),
+  "proposedAxisIds": zod.array(zod.string()),
+  "currentTopics": zod.array(zod.string()),
+  "proposedTopics": zod.array(zod.string()),
+  "confidence": zod.number(),
+  "rationale": zod.string()
+}))
+})
+
+
+/**
+ * Applies human-authored tag edits for specific documents as a new taxonomy version through the SAME index-first path as the axis wizard: the vector index is updated FIRST (payload-only set_payload — no re-embedding, no re-ingestion), and only then is the version committed locally, with the same anti-fakeness proof (embed-call delta, vector hashes, filter flips). Axis ids must reference active (non-retired) axes.
+ * @summary Directly re-tag one or more documents (axes and topics)
+ */
+
+
+
+export const RetagDocumentsBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the manage_data_center capability'),
+  "actor": zod.string(),
+  "note": zod.string(),
+  "docs": zod.array(zod.object({
+  "docId": zod.string(),
+  "axisIds": zod.array(zod.string()),
+  "topics": zod.array(zod.string())
+})).min(1)
+})
+
+export const RetagDocumentsResponse = zod.object({
+  "version": zod.number(),
+  "appliedCount": zod.number(),
+  "rejectedCount": zod.number(),
+  "qdrant": zod.union([zod.object({
+  "updatedDocs": zod.number().describe('Documents whose Qdrant chunk payloads were updated in place'),
+  "pointsBefore": zod.number().describe('Vector point count before Apply'),
+  "pointsAfter": zod.number().describe('Vector point count after Apply (identical — nothing re-embedded)')
+}).describe('Evidence that Apply issued set_payload only — no re-embedding, no re-ingestion'),zod.null()]).optional().describe('Proof that the re-tag was a metadata-only Qdrant payload update — vectors untouched'),
+  "proof": zod.union([zod.object({
+  "embedCallsBefore": zod.number(),
+  "embedCallsAfter": zod.number(),
+  "embedCallsDelta": zod.number().describe('Must be 0 — re-tagging never computes an embedding.'),
+  "vectorHashes": zod.array(zod.object({
+  "docId": zod.string(),
+  "pointCount": zod.number(),
+  "before": zod.string(),
+  "after": zod.string(),
+  "identical": zod.boolean()
+}).describe('Hash of ALL stored dense vectors of one re-tagged document, before and after the payload write.')),
+  "filterChecks": zod.array(zod.object({
+  "docId": zod.string(),
+  "axisId": zod.string(),
+  "expectation": zod.string().describe('removed | added | kept'),
+  "beforeCount": zod.number(),
+  "afterCount": zod.number(),
+  "passed": zod.boolean()
+}).describe('Exact Qdrant count for docId AND axisId, before and after the payload write.'))
+}).describe('Anti-fakeness instrumentation gathered during Apply: the embedding call counter must not move, dense vector hashes must be identical before and after, and the axis payload filter must genuinely flip.\n'),zod.null()]).optional().describe('Anti-fakeness instrumentation (embed counter, vector hashes, filter flips).')
 })
 
 

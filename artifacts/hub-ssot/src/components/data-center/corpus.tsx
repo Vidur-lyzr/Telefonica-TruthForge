@@ -33,6 +33,7 @@ import {
   Menu,
   MenuItem,
   ButtonPrimary,
+  ButtonSecondary,
   skinVars,
   IconDatabaseRegular,
   IconWorldDeviceRegular,
@@ -43,6 +44,7 @@ import {
   IconCloudUploadRegular,
 } from "@telefonica/mistica";
 import { UploadDrawer } from "./upload-drawer";
+import { EditTagsDrawer, type EditTagsDoc } from "./edit-tags-drawer";
 
 type ChunkBlock =
   | { kind: "prose"; text: string }
@@ -272,6 +274,7 @@ export default function CorpusArea() {
   const { data: stats } = useGetCorpusStats();
   const { data: documents } = useListDocuments();
   const [selectedDocId, setSelectedDocId] = React.useState<string | null>(null);
+  const [editDoc, setEditDoc] = React.useState<EditTagsDoc | null>(null);
 
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState(ALL);
@@ -712,6 +715,23 @@ export default function CorpusArea() {
                     )}
                   </Text1>
                 </Inline>
+                <Inline space={8} alignItems="center">
+                  <ButtonSecondary
+                    small
+                    onPress={() => {
+                      const d = docDetail.document;
+                      setSelectedDocId(null);
+                      setEditDoc({
+                        id: d.id,
+                        title: d.title,
+                        axisIds: d.axisIds,
+                        topics: d.topics,
+                      });
+                    }}
+                  >
+                    {t.governance.editTags.open}
+                  </ButtonSecondary>
+                </Inline>
                 <Inline space={16} alignItems="center" wrap>
                   <Text2 regular color={skinVars.colors.textPrimary}>
                     {docDetail.document.country} • {docDetail.document.brand}
@@ -928,6 +948,10 @@ export default function CorpusArea() {
             </Box>
           )}
         </Drawer>
+      )}
+
+      {editDoc && (
+        <EditTagsDrawer doc={editDoc} onClose={() => setEditDoc(null)} />
       )}
 
       {uploadOpen && <UploadDrawer onClose={() => setUploadOpen(false)} />}

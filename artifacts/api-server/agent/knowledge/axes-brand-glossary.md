@@ -11,7 +11,10 @@ Every answer, when relevant, names the axis it serves.
 5. **An institutional reference for Spain in Europe**
 
 Editable as configuration. When the plan changes, re-classification updates the
-strategic layer only — no re-embedding. (See the Taxonomy Re-classification Superflow.)
+strategic layer only — no re-embedding. Documentalists can also edit the tags of a
+single document directly (Data Center → Governance or the Data browser); the change
+goes through the same governed, index-first apply path and is versioned like any
+re-classification.
 
 ## The 3-layer taxonomy (used to filter, cite, classify)
 - **Deterministic** — *what the document is*: country/market, brand, legal entity,

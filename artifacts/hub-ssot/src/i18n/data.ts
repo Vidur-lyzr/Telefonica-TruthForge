@@ -225,7 +225,34 @@ export interface DataStrings {
     historyTitle: string;
     historyDesc: string;
     historyHeadings: [string, string, string, string, string, string];
-    kindLabels: { rename: string; split: string; merge: string; rollback: string };
+    kindLabels: {
+      rename: string;
+      split: string;
+      merge: string;
+      rollback: string;
+      manual: string;
+    };
+    editTags: {
+      open: string;
+      title: (doc: string) => string;
+      desc: string;
+      axesLabel: string;
+      topicsLabel: string;
+      topicsHelper: string;
+      suggest: string;
+      suggesting: string;
+      suggestError: string;
+      suggestionNote: (rationale: string, confidence: number) => string;
+      suggestionEngineLlm: string;
+      suggestionEngineFallback: string;
+      noAxes: string;
+      apply: string;
+      applying: string;
+      cancel: string;
+      applyError: string;
+      note: (title: string) => string;
+      appliedDetail: (title: string, version: number) => string;
+    };
     revert: string;
     revertConfirmTitle: (v: number) => string;
     revertConfirmDesc: string;
@@ -624,6 +651,30 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         split: "Split",
         merge: "Merge",
         rollback: "Rollback",
+        manual: "Manual edit",
+      },
+      editTags: {
+        open: "Edit tags",
+        title: (doc) => `Edit tags — ${doc}`,
+        desc: "Adjust the strategic axes and topics of this document. The change goes through the same governed path as a re-classification: the vector index is updated in place (no re-embedding) and a new taxonomy version is recorded — you stay the authority.",
+        axesLabel: "Strategic axes",
+        topicsLabel: "Topics",
+        topicsHelper: "Comma-separated list of topics.",
+        suggest: "Suggest tags",
+        suggesting: "Asking the model…",
+        suggestError: "Suggestions are unavailable right now. You can still edit the tags manually.",
+        suggestionNote: (rationale, confidence) =>
+          `${rationale} (confidence ${Math.round(confidence * 100)}%)`,
+        suggestionEngineLlm: "Model-assisted suggestion — review before applying.",
+        suggestionEngineFallback: "Model unavailable — current tags kept as the suggestion.",
+        noAxes: "Select at least one strategic axis.",
+        apply: "Apply tags",
+        applying: "Applying…",
+        cancel: "Cancel",
+        applyError: "The tag edit could not be applied. Nothing has been changed.",
+        note: (title) => `Manual tag edit: ${title}`,
+        appliedDetail: (title, version) =>
+          `Tags of "${title}" edited manually — taxonomy v${version}, index updated in place, no re-embedding.`,
       },
       revert: "Revert to this",
       revertConfirmTitle: (v) => `Roll back to taxonomy v${v}?`,
@@ -1052,6 +1103,30 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         split: "División",
         merge: "Fusión",
         rollback: "Reversión",
+        manual: "Edición manual",
+      },
+      editTags: {
+        open: "Editar etiquetas",
+        title: (doc) => `Editar etiquetas — ${doc}`,
+        desc: "Ajusta los ejes estratégicos y los temas de este documento. El cambio sigue el mismo camino gobernado que una reclasificación: el índice vectorial se actualiza in situ (sin re-embedding) y se registra una nueva versión de la taxonomía — tú mantienes la autoridad.",
+        axesLabel: "Ejes estratégicos",
+        topicsLabel: "Temas",
+        topicsHelper: "Lista de temas separados por comas.",
+        suggest: "Sugerir etiquetas",
+        suggesting: "Consultando al modelo…",
+        suggestError: "Las sugerencias no están disponibles ahora mismo. Puedes seguir editando las etiquetas manualmente.",
+        suggestionNote: (rationale, confidence) =>
+          `${rationale} (confianza ${Math.round(confidence * 100)}%)`,
+        suggestionEngineLlm: "Sugerencia asistida por el modelo — revísala antes de aplicar.",
+        suggestionEngineFallback: "Modelo no disponible — se mantienen las etiquetas actuales como sugerencia.",
+        noAxes: "Selecciona al menos un eje estratégico.",
+        apply: "Aplicar etiquetas",
+        applying: "Aplicando…",
+        cancel: "Cancelar",
+        applyError: "No se pudo aplicar la edición de etiquetas. No se ha cambiado nada.",
+        note: (title) => `Edición manual de etiquetas: ${title}`,
+        appliedDetail: (title, version) =>
+          `Etiquetas de "${title}" editadas manualmente — taxonomía v${version}, índice actualizado in situ, sin re-embedding.`,
       },
       revert: "Volver a esta",
       revertConfirmTitle: (v) => `¿Revertir a la taxonomía v${v}?`,
@@ -1477,6 +1552,30 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         split: "Aufteilung",
         merge: "Zusammenführung",
         rollback: "Rollback",
+        manual: "Manuelle Änderung",
+      },
+      editTags: {
+        open: "Tags bearbeiten",
+        title: (doc) => `Tags bearbeiten — ${doc}`,
+        desc: "Passen Sie die strategischen Achsen und Themen dieses Dokuments an. Die Änderung folgt demselben governierten Pfad wie eine Reklassifizierung: Der Vektorindex wird an Ort und Stelle aktualisiert (kein Re-Embedding) und eine neue Taxonomie-Version wird protokolliert — Sie behalten die Autorität.",
+        axesLabel: "Strategische Achsen",
+        topicsLabel: "Themen",
+        topicsHelper: "Kommagetrennte Themenliste.",
+        suggest: "Tags vorschlagen",
+        suggesting: "Modell wird befragt…",
+        suggestError: "Vorschläge sind derzeit nicht verfügbar. Sie können die Tags weiterhin manuell bearbeiten.",
+        suggestionNote: (rationale, confidence) =>
+          `${rationale} (Konfidenz ${Math.round(confidence * 100)}%)`,
+        suggestionEngineLlm: "Modellgestützter Vorschlag — vor dem Anwenden prüfen.",
+        suggestionEngineFallback: "Modell nicht verfügbar — aktuelle Tags werden als Vorschlag beibehalten.",
+        noAxes: "Wählen Sie mindestens eine strategische Achse aus.",
+        apply: "Tags anwenden",
+        applying: "Wird angewendet…",
+        cancel: "Abbrechen",
+        applyError: "Die Tag-Änderung konnte nicht angewendet werden. Es wurde nichts geändert.",
+        note: (title) => `Manuelle Tag-Änderung: ${title}`,
+        appliedDetail: (title, version) =>
+          `Tags von "${title}" manuell geändert — Taxonomie v${version}, Index an Ort und Stelle aktualisiert, kein Re-Embedding.`,
       },
       revert: "Hierauf zurücksetzen",
       revertConfirmTitle: (v) => `Auf Taxonomie v${v} zurücksetzen?`,
@@ -1904,6 +2003,30 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         split: "Divisão",
         merge: "Fusão",
         rollback: "Reversão",
+        manual: "Edição manual",
+      },
+      editTags: {
+        open: "Editar etiquetas",
+        title: (doc) => `Editar etiquetas — ${doc}`,
+        desc: "Ajuste os eixos estratégicos e os temas deste documento. A alteração segue o mesmo caminho governado de uma reclassificação: o índice vetorial é atualizado no local (sem re-embedding) e uma nova versão da taxonomia é registada — a autoridade continua a ser sua.",
+        axesLabel: "Eixos estratégicos",
+        topicsLabel: "Temas",
+        topicsHelper: "Lista de temas separados por vírgulas.",
+        suggest: "Sugerir etiquetas",
+        suggesting: "A consultar o modelo…",
+        suggestError: "As sugestões não estão disponíveis neste momento. Pode continuar a editar as etiquetas manualmente.",
+        suggestionNote: (rationale, confidence) =>
+          `${rationale} (confiança ${Math.round(confidence * 100)}%)`,
+        suggestionEngineLlm: "Sugestão assistida pelo modelo — reveja antes de aplicar.",
+        suggestionEngineFallback: "Modelo indisponível — as etiquetas atuais mantêm-se como sugestão.",
+        noAxes: "Selecione pelo menos um eixo estratégico.",
+        apply: "Aplicar etiquetas",
+        applying: "A aplicar…",
+        cancel: "Cancelar",
+        applyError: "Não foi possível aplicar a edição de etiquetas. Nada foi alterado.",
+        note: (title) => `Edição manual de etiquetas: ${title}`,
+        appliedDetail: (title, version) =>
+          `Etiquetas de "${title}" editadas manualmente — taxonomia v${version}, índice atualizado no local, sem re-embedding.`,
       },
       revert: "Voltar a esta",
       revertConfirmTitle: (v) => `Reverter para a taxonomia v${v}?`,

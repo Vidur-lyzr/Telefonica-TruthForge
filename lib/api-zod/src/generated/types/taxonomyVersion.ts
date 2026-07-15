@@ -16,7 +16,7 @@ export interface TaxonomyVersion {
   axisEdit: TaxonomyAxisEdit | null;
   retaggedCount: number;
   /**
-     * rename | split | merge | rollback
+     * rename | split | merge | rollback | manual
      * @nullable
      */
   kind?: string | null;

@@ -941,6 +941,70 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /governance/documents/retag/suggest:
+    post:
+      operationId: suggestDocumentTags
+      tags: [governance]
+      summary: Model-assisted tag suggestions for specific documents
+      description: >
+        Given one or more document ids, proposes an axis assignment and topic
+        list per document against the ACTIVE axis catalogue (LLM zero-shot,
+        with a deterministic keep-current fallback when the model is
+        unavailable). Nothing is applied — the human editing the tags stays
+        authoritative.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentTagSuggestInput"
+      responses:
+        "200":
+          description: Per-document tag suggestions awaiting human validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentTagSuggestResult"
+        "404":
+          description: Unknown document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /governance/documents/retag:
+    post:
+      operationId: retagDocuments
+      tags: [governance]
+      summary: Directly re-tag one or more documents (axes and topics)
+      description: >
+        Applies human-authored tag edits for specific documents as a new
+        taxonomy version through the SAME index-first path as the axis
+        wizard: the vector index is updated FIRST (payload-only set_payload —
+        no re-embedding, no re-ingestion), and only then is the version
+        committed locally, with the same anti-fakeness proof (embed-call
+        delta, vector hashes, filter flips). Axis ids must reference active
+        (non-retired) axes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentRetagInput"
+      responses:
+        "200":
+          description: Applied taxonomy version with index proof
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetagApplyResult"
+        "400":
+          description: Unknown document, unknown or retired axis, or empty edit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /kpis/query:
     post:
       operationId: queryKpis
@@ -8447,7 +8511,7 @@ components:
           type: integer
         kind:
           type: ["string", "null"]
-          description: rename | split | merge | rollback
+          description: rename | split | merge | rollback | manual
         rolledBackTo:
           type: ["integer", "null"]
           description: For rollback versions — the version whose state was restored.
@@ -8756,6 +8820,63 @@ components:
         countsMatch:
           type: boolean
           description: Whether the index-derived document count equals the in-memory count.
+
+    DocumentTagSuggestInput:
+      type: object
+      required: [docIds, roleId]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_data_center capability
+        docIds:
+          type: array
+          minItems: 1
+          items:
+            type: string
+
+    DocumentTagSuggestResult:
+      type: object
+      required: [engine, suggestions]
+      properties:
+        engine:
+          type: string
+          description: llm | deterministic
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/RetagProposal"
+
+    DocumentRetagEdit:
+      type: object
+      required: [docId, axisIds, topics]
+      properties:
+        docId:
+          type: string
+        axisIds:
+          type: array
+          items:
+            type: string
+        topics:
+          type: array
+          items:
+            type: string
+
+    DocumentRetagInput:
+      type: object
+      required: [actor, note, docs, roleId]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_data_center capability
+        actor:
+          type: string
+        note:
+          type: string
+        docs:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/DocumentRetagEdit"
 
     TaxonomyRollbackInput:
       type: object

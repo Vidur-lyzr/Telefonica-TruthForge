@@ -54,7 +54,10 @@ import type {
   DataSource,
   DeliveryRecord,
   DocFreshness,
+  DocumentRetagInput,
   DocumentShape,
+  DocumentTagSuggestInput,
+  DocumentTagSuggestResult,
   EditorialReviewInput,
   EditorialReviewRecord,
   ErrorResponse,
@@ -2752,6 +2755,148 @@ export const useRollbackTaxonomy = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getRollbackTaxonomyMutationOptions(options));
+    }
+
+export const getSuggestDocumentTagsUrl = () => {
+
+
+
+
+  return `/api/governance/documents/retag/suggest`
+}
+
+/**
+ * Given one or more document ids, proposes an axis assignment and topic list per document against the ACTIVE axis catalogue (LLM zero-shot, with a deterministic keep-current fallback when the model is unavailable). Nothing is applied — the human editing the tags stays authoritative.
+ * @summary Model-assisted tag suggestions for specific documents
+ */
+export const suggestDocumentTags = async (documentTagSuggestInput: DocumentTagSuggestInput, options?: RequestInit): Promise<DocumentTagSuggestResult> => {
+
+  return customFetch<DocumentTagSuggestResult>(getSuggestDocumentTagsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(documentTagSuggestInput)
+  }
+);}
+
+
+
+
+export const getSuggestDocumentTagsMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestDocumentTags>>, TError,{data: BodyType<DocumentTagSuggestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof suggestDocumentTags>>, TError,{data: BodyType<DocumentTagSuggestInput>}, TContext> => {
+
+const mutationKey = ['suggestDocumentTags'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof suggestDocumentTags>>, {data: BodyType<DocumentTagSuggestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  suggestDocumentTags(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SuggestDocumentTagsMutationResult = NonNullable<Awaited<ReturnType<typeof suggestDocumentTags>>>
+    export type SuggestDocumentTagsMutationBody = BodyType<DocumentTagSuggestInput>
+    export type SuggestDocumentTagsMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Model-assisted tag suggestions for specific documents
+ */
+export const useSuggestDocumentTags = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof suggestDocumentTags>>, TError,{data: BodyType<DocumentTagSuggestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof suggestDocumentTags>>,
+        TError,
+        {data: BodyType<DocumentTagSuggestInput>},
+        TContext
+      > => {
+      return useMutation(getSuggestDocumentTagsMutationOptions(options));
+    }
+
+export const getRetagDocumentsUrl = () => {
+
+
+
+
+  return `/api/governance/documents/retag`
+}
+
+/**
+ * Applies human-authored tag edits for specific documents as a new taxonomy version through the SAME index-first path as the axis wizard: the vector index is updated FIRST (payload-only set_payload — no re-embedding, no re-ingestion), and only then is the version committed locally, with the same anti-fakeness proof (embed-call delta, vector hashes, filter flips). Axis ids must reference active (non-retired) axes.
+ * @summary Directly re-tag one or more documents (axes and topics)
+ */
+export const retagDocuments = async (documentRetagInput: DocumentRetagInput, options?: RequestInit): Promise<RetagApplyResult> => {
+
+  return customFetch<RetagApplyResult>(getRetagDocumentsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(documentRetagInput)
+  }
+);}
+
+
+
+
+export const getRetagDocumentsMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retagDocuments>>, TError,{data: BodyType<DocumentRetagInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof retagDocuments>>, TError,{data: BodyType<DocumentRetagInput>}, TContext> => {
+
+const mutationKey = ['retagDocuments'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof retagDocuments>>, {data: BodyType<DocumentRetagInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  retagDocuments(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RetagDocumentsMutationResult = NonNullable<Awaited<ReturnType<typeof retagDocuments>>>
+    export type RetagDocumentsMutationBody = BodyType<DocumentRetagInput>
+    export type RetagDocumentsMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Directly re-tag one or more documents (axes and topics)
+ */
+export const useRetagDocuments = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof retagDocuments>>, TError,{data: BodyType<DocumentRetagInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof retagDocuments>>,
+        TError,
+        {data: BodyType<DocumentRetagInput>},
+        TContext
+      > => {
+      return useMutation(getRetagDocumentsMutationOptions(options));
     }
 
 export const getQueryKpisUrl = () => {
