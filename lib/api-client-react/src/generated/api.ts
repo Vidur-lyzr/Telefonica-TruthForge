@@ -40,6 +40,11 @@ import type {
   BrandToneView,
   BriefChatInput,
   BriefChatResult,
+  CanvasEditAuditList,
+  CanvasEditInput,
+  CanvasEditResult,
+  CanvasSuggestionsInput,
+  CanvasSuggestionsResult,
   CheckInput,
   CorpusDocument,
   CorpusDocumentDetail,
@@ -4442,6 +4447,225 @@ export const useCheckDocument = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getCheckDocumentMutationOptions(options));
     }
+
+export const getCanvasSuggestionsUrl = () => {
+
+
+
+
+  return `/api/generate/canvas/suggestions`
+}
+
+/**
+ * Derives the contextual agent actions for a single block from live corpus state — sibling-period figures in the numeric store, superseded or historic cited sources, contradiction links, uncited figures, non-public citations and missing required disclaimers. A suggestion is only returned when its condition is true right now; no dead buttons.
+ * @summary Governed contextual suggestions for one draft block
+ */
+export const canvasSuggestions = async (canvasSuggestionsInput: CanvasSuggestionsInput, options?: RequestInit): Promise<CanvasSuggestionsResult> => {
+
+  return customFetch<CanvasSuggestionsResult>(getCanvasSuggestionsUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(canvasSuggestionsInput)
+  }
+);}
+
+
+
+
+export const getCanvasSuggestionsMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof canvasSuggestions>>, TError,{data: BodyType<CanvasSuggestionsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof canvasSuggestions>>, TError,{data: BodyType<CanvasSuggestionsInput>}, TContext> => {
+
+const mutationKey = ['canvasSuggestions'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof canvasSuggestions>>, {data: BodyType<CanvasSuggestionsInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  canvasSuggestions(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CanvasSuggestionsMutationResult = NonNullable<Awaited<ReturnType<typeof canvasSuggestions>>>
+    export type CanvasSuggestionsMutationBody = BodyType<CanvasSuggestionsInput>
+    export type CanvasSuggestionsMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Governed contextual suggestions for one draft block
+ */
+export const useCanvasSuggestions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof canvasSuggestions>>, TError,{data: BodyType<CanvasSuggestionsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof canvasSuggestions>>,
+        TError,
+        {data: BodyType<CanvasSuggestionsInput>},
+        TContext
+      > => {
+      return useMutation(getCanvasSuggestionsMutationOptions(options));
+    }
+
+export const getCanvasEditBlockUrl = () => {
+
+
+
+
+  return `/api/generate/canvas/edit`
+}
+
+/**
+ * Rewrites ONLY the addressed block under the full governance chain: retrieval through the shared access resolver at the persona clearance capped by the destination (external audiences retrieve public-only), citation markers verified against actually retrieved sources, Brand Guardian re-run on the result (an error-severity finding blocks the edit), and an audit entry recording persona, block, prompt, filter expression, retrieved sources with access decisions and before/after content. Locked blocks (boilerplate, contact, logo) are refused with 409 block_locked. Every other block stays byte-identical.
+ * @summary Apply a governed, block-scoped agent edit to one draft section
+ */
+export const canvasEditBlock = async (canvasEditInput: CanvasEditInput, options?: RequestInit): Promise<CanvasEditResult> => {
+
+  return customFetch<CanvasEditResult>(getCanvasEditBlockUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(canvasEditInput)
+  }
+);}
+
+
+
+
+export const getCanvasEditBlockMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof canvasEditBlock>>, TError,{data: BodyType<CanvasEditInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof canvasEditBlock>>, TError,{data: BodyType<CanvasEditInput>}, TContext> => {
+
+const mutationKey = ['canvasEditBlock'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof canvasEditBlock>>, {data: BodyType<CanvasEditInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  canvasEditBlock(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CanvasEditBlockMutationResult = NonNullable<Awaited<ReturnType<typeof canvasEditBlock>>>
+    export type CanvasEditBlockMutationBody = BodyType<CanvasEditInput>
+    export type CanvasEditBlockMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Apply a governed, block-scoped agent edit to one draft section
+ */
+export const useCanvasEditBlock = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof canvasEditBlock>>, TError,{data: BodyType<CanvasEditInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof canvasEditBlock>>,
+        TError,
+        {data: BodyType<CanvasEditInput>},
+        TContext
+      > => {
+      return useMutation(getCanvasEditBlockMutationOptions(options));
+    }
+
+export const getListCanvasEditsUrl = () => {
+
+
+
+
+  return `/api/generate/canvas/audit`
+}
+
+/**
+ * @summary Audit trail of governed canvas block edits
+ */
+export const listCanvasEdits = async ( options?: RequestInit): Promise<CanvasEditAuditList> => {
+
+  return customFetch<CanvasEditAuditList>(getListCanvasEditsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCanvasEditsQueryKey = () => {
+    return [
+    `/api/generate/canvas/audit`
+    ] as const;
+    }
+
+
+export const getListCanvasEditsQueryOptions = <TData = Awaited<ReturnType<typeof listCanvasEdits>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCanvasEdits>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCanvasEditsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCanvasEdits>>> = ({ signal }) => listCanvasEdits({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCanvasEdits>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCanvasEditsQueryResult = NonNullable<Awaited<ReturnType<typeof listCanvasEdits>>>
+export type ListCanvasEditsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Audit trail of governed canvas block edits
+ */
+
+export function useListCanvasEdits<TData = Awaited<ReturnType<typeof listCanvasEdits>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCanvasEdits>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCanvasEditsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListShapesUrl = () => {
 

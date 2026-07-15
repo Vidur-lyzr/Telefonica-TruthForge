@@ -2230,6 +2230,79 @@ export interface CheckInput {
   draft: GeneratedDraft;
 }
 
+export interface CanvasSuggestionsInput {
+  draft: GeneratedDraft;
+  sectionId: string;
+  roleId: string;
+}
+
+export interface CanvasSuggestion {
+  id: string;
+  /** period_swap | update_version | resolve_conflict | add_citation | external_safe | add_disclaimer */
+  kind: string;
+  /** Specific generated label, e.g. "Use Q1 2026 figure (€8,127M) instead of Q4 2025". */
+  label: string;
+  /** The governed instruction the edit endpoint executes for this action. */
+  instruction: string;
+  /**
+     * Supporting context (e.g. both conflicting values side by side).
+     * @nullable
+     */
+  detail?: string | null;
+}
+
+export interface CanvasSuggestionsResult {
+  suggestions: CanvasSuggestion[];
+}
+
+export interface CanvasEditInput {
+  draft: GeneratedDraft;
+  sectionId: string;
+  /** @minLength 1 */
+  instruction: string;
+  roleId: string;
+}
+
+export interface CanvasEditResult {
+  /** applied | blocked | no_change */
+  status: string;
+  draft: GeneratedDraft;
+  section?: DraftSection | null;
+  guardian?: GuardianResult | null;
+  /**
+     * Honest explanation when the edit was blocked or could not cite.
+     * @nullable
+     */
+  note?: string | null;
+}
+
+export interface CanvasEditAuditSource {
+  docId: string;
+  docTitle: string;
+  accessible: boolean;
+  confidentiality: string;
+}
+
+export interface CanvasEditAuditEntry {
+  id: string;
+  timestamp: string;
+  roleId: string;
+  roleLabel: string;
+  sectionId: string;
+  blockKind: string;
+  instruction: string;
+  filterExpr: string;
+  sources: CanvasEditAuditSource[];
+  before: string;
+  after: string;
+  /** applied | blocked | no_change | locked */
+  status: string;
+}
+
+export interface CanvasEditAuditList {
+  items: CanvasEditAuditEntry[];
+}
+
 export interface ApproveInput {
   draft: GeneratedDraft;
 }

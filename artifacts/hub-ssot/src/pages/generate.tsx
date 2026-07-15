@@ -24,6 +24,9 @@ import {
   useRecordEditorialReview,
   useExportDocument,
   useExportDocumentPack,
+  useCanvasSuggestions,
+  useCanvasEditBlock,
+  type CanvasSuggestion,
   type GeneratedDraft,
   type DraftExclusion,
   type TemplateSuggestion,
@@ -428,6 +431,361 @@ function SectionBlock({
   );
 }
 
+// ---- Hover -> EDIT block wrapper (governed canvas interaction) ------------------
+// Hovering any block outlines it and reveals an EDIT affordance at its
+// top-right. Locked blocks (boilerplate, contact) are visibly locked instead
+// of merely rejecting on save — the server enforces the same rule with 409.
+const LOCKED_BLOCK_KINDS = new Set(["boilerplate", "contact", "logo", "image"]);
+
+function HoverBlock({
+  section,
+  active,
+  onEdit,
+  children,
+}: {
+  section: DraftSection;
+  active: boolean;
+  onEdit: () => void;
+  children: React.ReactNode;
+}) {
+  const { lang } = useApp();
+  const tc = GENERATE_I18N[lang].editor.canvas;
+  const [hovered, setHovered] = React.useState(false);
+  const locked = LOCKED_BLOCK_KINDS.has(section.kind);
+  const outlined = hovered || active;
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: "relative",
+        borderRadius: skinVars.borderRadii.container,
+        outline: outlined
+          ? `2px solid ${active ? c.controlActivated : applyAlpha(skinVars.rawColors.controlActivated, 0.45)}`
+          : "2px solid transparent",
+        outlineOffset: 6,
+        transition: "outline-color 120ms ease",
+      }}
+    >
+      {outlined && (
+        <div style={{ position: "absolute", top: -14, right: 0, zIndex: 2 }}>
+          {locked ? (
+            <Tag type="inactive" Icon={IconLockClosedRegular}>
+              {tc.lockedBlock}
+            </Tag>
+          ) : (
+            <Touchable onPress={onEdit} aria-label={`${tc.editBlock}: ${section.heading}`}>
+              <div
+                style={{
+                  backgroundColor: c.buttonPrimaryBackground,
+                  color: c.textButtonPrimary,
+                  borderRadius: skinVars.borderRadii.button,
+                  padding: "2px 10px",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  letterSpacing: 0.6,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <IconEditPencilRegular size={12} color="currentColor" />
+                {tc.editBlock}
+              </div>
+            </Touchable>
+          )}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+// ---- Left sources pane -----------------------------------------------------------
+function SourcesPane({
+  citations,
+  onOpenCitation,
+}: {
+  citations: Citation[];
+  onOpenCitation: (cit: Citation) => void;
+}) {
+  const { lang } = useApp();
+  const tc = GENERATE_I18N[lang].editor.canvas;
+  const td = GENERATE_I18N[lang].dialogs;
+  return (
+    <div
+      style={{
+        width: 264,
+        flexShrink: 0,
+        borderRight: `1px solid ${c.divider}`,
+        backgroundColor: c.backgroundAlternative,
+        overflowY: "auto",
+        padding: 16,
+      }}
+    >
+      <Stack space={12}>
+        <Inline space={8} alignItems="center">
+          <IconDocumentOtherRegular size={16} color={c.textSecondary} />
+          <Text2 medium color={c.textSecondary}>
+            {tc.sourcesPaneTitle}
+          </Text2>
+        </Inline>
+        {citations.length === 0 ? (
+          <Text1 regular color={c.textSecondary}>
+            {tc.sourcesPaneEmpty}
+          </Text1>
+        ) : (
+          <Stack space={8}>
+            {citations.map((cit) => (
+              <Touchable key={cit.id} onPress={() => onOpenCitation(cit)}>
+                <Boxed>
+                  <Box padding={12}>
+                    <Stack space={4}>
+                      <Inline space={8} alignItems="center">
+                        <Tag type="promo">{cit.id}</Tag>
+                        <Tag type={cit.confidentiality === "public" ? "success" : "warning"}>
+                          {cit.confidentiality}
+                        </Tag>
+                      </Inline>
+                      <Text2 medium color={c.textPrimary}>
+                        {cit.docTitle}
+                      </Text2>
+                      <Text1 regular color={c.textSecondary}>
+                        {[cit.sourceLoc, cit.version ? `v${cit.version}` : "", cit.owner]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </Text1>
+                      <Text1 regular color={c.textSecondary}>
+                        {[cit.validity, `${td.confidence} ${Math.round(cit.confidence * 100)}%`]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </Text1>
+                    </Stack>
+                  </Box>
+                </Boxed>
+              </Touchable>
+            ))}
+          </Stack>
+        )}
+      </Stack>
+    </div>
+  );
+}
+
+// ---- Block-scoped agent panel ----------------------------------------------------
+function BlockEditPanel({
+  draft,
+  section,
+  roleId,
+  onClose,
+  onDraftUpdated,
+  onLocalSave,
+}: {
+  draft: GeneratedDraft;
+  section: DraftSection;
+  roleId: string;
+  onClose: () => void;
+  onDraftUpdated: (draft: GeneratedDraft) => void;
+  onLocalSave: (body: string) => void;
+}) {
+  const { lang } = useApp();
+  const t = GENERATE_I18N[lang];
+  const tc = t.editor.canvas;
+  const [body, setBody] = React.useState(section.body);
+  const [freeform, setFreeform] = React.useState("");
+  const [feedback, setFeedback] = React.useState<{ tone: "ok" | "warn" | "error"; text: string } | null>(null);
+  const [suggestions, setSuggestions] = React.useState<CanvasSuggestion[] | null>(null);
+
+  const suggest = useCanvasSuggestions();
+  const editBlock = useCanvasEditBlock();
+
+  // Reload local state + suggestions whenever the addressed block changes.
+  const sectionKey = `${draft.id}:${section.id}:${section.body}`;
+  React.useEffect(() => {
+    setBody(section.body);
+    setFeedback(null);
+    setSuggestions(null);
+    suggest.mutate(
+      { data: { draft, sectionId: section.id, roleId } },
+      {
+        onSuccess: (res) => setSuggestions(res.suggestions),
+        onError: () => setSuggestions([]),
+      },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sectionKey]);
+
+  const runInstruction = (instruction: string) => {
+    if (!instruction.trim() || editBlock.isPending) return;
+    setFeedback(null);
+    editBlock.mutate(
+      { data: { draft, sectionId: section.id, instruction, roleId } },
+      {
+        onSuccess: (res) => {
+          if (res.status === "applied") {
+            onDraftUpdated(res.draft);
+            if (res.section) setBody(res.section.body);
+            setFeedback({ tone: "ok", text: res.note ?? tc.editApplied });
+            setFreeform("");
+          } else if (res.status === "blocked") {
+            setFeedback({
+              tone: "error",
+              text: res.guardian?.findings?.find((f) => f.severity === "error")?.message ?? tc.editBlocked,
+            });
+          } else {
+            setFeedback({ tone: "warn", text: res.note ?? tc.editNoChange });
+          }
+        },
+        onError: () => setFeedback({ tone: "error", text: tc.editFailed }),
+      },
+    );
+  };
+
+  const generic: { label: string; instruction: string }[] = [
+    { label: tc.genericShorten, instruction: "Shorten this block while keeping every cited claim and its [S#] markers intact." },
+    { label: tc.genericSharpen, instruction: "Sharpen the wording of this block — tighter sentences, stronger verbs, same facts and citations." },
+    { label: tc.genericFixTone, instruction: "Fix the tone of this block to Telefónica's voice: clear, human, confident, no hype." },
+    { label: tc.genericRetune, instruction: `Retune this block for a ${draft.audience} audience without adding or dropping any cited claim.` },
+  ];
+
+  const shapeName = GENERATE_I18N[lang].form.shapes[draft.shape as Shape]?.name ?? draft.shape;
+  const dirty = body !== section.body;
+
+  return (
+    <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+      <Stack space={16}>
+        <Inline space={8} alignItems="center">
+          <IconEditPencilRegular size={16} color={c.brand} />
+          <Text2 medium color={c.textPrimary}>
+            {tc.blockPanelContext}
+          </Text2>
+        </Inline>
+        <Inline space={8} alignItems="center" wrap>
+          <Tag type="active">{tc.blockTypeLabels[section.kind] ?? section.kind}</Tag>
+          <Tag type="promo">{shapeName.toUpperCase()}</Tag>
+        </Inline>
+        <TextField
+          name="blockContent"
+          label={tc.contentLabel}
+          value={body}
+          onChangeValue={setBody}
+          multiline
+          fullWidth
+        />
+        <Inline space={8}>
+          <ButtonSecondary small onPress={() => setBody(section.body)} disabled={!dirty}>
+            {tc.reset}
+          </ButtonSecondary>
+          <ButtonPrimary
+            small
+            onPress={() => {
+              onLocalSave(body);
+              setFeedback({ tone: "ok", text: tc.editApplied });
+            }}
+            disabled={!dirty}
+          >
+            {tc.save}
+          </ButtonPrimary>
+        </Inline>
+        <Divider />
+        <Stack space={8}>
+          <Text1 medium color={c.textSecondary}>
+            {tc.improveWithAgent}
+          </Text1>
+          <Inline space={8} wrap>
+            {generic.map((g) => (
+              <Chip key={g.label} onPress={() => runInstruction(g.instruction)}>
+                {g.label}
+              </Chip>
+            ))}
+          </Inline>
+          {suggestions === null ? (
+            <Inline space={8} alignItems="center">
+              <Spinner size={16} />
+              <Text1 regular color={c.textSecondary}>
+                {tc.suggestionsLoading}
+              </Text1>
+            </Inline>
+          ) : suggestions.length > 0 ? (
+            <Stack space={8}>
+              {suggestions.map((s) => (
+                <Touchable key={s.id} onPress={() => runInstruction(s.instruction)}>
+                  <div
+                    style={{
+                      borderRadius: skinVars.borderRadii.container,
+                      border: `1px solid ${applyAlpha(skinVars.rawColors.controlActivated, 0.4)}`,
+                      backgroundColor: c.brandLow,
+                      padding: "8px 12px",
+                    }}
+                  >
+                    <Stack space={2}>
+                      <Text2 medium color={c.textLink}>
+                        {s.label}
+                      </Text2>
+                      {s.detail && (
+                        <Text1 regular color={c.textSecondary}>
+                          {s.detail}
+                        </Text1>
+                      )}
+                    </Stack>
+                  </div>
+                </Touchable>
+              ))}
+            </Stack>
+          ) : null}
+        </Stack>
+        <Stack space={8}>
+          <TextField
+            name="blockInstruction"
+            label={tc.describeChange}
+            placeholder={tc.describePlaceholder}
+            value={freeform}
+            onChangeValue={setFreeform}
+            fullWidth
+          />
+          <Inline space={8} alignItems="center">
+            <ButtonPrimary
+              small
+              onPress={() => runInstruction(freeform)}
+              disabled={!freeform.trim() || editBlock.isPending}
+            >
+              {tc.improveButton}
+            </ButtonPrimary>
+            <ButtonLink small onPress={onClose}>
+              {tc.backToDocument}
+            </ButtonLink>
+          </Inline>
+        </Stack>
+        {editBlock.isPending && (
+          <Inline space={8} alignItems="center">
+            <Spinner size={16} />
+            <Text1 regular color={c.textSecondary}>
+              {tc.improving}
+            </Text1>
+          </Inline>
+        )}
+        {feedback && (
+          <div
+            style={{
+              borderRadius: skinVars.borderRadii.container,
+              backgroundColor:
+                feedback.tone === "ok" ? c.successLow : feedback.tone === "warn" ? c.warningLow : c.errorLow,
+              padding: "8px 12px",
+            }}
+          >
+            <Text1
+              regular
+              color={feedback.tone === "ok" ? c.success : feedback.tone === "warn" ? c.warning : c.error}
+            >
+              {feedback.text}
+            </Text1>
+          </div>
+        )}
+      </Stack>
+    </div>
+  );
+}
+
 // ---- Q&A structure helpers -----------------------------------------------------
 // The Q&A section body is the single source of truth, stored in canonical
 // "Q: ... / A: ..." blocks (the server rewrites the model output into this
@@ -681,6 +1039,8 @@ function DocumentCanvas({
   onQaNotesChange,
   onOpenCitation,
   onAskSelection,
+  editingSectionId,
+  onEditBlock,
 }: {
   draft: GeneratedDraft;
   onSectionChange: (id: string, body: string) => void;
@@ -688,6 +1048,8 @@ function DocumentCanvas({
   onQaNotesChange: (notes: QaNote[]) => void;
   onOpenCitation: (c: Citation) => void;
   onAskSelection: (passage: string) => void;
+  editingSectionId: string | null;
+  onEditBlock: (id: string) => void;
 }) {
   const { lang } = useApp();
   const te = GENERATE_I18N[lang].editor;
@@ -793,28 +1155,33 @@ function DocumentCanvas({
             )}
 
             <Stack space={32}>
-              {visibleSections.map((s) =>
-                s.kind === "qa" && parseQaBody(s.body).length > 0 ? (
-                  <QaBlock
-                    key={s.id}
-                    section={s}
-                    citations={draft.citations}
-                    notes={draft.qaNotes ?? []}
-                    onChange={(body) => onSectionChange(s.id, body)}
-                    onNotesChange={onQaNotesChange}
-                    onOpenCitation={onOpenCitation}
-                    onAskSelection={onAskSelection}
-                  />
-                ) : (
-                  <SectionBlock
-                    key={s.id}
-                    section={s}
-                    onChange={(body) => onSectionChange(s.id, body)}
-                    onOpenCitationId={openCitationById}
-                    onAskSelection={onAskSelection}
-                  />
-                ),
-              )}
+              {visibleSections.map((s) => (
+                <HoverBlock
+                  key={s.id}
+                  section={s}
+                  active={editingSectionId === s.id}
+                  onEdit={() => onEditBlock(s.id)}
+                >
+                  {s.kind === "qa" && parseQaBody(s.body).length > 0 ? (
+                    <QaBlock
+                      section={s}
+                      citations={draft.citations}
+                      notes={draft.qaNotes ?? []}
+                      onChange={(body) => onSectionChange(s.id, body)}
+                      onNotesChange={onQaNotesChange}
+                      onOpenCitation={onOpenCitation}
+                      onAskSelection={onAskSelection}
+                    />
+                  ) : (
+                    <SectionBlock
+                      section={s}
+                      onChange={(body) => onSectionChange(s.id, body)}
+                      onOpenCitationId={openCitationById}
+                      onAskSelection={onAskSelection}
+                    />
+                  )}
+                </HoverBlock>
+              ))}
             </Stack>
 
             {draft.charts.length > 0 && (
@@ -1797,6 +2164,7 @@ export default function Generate() {
   const [tab, setTab] = React.useState<Tab>("compose");
   const [draft, setDraft] = React.useState<GeneratedDraft | null>(null);
   const [instruction, setInstruction] = React.useState("");
+  const [editingSectionId, setEditingSectionId] = React.useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = React.useState<string | null>(null);
   const [chatCollapsed, setChatCollapsed] = React.useState<boolean>(
     () => window.localStorage.getItem("hub-generate-chat-collapsed") === "1",
@@ -2199,6 +2567,9 @@ export default function Generate() {
 
       {tab === "compose" && (
         <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
+          {draft && draft.status === "drafted" && !busy && (
+            <SourcesPane citations={draft.citations} onOpenCitation={setSelectedCitation} />
+          )}
           <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
             {busy ? (
               <DraftingPipeline variant={jobVariant} stage={stage} />
@@ -2240,6 +2611,8 @@ export default function Generate() {
                 onQaNotesChange={updateQaNotes}
                 onOpenCitation={setSelectedCitation}
                 onAskSelection={(passage) => setPendingSelection(passage)}
+                editingSectionId={editingSectionId}
+                onEditBlock={setEditingSectionId}
               />
             )}
           </div>
@@ -2255,6 +2628,17 @@ export default function Generate() {
                 flexShrink: 0,
               }}
             >
+              {editingSectionId && draft.sections.find((s) => s.id === editingSectionId) && roleId ? (
+                <BlockEditPanel
+                  draft={draft}
+                  section={draft.sections.find((s) => s.id === editingSectionId)!}
+                  roleId={roleId}
+                  onClose={() => setEditingSectionId(null)}
+                  onDraftUpdated={setDraft}
+                  onLocalSave={(body) => updateSection(editingSectionId, body)}
+                />
+              ) : (
+              <>
               <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
                 <Stack space={24}>
                   <GuardianBar guardian={draft.guardian} />
@@ -2569,6 +2953,8 @@ export default function Generate() {
                 </Stack>
                 )}
               </div>
+              </>
+              )}
             </div>
           )}
         </div>

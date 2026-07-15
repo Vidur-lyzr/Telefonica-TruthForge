@@ -6,12 +6,15 @@
 import PptxGenJS from "pptxgenjs";
 import type { ExportDocumentModel } from "../exportService";
 import { EXPORT_PALETTE } from "../chartEngine";
+import { brandMarkPng, BRAND_FONT_FAMILY } from "../brandAssets";
 
 const BRAND = EXPORT_PALETTE.brand;
 const NAVY = EXPORT_PALETTE.navy;
 const TEXT = EXPORT_PALETTE.textPrimary;
 const MUTED = EXPORT_PALETTE.textSecondary;
-const FONT = "Telefonica Sans";
+// Hanken Grotesk face name. pptxgenjs cannot embed font files into a .pptx —
+// the face is named so it renders on-brand wherever the font is available.
+const FONT = BRAND_FONT_FAMILY;
 
 function addFooter(slide: PptxGenJS.Slide, model: ExportDocumentModel): void {
   slide.addText("Telefónica · Hub SSoT governed export", {
@@ -46,8 +49,12 @@ export async function renderPptx(model: ExportDocumentModel): Promise<Buffer> {
   const title = pptx.addSlide();
   title.background = { color: NAVY };
   title.addShape("rect", { x: 0, y: 0, w: 0.25, h: 7.5, fill: { color: BRAND } });
+  title.addImage({
+    data: `image/png;base64,${brandMarkPng(160, BRAND).toString("base64")}`,
+    x: 0.8, y: 0.62, w: 0.44, h: 0.44,
+  });
   title.addText("Telefónica", {
-    x: 0.8, y: 0.7, w: 6, h: 0.5, fontFace: FONT, fontSize: 20, bold: true, color: BRAND,
+    x: 1.35, y: 0.6, w: 6, h: 0.5, fontFace: FONT, fontSize: 20, bold: true, color: "FFFFFF",
   });
   title.addText(model.title, {
     x: 0.8, y: 2.6, w: 11.6, h: 1.8, fontFace: FONT, fontSize: 40, bold: true, color: "FFFFFF",

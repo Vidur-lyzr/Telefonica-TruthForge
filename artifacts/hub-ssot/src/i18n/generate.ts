@@ -194,6 +194,36 @@ export interface GenerateStrings {
     refinePlaceholder: string;
     sendInstruction: string;
     startNewBrief: string;
+
+    // Governed canvas block editor
+    canvas: {
+      editBlock: string;
+      lockedBlock: string;
+      lockedBlockHint: string;
+      blockTypeLabels: Record<string, string>;
+      blockPanelContext: string;
+      contentLabel: string;
+      improveWithAgent: string;
+      genericShorten: string;
+      genericSharpen: string;
+      genericFixTone: string;
+      genericRetune: string;
+      describeChange: string;
+      describePlaceholder: string;
+      improveButton: string;
+      improving: string;
+      reset: string;
+      save: string;
+      close: string;
+      suggestionsLoading: string;
+      editApplied: string;
+      editBlocked: string;
+      editNoChange: string;
+      editFailed: string;
+      sourcesPaneTitle: string;
+      sourcesPaneEmpty: string;
+      backToDocument: string;
+    };
   };
 
   dialogs: {
@@ -529,6 +559,46 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       refinePlaceholder: "e.g. Tighten the B2B section and add the dividend figure",
       sendInstruction: "Send edit instruction",
       startNewBrief: "Start a new brief",
+
+      canvas: {
+        editBlock: "EDIT",
+        lockedBlock: "Locked",
+        lockedBlockHint: "Corporate asset — the agent cannot edit this block.",
+        blockTypeLabels: {
+          umbrella: "Umbrella message",
+          key_message: "Key message",
+          headline: "Headline",
+          lead: "Standfirst",
+          body: "Body paragraph",
+          quote: "Executive quote",
+          boilerplate: "Boilerplate",
+          contact: "Press contact",
+          qa: "Q&A",
+          summary: "Executive summary",
+        },
+        blockPanelContext: "Block editor",
+        contentLabel: "Block content",
+        improveWithAgent: "IMPROVE WITH THE AGENT",
+        genericShorten: "Shorten",
+        genericSharpen: "Sharpen",
+        genericFixTone: "Fix tone",
+        genericRetune: "Retune audience",
+        describeChange: "Or describe the change",
+        describePlaceholder: "e.g. use the Q1 figure instead of Q4",
+        improveButton: "Improve",
+        improving: "Improving under governance...",
+        reset: "Reset",
+        save: "Save",
+        close: "Close",
+        suggestionsLoading: "Reading corpus state...",
+        editApplied: "Edit applied — only this block changed.",
+        editBlocked: "Brand Guardian blocked this edit. Nothing was applied.",
+        editNoChange: "No governed source supports that change — block left unchanged.",
+        editFailed: "The edit could not be completed.",
+        sourcesPaneTitle: "Sources",
+        sourcesPaneEmpty: "No cited sources yet.",
+        backToDocument: "Back to document",
+      },
     },
 
     dialogs: {
@@ -860,6 +930,46 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       refinePlaceholder: "p. ej. Ajusta la sección B2B y añade la cifra del dividendo",
       sendInstruction: "Enviar instrucción de edición",
       startNewBrief: "Empezar un nuevo brief",
+
+      canvas: {
+        editBlock: "EDITAR",
+        lockedBlock: "Bloqueado",
+        lockedBlockHint: "Activo corporativo — el agente no puede editar este bloque.",
+        blockTypeLabels: {
+          umbrella: "Mensaje paraguas",
+          key_message: "Mensaje clave",
+          headline: "Titular",
+          lead: "Entradilla",
+          body: "Párrafo de cuerpo",
+          quote: "Cita del directivo",
+          boilerplate: "Boilerplate",
+          contact: "Contacto de prensa",
+          qa: "Preguntas y respuestas",
+          summary: "Resumen ejecutivo",
+        },
+        blockPanelContext: "Editor de bloque",
+        contentLabel: "Contenido del bloque",
+        improveWithAgent: "MEJORAR CON EL AGENTE",
+        genericShorten: "Acortar",
+        genericSharpen: "Afinar",
+        genericFixTone: "Ajustar el tono",
+        genericRetune: "Adaptar a la audiencia",
+        describeChange: "O describe el cambio",
+        describePlaceholder: "p. ej. usa la cifra del Q1 en vez de la del Q4",
+        improveButton: "Mejorar",
+        improving: "Mejorando bajo gobernanza...",
+        reset: "Restablecer",
+        save: "Guardar",
+        close: "Cerrar",
+        suggestionsLoading: "Leyendo el estado del corpus...",
+        editApplied: "Cambio aplicado — solo ha cambiado este bloque.",
+        editBlocked: "El Brand Guardian ha bloqueado este cambio. No se ha aplicado nada.",
+        editNoChange: "Ninguna fuente gobernada respalda ese cambio — el bloque no se ha modificado.",
+        editFailed: "No se ha podido completar el cambio.",
+        sourcesPaneTitle: "Fuentes",
+        sourcesPaneEmpty: "Aún no hay fuentes citadas.",
+        backToDocument: "Volver al documento",
+      },
     },
 
     dialogs: {
@@ -1194,6 +1304,46 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       refinePlaceholder: "z. B. Straffen Sie den B2B-Abschnitt und ergänzen Sie die Dividendenzahl",
       sendInstruction: "Bearbeitungsanweisung senden",
       startNewBrief: "Ein neues Briefing beginnen",
+
+      canvas: {
+        editBlock: "BEARBEITEN",
+        lockedBlock: "Gesperrt",
+        lockedBlockHint: "Corporate-Asset — der Agent kann diesen Block nicht bearbeiten.",
+        blockTypeLabels: {
+          umbrella: "Dachbotschaft",
+          key_message: "Kernbotschaft",
+          headline: "Überschrift",
+          lead: "Vorspann",
+          body: "Textabsatz",
+          quote: "Zitat der Führungskraft",
+          boilerplate: "Boilerplate",
+          contact: "Pressekontakt",
+          qa: "Fragen und Antworten",
+          summary: "Executive Summary",
+        },
+        blockPanelContext: "Block-Editor",
+        contentLabel: "Blockinhalt",
+        improveWithAgent: "MIT DEM AGENTEN VERBESSERN",
+        genericShorten: "Kürzen",
+        genericSharpen: "Schärfen",
+        genericFixTone: "Tonalität anpassen",
+        genericRetune: "Auf Zielgruppe abstimmen",
+        describeChange: "Oder beschreibe die Änderung",
+        describePlaceholder: "z. B. die Q1-Zahl statt der Q4-Zahl verwenden",
+        improveButton: "Verbessern",
+        improving: "Wird unter Governance verbessert...",
+        reset: "Zurücksetzen",
+        save: "Speichern",
+        close: "Schließen",
+        suggestionsLoading: "Korpusstatus wird gelesen...",
+        editApplied: "Änderung übernommen — nur dieser Block wurde geändert.",
+        editBlocked: "Der Brand Guardian hat diese Änderung blockiert. Nichts wurde übernommen.",
+        editNoChange: "Keine governte Quelle stützt diese Änderung — der Block blieb unverändert.",
+        editFailed: "Die Änderung konnte nicht abgeschlossen werden.",
+        sourcesPaneTitle: "Quellen",
+        sourcesPaneEmpty: "Noch keine zitierten Quellen.",
+        backToDocument: "Zurück zum Dokument",
+      },
     },
 
     dialogs: {
@@ -1529,6 +1679,46 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       refinePlaceholder: "ex.: Enxugue a seção B2B e adicione o valor do dividendo",
       sendInstruction: "Enviar instrução de edição",
       startNewBrief: "Iniciar um novo brief",
+
+      canvas: {
+        editBlock: "EDITAR",
+        lockedBlock: "Bloqueado",
+        lockedBlockHint: "Ativo corporativo — o agente não pode editar este bloco.",
+        blockTypeLabels: {
+          umbrella: "Mensagem-chapéu",
+          key_message: "Mensagem-chave",
+          headline: "Título",
+          lead: "Entrada",
+          body: "Parágrafo de corpo",
+          quote: "Citação do executivo",
+          boilerplate: "Boilerplate",
+          contact: "Contacto de imprensa",
+          qa: "Perguntas e respostas",
+          summary: "Resumo executivo",
+        },
+        blockPanelContext: "Editor de bloco",
+        contentLabel: "Conteúdo do bloco",
+        improveWithAgent: "MELHORAR COM O AGENTE",
+        genericShorten: "Encurtar",
+        genericSharpen: "Afinar",
+        genericFixTone: "Ajustar o tom",
+        genericRetune: "Adaptar à audiência",
+        describeChange: "Ou descreve a alteração",
+        describePlaceholder: "p. ex. usar o valor do Q1 em vez do Q4",
+        improveButton: "Melhorar",
+        improving: "A melhorar sob governação...",
+        reset: "Repor",
+        save: "Guardar",
+        close: "Fechar",
+        suggestionsLoading: "A ler o estado do corpus...",
+        editApplied: "Alteração aplicada — só este bloco mudou.",
+        editBlocked: "O Brand Guardian bloqueou esta alteração. Nada foi aplicado.",
+        editNoChange: "Nenhuma fonte governada sustenta essa alteração — o bloco ficou inalterado.",
+        editFailed: "Não foi possível concluir a alteração.",
+        sourcesPaneTitle: "Fontes",
+        sourcesPaneEmpty: "Ainda não há fontes citadas.",
+        backToDocument: "Voltar ao documento",
+      },
     },
 
     dialogs: {

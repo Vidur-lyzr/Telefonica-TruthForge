@@ -21,12 +21,15 @@ import {
 } from "docx";
 import type { ExportDocumentModel } from "../exportService";
 import { EXPORT_PALETTE } from "../chartEngine";
+import { brandFont, brandMarkPng, BRAND_FONT_FAMILY } from "../brandAssets";
 
 const BRAND = EXPORT_PALETTE.brand.replace("#", "");
 const NAVY = EXPORT_PALETTE.navy.replace("#", "");
 const TEXT = EXPORT_PALETTE.textPrimary.replace("#", "");
 const MUTED = EXPORT_PALETTE.textSecondary.replace("#", "");
-const FONT = "Telefonica Sans";
+// Hanken Grotesk — embedded into the .docx below so the document renders
+// on-brand even on machines without the font installed.
+const FONT = BRAND_FONT_FAMILY;
 
 function h(text: string): Paragraph {
   return new Paragraph({
@@ -59,7 +62,7 @@ function meta(text: string): Paragraph {
 export async function renderDocx(model: ExportDocumentModel): Promise<Buffer> {
   const children: (Paragraph | Table)[] = [];
 
-  // Cover band
+  // Branded cover: brand band, five-dot mark next to the wordmark, title.
   children.push(
     new Paragraph({
       shading: { type: ShadingType.SOLID, color: BRAND, fill: BRAND },
@@ -68,7 +71,14 @@ export async function renderDocx(model: ExportDocumentModel): Promise<Buffer> {
     }),
     new Paragraph({
       spacing: { before: 200, after: 60 },
-      children: [new TextRun({ text: "Telefónica", bold: true, color: BRAND, size: 26, font: FONT })],
+      children: [
+        new ImageRun({
+          type: "png",
+          data: brandMarkPng(120, EXPORT_PALETTE.brand),
+          transformation: { width: 26, height: 26 },
+        }),
+        new TextRun({ text: "  Telefónica", bold: true, color: BRAND, size: 26, font: FONT }),
+      ],
     }),
     new Paragraph({
       spacing: { after: 100 },
@@ -290,6 +300,9 @@ export async function renderDocx(model: ExportDocumentModel): Promise<Buffer> {
     creator: "Hub SSoT",
     title: model.title,
     description: model.subtitle,
+    // Embed Hanken Grotesk so the exported file renders on-brand everywhere.
+    // One family entry — Word synthesizes bold/italic from the embedded face.
+    fonts: [{ name: FONT, data: brandFont("regular"), characterSet: "00" }],
     sections: [
       {
         properties: {},

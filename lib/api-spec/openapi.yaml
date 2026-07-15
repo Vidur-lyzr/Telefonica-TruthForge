@@ -1371,6 +1371,79 @@ paths:
               schema:
                 $ref: "#/components/schemas/GuardianResult"
 
+  /generate/canvas/suggestions:
+    post:
+      operationId: canvasSuggestions
+      tags: [generate]
+      summary: Governed contextual suggestions for one draft block
+      description: >
+        Derives the contextual agent actions for a single block from live
+        corpus state — sibling-period figures in the numeric store, superseded
+        or historic cited sources, contradiction links, uncited figures,
+        non-public citations and missing required disclaimers. A suggestion is
+        only returned when its condition is true right now; no dead buttons.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CanvasSuggestionsInput"
+      responses:
+        "200":
+          description: Contextual suggestions for the block
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasSuggestionsResult"
+
+  /generate/canvas/edit:
+    post:
+      operationId: canvasEditBlock
+      tags: [generate]
+      summary: Apply a governed, block-scoped agent edit to one draft section
+      description: >
+        Rewrites ONLY the addressed block under the full governance chain:
+        retrieval through the shared access resolver at the persona clearance
+        capped by the destination (external audiences retrieve public-only),
+        citation markers verified against actually retrieved sources, Brand
+        Guardian re-run on the result (an error-severity finding blocks the
+        edit), and an audit entry recording persona, block, prompt, filter
+        expression, retrieved sources with access decisions and before/after
+        content. Locked blocks (boilerplate, contact, logo) are refused with
+        409 block_locked. Every other block stays byte-identical.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CanvasEditInput"
+      responses:
+        "200":
+          description: Edit outcome — applied, guardian-blocked, or honest no-evidence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasEditResult"
+        "409":
+          description: The block is locked and cannot be edited by the agent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /generate/canvas/audit:
+    get:
+      operationId: listCanvasEdits
+      tags: [generate]
+      summary: Audit trail of governed canvas block edits
+      responses:
+        "200":
+          description: Canvas edit audit entries, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CanvasEditAuditList"
+
   /generate/shapes:
     get:
       operationId: listShapes
@@ -6229,6 +6302,137 @@ components:
       properties:
         draft:
           $ref: "#/components/schemas/GeneratedDraft"
+
+    CanvasSuggestionsInput:
+      type: object
+      required: [draft, sectionId, roleId]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+        sectionId:
+          type: string
+        roleId:
+          type: string
+
+    CanvasSuggestion:
+      type: object
+      required: [id, kind, label, instruction]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          description: >
+            period_swap | update_version | resolve_conflict | add_citation |
+            external_safe | add_disclaimer
+        label:
+          type: string
+          description: Specific generated label, e.g. "Use Q1 2026 figure (€8,127M) instead of Q4 2025".
+        instruction:
+          type: string
+          description: The governed instruction the edit endpoint executes for this action.
+        detail:
+          type: ["string", "null"]
+          description: Supporting context (e.g. both conflicting values side by side).
+
+    CanvasSuggestionsResult:
+      type: object
+      required: [suggestions]
+      properties:
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasSuggestion"
+
+    CanvasEditInput:
+      type: object
+      required: [draft, sectionId, instruction, roleId]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+        sectionId:
+          type: string
+        instruction:
+          type: string
+          minLength: 1
+        roleId:
+          type: string
+
+    CanvasEditResult:
+      type: object
+      required: [status, draft]
+      properties:
+        status:
+          type: string
+          description: applied | blocked | no_change
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+        section:
+          allOf:
+            - $ref: "#/components/schemas/DraftSection"
+          nullable: true
+        guardian:
+          allOf:
+            - $ref: "#/components/schemas/GuardianResult"
+          nullable: true
+        note:
+          type: ["string", "null"]
+          description: Honest explanation when the edit was blocked or could not cite.
+
+    CanvasEditAuditSource:
+      type: object
+      required: [docId, docTitle, accessible, confidentiality]
+      properties:
+        docId:
+          type: string
+        docTitle:
+          type: string
+        accessible:
+          type: boolean
+        confidentiality:
+          type: string
+
+    CanvasEditAuditEntry:
+      type: object
+      required:
+        [id, timestamp, roleId, roleLabel, sectionId, blockKind, instruction, filterExpr, sources, before, after, status]
+      properties:
+        id:
+          type: string
+        timestamp:
+          type: string
+        roleId:
+          type: string
+        roleLabel:
+          type: string
+        sectionId:
+          type: string
+        blockKind:
+          type: string
+        instruction:
+          type: string
+        filterExpr:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasEditAuditSource"
+        before:
+          type: string
+        after:
+          type: string
+        status:
+          type: string
+          description: applied | blocked | no_change | locked
+
+    CanvasEditAuditList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CanvasEditAuditEntry"
 
     ApproveInput:
       type: object

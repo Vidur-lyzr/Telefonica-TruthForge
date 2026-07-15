@@ -289,6 +289,7 @@ router.post("/governance/retag/apply", async (req, res) => {
         }
       }
 
+
       const statusAfter = await collectionStatus();
       const vectorHashes = [];
       for (const d of sampled) {

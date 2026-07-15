@@ -33,6 +33,11 @@ import {
   MarkNotificationsReadResponse,
   ListDeliveriesResponse,
   PublishReviewItemResponse,
+  CanvasSuggestionsBody,
+  CanvasSuggestionsResponse,
+  CanvasEditBlockBody,
+  CanvasEditBlockResponse,
+  ListCanvasEditsResponse,
 } from "@workspace/api-zod";
 import { publishApprovedDraft, PublishRefusedError } from "../data/publishBack";
 import {
@@ -49,6 +54,13 @@ import {
 } from "../agent/generateAgent";
 import { suggestTemplate, captureBrief } from "../agent/briefAgent";
 import { runScheduleNow, ScheduleRunInProgressError } from "../agent/scheduleRunner";
+import {
+  editCanvasBlock,
+  suggestionsForBlock,
+  addDisclaimerToDraft,
+  listCanvasEditAudit,
+  BlockLockedError,
+} from "../agent/canvasAgent";
 import { runBrandGuardian } from "../agent/brandGuardian";
 import { ROLES } from "../data/corpus";
 import {
@@ -213,6 +225,71 @@ router.get("/generate/assets", async (_req, res) => {
 
 router.get("/generate/schedules", async (_req, res) => {
   res.json(ListSchedulesResponse.parse(listSchedules()));
+});
+
+router.post("/generate/canvas/suggestions", async (req, res) => {
+  const parsed = CanvasSuggestionsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  try {
+    const suggestions = suggestionsForBlock(
+      parsed.data.draft as unknown as GeneratedDraft,
+      parsed.data.sectionId,
+    );
+    res.json(CanvasSuggestionsResponse.parse({ suggestions }));
+  } catch (err) {
+    req.log.error({ err }, "canvas suggestions route failed");
+    res.status(500).json({ error: "Could not derive suggestions for this block." });
+  }
+});
+
+router.post("/generate/canvas/edit", async (req, res) => {
+  const parsed = CanvasEditBlockBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const draft = parsed.data.draft as unknown as GeneratedDraft;
+  try {
+    // Deterministic disclaimer insertion — no model, no retrieval.
+    const discMatch = /^__add_disclaimer:(.+)$/.exec(parsed.data.instruction.trim());
+    if (discMatch) {
+      const updated = addDisclaimerToDraft(draft, discMatch[1]);
+      res.json(
+        CanvasEditBlockResponse.parse({
+          status: updated ? "applied" : "no_change",
+          draft: updated ?? draft,
+          section: null,
+          guardian: updated?.guardian ?? null,
+          note: updated ? null : "That disclaimer is already present in the draft.",
+        }),
+      );
+      return;
+    }
+    const outcome = await editCanvasBlock(
+      {
+        draft,
+        sectionId: parsed.data.sectionId,
+        instruction: parsed.data.instruction,
+        roleId: parsed.data.roleId,
+      },
+      req.log,
+    );
+    res.json(CanvasEditBlockResponse.parse(outcome));
+  } catch (err) {
+    if (err instanceof BlockLockedError) {
+      res.status(409).json({ error: err.message, code: "block_locked" });
+      return;
+    }
+    req.log.error({ err }, "canvas edit route failed");
+    res.status(500).json({ error: "The Hub could not edit this block." });
+  }
+});
+
+router.get("/generate/canvas/audit", async (_req, res) => {
+  res.json(ListCanvasEditsResponse.parse({ items: listCanvasEditAudit() }));
 });
 
 router.post("/generate/schedules", async (req, res) => {
