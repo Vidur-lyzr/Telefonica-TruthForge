@@ -26,6 +26,11 @@ export interface GenerateStrings {
     nlUse: string;
     nlDismiss: string;
 
+    tplPanelTitle: string;
+    tplUse: string;
+    tplSections: string;
+    tplLoading: string;
+
     shapes: Record<FormShape, { name: string; blurb: string }>;
 
     briefLabel: string;
@@ -349,6 +354,11 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Suggest a set-up",
       nlUse: "Use this set-up",
       nlDismiss: "Dismiss",
+
+      tplPanelTitle: "Or start from a corporate template in the Brand Room",
+      tplUse: "Use this template",
+      tplSections: "Template structure",
+      tplLoading: "Loading preview...",
 
       shapes: {
         messaging: {
@@ -722,6 +732,11 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Sugerir una configuración",
       nlUse: "Usar esta configuración",
       nlDismiss: "Descartar",
+
+      tplPanelTitle: "O empieza desde una plantilla corporativa del Brand Room",
+      tplUse: "Usar esta plantilla",
+      tplSections: "Estructura de la plantilla",
+      tplLoading: "Cargando vista previa...",
 
       shapes: {
         messaging: {
@@ -1104,6 +1119,11 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlUse: "Diese Konfiguration verwenden",
       nlDismiss: "Verwerfen",
 
+      tplPanelTitle: "Oder mit einer Unternehmensvorlage aus dem Brand Room starten",
+      tplUse: "Diese Vorlage verwenden",
+      tplSections: "Aufbau der Vorlage",
+      tplLoading: "Vorschau wird geladen...",
+
       shapes: {
         messaging: {
           name: "Messaging-House",
@@ -1483,6 +1503,11 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Sugerir uma configuração",
       nlUse: "Usar esta configuração",
       nlDismiss: "Descartar",
+
+      tplPanelTitle: "Ou comece a partir de um modelo corporativo do Brand Room",
+      tplUse: "Usar este modelo",
+      tplSections: "Estrutura do modelo",
+      tplLoading: "Carregando pré-visualização...",
 
       shapes: {
         messaging: {

@@ -26,6 +26,9 @@ import {
   useExportDocumentPack,
   useCanvasSuggestions,
   useCanvasEditBlock,
+  useGetBrandTemplates,
+  useGetBrandTemplate,
+  type BrandTemplateSummary,
   type CanvasSuggestion,
   type GeneratedDraft,
   type DraftExclusion,
@@ -328,7 +331,13 @@ function DraftChart({ chart }: { chart: ChartSpec }) {
 }
 
 // ---- Cited data table ----------------------------------------------------------
-function DraftTable({ table }: { table: TableSpec }) {
+function DraftTable({
+  table,
+  onCellChange,
+}: {
+  table: TableSpec;
+  onCellChange?: (rowIdx: number, colIdx: number, value: string) => void;
+}) {
   return (
     <Boxed>
       <Box padding={16}>
@@ -379,7 +388,26 @@ function DraftTable({ table }: { table: TableSpec }) {
                           borderBottom: `1px solid ${c.divider}`,
                         }}
                       >
-                        {ci === 0 ? (
+                        {onCellChange ? (
+                          <input
+                            value={value}
+                            onChange={(e) => onCellChange(ri, ci, e.target.value)}
+                            aria-label={`${table.title} — ${table.columns[ci] ?? ""} ${ri + 1}`}
+                            style={{
+                              width: "100%",
+                              minWidth: 64,
+                              border: "none",
+                              outline: "none",
+                              background: "transparent",
+                              fontFamily: "inherit",
+                              fontSize: 14,
+                              fontWeight: ci === 0 ? 500 : 400,
+                              color: c.textPrimary,
+                              textAlign: ci === 0 ? "left" : "right",
+                              padding: 0,
+                            }}
+                          />
+                        ) : ci === 0 ? (
                           <Text2 medium color={c.textPrimary}>
                             {value}
                           </Text2>
@@ -1081,6 +1109,7 @@ function DocumentCanvas({
   onSectionChange,
   onUmbrellaChange,
   onQaNotesChange,
+  onTableChange,
   onOpenCitation,
   onAskSelection,
   editingSectionId,
@@ -1090,6 +1119,7 @@ function DocumentCanvas({
   onSectionChange: (id: string, body: string) => void;
   onUmbrellaChange: (body: string) => void;
   onQaNotesChange: (notes: QaNote[]) => void;
+  onTableChange: (tableId: string, rowIdx: number, colIdx: number, value: string) => void;
   onOpenCitation: (c: Citation) => void;
   onAskSelection: (passage: string) => void;
   editingSectionId: string | null;
@@ -1239,7 +1269,11 @@ function DocumentCanvas({
             {(draft.tables ?? []).length > 0 && (
               <Stack space={16}>
                 {(draft.tables ?? []).map((t) => (
-                  <DraftTable key={t.id} table={t} />
+                  <DraftTable
+                    key={t.id}
+                    table={t}
+                    onCellChange={(ri, ci, v) => onTableChange(t.id, ri, ci, v)}
+                  />
                 ))}
               </Stack>
             )}
@@ -1301,6 +1335,68 @@ function DocumentCanvas({
   );
 }
 
+// ---- Start-from-template preview (Brand Room library) -------------------------
+function TemplateStartPreview({
+  templateId,
+  roleId,
+  onUse,
+}: {
+  templateId: string;
+  roleId?: string;
+  onUse: (shape: string) => void;
+}) {
+  const { lang } = useApp();
+  const t = GENERATE_I18N[lang].form;
+  const { data, isLoading } = useGetBrandTemplate(
+    roleId ? { templateId, roleId } : { templateId },
+  );
+  if (isLoading) {
+    return (
+      <Text2 regular color={c.textSecondary}>
+        {t.tplLoading}
+      </Text2>
+    );
+  }
+  if (!data || data.blocked || !data.template) return null;
+  const tpl = data.template;
+  return (
+    <Boxed>
+      <Box padding={16}>
+        <Stack space={12}>
+          <Stack space={4}>
+            <Inline space={8} alignItems="center" wrap>
+              <Text2 medium color={c.textPrimary}>
+                {tpl.name}
+              </Text2>
+              <Tag type="inactive">{tpl.format}</Tag>
+              <Tag type="inactive">{`v${tpl.version}`}</Tag>
+              <Tag type="inactive">{tpl.owner}</Tag>
+            </Inline>
+            <Text1 regular color={c.textSecondary}>
+              {tpl.description}
+            </Text1>
+          </Stack>
+          <Stack space={4}>
+            <Text1 medium color={c.textSecondary}>
+              {t.tplSections}
+            </Text1>
+            {tpl.sections.map((s) => (
+              <Text1 key={s.key} regular color={c.textPrimary}>
+                {`- ${s.label}`}
+              </Text1>
+            ))}
+          </Stack>
+          <Inline space={8}>
+            <ButtonPrimary small onPress={() => onUse(tpl.shape)}>
+              {t.tplUse}
+            </ButtonPrimary>
+          </Inline>
+        </Stack>
+      </Box>
+    </Boxed>
+  );
+}
+
 // ---- Brief form --------------------------------------------------------------
 function BriefForm({
   onGenerate,
@@ -1310,9 +1406,11 @@ function BriefForm({
   onGenerate: (v: BriefValues) => void;
   isPending: boolean;
 }) {
-  const { lang: globalLang } = useApp();
+  const { lang: globalLang, roleId } = useApp();
   const t = GENERATE_I18N[globalLang].form;
   const { data: axes } = useListAxes();
+  const brandTemplatesQ = useGetBrandTemplates(roleId ? { roleId } : undefined);
+  const [pickedTemplateId, setPickedTemplateId] = React.useState<string | null>(null);
   const [mode, setMode] = React.useState<"form" | "chat">("form");
   const [shape, setShape] = React.useState<Shape>("messaging");
   const [topic, setTopic] = React.useState("");
@@ -1665,6 +1763,49 @@ function BriefForm({
             )}
           </Stack>
         </div>
+
+        {(brandTemplatesQ.data?.templates ?? []).length > 0 && (
+          <div
+            style={{
+              borderRadius: skinVars.borderRadii.container,
+              border: `1px solid ${c.divider}`,
+              backgroundColor: c.backgroundAlternative,
+              padding: 20,
+            }}
+          >
+            <Stack space={12}>
+              <Inline space={8} alignItems="center">
+                <IconListDocumentRegular size={16} color={c.brand} />
+                <Text2 medium color={c.textPrimary}>
+                  {t.tplPanelTitle}
+                </Text2>
+              </Inline>
+              <Inline space={8} wrap>
+                {(brandTemplatesQ.data?.templates ?? []).map((bt: BrandTemplateSummary) => (
+                  <Chip
+                    key={bt.id}
+                    active={pickedTemplateId === bt.id}
+                    onPress={() =>
+                      setPickedTemplateId((curr) => (curr === bt.id ? null : bt.id))
+                    }
+                  >
+                    {bt.name}
+                  </Chip>
+                ))}
+              </Inline>
+              {pickedTemplateId && (
+                <TemplateStartPreview
+                  templateId={pickedTemplateId}
+                  roleId={roleId ?? undefined}
+                  onUse={(s) => {
+                    if (s in SHAPE_META) setShape(s as Shape);
+                    setPickedTemplateId(null);
+                  }}
+                />
+              )}
+            </Stack>
+          </div>
+        )}
 
         <div
           style={{
@@ -2619,6 +2760,27 @@ export default function Generate() {
     setDraft((curr) => (curr ? { ...curr, qaNotes } : curr));
   };
 
+  // Inline table editing: cell edits merge into the CURRENT draft via a
+  // functional set, so they can never clobber a concurrent async update.
+  const updateTableCell = (tableId: string, rowIdx: number, colIdx: number, value: string) => {
+    setDraft((curr) => {
+      if (!curr) return curr;
+      return {
+        ...curr,
+        tables: (curr.tables ?? []).map((tb) =>
+          tb.id === tableId
+            ? {
+                ...tb,
+                rows: tb.rows.map((r, i) =>
+                  i === rowIdx ? r.map((cell, j) => (j === colIdx ? value : cell)) : r,
+                ),
+              }
+            : tb,
+        ),
+      };
+    });
+  };
+
   // Debounced Brand Guardian recheck: the canvas is always live, so any manual
   // edit re-runs the Guardian shortly after typing pauses.
   const bodySignature = draft
@@ -2884,6 +3046,7 @@ export default function Generate() {
                 onSectionChange={updateSection}
                 onUmbrellaChange={updateUmbrella}
                 onQaNotesChange={updateQaNotes}
+                onTableChange={updateTableCell}
                 onOpenCitation={setSelectedCitation}
                 onAskSelection={(passage) => setPendingSelection(passage)}
                 editingSectionId={editingSectionId}

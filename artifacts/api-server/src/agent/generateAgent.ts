@@ -69,6 +69,17 @@ export interface ChartPoint {
   value: number;
 }
 
+// The chart type is chosen from the data itself: a series whose labels form a
+// temporal progression (quarters, half-years, months, years) reads as a trend
+// and renders as a line; categorical comparisons render as bars.
+const TIME_LABEL =
+  /(^|\s)(q[1-4]\b|h[12]\b|fy\s?\d{2}|19\d{2}|20\d{2}|(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|ene|abr|ago|dic|mär|mai|okt|dez|fev|set|out)\b)/i;
+export function chartTypeForSeries(points: ChartPoint[]): "bar" | "line" {
+  if (points.length < 3) return "bar";
+  const timeLike = points.filter((p) => TIME_LABEL.test(p.label)).length;
+  return timeLike / points.length >= 0.75 ? "line" : "bar";
+}
+
 export interface ChartSpec {
   id: string;
   title: string;
@@ -712,7 +723,7 @@ async function compose(
   const charts: ChartSpec[] = series.slice(0, 2).map((s) => ({
     id: newId("chart"),
     title: s.label,
-    type: s.id === "series-revenue-trend" ? "line" : "bar",
+    type: chartTypeForSeries(s.points),
     unit: s.unit,
     source: s.source,
     citationId: docIndexByDoc.has(s.docId) ? `S${docIndexByDoc.get(s.docId)}` : null,

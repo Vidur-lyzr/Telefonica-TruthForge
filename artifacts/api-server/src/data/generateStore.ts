@@ -269,6 +269,15 @@ export function hashDraftContent(draft: GeneratedDraft): string {
       internalOnly: s.internalOnly,
     })),
     citations: draft.citations.map((c) => c.id).sort(),
+    // Tables are governed content too: a table edit must void a scheduled
+    // approval / editorial review just like a prose edit would.
+    tables: (draft.tables ?? []).map((tbl) => ({
+      title: tbl.title,
+      unit: tbl.unit,
+      citationId: tbl.citationId ?? null,
+      columns: tbl.columns,
+      rows: tbl.rows,
+    })),
   });
   return createHash("sha256").update(payload).digest("hex");
 }

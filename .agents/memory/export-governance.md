@@ -12,4 +12,6 @@ Rules for the document export pipeline (drafts arrive as client JSON, so labels 
 
 **How to apply:** any new export/share/send path must call buildExportModel (artifacts/api-server/src/export/exportService.ts) or replicate all three gates; never gate on client-supplied labels alone. Full fix would be server-owned draft references (drafts stored server-side, export by id) — acceptable gap for this demo tier and noted as future work.
 
+The approval content hash must cover ALL governed content — including data tables, not just title/sections/citations. An early hash omitted tables, so an approved scheduled draft's table numbers could be rewritten post-approval and still export with governed provenance. If a draft gains a new content-bearing field (tables, charts, appendices), fold it into hashDraftContent in the same change.
+
 The same rule extends to corpus write-back: a published draft's confidentiality label must be clamped to the most restrictive lineage source doc (missing sources fail closed to the top tier), and publish must be idempotent per item because clients can re-submit.
