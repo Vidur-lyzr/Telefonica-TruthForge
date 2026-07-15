@@ -1,0 +1,24 @@
+Case 4 · KPI tracking with filters
+Dashboard for tracking the main Brand and Communication KPIs, combining internal data with external signals, with
+rich filters and traceability to the source data. This is not document generation: it is monitoring + querying.
+Scope: the RFP does not define specific KPIs — it requests a “tracking panel for previously stated objectives”.
+Therefore, defining the KPIs is out of scope: the platform must support configurable KPIs against the objectives set
+by Telefónica (not hardcoded). *(Query/discovery item.)*
+① User flow
+39. The user enters the HOME and clicks the “KPIs” app (Block 2).
+40. The system resolves permissions (area + confidentiality) and loads the KPI panel with the indicators
+configured by Telefónica (previously stated objectives), scoped to what is visible.
+41. The panel shows each KPI on a card: current value · target/objective · % progress · trend (sparkline) ·
+variation vs previous period · status (on target / off track / critical) · source and validity.
+42. The user applies combinable filters: topic · period/date (week, month, quarter, range) · market/country ·
+brand · Plan axis · channel/source · initiative type. The panel recalculates instantly.
+43. Drill-down on a KPI: full time series, breakdown by dimension (country, channel, brand) and list of sources
+that make it up, with a link to the source data (citation).
+44. The system combines internal + external signals for composite KPIs (Share of Voice, sentiment, coverage,
+reach): internal objectives + social listening + media + news.
+45. The user opens the conversational window embedded in the panel (a “talk to your data” for KPIs, scoped
+to the module and its permissions) and asks in natural language (“why is sentiment falling in Brazil this
+week?”) → cited insights + drill-down + possible causes. *(Different from the HOME’s cross-cutting chat.)*
+46. Forecast / projection to target: if there is sufficient history, projects the trend to the end of the
+period/target and flags risk of deviation (“at this rate you will close the quarter at X vs target Y”).
+47. Alerts by threshold/deviation → notifies the owner (Teams/email

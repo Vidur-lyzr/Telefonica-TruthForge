@@ -38,9 +38,11 @@ import { runBrandGuardian } from "./brandGuardian";
 import { parseQaBody, serializeQaPairs, normalizeQuestion } from "./qa";
 import { sanitizeSectionBody } from "./bodyText";
 
-const MODEL = "claude-sonnet-4-6";
+// Strongest available model — document composition is the product's core
+// output and is held to production-grade depth, so it runs on Opus.
+const MODEL = "claude-opus-4-8";
 const COVERAGE_MIN = 0.33;
-const MAX_SOURCES = 6;
+const MAX_SOURCES = 8;
 const GUIDANCE_TYPES = new Set(["Note", "Playbook", "Guideline"]);
 
 export type GenStatus = "drafted" | "no_evidence" | "permission_blocked";
@@ -930,6 +932,10 @@ async function compose(
     "Only cite markers that were provided. If a section cannot be supported by a source, write a brief honest note instead of a fabricated claim.",
     "The umbrella message, when present, must also end with at least one source marker.",
     "Voice: clear, human, confident. Sentence case for headings. No jargon. Never use emoji. No unapproved superlatives (e.g. 'European leader', 'the largest', 'number one', 'best network in the world').",
+    "DEPTH REQUIREMENT — this is a production document, not a summary. Every body section must be fully developed: typically three to five substantial paragraphs (roughly 150 to 280 words per section), plus a bullet list where it genuinely aids scanning. Open each section by framing why the topic matters to the audience, develop the cited evidence in detail — the figure, its period, its trajectory, and what it means operationally — then close with the concrete implication or next step the evidence supports.",
+    "Synthesize ACROSS sources: where two or more sources touch the same theme, connect them explicitly rather than summarising each in isolation. Use every relevant provided source; a source left uncited when it clearly bears on the topic is a quality failure.",
+    "Depth must come from analysis of the cited material — never from fabrication, speculation or filler. Do not pad, repeat points in different words, or add generic corporate boilerplate. If the sources genuinely support only a short treatment of a topic, write the short honest treatment.",
+    "Q&A answers must be complete spokesperson-ready responses of three to six sentences, not one-liners. Spokesperson guidance must be specific and actionable, not generic advice.",
     "Section bodies are plain prose with optional '-' bullet lists, **bold** and *italic*. NEVER draw charts or tables in text: no ASCII art, no pipe '|' column layouts, no markdown tables, no fenced code blocks (```), no horizontal rules ('---'). Numeric charts and data tables are attached separately by the engine — if figures merit a visual, present them as a bullet list instead.",
     "Spokesperson notes and any internal-only guidance draw on the internal guidance sources [G#]; these support the drafter and must never be phrased as external-facing copy.",
     `Write the document in ${languageName(language)}.`,
@@ -992,7 +998,7 @@ ${jsonShape}${refineBlock}`;
     onStage?.("composing");
     const message = await meteredCreate("generate", {
       model: MODEL,
-      max_tokens: 8192,
+      max_tokens: 16384,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     });
