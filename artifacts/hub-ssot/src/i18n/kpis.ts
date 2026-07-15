@@ -134,7 +134,7 @@ const KPIS_EN = {
   amberBelow: "Amber below",
   criticalBelow: "Critical below",
   current: "Current",
-  progress: "Progress",
+  progress: "% of target",
   conflictBody:
     "Composing sources disagree on this metric. The headline uses the weighted blend; open the sources below to see the divergence.",
   trendVsTarget: "Trend vs target",
@@ -287,7 +287,7 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
     amberBelow: "Ámbar por debajo de",
     criticalBelow: "Crítico por debajo de",
     current: "Actual",
-    progress: "Progreso",
+    progress: "% del objetivo",
     conflictBody:
       "Las fuentes que la componen no coinciden en esta métrica. La cifra principal usa la combinación ponderada; abre las fuentes de abajo para ver la divergencia.",
     trendVsTarget: "Tendencia frente al objetivo",
@@ -435,7 +435,7 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
     amberBelow: "Gelb unter",
     criticalBelow: "Kritisch unter",
     current: "Aktuell",
-    progress: "Fortschritt",
+    progress: "% des Ziels",
     conflictBody:
       "Die zusammensetzenden Quellen sind sich bei dieser Kennzahl uneinig. Der Hauptwert nutzt die gewichtete Kombination; öffnen Sie die Quellen unten, um die Abweichung zu sehen.",
     trendVsTarget: "Trend vs. Zielwert",
@@ -582,7 +582,7 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
     amberBelow: "Âmbar abaixo de",
     criticalBelow: "Crítico abaixo de",
     current: "Atual",
-    progress: "Progresso",
+    progress: "% da meta",
     conflictBody:
       "As fontes que a compõem divergem nesta métrica. O número principal usa a combinação ponderada; abra as fontes abaixo para ver a divergência.",
     trendVsTarget: "Tendência vs. meta",
