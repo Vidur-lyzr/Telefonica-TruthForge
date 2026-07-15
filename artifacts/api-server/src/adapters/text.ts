@@ -100,6 +100,12 @@ const SYNONYMS: Record<string, string> = {
   estudio: "research", estudo: "research", studie: "research",
   investigacion: "research", encuesta: "survey", umfrage: "survey",
   pesquisa: "research",
+  // enterprise / B2B
+  empresarial: "enterprise", empresa: "enterprise", empresas: "enterprise",
+  unternehmen: "enterprise", empresariais: "enterprise",
+  geschaeftskunden: "b2b", corporativo: "enterprise", corporativa: "enterprise",
+  cartera: "pipeline", carteira: "pipeline", pedidos: "pipeline",
+  auftragsbestand: "pipeline", encomendas: "pipeline",
   // misc governance
   confidencial: "confidential", vertraulich: "confidential",
   garantia: "guarantee", garantie: "guarantee",
