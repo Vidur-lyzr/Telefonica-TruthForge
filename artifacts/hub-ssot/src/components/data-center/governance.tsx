@@ -417,14 +417,14 @@ export default function GovernanceArea() {
       >
         <Box padding={24}>
           <Stack space={16}>
-            <Inline space="between" alignItems="center">
+            <Inline space="between" alignItems="center" wrap>
               <Inline space={8} alignItems="center">
                 <IconWorldDeviceRegular size={20} color={skinVars.colors.inverse} />
                 <Text3 medium color={skinVars.colors.textPrimaryInverse}>
                   {G.bannerTitle}
                 </Text3>
               </Inline>
-              <Inline space={12} alignItems="center">
+              <Inline space={12} alignItems="center" wrap>
                 {taxonomy && (
                   <Tag type="info">{G.taxonomyVersion(taxonomy.activeVersion)}</Tag>
                 )}
