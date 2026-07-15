@@ -3088,6 +3088,15 @@ export interface WikiTraversal {
   edges: WikiTraversalEdge[];
 }
 
+/**
+ * Reference to a page the query op filed into the wiki.
+ */
+export interface WikiCompiledPageRef {
+  id: string;
+  nodeId: string;
+  title: string;
+}
+
 export interface WikiSearchResult {
   /** answered | no_evidence | permission_blocked | conversational */
   status: string;
@@ -3098,6 +3107,8 @@ export interface WikiSearchResult {
   /** @nullable */
   permissionNote?: string | null;
   traversal?: WikiTraversal | null;
+  /** Set when the compiled memory had no sufficient page and the answer was compiled on demand from governed raw sources, then filed into the wiki as a new page. */
+  compiledPage?: WikiCompiledPageRef | null;
 }
 
 export interface VisibilityRow {

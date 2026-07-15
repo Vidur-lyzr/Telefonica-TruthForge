@@ -355,6 +355,8 @@ export interface DataStrings {
     matchCount: (shown: number, total: number) => string;
     noMatches: string;
     uploadButton: string;
+    uploadCardTitle: string;
+    uploadCardDesc: string;
     sortLabel: string;
     sortNewest: string;
     sortOldest: string;
@@ -776,6 +778,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       matchCount: (shown, total) => `Showing ${shown} of ${total} documents`,
       noMatches: "No documents match the current filters.",
       uploadButton: "Upload document",
+      uploadCardTitle: "Add a document to the governed corpus",
+      uploadCardDesc: "Drag and drop or browse a PDF, Word, text or Markdown file. It is classified, chunked and indexed so Ask and the Wiki can cite it.",
       sortLabel: "Sort",
       sortNewest: "Newest first",
       sortOldest: "Oldest first",
@@ -1201,6 +1205,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       matchCount: (shown, total) => `Mostrando ${shown} de ${total} documentos`,
       noMatches: "Ningún documento coincide con los filtros actuales.",
       uploadButton: "Subir documento",
+      uploadCardTitle: "Añadir un documento al corpus gobernado",
+      uploadCardDesc: "Arrastra y suelta o busca un archivo PDF, Word, texto o Markdown. Se clasifica, trocea e indexa para que Ask y la Wiki puedan citarlo.",
       sortLabel: "Ordenar",
       sortNewest: "Más recientes primero",
       sortOldest: "Más antiguos primero",
@@ -1622,6 +1628,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `${shown} von ${total} Dokumenten angezeigt`,
       noMatches: "Keine Dokumente entsprechen den aktuellen Filtern.",
       uploadButton: "Dokument hochladen",
+      uploadCardTitle: "Dokument zum kontrollierten Korpus hinzufügen",
+      uploadCardDesc: "PDF-, Word-, Text- oder Markdown-Datei per Drag-and-drop ablegen oder auswählen. Sie wird klassifiziert, zerlegt und indexiert, damit Ask und das Wiki sie zitieren können.",
       sortLabel: "Sortieren",
       sortNewest: "Neueste zuerst",
       sortOldest: "Älteste zuerst",
@@ -2045,6 +2053,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       matchCount: (shown, total) => `A mostrar ${shown} de ${total} documentos`,
       noMatches: "Nenhum documento corresponde aos filtros atuais.",
       uploadButton: "Carregar documento",
+      uploadCardTitle: "Adicionar um documento ao corpus governado",
+      uploadCardDesc: "Arraste e largue ou procure um ficheiro PDF, Word, texto ou Markdown. É classificado, segmentado e indexado para que o Ask e a Wiki o possam citar.",
       sortLabel: "Ordenar",
       sortNewest: "Mais recentes primeiro",
       sortOldest: "Mais antigos primeiro",

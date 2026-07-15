@@ -40,6 +40,7 @@ import {
   IconDocumentOtherRegular,
   IconCheckedRegular,
   IconCloseRegular,
+  IconCloudUploadRegular,
 } from "@telefonica/mistica";
 import { UploadDrawer } from "./upload-drawer";
 
@@ -440,15 +441,33 @@ export default function CorpusArea() {
         </GridItem>
       </Grid>
 
+      <Boxed>
+        <Box padding={24}>
+          <Inline space={16} alignItems="center" wrap>
+            <Circle size={56} backgroundColor={skinVars.colors.brandLow}>
+              <IconCloudUploadRegular size={28} color={skinVars.colors.brand} />
+            </Circle>
+            <div style={{ flex: 1, minWidth: 260 }}>
+              <Stack space={4}>
+                <Title3>{c.uploadCardTitle}</Title3>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  {c.uploadCardDesc}
+                </Text2>
+              </Stack>
+            </div>
+            <ButtonPrimary onPress={() => setUploadOpen(true)}>
+              {c.uploadButton}
+            </ButtonPrimary>
+          </Inline>
+        </Box>
+      </Boxed>
+
       <Stack space={16}>
         <Inline space="between" alignItems="center">
           <Inline space={8} alignItems="center">
             <IconDocumentOtherRegular size={20} color={skinVars.colors.brand} />
             <Title2>{c.governedCorpus}</Title2>
           </Inline>
-          <ButtonPrimary small onPress={() => setUploadOpen(true)}>
-            {c.uploadButton}
-          </ButtonPrimary>
         </Inline>
 
         <TextField

@@ -50,11 +50,11 @@ const AREA_DEFS: {
   id: AreaId;
   Icon: IconType;
 }[] = [
+  { id: "corpus", Icon: IconBookRegular },
   { id: "validation", Icon: IconShieldRegular },
   { id: "sources", Icon: IconDatabaseConnectedRegular },
   { id: "ingestion", Icon: IconBoxRegular },
   { id: "governance", Icon: IconWorldDeviceRegular },
-  { id: "corpus", Icon: IconBookRegular },
 ];
 
 function ActivityDrawer() {

@@ -5,6 +5,7 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { WikiCompiledPageRef } from './wikiCompiledPageRef';
 import type { WikiEvidenceRef } from './wikiEvidenceRef';
 import type { WikiRelatedPage } from './wikiRelatedPage';
 import type { WikiTraversal } from './wikiTraversal';
@@ -19,4 +20,6 @@ export interface WikiSearchResult {
   /** @nullable */
   permissionNote?: string | null;
   traversal?: WikiTraversal | null;
+  /** Set when the compiled memory had no sufficient page and the answer was compiled on demand from governed raw sources, then filed into the wiki as a new page. */
+  compiledPage?: WikiCompiledPageRef | null;
 }

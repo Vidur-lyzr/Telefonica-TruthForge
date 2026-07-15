@@ -8115,6 +8115,26 @@ components:
           oneOf:
             - $ref: "#/components/schemas/WikiTraversal"
             - type: "null"
+        compiledPage:
+          description: >
+            Set when the compiled memory had no sufficient page and the
+            answer was compiled on demand from governed raw sources, then
+            filed into the wiki as a new page.
+          oneOf:
+            - $ref: "#/components/schemas/WikiCompiledPageRef"
+            - type: "null"
+
+    WikiCompiledPageRef:
+      type: object
+      description: Reference to a page the query op filed into the wiki.
+      required: [id, nodeId, title]
+      properties:
+        id:
+          type: string
+        nodeId:
+          type: string
+        title:
+          type: string
 
     VisibilityRow:
       type: object

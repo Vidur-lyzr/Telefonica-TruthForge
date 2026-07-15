@@ -72,8 +72,12 @@ export function isDocAccessible(target: AccessTarget, subject: AccessSubject): b
 }
 
 // Compiled pages carry no `areas` of their own — their area scope is the
-// union of their governed sources' areas. An empty union (or a source-less
+// union of their governed sources' areas. An empty union (for a source-less
 // page) is cross-area, same as documents with an empty `areas` list.
+// FAIL CLOSED: a source doc that cannot be resolved (e.g. a live-ingested
+// doc not yet rehydrated at boot, or one that was removed) makes the page's
+// area scope unknowable — the page stays locked rather than silently
+// widening to cross-area.
 export function resolvePageAccess(
   page: { confidentiality: Clearance; sourceDocIds: string[] },
   subject: AccessSubject,
@@ -81,7 +85,8 @@ export function resolvePageAccess(
   const areas = new Set<Area>();
   for (const docId of page.sourceDocIds) {
     const doc = getDoc(docId);
-    if (doc) for (const a of doc.areas) areas.add(a);
+    if (!doc) return { accessible: false, blockedBy: "area" };
+    for (const a of doc.areas) areas.add(a);
   }
   return resolveDocAccess(
     { confidentiality: page.confidentiality, areas: [...areas] },

@@ -306,21 +306,29 @@ export function UploadDrawer({ onClose }: { onClose: () => void }) {
           </Stack>
         </div>
 
-        <TextField
-          name="up-title"
-          label={s2.title}
-          value={draft.title}
-          onChangeValue={(v) => setDraft((d) => ({ ...d, title: v }))}
-        />
-        <TextField
-          name="up-owner"
-          label={s2.owner}
-          value={draft.owner}
-          onChangeValue={(v) => {
-            ownerEditedRef.current = true;
-            setDraft((d) => ({ ...d, owner: v }));
-          }}
-        />
+        <Inline space={16}>
+          <div style={{ flex: 1 }}>
+            <TextField
+              name="up-title"
+              label={s2.title}
+              value={draft.title}
+              onChangeValue={(v) => setDraft((d) => ({ ...d, title: v }))}
+              fullWidth
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <TextField
+              name="up-owner"
+              label={s2.owner}
+              value={draft.owner}
+              onChangeValue={(v) => {
+                ownerEditedRef.current = true;
+                setDraft((d) => ({ ...d, owner: v }));
+              }}
+              fullWidth
+            />
+          </div>
+        </Inline>
         <Inline space={16}>
           <div style={{ flex: 1 }}>
             <TextField
@@ -328,6 +336,7 @@ export function UploadDrawer({ onClose }: { onClose: () => void }) {
               label={s2.country}
               value={draft.country}
               onChangeValue={(v) => setDraft((d) => ({ ...d, country: v }))}
+              fullWidth
             />
           </div>
           <div style={{ flex: 1 }}>
@@ -336,6 +345,7 @@ export function UploadDrawer({ onClose }: { onClose: () => void }) {
               label={s2.brand}
               value={draft.brand}
               onChangeValue={(v) => setDraft((d) => ({ ...d, brand: v }))}
+              fullWidth
             />
           </div>
         </Inline>
@@ -347,6 +357,7 @@ export function UploadDrawer({ onClose }: { onClose: () => void }) {
               value={draft.confidentiality}
               onChangeValue={(v) => setDraft((d) => ({ ...d, confidentiality: v }))}
               options={CLEARANCES.map((c) => ({ value: c, text: clearanceLabel(c, lang) }))}
+              fullWidth
             />
           </div>
           <div style={{ flex: 1 }}>
@@ -359,6 +370,7 @@ export function UploadDrawer({ onClose }: { onClose: () => void }) {
                 { value: "", text: s2.allAreas },
                 ...AREAS.map((a) => ({ value: a, text: a })),
               ]}
+              fullWidth
             />
           </div>
         </Inline>
@@ -368,6 +380,7 @@ export function UploadDrawer({ onClose }: { onClose: () => void }) {
           value={draft.language}
           onChangeValue={(v) => setDraft((d) => ({ ...d, language: v }))}
           options={UPLOAD_LANGUAGES}
+          fullWidth
         />
 
         <Stack space={12}>
@@ -378,6 +391,7 @@ export function UploadDrawer({ onClose }: { onClose: () => void }) {
             value={draft.docType}
             onChangeValue={(v) => setDraft((d) => ({ ...d, docType: v }))}
             options={DOC_TYPES.map((d) => ({ value: d, text: d }))}
+            fullWidth
           />
           <Stack space={8}>
             <Inline space={12} alignItems="center">
@@ -387,6 +401,7 @@ export function UploadDrawer({ onClose }: { onClose: () => void }) {
                   label={s2.topicsLabel}
                   value={topicInput}
                   onChangeValue={setTopicInput}
+                  fullWidth
                 />
               </div>
               <ButtonSecondary

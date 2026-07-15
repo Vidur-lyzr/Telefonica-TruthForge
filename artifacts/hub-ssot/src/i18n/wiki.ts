@@ -75,6 +75,7 @@ const EN = {
     error: "The graph could not answer right now. Please try again.",
     clear: "Clear conversation",
     traversal: "Path highlighted on the map",
+    compiledNote: "Compiled from governed sources and filed into the wiki:",
   },
   search: {
     title: "Compiled memory",
@@ -190,6 +191,7 @@ export const WIKI_I18N: Record<Lang, WikiStrings> = {
       error: "El grafo no pudo responder ahora. Inténtalo de nuevo.",
       clear: "Borrar conversación",
       traversal: "Camino resaltado en el mapa",
+      compiledNote: "Compilada desde fuentes gobernadas y archivada en la wiki:",
     },
     search: {
       title: "Memoria compilada",
@@ -298,6 +300,7 @@ export const WIKI_I18N: Record<Lang, WikiStrings> = {
       error: "Der Graph konnte gerade nicht antworten. Bitte erneut versuchen.",
       clear: "Verlauf löschen",
       traversal: "Pfad auf der Karte hervorgehoben",
+      compiledNote: "Aus kontrollierten Quellen kompiliert und im Wiki abgelegt:",
     },
     search: {
       title: "Kompiliertes Gedächtnis",
@@ -407,6 +410,7 @@ export const WIKI_I18N: Record<Lang, WikiStrings> = {
       error: "O grafo não pôde responder agora. Tente novamente.",
       clear: "Limpar conversa",
       traversal: "Caminho destacado no mapa",
+      compiledNote: "Compilada a partir de fontes governadas e arquivada na wiki:",
     },
     search: {
       title: "Memória compilada",

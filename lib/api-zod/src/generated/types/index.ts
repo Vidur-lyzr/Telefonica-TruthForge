@@ -346,6 +346,7 @@ export * from './visibilityRow';
 export * from './wikiChangeLogEntry';
 export * from './wikiChatTurn';
 export * from './wikiChatTurnRole';
+export * from './wikiCompiledPageRef';
 export * from './wikiEdge';
 export * from './wikiEvidenceRef';
 export * from './wikiFigure';

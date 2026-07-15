@@ -1,4 +1,5 @@
 import React, { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { clearanceLabel } from "@/components/data-center/helpers";
 import {
   useGetWikiGraph,
@@ -299,6 +300,7 @@ export default function Wiki() {
 
   const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
   const [openPageId, setOpenPageId] = React.useState<string | null>(null);
+  const queryClient = useQueryClient();
   const [openLineageDoc, setOpenLineageDoc] = React.useState<WikiLineage | null>(null);
   const [snippet, setSnippet] = React.useState<WikiEvidenceRef | null>(null);
 
@@ -494,11 +496,19 @@ export default function Wiki() {
     runSearch(
       { data: { question: q, roleId, history } },
       {
-        onSuccess: (res) =>
+        onSuccess: (res) => {
           setChat((c) => [
             ...c,
             { role: "assistant" as const, text: res.answer, result: res },
-          ]),
+          ]);
+          if (res.compiledPage) {
+            // The query op filed a new page into the wiki — refresh the
+            // graph, page list and lineage so the new node appears live.
+            void queryClient.invalidateQueries({ queryKey: ["wiki-graph", roleId] });
+            void queryClient.invalidateQueries({ queryKey: ["wiki-pages", roleId] });
+            void queryClient.invalidateQueries({ queryKey: ["wiki-lineage", roleId] });
+          }
+        },
         onError: () =>
           setChat((c) => [...c, { role: "assistant" as const, text: t.chat.error }]),
       },
@@ -1084,6 +1094,35 @@ export default function Wiki() {
                                     </Text1>
                                   </Inline>
                                 )}
+                                {res?.status === "answered" &&
+                                  res.compiledPage &&
+                                  (() => {
+                                    const cp = res.compiledPage;
+                                    return (
+                                      <Inline space={4} alignItems="center" wrap>
+                                        <IconBookRegular size={14} color={BLUE} />
+                                        <Text1 regular color={MUTED}>
+                                          {t.chat.compiledNote}
+                                        </Text1>
+                                        <Touchable
+                                          onPress={() => openPage(cp.id, cp.nodeId)}
+                                          style={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            padding: "2px 10px",
+                                            borderRadius: skinVars.borderRadii.chip,
+                                            border: `1px solid ${applyAlpha(skinVars.rawColors.brand, 0.3)}`,
+                                            background: BLUE_TINT,
+                                            cursor: "pointer",
+                                          }}
+                                        >
+                                          <Text1 medium color={BLUE}>
+                                            {cp.title}
+                                          </Text1>
+                                        </Touchable>
+                                      </Inline>
+                                    );
+                                  })()}
                                 {res?.status === "answered" && res.wikiLinks.length > 0 && (
                                   <Inline space={4} alignItems="center" wrap>
                                     {res.wikiLinks.map((w) => (

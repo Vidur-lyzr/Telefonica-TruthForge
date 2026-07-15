@@ -6746,7 +6746,12 @@ export const SearchWikiResponse = zod.object({
   "from": zod.string(),
   "to": zod.string()
 }))
-}).describe('The graph path the answer was built from — node ids and the connections between them, so the Map can highlight the traversal.\n'),zod.null()]).optional()
+}).describe('The graph path the answer was built from — node ids and the connections between them, so the Map can highlight the traversal.\n'),zod.null()]).optional(),
+  "compiledPage": zod.union([zod.object({
+  "id": zod.string(),
+  "nodeId": zod.string(),
+  "title": zod.string()
+}).describe('Reference to a page the query op filed into the wiki.'),zod.null()]).optional().describe('Set when the compiled memory had no sufficient page and the answer was compiled on demand from governed raw sources, then filed into the wiki as a new page.\n')
 })
 
 

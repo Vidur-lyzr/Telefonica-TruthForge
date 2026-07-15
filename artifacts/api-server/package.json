@@ -30,7 +30,8 @@
     "pino-http": "^10.5.0",
     "pptxgenjs": "^4.0.1",
     "unpdf": "^1.6.2",
-    "yaml": "^2.9.0"
+    "yaml": "^2.9.0",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
