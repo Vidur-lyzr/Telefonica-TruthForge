@@ -1086,6 +1086,26 @@ export const AskStreamResponse = zod.unknown()
 
 
 /**
+ * Same governed run as /kpis/ask, streamed. Emits SSE events as they genuinely happen: `step` (scope resolution, KPI data read, evidence retrieval, composition), `token` (the model's own text deltas), then a terminal `result` event carrying the full KpiAskResult, then `done`.
+ * @summary KPI-scoped ask with live progress streaming (Server-Sent Events)
+ */
+
+
+
+export const AskKpisStreamBody = zod.object({
+  "question": zod.string().min(1),
+  "area": zod.string(),
+  "roleId": zod.string(),
+  "kpiIds": zod.array(zod.string()),
+  "rangeFrom": zod.string().nullish().describe('Custom range start (YYYY-MM-DD) the KPI panel is scoped to'),
+  "rangeTo": zod.string().nullish().describe('Custom range end (YYYY-MM-DD) the KPI panel is scoped to'),
+  "period": zod.string().nullish().describe('Reporting period the KPI panel is scoped to — week | month | quarter')
+})
+
+export const AskKpisStreamResponse = zod.unknown()
+
+
+/**
  * Runs the KPI-scoped agent. Retrieval is seeded from the evidence behind the KPIs in view (internal source chunks and external mentions), permission filtered before the model, and returns a cited answer — or an honest no-evidence / permission-blocked result.
  * @summary Ask a question over the KPIs currently in view
  */
@@ -1098,7 +1118,8 @@ export const AskKpisBody = zod.object({
   "roleId": zod.string(),
   "kpiIds": zod.array(zod.string()),
   "rangeFrom": zod.string().nullish().describe('Custom range start (YYYY-MM-DD) the KPI panel is scoped to'),
-  "rangeTo": zod.string().nullish().describe('Custom range end (YYYY-MM-DD) the KPI panel is scoped to')
+  "rangeTo": zod.string().nullish().describe('Custom range end (YYYY-MM-DD) the KPI panel is scoped to'),
+  "period": zod.string().nullish().describe('Reporting period the KPI panel is scoped to — week | month | quarter')
 })
 
 export const AskKpisResponse = zod.object({

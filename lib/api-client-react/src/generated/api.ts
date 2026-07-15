@@ -2581,6 +2581,77 @@ export const useAskStream = <TError = ErrorType<unknown>,
       return useMutation(getAskStreamMutationOptions(options));
     }
 
+export const getAskKpisStreamUrl = () => {
+
+
+
+
+  return `/api/kpis/ask/stream`
+}
+
+/**
+ * Same governed run as /kpis/ask, streamed. Emits SSE events as they genuinely happen: `step` (scope resolution, KPI data read, evidence retrieval, composition), `token` (the model's own text deltas), then a terminal `result` event carrying the full KpiAskResult, then `done`.
+ * @summary KPI-scoped ask with live progress streaming (Server-Sent Events)
+ */
+export const askKpisStream = async (kpiAskInput: KpiAskInput, options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getAskKpisStreamUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(kpiAskInput)
+  }
+);}
+
+
+
+
+export const getAskKpisStreamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askKpisStream>>, TError,{data: BodyType<KpiAskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof askKpisStream>>, TError,{data: BodyType<KpiAskInput>}, TContext> => {
+
+const mutationKey = ['askKpisStream'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof askKpisStream>>, {data: BodyType<KpiAskInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  askKpisStream(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AskKpisStreamMutationResult = NonNullable<Awaited<ReturnType<typeof askKpisStream>>>
+    export type AskKpisStreamMutationBody = BodyType<KpiAskInput>
+    export type AskKpisStreamMutationError = ErrorType<unknown>
+
+    /**
+ * @summary KPI-scoped ask with live progress streaming (Server-Sent Events)
+ */
+export const useAskKpisStream = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof askKpisStream>>, TError,{data: BodyType<KpiAskInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof askKpisStream>>,
+        TError,
+        {data: BodyType<KpiAskInput>},
+        TContext
+      > => {
+      return useMutation(getAskKpisStreamMutationOptions(options));
+    }
+
 export const getAskKpisUrl = () => {
 
 

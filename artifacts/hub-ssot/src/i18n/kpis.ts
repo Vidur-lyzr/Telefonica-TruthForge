@@ -124,6 +124,9 @@ const KPIS_EN = {
   chatViewPlaceholder: "Which objectives are off track, and why?",
   readingEvidence: "Reading the evidence...",
   chatError: "Something went wrong while answering. Please try again.",
+  agentActionsDone: (n: number) => `Done · ${n} agent action${n === 1 ? "" : "s"}`,
+  showAgentActions: "Show agent actions",
+  hideAgentActions: "Hide agent actions",
   sendQuestion: "Send question",
   drawsHistoric: "Draws on historic material.",
 
@@ -273,6 +276,10 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
     chatViewPlaceholder: "¿Qué objetivos están desviados y por qué?",
     readingEvidence: "Leyendo la evidencia...",
     chatError: "Algo ha fallado al responder. Inténtalo de nuevo.",
+    agentActionsDone: (n: number) =>
+      `Hecho · ${n} ${n === 1 ? "acción" : "acciones"} del agente`,
+    showAgentActions: "Mostrar acciones del agente",
+    hideAgentActions: "Ocultar acciones del agente",
     sendQuestion: "Enviar pregunta",
     drawsHistoric: "Se basa en material histórico.",
 
@@ -417,6 +424,10 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
     readingEvidence: "Nachweise werden gelesen …",
     chatError:
       "Beim Antworten ist ein Fehler aufgetreten. Bitte erneut versuchen.",
+    agentActionsDone: (n: number) =>
+      `Fertig · ${n} Agentenaktion${n === 1 ? "" : "en"}`,
+    showAgentActions: "Agentenaktionen anzeigen",
+    hideAgentActions: "Agentenaktionen ausblenden",
     sendQuestion: "Frage senden",
     drawsHistoric: "Stützt sich auf historisches Material.",
 
@@ -560,6 +571,10 @@ export const KPIS_I18N: Record<Lang, KpisStrings> = {
     chatViewPlaceholder: "Quais objetivos estão fora do alvo e por quê?",
     readingEvidence: "Lendo a evidência...",
     chatError: "Algo deu errado ao responder. Tente novamente.",
+    agentActionsDone: (n: number) =>
+      `Concluído · ${n} ${n === 1 ? "ação" : "ações"} do agente`,
+    showAgentActions: "Mostrar ações do agente",
+    hideAgentActions: "Ocultar ações do agente",
     sendQuestion: "Enviar pergunta",
     drawsHistoric: "Baseia-se em material histórico.",
 

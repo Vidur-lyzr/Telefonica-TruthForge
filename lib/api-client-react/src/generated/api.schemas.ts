@@ -1444,6 +1444,11 @@ export interface KpiAskInput {
      * @nullable
      */
   rangeTo?: string | null;
+  /**
+     * Reporting period the KPI panel is scoped to — week | month | quarter
+     * @nullable
+     */
+  period?: string | null;
 }
 
 export interface KpiDetailInput {

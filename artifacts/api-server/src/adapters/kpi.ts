@@ -487,6 +487,32 @@ export function getKpiDetail(
   return { kpi: card, series, breakdowns: kpi.breakdowns };
 }
 
+// Structured, clearance-filtered data context for the KPI-scoped chat: the full
+// computed card (figures, status, variation, forecast) plus trend series and
+// dimension breakdowns for every KPI in scope that the persona may see. This is
+// assembled server-side from the corpus — client-supplied kpiIds only narrow the
+// scope, never widen it past the persona's clearance/area.
+export function getKpiChatData(
+  kpiIds: string[],
+  clearance: Clearance,
+  area: Area | null,
+  period: KpiPeriodType,
+  range?: KpiRange | null,
+): KpiDetail[] {
+  const all = listEffectiveKpiDefinitions();
+  const requested = kpiIds
+    .map((id) => all.find((k) => k.id === id))
+    .filter(
+      (k): k is EffectiveKpiDefinition =>
+        Boolean(k) && isVisible(k as EffectiveKpiDefinition, clearance, area),
+    );
+  const scope =
+    requested.length > 0 ? requested : all.filter((k) => isVisible(k, clearance, area));
+  return scope
+    .map((k) => getKpiDetail(k.id, { clearance, area, period, range }))
+    .filter((d): d is KpiDetail => d !== null);
+}
+
 // Evidence pool for the KPI-scoped chat: internal source-document chunks plus
 // external mentions, restricted to the KPIs the persona can actually see.
 export interface KpiEvidenceItem {

@@ -714,6 +714,29 @@ paths:
             text/event-stream:
               schema:
                 type: string
+  /kpis/ask/stream:
+    post:
+      operationId: askKpisStream
+      tags: [kpis]
+      summary: KPI-scoped ask with live progress streaming (Server-Sent Events)
+      description: >
+        Same governed run as /kpis/ask, streamed. Emits SSE events as they
+        genuinely happen: `step` (scope resolution, KPI data read, evidence
+        retrieval, composition), `token` (the model's own text deltas), then a
+        terminal `result` event carrying the full KpiAskResult, then `done`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KpiAskInput"
+      responses:
+        "200":
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
   /kpis/ask:
     post:
       operationId: askKpis
@@ -4806,6 +4829,9 @@ components:
         rangeTo:
           type: ["string", "null"]
           description: Custom range end (YYYY-MM-DD) the KPI panel is scoped to
+        period:
+          type: ["string", "null"]
+          description: Reporting period the KPI panel is scoped to — week | month | quarter
 
     KpiDetailInput:
       type: object

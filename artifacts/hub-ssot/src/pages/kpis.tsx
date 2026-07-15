@@ -3,7 +3,6 @@ import { clearanceLabel } from "@/components/data-center/helpers";
 import {
   useQueryKpis,
   useGetKpiDetail,
-  useAskKpis,
   useListKpiAlerts,
   useAcknowledgeKpiAlert,
   KpiCard as KpiCardType,
@@ -15,6 +14,7 @@ import {
 } from "@workspace/api-client-react";
 import { useApp } from "@/components/app-provider";
 import { KPIS_I18N, localeFor } from "@/i18n/kpis";
+import { streamKpiAsk, type KpiAskStep } from "@/hooks/kpi-ask-stream";
 import { useLocation } from "wouter";
 import {
   Area,
@@ -68,6 +68,8 @@ import {
   IconShieldCheckedOkRegular,
   IconBellRegular,
   IconUserAccountRegular,
+  IconCheckRegular,
+  IconChevronDownRegular,
 } from "@telefonica/mistica";
 
 type PeriodType = "week" | "month" | "quarter" | "custom";
@@ -869,9 +871,113 @@ function KpiAnswerBlock({ result }: { result: AskResult }) {
 type KpiChatTurn = {
   id: number;
   question: string;
+  steps: KpiAskStep[];
+  streamedText: string;
   result: AskResult | null;
+  pending: boolean;
   failed?: boolean;
 };
+
+// Live agent steps for a turn. While the run is in flight a quiet, unboxed
+// trail shows the real pipeline (scope -> data -> evidence -> compose); the
+// active step gets a spinner. Once the turn finishes, the trail collapses
+// into a one-line "Done · N agent actions" summary that expands on demand.
+function KpiStepList({
+  steps,
+  pending,
+}: {
+  steps: KpiAskStep[];
+  pending: boolean;
+}) {
+  return (
+    <div style={{ paddingLeft: 4 }}>
+      <Stack space={8}>
+        {steps.map((s) => {
+          const active = pending && s.state === "active";
+          return (
+            <div
+              key={s.id}
+              style={{ display: "flex", alignItems: "flex-start", gap: 8 }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  flexShrink: 0,
+                  width: 14,
+                  justifyContent: "center",
+                  paddingTop: 2,
+                }}
+              >
+                {active ? (
+                  <Spinner size={12} />
+                ) : (
+                  <IconCheckRegular
+                    size={12}
+                    color={skinVars.colors.success}
+                  />
+                )}
+              </div>
+              <Text1
+                regular
+                color={
+                  active
+                    ? skinVars.colors.textPrimary
+                    : skinVars.colors.textSecondary
+                }
+              >
+                {s.label}
+                {s.detail ? ` — ${s.detail}` : ""}
+              </Text1>
+            </div>
+          );
+        })}
+      </Stack>
+    </div>
+  );
+}
+
+function KpiStepTrail({
+  steps,
+  pending,
+}: {
+  steps: KpiAskStep[];
+  pending: boolean;
+}) {
+  const { lang } = useApp();
+  const t = KPIS_I18N[lang];
+  const [open, setOpen] = React.useState(false);
+  if (steps.length === 0) return null;
+  if (pending) return <KpiStepList steps={steps} pending />;
+  return (
+    <Stack space={8}>
+      <Touchable
+        onPress={() => setOpen((v) => !v)}
+        aria-label={open ? t.hideAgentActions : t.showAgentActions}
+      >
+        <Inline space={8} alignItems="center">
+          <IconCheckRegular size={14} color={skinVars.colors.success} />
+          <Text1 regular color={skinVars.colors.textSecondary}>
+            {t.agentActionsDone(steps.length)}
+          </Text1>
+          <div
+            aria-hidden
+            style={{
+              display: "inline-flex",
+              transition: "transform 0.15s ease",
+              transform: open ? "rotate(180deg)" : "none",
+            }}
+          >
+            <IconChevronDownRegular
+              size={14}
+              color={skinVars.colors.textSecondary}
+            />
+          </div>
+        </Inline>
+      </Touchable>
+      {open && <KpiStepList steps={steps} pending={false} />}
+    </Stack>
+  );
+}
 
 function KpiChat({
   kpiIds,
@@ -880,6 +986,7 @@ function KpiChat({
   placeholder,
   rangeFrom = null,
   rangeTo = null,
+  period = null,
 }: {
   kpiIds: string[];
   heading?: string;
@@ -887,6 +994,7 @@ function KpiChat({
   placeholder?: string;
   rangeFrom?: string | null;
   rangeTo?: string | null;
+  period?: string | null;
 }) {
   const { area, roleId, lang } = useApp();
   const t = KPIS_I18N[lang];
@@ -897,12 +1005,26 @@ function KpiChat({
   const [turns, setTurns] = React.useState<KpiChatTurn[]>([]);
   const nextIdRef = React.useRef(1);
   const threadRef = React.useRef<HTMLDivElement | null>(null);
-  const { mutate, isPending } = useAskKpis();
+  const abortRef = React.useRef<AbortController | null>(null);
+  const isPending = turns.some((turn) => turn.pending);
 
   React.useEffect(() => {
     const el = threadRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [turns]);
+
+  // Cancel any in-flight stream when the chat unmounts so the server can
+  // abort its model call instead of composing for a closed socket.
+  React.useEffect(() => () => abortRef.current?.abort(), []);
+
+  const patchTurn = React.useCallback(
+    (id: number, patch: (turn: KpiChatTurn) => KpiChatTurn) => {
+      setTurns((prev) =>
+        prev.map((turn) => (turn.id === id ? patch(turn) : turn)),
+      );
+    },
+    [],
+  );
 
   const submit = () => {
     if (!question.trim() || !roleId || kpiIds.length === 0 || isPending) {
@@ -911,25 +1033,59 @@ function KpiChat({
     const q = question.trim();
     const id = nextIdRef.current;
     nextIdRef.current += 1;
-    setTurns((prev) => [...prev, { id, question: q, result: null }]);
-    setQuestion("");
-    mutate(
-      { data: { question: q, area, roleId, kpiIds, rangeFrom, rangeTo } },
+    setTurns((prev) => [
+      ...prev,
       {
-        onSuccess: (res) =>
-          setTurns((prev) =>
-            prev.map((turn) =>
-              turn.id === id ? { ...turn, result: res as AskResult } : turn,
-            ),
-          ),
-        onError: () =>
-          setTurns((prev) =>
-            prev.map((turn) =>
-              turn.id === id ? { ...turn, failed: true } : turn,
-            ),
-          ),
+        id,
+        question: q,
+        steps: [],
+        streamedText: "",
+        result: null,
+        pending: true,
       },
-    );
+    ]);
+    setQuestion("");
+    const controller = new AbortController();
+    abortRef.current = controller;
+    streamKpiAsk(
+      { question: q, area, roleId, kpiIds, rangeFrom, rangeTo, period },
+      {
+        onStep: (step) =>
+          patchTurn(id, (turn) => {
+            const existing = turn.steps.findIndex((s) => s.id === step.id);
+            const steps =
+              existing >= 0
+                ? turn.steps.map((s, i) => (i === existing ? step : s))
+                : [
+                    // A new step becoming active implies earlier steps are done.
+                    ...turn.steps.map((s) =>
+                      s.state === "active"
+                        ? { ...s, state: "done" as const }
+                        : s,
+                    ),
+                    step,
+                  ];
+            return { ...turn, steps };
+          }),
+        onToken: (content) =>
+          patchTurn(id, (turn) => ({
+            ...turn,
+            streamedText: turn.streamedText + content,
+          })),
+      },
+      controller.signal,
+    )
+      .then((result) =>
+        patchTurn(id, (turn) => ({
+          ...turn,
+          result,
+          pending: false,
+          steps: turn.steps.map((s) => ({ ...s, state: "done" as const })),
+        })),
+      )
+      .catch(() =>
+        patchTurn(id, (turn) => ({ ...turn, failed: true, pending: false })),
+      );
   };
 
   return (
@@ -986,6 +1142,7 @@ function KpiChat({
                     {turn.question}
                   </Text2>
                 </div>
+                <KpiStepTrail steps={turn.steps} pending={turn.pending} />
                 {turn.failed ? (
                   <div
                     style={{
@@ -1009,14 +1166,28 @@ function KpiChat({
                   </div>
                 ) : turn.result ? (
                   <KpiAnswerBlock result={turn.result} />
-                ) : (
+                ) : turn.streamedText ? (
+                  // The model's own text deltas, replaced by the final
+                  // renumbered answer when the result event lands.
+                  <Stack space={8}>
+                    {turn.streamedText.split("\n").map((p, i) => (
+                      <Text2
+                        key={i}
+                        regular
+                        color={skinVars.colors.textPrimary}
+                      >
+                        {p}
+                      </Text2>
+                    ))}
+                  </Stack>
+                ) : turn.steps.length === 0 ? (
                   <Inline space={12} alignItems="center">
                     <Spinner size={20} />
                     <Text2 medium color={skinVars.colors.textPrimary}>
                       {t.readingEvidence}
                     </Text2>
                   </Inline>
-                )}
+                ) : null}
               </div>
             ))}
           </Stack>
@@ -1428,7 +1599,12 @@ function DetailDrawerBody({
             padding: 16,
           }}
         >
-          <KpiChat kpiIds={[kpi.id]} rangeFrom={rangeFrom} rangeTo={rangeTo} />
+          <KpiChat
+            kpiIds={[kpi.id]}
+            rangeFrom={rangeFrom}
+            rangeTo={rangeTo}
+            period={kpi.periodType}
+          />
         </div>
       </div>
 
@@ -2061,6 +2237,7 @@ export default function KpisPage() {
                       kpiIds={visibleKpiIds}
                       rangeFrom={activeRangeFrom}
                       rangeTo={activeRangeTo}
+                      period={period}
                       heading={t.chatViewHeading}
                       intro={t.chatViewIntro}
                       placeholder={t.chatViewPlaceholder}
