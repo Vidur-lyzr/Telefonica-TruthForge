@@ -306,7 +306,7 @@ export async function runPlanningAskAgent(
     id: "scope",
     label: "Resolving persona scope",
     state: "done",
-    detail: `${role.label} — cleared for "${role.clearance}", area "${role.area}"`,
+    detail: `${role.label} — cleared for "${role.clearance}", area "${role.area ?? "all areas"}"`,
   });
 
   emit({

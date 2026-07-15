@@ -38,7 +38,7 @@ import {
 
 const router: IRouter = Router();
 
-function clearanceForRole(roleId: string): { clearance: Clearance; area: Area } {
+function clearanceForRole(roleId: string): { clearance: Clearance; area: Area | null } {
   const role = ROLES.find((r) => r.id === roleId) ?? ROLES[0];
   return { clearance: role.clearance, area: role.area };
 }

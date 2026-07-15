@@ -133,7 +133,14 @@ export const AskResponse = zod.object({
   "used": zod.boolean(),
   "detail": zod.string().nullish()
 })).optional(),
-  "attachmentAck": zod.string().nullish()
+  "attachmentAck": zod.string().nullish(),
+  "externalSources": zod.array(zod.object({
+  "title": zod.string(),
+  "source": zod.string().describe('Outlet \/ publisher name'),
+  "url": zod.string().nullable(),
+  "date": zod.string().nullish(),
+  "excerpt": zod.string()
+})).optional().describe('External web coverage collected server-side while the agent used its web_search tool (Perplexity). Ungoverned B-channel material — shown separately, never counted as governed citations and never used for numeric facts.\n')
 })
 
 
@@ -170,7 +177,7 @@ export const ListRolesResponseItem = zod.object({
   "name": zod.string().describe('Fictional person name for the demo persona'),
   "label": zod.string(),
   "clearance": zod.string().describe('public | private | confidential | off_the_record'),
-  "area": zod.string(),
+  "area": zod.string().nullable().describe('Organisational area; null = cross-area (the super user persona sees every area)'),
   "description": zod.string()
 })
 export const ListRolesResponse = zod.array(ListRolesResponseItem)
@@ -667,6 +674,84 @@ export const GetUsageMeterResponse = zod.object({
 
 
 /**
+ * Reads agent.yaml, the skill catalog and the .gitagent session state from the agent repo directory at request time. Nothing is hardcoded; this is the same brain the Ask chat runs on.
+ * @summary The live GitAgent identity, parsed from the real agent repo on disk
+ */
+export const GetAgentOverviewResponse = zod.object({
+  "name": zod.string(),
+  "version": zod.string(),
+  "specVersion": zod.string().describe('GAP (GitAgent Protocol) spec_version from agent.yaml'),
+  "description": zod.string(),
+  "model": zod.object({
+  "preferred": zod.string(),
+  "temperature": zod.number(),
+  "maxTokens": zod.number()
+}),
+  "runtime": zod.object({
+  "maxTurns": zod.number(),
+  "timeoutSeconds": zod.number(),
+  "disallowedTools": zod.array(zod.string()).describe('Tools the runtime refuses to the answering agent (it must never shell out or mutate its repo mid-answer)'),
+  "permissionBinding": zod.string(),
+  "citationRequired": zod.boolean(),
+  "honestStates": zod.array(zod.string()),
+  "trace": zod.string()
+}),
+  "skills": zod.array(zod.object({
+  "id": zod.string(),
+  "loadWhen": zod.string().nullable().describe('Routing hint from the SKILLS.md catalog'),
+  "bodyPath": zod.string()
+})),
+  "brainDir": zod.string().describe('The agent repo directory (relative to the server)'),
+  "session": zod.union([zod.object({
+  "sessionId": zod.string(),
+  "startedAt": zod.string()
+}),zod.null()])
+})
+
+
+/**
+ * Serialised from the same GCToolDefinition objects the ask pipeline injects per run (name, description, input schema), plus the tools declared in agent.yaml — not a parallel hand-written list.
+ * @summary The real tool catalog the runtime binds into the agent
+ */
+export const GetAgentToolsResponse = zod.object({
+  "tools": zod.array(zod.object({
+  "name": zod.string(),
+  "description": zod.string(),
+  "origin": zod.string().describe('declared (in agent.yaml) | injected (bound per run with the persona\'s resolved scope)'),
+  "inputSchema": zod.record(zod.string(), zod.unknown()).optional()
+}))
+})
+
+
+/**
+ * @summary Flat file listing of the GitAgent repo (tree is built client-side)
+ */
+export const ListAgentFilesResponse = zod.object({
+  "rootLabel": zod.string().describe('Display label for the repo root, e.g. agent\/'),
+  "files": zod.array(zod.object({
+  "path": zod.string().describe('Relative path inside the agent repo'),
+  "size": zod.number()
+}))
+})
+
+
+/**
+ * @summary Read one file from the GitAgent repo (super-user personas only)
+ */
+export const GetAgentFileQueryParams = zod.object({
+  "path": zod.coerce.string().describe('Relative path inside the agent repo, as returned by listAgentFiles'),
+  "roleId": zod.coerce.string()
+})
+
+export const GetAgentFileResponse = zod.object({
+  "path": zod.string(),
+  "size": zod.number(),
+  "content": zod.string(),
+  "truncated": zod.boolean()
+})
+
+
+/**
  * @summary Current taxonomy configuration version and applied version history
  */
 export const GetTaxonomyStateResponse = zod.object({
@@ -1101,7 +1186,14 @@ export const AskKpisResponse = zod.object({
   "used": zod.boolean(),
   "detail": zod.string().nullish()
 })).optional(),
-  "attachmentAck": zod.string().nullish()
+  "attachmentAck": zod.string().nullish(),
+  "externalSources": zod.array(zod.object({
+  "title": zod.string(),
+  "source": zod.string().describe('Outlet \/ publisher name'),
+  "url": zod.string().nullable(),
+  "date": zod.string().nullish(),
+  "excerpt": zod.string()
+})).optional().describe('External web coverage collected server-side while the agent used its web_search tool (Perplexity). Ungoverned B-channel material — shown separately, never counted as governed citations and never used for numeric facts.\n')
 })
 
 

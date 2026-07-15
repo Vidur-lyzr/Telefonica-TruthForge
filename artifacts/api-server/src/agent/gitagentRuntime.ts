@@ -17,8 +17,13 @@ import { query, tool, type GCToolDefinition } from "@open-gitagent/gitagent";
 export { tool };
 export type { GCToolDefinition };
 
-const AGENT_DIR =
+export const AGENT_DIR =
   process.env.HUBSSOT_AGENT_DIR ?? path.resolve(process.cwd(), "agent");
+
+// The answering agent must never shell out or mutate its own repo mid-answer.
+// Single source of truth: runAgent enforces this list and the admin Agent page
+// reports the same one.
+export const DISALLOWED_TOOLS = ["cli", "write", "memory"] as const;
 
 export const AGENT_MODEL = "anthropic:claude-sonnet-4-6";
 
@@ -119,7 +124,7 @@ export async function runAgent(input: AgentRunInput): Promise<AgentRunResult> {
     systemPromptSuffix: input.systemPromptSuffix,
     tools: input.tools ?? [],
     // The answering agent must not shell out or mutate the repo mid-answer.
-    disallowedTools: ["cli", "write", "memory"],
+    disallowedTools: [...DISALLOWED_TOOLS],
     maxTurns: input.maxTurns ?? 6,
   })) {
     switch (msg.type) {

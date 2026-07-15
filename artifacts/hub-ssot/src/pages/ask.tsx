@@ -1750,6 +1750,64 @@ function AnswerCard({
             </Stack>
           )}
 
+          {result.externalSources && result.externalSources.length > 0 && (
+            <Stack space={12}>
+              <Divider />
+              <Inline space={8} alignItems="center">
+                <IconWorldDeviceRegular
+                  size={16}
+                  color={skinVars.colors.textSecondary}
+                />
+                <Text1
+                  medium
+                  color={skinVars.colors.textSecondary}
+                  transform="uppercase"
+                >
+                  {t.answer.externalCoverage}
+                </Text1>
+              </Inline>
+              <Text1 regular color={skinVars.colors.textSecondary}>
+                {t.answer.externalCoverageNote}
+              </Text1>
+              <Stack space={8}>
+                {result.externalSources.map((src, i) => (
+                  <Boxed key={`ext-${i}`}>
+                    <Box padding={16}>
+                      <Stack space={4}>
+                        {src.url ? (
+                          <a
+                            href={src.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              color: skinVars.colors.textLink,
+                              textDecoration: "none",
+                            }}
+                          >
+                            <Text2 medium color={skinVars.colors.textLink}>
+                              {src.title}
+                            </Text2>
+                          </a>
+                        ) : (
+                          <Text2 medium color={skinVars.colors.textPrimary}>
+                            {src.title}
+                          </Text2>
+                        )}
+                        <Text1 regular color={skinVars.colors.textSecondary}>
+                          {src.source}
+                          {src.date ? ` · ${src.date}` : ""}
+                        </Text1>
+                        <Text2 regular color={skinVars.colors.textSecondary}>
+                          {src.excerpt}
+                        </Text2>
+                      </Stack>
+                    </Box>
+                  </Boxed>
+                ))}
+              </Stack>
+            </Stack>
+          )}
+
           {result.citations.length > 0 && (
             <Stack space={12}>
               <Divider />

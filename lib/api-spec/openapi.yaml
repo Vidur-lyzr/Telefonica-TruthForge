@@ -437,6 +437,105 @@ paths:
               schema:
                 $ref: "#/components/schemas/UsageMeter"
 
+  /admin/agent/overview:
+    get:
+      operationId: getAgentOverview
+      tags: [admin]
+      summary: The live GitAgent identity, parsed from the real agent repo on disk
+      description: >
+        Reads agent.yaml, the skill catalog and the .gitagent session state from
+        the agent repo directory at request time. Nothing is hardcoded; this is
+        the same brain the Ask chat runs on.
+      responses:
+        "200":
+          description: Agent overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentOverview"
+
+  /admin/agent/tools:
+    get:
+      operationId: getAgentTools
+      tags: [admin]
+      summary: The real tool catalog the runtime binds into the agent
+      description: >
+        Serialised from the same GCToolDefinition objects the ask pipeline
+        injects per run (name, description, input schema), plus the tools
+        declared in agent.yaml — not a parallel hand-written list.
+      responses:
+        "200":
+          description: Tool catalog
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tools]
+                properties:
+                  tools:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AgentTool"
+
+  /admin/agent/files:
+    get:
+      operationId: listAgentFiles
+      tags: [admin]
+      summary: Flat file listing of the GitAgent repo (tree is built client-side)
+      responses:
+        "200":
+          description: File listing
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [rootLabel, files]
+                properties:
+                  rootLabel:
+                    type: string
+                    description: Display label for the repo root, e.g. agent/
+                  files:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AgentFileEntry"
+
+  /admin/agent/file:
+    get:
+      operationId: getAgentFile
+      tags: [admin]
+      summary: Read one file from the GitAgent repo (super-user personas only)
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Relative path inside the agent repo, as returned by listAgentFiles
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentFileContent"
+        "403":
+          description: Persona lacks agent-repo access (code agent_repo_restricted)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: File not found or not readable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /governance/taxonomy:
     get:
       operationId: getTaxonomyState
@@ -2829,6 +2928,31 @@ components:
             $ref: "#/components/schemas/RetrievalMode"
         attachmentAck:
           type: ["string", "null"]
+        externalSources:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExternalWebSource"
+          description: >
+            External web coverage collected server-side while the agent used its
+            web_search tool (Perplexity). Ungoverned B-channel material — shown
+            separately, never counted as governed citations and never used for
+            numeric facts.
+
+    ExternalWebSource:
+      type: object
+      required: [title, source, url, excerpt]
+      properties:
+        title:
+          type: string
+        source:
+          type: string
+          description: Outlet / publisher name
+        url:
+          type: ["string", "null"]
+        date:
+          type: ["string", "null"]
+        excerpt:
+          type: string
 
     SuggestedNext:
       type: object
@@ -3291,9 +3415,124 @@ components:
           type: string
           description: public | private | confidential | off_the_record
         area:
+          type: ["string", "null"]
+          description: Organisational area; null = cross-area (the super user persona sees every area)
+        description:
+          type: string
+
+    AgentOverview:
+      type: object
+      required: [name, version, specVersion, description, model, runtime, skills, brainDir, session]
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+        specVersion:
+          type: string
+          description: GAP (GitAgent Protocol) spec_version from agent.yaml
+        description:
+          type: string
+        model:
+          type: object
+          required: [preferred, temperature, maxTokens]
+          properties:
+            preferred:
+              type: string
+            temperature:
+              type: number
+            maxTokens:
+              type: integer
+        runtime:
+          type: object
+          required: [maxTurns, timeoutSeconds, disallowedTools, permissionBinding, citationRequired, honestStates, trace]
+          properties:
+            maxTurns:
+              type: integer
+            timeoutSeconds:
+              type: integer
+            disallowedTools:
+              type: array
+              items:
+                type: string
+              description: Tools the runtime refuses to the answering agent (it must never shell out or mutate its repo mid-answer)
+            permissionBinding:
+              type: string
+            citationRequired:
+              type: boolean
+            honestStates:
+              type: array
+              items:
+                type: string
+            trace:
+              type: string
+        skills:
+          type: array
+          items:
+            type: object
+            required: [id, bodyPath, loadWhen]
+            properties:
+              id:
+                type: string
+              loadWhen:
+                type: ["string", "null"]
+                description: Routing hint from the SKILLS.md catalog
+              bodyPath:
+                type: string
+        brainDir:
+          type: string
+          description: The agent repo directory (relative to the server)
+        session:
+          oneOf:
+            - $ref: "#/components/schemas/AgentSession"
+            - type: "null"
+
+    AgentSession:
+      type: object
+      required: [sessionId, startedAt]
+      properties:
+        sessionId:
+          type: string
+        startedAt:
+          type: string
+
+    AgentTool:
+      type: object
+      required: [name, description, origin]
+      properties:
+        name:
           type: string
         description:
           type: string
+        origin:
+          type: string
+          description: declared (in agent.yaml) | injected (bound per run with the persona's resolved scope)
+        inputSchema:
+          type: object
+          additionalProperties: true
+
+    AgentFileEntry:
+      type: object
+      required: [path, size]
+      properties:
+        path:
+          type: string
+          description: Relative path inside the agent repo
+        size:
+          type: integer
+
+    AgentFileContent:
+      type: object
+      required: [path, size, content, truncated]
+      properties:
+        path:
+          type: string
+        size:
+          type: integer
+        content:
+          type: string
+        truncated:
+          type: boolean
 
     CorpusDocument:
       type: object

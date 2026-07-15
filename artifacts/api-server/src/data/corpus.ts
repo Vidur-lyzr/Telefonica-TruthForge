@@ -37,7 +37,9 @@ export interface Role {
   name: string;
   label: string;
   clearance: Clearance;
-  area: Area;
+  // null = cross-area super user: not area-scoped, sees every area at their
+  // clearance. resolveDocAccess treats a null subject area as "no area gate".
+  area: Area | null;
   description: string;
 }
 
@@ -367,7 +369,20 @@ export const ROLES: Role[] = [
     area: "Gabinete",
     description: "Full clearance, including board-restricted material.",
   },
+  {
+    id: "role-superuser",
+    name: "Lucía Navarro",
+    label: "Platform Owner · Super User",
+    clearance: "off_the_record",
+    area: null,
+    description:
+      "Cross-area super user: every area at full clearance, plus exclusive access to the agent's own repository files.",
+  },
 ];
+
+// Personas allowed to read the GitAgent repo file CONTENTS in the Admin →
+// Agent tab. Server-enforced; everyone else sees the tree but not the bytes.
+export const AGENT_REPO_ROLE_IDS: ReadonlySet<string> = new Set(["role-superuser"]);
 
 export const DOCS: CorpusDoc[] = [
   {

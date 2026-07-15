@@ -73,7 +73,8 @@ function visible<T extends { clearance: Clearance; areas?: Area[] }>(
 function areaFor(roleId?: string, area?: Area): Area | undefined {
   if (area) return area;
   const role = roleId ? ROLES.find((r) => r.id === roleId) : undefined;
-  return role?.area;
+  // A null role area (cross-area super user) means "no area filter".
+  return role?.area ?? undefined;
 }
 
 // Corpus docs carry `confidentiality` rather than `clearance`. Optionally scope

@@ -505,6 +505,17 @@ export interface RetrievalMode {
   detail?: string | null;
 }
 
+export interface ExternalWebSource {
+  title: string;
+  /** Outlet / publisher name */
+  source: string;
+  /** @nullable */
+  url: string | null;
+  /** @nullable */
+  date?: string | null;
+  excerpt: string;
+}
+
 export interface AskResult {
   /** answered | no_evidence | permission_blocked | conflict */
   status: string;
@@ -548,6 +559,8 @@ export interface AskResult {
   retrievalModes?: RetrievalMode[];
   /** @nullable */
   attachmentAck?: string | null;
+  /** External web coverage collected server-side while the agent used its web_search tool (Perplexity). Ungoverned B-channel material — shown separately, never counted as governed citations and never used for numeric facts. */
+  externalSources?: ExternalWebSource[];
 }
 
 export interface ModuleUsage {
@@ -745,8 +758,81 @@ export interface Role {
   label: string;
   /** public | private | confidential | off_the_record */
   clearance: string;
-  area: string;
+  /**
+     * Organisational area; null = cross-area (the super user persona sees every area)
+     * @nullable
+     */
+  area: string | null;
   description: string;
+}
+
+export type AgentOverviewModel = {
+  preferred: string;
+  temperature: number;
+  maxTokens: number;
+};
+
+export type AgentOverviewRuntime = {
+  maxTurns: number;
+  timeoutSeconds: number;
+  /** Tools the runtime refuses to the answering agent (it must never shell out or mutate its repo mid-answer) */
+  disallowedTools: string[];
+  permissionBinding: string;
+  citationRequired: boolean;
+  honestStates: string[];
+  trace: string;
+};
+
+export type AgentOverviewSkillsItem = {
+  id: string;
+  /**
+     * Routing hint from the SKILLS.md catalog
+     * @nullable
+     */
+  loadWhen: string | null;
+  bodyPath: string;
+};
+
+export interface AgentSession {
+  sessionId: string;
+  startedAt: string;
+}
+
+export interface AgentOverview {
+  name: string;
+  version: string;
+  /** GAP (GitAgent Protocol) spec_version from agent.yaml */
+  specVersion: string;
+  description: string;
+  model: AgentOverviewModel;
+  runtime: AgentOverviewRuntime;
+  skills: AgentOverviewSkillsItem[];
+  /** The agent repo directory (relative to the server) */
+  brainDir: string;
+  session: AgentSession | null;
+}
+
+export type AgentToolInputSchema = { [key: string]: unknown };
+
+export interface AgentTool {
+  name: string;
+  description: string;
+  /** declared (in agent.yaml) | injected (bound per run with the persona's resolved scope) */
+  origin: string;
+  inputSchema?: AgentToolInputSchema;
+}
+
+export interface AgentFileEntry {
+  /** Relative path inside the agent repo */
+  path: string;
+  size: number;
+}
+
+export interface AgentFileContent {
+  path: string;
+  size: number;
+  content: string;
+  truncated: boolean;
 }
 
 /**
@@ -2739,6 +2825,24 @@ docId?: string;
 roleId?: string;
 limit?: number;
 offset?: number;
+};
+
+export type GetAgentTools200 = {
+  tools: AgentTool[];
+};
+
+export type ListAgentFiles200 = {
+  /** Display label for the repo root, e.g. agent/ */
+  rootLabel: string;
+  files: AgentFileEntry[];
+};
+
+export type GetAgentFileParams = {
+/**
+ * Relative path inside the agent repo, as returned by listAgentFiles
+ */
+path: string;
+roleId: string;
 };
 
 export type GetPlanningOverviewParams = {

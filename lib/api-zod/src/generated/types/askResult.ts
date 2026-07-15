@@ -7,6 +7,7 @@
  */
 import type { AskDocumentSummary } from './askDocumentSummary';
 import type { Citation } from './citation';
+import type { ExternalWebSource } from './externalWebSource';
 import type { GraphEntity } from './graphEntity';
 import type { NumericFact } from './numericFact';
 import type { RetrievalMode } from './retrievalMode';
@@ -55,4 +56,6 @@ export interface AskResult {
   retrievalModes?: RetrievalMode[];
   /** @nullable */
   attachmentAck?: string | null;
+  /** External web coverage collected server-side while the agent used its web_search tool (Perplexity). Ungoverned B-channel material — shown separately, never counted as governed citations and never used for numeric facts. */
+  externalSources?: ExternalWebSource[];
 }

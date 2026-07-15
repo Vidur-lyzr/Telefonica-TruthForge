@@ -1,4 +1,13 @@
+import fs from "node:fs";
+import path from "node:path";
 import { Router, type IRouter } from "express";
+import YAML from "yaml";
+import {
+  GetAgentOverviewResponse,
+  GetAgentToolsResponse,
+  ListAgentFilesResponse,
+  GetAgentFileResponse,
+} from "@workspace/api-zod";
 import {
   ListAdminProfilesResponse,
   ListPlatformUsersResponse,
@@ -22,7 +31,13 @@ import {
   DOCS,
   getDoc,
   resolveScheduleStatus,
+  AGENT_REPO_ROLE_IDS,
 } from "../data/corpus";
+import {
+  AGENT_DIR,
+  DISALLOWED_TOOLS,
+} from "../agent/gitagentRuntime";
+import { describeGovernedTools } from "../agent/askAgent";
 import { resolveDocAccess } from "../data/governance";
 import { queryRetrievalLog } from "../data/retrievalLog";
 import {
@@ -172,6 +187,235 @@ router.post("/admin/source-sync/run", async (req, res) => {
     "source-sync: batch run",
   );
   res.json(RunSourceSyncResponse.parse(getSourceSyncState()));
+});
+
+// ---------------------------------------------------------------------------
+// Agent transparency endpoints. Everything below is read AT REQUEST TIME from
+// the real GitAgent repo on disk (agent.yaml, SKILLS.md, .gitagent/state.json)
+// and from the same tool factory the ask pipeline binds per run — nothing is
+// a hardcoded parallel copy.
+// ---------------------------------------------------------------------------
+
+// Only these extensions are listable/readable from the agent repo.
+const AGENT_FILE_EXTENSIONS = new Set([".md", ".yaml", ".yml", ".json"]);
+const AGENT_FILE_MAX_CHARS = 60_000;
+
+interface AgentYaml {
+  spec_version?: string;
+  name?: string;
+  version?: string;
+  description?: string;
+  model?: {
+    preferred?: string;
+    constraints?: { temperature?: number; max_tokens?: number };
+  };
+  tools?: string[];
+  skills?: string[];
+  runtime?: { max_turns?: number; timeout?: number };
+  metadata?: {
+    permission_binding?: string;
+    citation_required?: boolean;
+    honest_states?: string;
+    trace?: string;
+  };
+}
+
+function readAgentYaml(): AgentYaml {
+  const raw = fs.readFileSync(path.join(AGENT_DIR, "agent.yaml"), "utf8");
+  return YAML.parse(raw) as AgentYaml;
+}
+
+// Pull the "Load when the user…" routing hints out of the real SKILLS.md
+// catalog table, keyed by skill id.
+function readSkillCatalogHints(): Map<string, string> {
+  const hints = new Map<string, string>();
+  let raw = "";
+  try {
+    raw = fs.readFileSync(path.join(AGENT_DIR, "skills", "SKILLS.md"), "utf8");
+  } catch {
+    return hints;
+  }
+  for (const line of raw.split("\n")) {
+    const m = line.match(/^\|\s*`([^`]+)`\s*\|\s*([^|]+)\|/);
+    if (m) hints.set(m[1].trim(), m[2].trim());
+  }
+  return hints;
+}
+
+function listAgentRepoFiles(): { path: string; size: number }[] {
+  const out: { path: string; size: number }[] = [];
+  const walk = (dir: string) => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      // lstat-based: symlinks are never followed, in or out of the repo.
+      let st: fs.Stats;
+      try {
+        st = fs.lstatSync(full);
+      } catch {
+        continue;
+      }
+      if (st.isSymbolicLink()) continue;
+      if (st.isDirectory()) {
+        walk(full);
+        continue;
+      }
+      if (!st.isFile()) continue;
+      if (!AGENT_FILE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) continue;
+      out.push({
+        path: path.relative(AGENT_DIR, full).split(path.sep).join("/"),
+        size: st.size,
+      });
+    }
+  };
+  walk(AGENT_DIR);
+  out.sort((a, b) => a.path.localeCompare(b.path));
+  return out;
+}
+
+router.get("/admin/agent/overview", (req, res) => {
+  try {
+    const y = readAgentYaml();
+    const hints = readSkillCatalogHints();
+    let session: { sessionId: string; startedAt: string } | null = null;
+    try {
+      const state = JSON.parse(
+        fs.readFileSync(path.join(AGENT_DIR, ".gitagent", "state.json"), "utf8"),
+      ) as { session_id?: string; started_at?: string };
+      if (state.session_id && state.started_at) {
+        session = { sessionId: state.session_id, startedAt: state.started_at };
+      }
+    } catch {
+      session = null;
+    }
+    const overview = {
+      name: y.name ?? "unknown",
+      version: y.version ?? "0.0.0",
+      specVersion: y.spec_version ?? "unknown",
+      description: y.description ?? "",
+      model: {
+        preferred: y.model?.preferred ?? "unknown",
+        temperature: y.model?.constraints?.temperature ?? 0,
+        maxTokens: y.model?.constraints?.max_tokens ?? 0,
+      },
+      runtime: {
+        maxTurns: y.runtime?.max_turns ?? 0,
+        timeoutSeconds: y.runtime?.timeout ?? 0,
+        disallowedTools: [...DISALLOWED_TOOLS],
+        permissionBinding: y.metadata?.permission_binding ?? "unknown",
+        citationRequired: y.metadata?.citation_required ?? false,
+        honestStates: (y.metadata?.honest_states ?? "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        trace: y.metadata?.trace ?? "unknown",
+      },
+      skills: (y.skills ?? []).map((id) => ({
+        id,
+        loadWhen: hints.get(id) ?? null,
+        bodyPath: `skills/${id}/SKILL.md`,
+      })),
+      brainDir: `${path.relative(process.cwd(), AGENT_DIR) || "agent"}/`,
+      session,
+    };
+    res.json(GetAgentOverviewResponse.parse(overview));
+  } catch (err) {
+    req.log.error({ err }, "admin: agent overview failed");
+    res.status(500).json({ error: "Could not read the agent repo." });
+  }
+});
+
+router.get("/admin/agent/tools", (req, res) => {
+  try {
+    const y = readAgentYaml();
+    const declared = (y.tools ?? []).map((name) => ({
+      name,
+      description:
+        name === "read"
+          ? "Read files from the agent repo (skill bodies, knowledge, memory). Declared in agent.yaml; bodies lazy-load on demand."
+          : "Declared in agent.yaml.",
+      origin: "declared",
+    }));
+    const injected = describeGovernedTools().map((t) => ({
+      name: t.name,
+      description: t.description,
+      origin: "injected",
+      inputSchema: t.inputSchema,
+    }));
+    res.json(GetAgentToolsResponse.parse({ tools: [...declared, ...injected] }));
+  } catch (err) {
+    req.log.error({ err }, "admin: agent tools failed");
+    res.status(500).json({ error: "Could not read the agent tool catalog." });
+  }
+});
+
+router.get("/admin/agent/files", (req, res) => {
+  try {
+    res.json(
+      ListAgentFilesResponse.parse({
+        rootLabel: `${path.relative(process.cwd(), AGENT_DIR) || "agent"}/`,
+        files: listAgentRepoFiles(),
+      }),
+    );
+  } catch (err) {
+    req.log.error({ err }, "admin: agent files failed");
+    res.status(500).json({ error: "Could not list the agent repo." });
+  }
+});
+
+router.get("/admin/agent/file", (req, res) => {
+  const roleId = String(req.query.roleId ?? "");
+  const rel = String(req.query.path ?? "");
+  if (!AGENT_REPO_ROLE_IDS.has(roleId)) {
+    res.status(403).json({
+      error:
+        "Reading the agent repo is restricted to super-user personas. Switch to a platform-owner persona to inspect the agent's brain files.",
+      code: "agent_repo_restricted",
+    });
+    return;
+  }
+  // Path safety: relative, normalised, resolved inside AGENT_DIR, no symlinks,
+  // whitelisted extension, size-capped.
+  if (!rel || path.isAbsolute(rel) || rel.split(/[\\/]/).includes("..")) {
+    res.status(404).json({ error: "File not found.", code: "agent_file_not_found" });
+    return;
+  }
+  const full = path.resolve(AGENT_DIR, rel);
+  if (full !== AGENT_DIR && !full.startsWith(AGENT_DIR + path.sep)) {
+    res.status(404).json({ error: "File not found.", code: "agent_file_not_found" });
+    return;
+  }
+  if (!AGENT_FILE_EXTENSIONS.has(path.extname(full).toLowerCase())) {
+    res.status(404).json({ error: "File not found.", code: "agent_file_not_found" });
+    return;
+  }
+  let st: fs.Stats;
+  try {
+    st = fs.lstatSync(full);
+  } catch {
+    res.status(404).json({ error: "File not found.", code: "agent_file_not_found" });
+    return;
+  }
+  if (st.isSymbolicLink() || !st.isFile()) {
+    res.status(404).json({ error: "File not found.", code: "agent_file_not_found" });
+    return;
+  }
+  const raw = fs.readFileSync(full, "utf8");
+  const truncated = raw.length > AGENT_FILE_MAX_CHARS;
+  req.log.info({ roleId, path: rel, truncated }, "admin: agent file read");
+  res.json(
+    GetAgentFileResponse.parse({
+      path: rel.split(path.sep).join("/"),
+      size: st.size,
+      content: truncated ? raw.slice(0, AGENT_FILE_MAX_CHARS) : raw,
+      truncated,
+    }),
+  );
 });
 
 export default router;

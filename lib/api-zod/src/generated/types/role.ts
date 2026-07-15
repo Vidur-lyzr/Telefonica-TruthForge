@@ -13,6 +13,10 @@ export interface Role {
   label: string;
   /** public | private | confidential | off_the_record */
   clearance: string;
-  area: string;
+  /**
+     * Organisational area; null = cross-area (the super user persona sees every area)
+     * @nullable
+     */
+  area: string | null;
   description: string;
 }

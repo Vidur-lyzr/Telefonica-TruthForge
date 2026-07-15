@@ -44,6 +44,172 @@ function filterTerms(filter: LiveIngestFilter): string[] {
 
 const SENTIMENTS: CandidateSentiment[] = ["positive", "negative", "mixed", "neutral"];
 
+// ---------------------------------------------------------------------------
+// Ad-hoc web search for the Ask agent's web_search tool.
+//
+// Unlike perplexitySearch (the Live Ingest pre-ingest filter), this is a plain
+// topical query. Results are UNGOVERNED external material: the caller must
+// keep them out of governed citations and numeric facts. Excerpts are
+// sanitised here — citation-marker-like patterns are stripped so a web page
+// can never smuggle a fake [S1] marker into the model's context.
+// ---------------------------------------------------------------------------
+
+export interface WebSearchResult {
+  title: string;
+  source: string;
+  url: string | null;
+  date: string | null;
+  excerpt: string;
+}
+
+const WEB_SEARCH_MAX_RESULTS = 5;
+const WEB_SEARCH_TIMEOUT_MS = 20_000;
+
+// Strip anything that looks like a governed citation marker ([S1], [S2, S3],
+// [ s4 ]…) plus stray bracketed reference numbers, so external text cannot
+// impersonate governed evidence.
+function stripCitationLikeMarkers(text: string): string {
+  return text
+    .replace(/\[\s*S\s*\d+[^\]]*\]/gi, "")
+    .replace(/\[\d+(?:\s*,\s*\d+)*\]/g, "")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+export async function perplexityWebSearch(query: string): Promise<WebSearchResult[]> {
+  const apiKey = process.env.PERPLEXITY_API_KEY;
+  if (!apiKey) throw new Error("PERPLEXITY_API_KEY is not configured");
+  const q = query.trim();
+  if (!q) return [];
+
+  // Structured output: sonar ignores plain "return only JSON" instructions and
+  // answers in prose with [1][2] citation markers, so the schema is enforced by
+  // the API itself. The raw search_results metadata is kept as a fallback.
+  const res = await fetch("https://api.perplexity.ai/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "sonar",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a web research assistant. Return recent, reputable public web coverage items. " +
+            "For each item: title, source (outlet/site name), url, date (ISO if known) and a 2-3 sentence factual excerpt. " +
+            `Return at most ${WEB_SEARCH_MAX_RESULTS} items. If nothing relevant exists, return an empty results array.`,
+        },
+        {
+          role: "user",
+          content: `Find recent, reputable public web coverage for: ${q}`,
+        },
+      ],
+      temperature: 0.1,
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          schema: {
+            type: "object",
+            properties: {
+              results: {
+                type: "array",
+                maxItems: WEB_SEARCH_MAX_RESULTS,
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    source: { type: "string" },
+                    url: { type: ["string", "null"] },
+                    date: { type: ["string", "null"] },
+                    excerpt: { type: "string" },
+                  },
+                  required: ["title", "source", "excerpt"],
+                },
+              },
+            },
+            required: ["results"],
+          },
+        },
+      },
+    }),
+    signal: AbortSignal.timeout(WEB_SEARCH_TIMEOUT_MS),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Perplexity web search failed (${res.status}): ${text.slice(0, 200)}`);
+  }
+  const json = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+    search_results?: {
+      title?: string;
+      url?: string;
+      date?: string;
+      snippet?: string;
+    }[];
+  };
+  const content = json.choices?.[0]?.message?.content ?? "";
+
+  let raw: unknown[] = [];
+  try {
+    const parsed = JSON.parse(content) as { results?: unknown };
+    if (Array.isArray(parsed)) raw = parsed;
+    else if (parsed && Array.isArray((parsed as { results?: unknown }).results)) {
+      raw = (parsed as { results: unknown[] }).results;
+    }
+  } catch {
+    raw = [];
+  }
+
+  const results: WebSearchResult[] = [];
+  for (const item of raw) {
+    if (results.length >= WEB_SEARCH_MAX_RESULTS) break;
+    if (typeof item !== "object" || item === null) continue;
+    const o = item as Record<string, unknown>;
+    const title = stripCitationLikeMarkers(typeof o.title === "string" ? o.title : "");
+    const excerpt = stripCitationLikeMarkers(
+      typeof o.excerpt === "string" ? o.excerpt : "",
+    ).slice(0, 500);
+    if (!title || !excerpt) continue;
+    results.push({
+      title,
+      source:
+        typeof o.source === "string" && o.source.trim() ? o.source.trim() : "Unknown outlet",
+      url: typeof o.url === "string" && o.url.trim() ? o.url.trim() : null,
+      date: typeof o.date === "string" && o.date.trim() ? o.date.trim() : null,
+      excerpt,
+    });
+  }
+  if (results.length > 0) return results;
+
+  // Fallback: the API's own search_results metadata (title/url/date/snippet)
+  // still gives honest external pointers when the model's JSON is unusable.
+  for (const item of json.search_results ?? []) {
+    if (results.length >= WEB_SEARCH_MAX_RESULTS) break;
+    const title = stripCitationLikeMarkers(item.title ?? "");
+    const excerpt = stripCitationLikeMarkers(item.snippet ?? "").slice(0, 500);
+    if (!title || !excerpt) continue;
+    let source = "Unknown outlet";
+    if (item.url) {
+      try {
+        source = new URL(item.url).hostname.replace(/^www\./, "");
+      } catch {
+        source = "Unknown outlet";
+      }
+    }
+    results.push({
+      title,
+      source,
+      url: item.url?.trim() ? item.url.trim() : null,
+      date: item.date?.trim() ? item.date.trim() : null,
+      excerpt,
+    });
+  }
+  return results;
+}
+
 export async function perplexitySearch(filter: LiveIngestFilter): Promise<LiveCandidate[]> {
   const apiKey = process.env.PERPLEXITY_API_KEY;
   if (!apiKey) throw new Error("PERPLEXITY_API_KEY is not configured");

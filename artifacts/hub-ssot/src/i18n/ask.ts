@@ -63,6 +63,8 @@ export interface AskStrings {
     saveInsight: string;
     drillIntoData: string;
     suggestedNext: string;
+    externalCoverage: string;
+    externalCoverageNote: string;
   };
   validity: Record<string, string>;
   evidence: {
@@ -182,6 +184,9 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       saveInsight: "Save insight",
       drillIntoData: "Drill into Data",
       suggestedNext: "Suggested next",
+      externalCoverage: "External web coverage",
+      externalCoverageNote:
+        "Ungoverned public sources — context only, never cited evidence.",
     },
     validity: {
       approved: "Approved",
@@ -308,6 +313,9 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       saveInsight: "Guardar idea",
       drillIntoData: "Explorar en el Centro de datos",
       suggestedNext: "Siguiente sugerido",
+      externalCoverage: "Cobertura web externa",
+      externalCoverageNote:
+        "Fuentes públicas no gobernadas — solo contexto, nunca evidencia citada.",
     },
     validity: {
       approved: "Aprobado",
@@ -436,6 +444,9 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       saveInsight: "Erkenntnis speichern",
       drillIntoData: "Im Datenzentrum vertiefen",
       suggestedNext: "Nächster Vorschlag",
+      externalCoverage: "Externe Webberichterstattung",
+      externalCoverageNote:
+        "Nicht kontrollierte öffentliche Quellen — nur Kontext, nie zitierte Belege.",
     },
     validity: {
       approved: "Freigegeben",
@@ -564,6 +575,9 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       saveInsight: "Salvar insight",
       drillIntoData: "Explorar na Central de dados",
       suggestedNext: "Próximo sugerido",
+      externalCoverage: "Cobertura web externa",
+      externalCoverageNote:
+        "Fontes públicas não governadas — apenas contexto, nunca evidência citada.",
     },
     validity: {
       approved: "Aprovado",

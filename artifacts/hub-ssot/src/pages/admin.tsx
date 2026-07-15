@@ -20,6 +20,7 @@ import { ADMIN_I18N, localeFor } from "@/i18n/admin";
 import CostModelSection from "@/components/admin/cost-model";
 import SourceSyncSection from "@/components/admin/source-sync";
 import RetrievalLogSection from "@/components/admin/retrieval-log";
+import AgentSection from "@/components/admin/agent";
 import {
   Box,
   Boxed,
@@ -565,6 +566,7 @@ export default function AdminPage() {
               { text: t.tabs.costs },
               { text: t.tabs.operations },
               { text: t.tabs.audit },
+              { text: t.tabs.agent },
             ]}
           />
           <Divider />
@@ -921,6 +923,8 @@ export default function AdminPage() {
         </Stack>
           </>
         )}
+
+        {adminTab === 6 && <AgentSection />}
       </Stack>
 
       {/* Register / Edit user dialog */}

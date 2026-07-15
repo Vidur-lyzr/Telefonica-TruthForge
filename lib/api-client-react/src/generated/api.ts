@@ -21,6 +21,8 @@ import type {
 
 import type {
   AdminProfile,
+  AgentFileContent,
+  AgentOverview,
   ApproveInput,
   AskDocumentExportInput,
   AskDocumentPackInput,
@@ -57,6 +59,8 @@ import type {
   GeneratedAssets,
   GeneratedDraft,
   GenerationJob,
+  GetAgentFileParams,
+  GetAgentTools200,
   GetBrandResourcesParams,
   GetBrandTemplate404,
   GetBrandTemplateParams,
@@ -83,6 +87,7 @@ import type {
   KpiDetailInput,
   KpiQueryInput,
   KpiQueryResult,
+  ListAgentFiles200,
   ListPlanningAlertsParams,
   ListPlanningEventsParams,
   ListPlanningForecastSchedulesParams,
@@ -1725,6 +1730,323 @@ export function useGetUsageMeter<TData = Awaited<ReturnType<typeof getUsageMeter
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetUsageMeterQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAgentOverviewUrl = () => {
+
+
+
+
+  return `/api/admin/agent/overview`
+}
+
+/**
+ * Reads agent.yaml, the skill catalog and the .gitagent session state from the agent repo directory at request time. Nothing is hardcoded; this is the same brain the Ask chat runs on.
+ * @summary The live GitAgent identity, parsed from the real agent repo on disk
+ */
+export const getAgentOverview = async ( options?: RequestInit): Promise<AgentOverview> => {
+
+  return customFetch<AgentOverview>(getGetAgentOverviewUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentOverviewQueryKey = () => {
+    return [
+    `/api/admin/agent/overview`
+    ] as const;
+    }
+
+
+export const getGetAgentOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAgentOverview>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentOverviewQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentOverview>>> = ({ signal }) => getAgentOverview({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgentOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgentOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentOverview>>>
+export type GetAgentOverviewQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The live GitAgent identity, parsed from the real agent repo on disk
+ */
+
+export function useGetAgentOverview<TData = Awaited<ReturnType<typeof getAgentOverview>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgentOverviewQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAgentToolsUrl = () => {
+
+
+
+
+  return `/api/admin/agent/tools`
+}
+
+/**
+ * Serialised from the same GCToolDefinition objects the ask pipeline injects per run (name, description, input schema), plus the tools declared in agent.yaml — not a parallel hand-written list.
+ * @summary The real tool catalog the runtime binds into the agent
+ */
+export const getAgentTools = async ( options?: RequestInit): Promise<GetAgentTools200> => {
+
+  return customFetch<GetAgentTools200>(getGetAgentToolsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentToolsQueryKey = () => {
+    return [
+    `/api/admin/agent/tools`
+    ] as const;
+    }
+
+
+export const getGetAgentToolsQueryOptions = <TData = Awaited<ReturnType<typeof getAgentTools>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentTools>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentToolsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentTools>>> = ({ signal }) => getAgentTools({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgentTools>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgentToolsQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentTools>>>
+export type GetAgentToolsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The real tool catalog the runtime binds into the agent
+ */
+
+export function useGetAgentTools<TData = Awaited<ReturnType<typeof getAgentTools>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentTools>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgentToolsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAgentFilesUrl = () => {
+
+
+
+
+  return `/api/admin/agent/files`
+}
+
+/**
+ * @summary Flat file listing of the GitAgent repo (tree is built client-side)
+ */
+export const listAgentFiles = async ( options?: RequestInit): Promise<ListAgentFiles200> => {
+
+  return customFetch<ListAgentFiles200>(getListAgentFilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAgentFilesQueryKey = () => {
+    return [
+    `/api/admin/agent/files`
+    ] as const;
+    }
+
+
+export const getListAgentFilesQueryOptions = <TData = Awaited<ReturnType<typeof listAgentFiles>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAgentFilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentFiles>>> = ({ signal }) => listAgentFiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAgentFilesQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentFiles>>>
+export type ListAgentFilesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Flat file listing of the GitAgent repo (tree is built client-side)
+ */
+
+export function useListAgentFiles<TData = Awaited<ReturnType<typeof listAgentFiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAgentFilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAgentFileUrl = (params: GetAgentFileParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/agent/file?${stringifiedParams}` : `/api/admin/agent/file`
+}
+
+/**
+ * @summary Read one file from the GitAgent repo (super-user personas only)
+ */
+export const getAgentFile = async (params: GetAgentFileParams, options?: RequestInit): Promise<AgentFileContent> => {
+
+  return customFetch<AgentFileContent>(getGetAgentFileUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAgentFileQueryKey = (params?: GetAgentFileParams,) => {
+    return [
+    `/api/admin/agent/file`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAgentFileQueryOptions = <TData = Awaited<ReturnType<typeof getAgentFile>>, TError = ErrorType<ErrorResponse>>(params: GetAgentFileParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentFileQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentFile>>> = ({ signal }) => getAgentFile(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAgentFile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAgentFileQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentFile>>>
+export type GetAgentFileQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Read one file from the GitAgent repo (super-user personas only)
+ */
+
+export function useGetAgentFile<TData = Awaited<ReturnType<typeof getAgentFile>>, TError = ErrorType<ErrorResponse>>(
+ params: GetAgentFileParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAgentFileQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

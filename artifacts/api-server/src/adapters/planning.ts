@@ -21,7 +21,8 @@ import { allPlanningEvents, findPlanningEvent } from "../data/planningStore";
 // boundary is redacted to a busy/blocked stub BEFORE it leaves the adapter.
 export interface PersonaScope {
   clearance: Clearance;
-  area: Area;
+  // null = cross-area super user: not area-scoped, sees every area.
+  area: Area | null;
 }
 
 const GAP_MIN_DAYS = 4;
@@ -112,7 +113,7 @@ function fmt(s: string): string {
 function accessible(ev: PlanningEvent, scope: PersonaScope): boolean {
   return (
     CLEARANCE_RANK[ev.confidentiality] <= CLEARANCE_RANK[scope.clearance] &&
-    ev.area === scope.area
+    (scope.area === null || ev.area === scope.area)
   );
 }
 
@@ -556,7 +557,7 @@ export function canActOn(
 ): boolean {
   return (
     CLEARANCE_RANK[attrs.confidentiality] <= CLEARANCE_RANK[scope.clearance] &&
-    attrs.area === scope.area
+    (scope.area === null || attrs.area === scope.area)
   );
 }
 

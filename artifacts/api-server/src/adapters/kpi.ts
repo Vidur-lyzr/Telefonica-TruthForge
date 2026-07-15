@@ -127,7 +127,7 @@ export interface KpiRange {
 
 export interface KpiQueryOptions {
   clearance: Clearance;
-  area: Area;
+  area: Area | null;
   period: KpiPeriodType;
   range?: KpiRange | null;
   axisId?: string;
@@ -159,8 +159,12 @@ function requiredRank(kpi: EffectiveKpiDefinition): number {
   return rank;
 }
 
-function isVisible(kpi: EffectiveKpiDefinition, clearance: Clearance, area: Area): boolean {
-  return requiredRank(kpi) <= CLEARANCE_RANK[clearance] && kpi.areas.includes(area);
+function isVisible(kpi: EffectiveKpiDefinition, clearance: Clearance, area: Area | null): boolean {
+  // A null area means the persona is cross-area (super user): only clearance gates.
+  return (
+    requiredRank(kpi) <= CLEARANCE_RANK[clearance] &&
+    (area === null || kpi.areas.includes(area))
+  );
 }
 
 function attainment(current: number, target: number, direction: KpiDirection): number {
@@ -456,7 +460,7 @@ export function listKpis(opts: KpiQueryOptions): KpiQueryResult {
 
 export function getKpiDetail(
   id: string,
-  opts: { clearance: Clearance; area: Area; period: KpiPeriodType; range?: KpiRange | null },
+  opts: { clearance: Clearance; area: Area | null; period: KpiPeriodType; range?: KpiRange | null },
 ): KpiDetail | null {
   const kpi = getEffectiveKpiDefinition(id);
   if (!kpi || !isVisible(kpi, opts.clearance, opts.area)) return null;
@@ -505,7 +509,7 @@ export interface KpiEvidenceItem {
 export function getKpiChatEvidence(
   kpiIds: string[],
   clearance: Clearance,
-  area: Area,
+  area: Area | null,
 ): KpiEvidenceItem[] {
   const roleRank = CLEARANCE_RANK[clearance];
   const all = listEffectiveKpiDefinitions();
@@ -578,7 +582,7 @@ export function getKpiChatEvidence(
 // month attainment and forecast. Recorded per owner with a simulated
 // Teams/email delivery channel; acknowledgements persist in the kpi store.
 
-export function computeAndListAlerts(clearance: Clearance, area: Area): KpiAlertRecord[] {
+export function computeAndListAlerts(clearance: Clearance, area: Area | null): KpiAlertRecord[] {
   const synced = syncAlerts((def) => {
     const series = def.series.month;
     const current = series[series.length - 1] ?? 0;
