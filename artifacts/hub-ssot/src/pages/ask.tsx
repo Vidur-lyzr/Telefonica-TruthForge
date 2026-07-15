@@ -6,6 +6,7 @@ import {
   useListSuggestions,
   useListAxes,
   useListDocuments,
+  useSubmitQualityFeedback,
   AskResult,
   AskFilters,
   AskTurn,
@@ -105,6 +106,9 @@ interface Turn {
   // Live run progress, streamed from the agent as it genuinely happens.
   steps?: AskStep[];
   streamText?: string | null;
+  // The four-way quality verdict the user recorded for this answer, if any.
+  // Persisted with the conversation so chips stay resolved across reloads.
+  feedbackVerdict?: string | null;
 }
 
 interface Conversation {
@@ -456,6 +460,18 @@ export default function Ask() {
     }
   };
 
+  // Persist a recorded quality verdict onto its turn (any conversation) so the
+  // feedback chips stay resolved across reloads.
+  const markTurnFeedback = (turnId: string, verdict: string) =>
+    setConversations((prev) =>
+      prev.map((c) => ({
+        ...c,
+        turns: c.turns.map((t) =>
+          t.id === turnId ? { ...t, feedbackVerdict: verdict } : t,
+        ),
+      })),
+    );
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -649,6 +665,7 @@ export default function Ask() {
                     onExport={() => exportToGenerate(turn)}
                     onDrillIn={() => navigate("/data")}
                     onOpenDocument={setOpenDocId}
+                    onFeedback={(verdict) => markTurnFeedback(turn.id, verdict)}
                     t={t}
                     lang={lang}
                   />
@@ -1109,6 +1126,7 @@ function TurnBlock({
   onExport,
   onDrillIn,
   onOpenDocument,
+  onFeedback,
   t,
   lang,
 }: {
@@ -1121,6 +1139,7 @@ function TurnBlock({
   onExport: () => void;
   onDrillIn: () => void;
   onOpenDocument: (id: string) => void;
+  onFeedback: (verdict: string) => void;
   t: AskStrings;
   lang: Lang;
 }) {
@@ -1250,9 +1269,96 @@ function TurnBlock({
                 lang={lang}
               />
             )}
+
+            {!turn.pending && turn.result && (
+              <FeedbackChips turn={turn} onRecorded={onFeedback} t={t} lang={lang} />
+            )}
           </Stack>
         </div>
       </div>
+    </Stack>
+  );
+}
+
+// Four-way answer feedback (L2 quality loop). A verdict below "correct" opens
+// a triage item in the admin Quality tab, carrying the turn's retrieval-audit
+// id so the exact governed trace is reproducible.
+function FeedbackChips({
+  turn,
+  onRecorded,
+  t,
+  lang,
+}: {
+  turn: Turn;
+  onRecorded: (verdict: string) => void;
+  t: AskStrings;
+  lang: Lang;
+}) {
+  const { mutate, isPending, error } = useSubmitQualityFeedback();
+  const result = turn.result;
+  if (!result) return null;
+
+  const labels: Record<string, string> = {
+    correct: t.feedback.correct,
+    partial: t.feedback.partial,
+    incorrect: t.feedback.incorrect,
+    fabricated: t.feedback.fabricated,
+  };
+
+  if (turn.feedbackVerdict) {
+    return (
+      <Inline space={8} alignItems="center" wrap>
+        <Tag type={turn.feedbackVerdict === "correct" ? "success" : "warning"}>
+          {labels[turn.feedbackVerdict] ?? turn.feedbackVerdict}
+        </Tag>
+        <Text1 regular color={skinVars.colors.textSecondary}>
+          {t.feedback.thanks}
+        </Text1>
+      </Inline>
+    );
+  }
+
+  const submit = (verdict: string) => {
+    if (isPending) return;
+    const citedDocIds = Array.from(
+      new Set((result.citations ?? []).map((c) => c.docId)),
+    );
+    mutate(
+      {
+        data: {
+          roleId: turn.roleId,
+          verdict,
+          question: turn.question,
+          answer: result.answer,
+          status: result.status,
+          citedDocIds,
+          auditId: result.auditId ?? null,
+          lang: apiLang(lang),
+        },
+      },
+      { onSuccess: () => onRecorded(verdict) },
+    );
+  };
+
+  return (
+    <Stack space={8}>
+      <Inline space={8} alignItems="center" wrap>
+        <Text1 regular color={skinVars.colors.textSecondary}>
+          {t.feedback.prompt}
+        </Text1>
+        {(["correct", "partial", "incorrect", "fabricated"] as const).map(
+          (v) => (
+            <Chip key={v} onPress={() => submit(v)}>
+              {labels[v]}
+            </Chip>
+          ),
+        )}
+      </Inline>
+      {error != null && (
+        <Text1 regular color={skinVars.colors.error}>
+          {t.feedback.error}
+        </Text1>
+      )}
     </Stack>
   );
 }

@@ -130,6 +130,13 @@ export function recordRetrievalEvent(
   schedulePersist();
 }
 
+// Snapshot lookup for feedback records: the L2 loop stores the full trace of
+// the audited turn so a report stays reproducible even after the rolling log
+// evicts the entry.
+export function getRetrievalAuditEntry(auditId: string): RetrievalLogEntry | undefined {
+  return entries.find((e) => e.id === auditId);
+}
+
 export function finalizeRetrievalAudit(auditId: string, status: string): void {
   const entry = entries.find((e) => e.id === auditId);
   if (!entry) return;

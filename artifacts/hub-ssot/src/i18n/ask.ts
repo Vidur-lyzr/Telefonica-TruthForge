@@ -43,6 +43,15 @@ export interface AskStrings {
     agentActions: string;
   };
   turnError: string;
+  feedback: {
+    prompt: string;
+    correct: string;
+    partial: string;
+    incorrect: string;
+    fabricated: string;
+    thanks: string;
+    error: string;
+  };
   answer: {
     noEvidence: string;
     closestDatum: string;
@@ -163,6 +172,15 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       agentActions: "Agent actions",
     },
     turnError: "The Hub could not complete this request. Please try again.",
+    feedback: {
+      prompt: "Rate this answer",
+      correct: "Correct",
+      partial: "Partially correct",
+      incorrect: "Incorrect",
+      fabricated: "Fabricated",
+      thanks: "Feedback recorded — it feeds the quality triage queue.",
+      error: "Could not submit feedback. Please try again.",
+    },
     answer: {
       noEvidence: "No evidence",
       closestDatum: "Closest governed datum:",
@@ -291,6 +309,15 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       agentActions: "Acciones del agente",
     },
     turnError: "El Hub no pudo completar esta solicitud. Inténtalo de nuevo.",
+    feedback: {
+      prompt: "Valora esta respuesta",
+      correct: "Correcta",
+      partial: "Parcialmente correcta",
+      incorrect: "Incorrecta",
+      fabricated: "Inventada",
+      thanks: "Feedback registrado — alimenta la cola de triaje de calidad.",
+      error: "No se pudo enviar el feedback. Inténtalo de nuevo.",
+    },
     answer: {
       noEvidence: "Sin evidencia",
       closestDatum: "Dato gobernado más cercano:",
@@ -422,6 +449,15 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
     },
     turnError:
       "Der Hub konnte diese Anfrage nicht abschließen. Bitte versuchen Sie es erneut.",
+    feedback: {
+      prompt: "Diese Antwort bewerten",
+      correct: "Korrekt",
+      partial: "Teilweise korrekt",
+      incorrect: "Inkorrekt",
+      fabricated: "Erfunden",
+      thanks: "Feedback erfasst — es fließt in die Qualitäts-Triage ein.",
+      error: "Feedback konnte nicht gesendet werden. Bitte erneut versuchen.",
+    },
     answer: {
       noEvidence: "Keine Belege",
       closestDatum: "Nächstgelegener kontrollierter Datenpunkt:",
@@ -553,6 +589,15 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
     },
     turnError:
       "O Hub não conseguiu concluir esta solicitação. Tente novamente.",
+    feedback: {
+      prompt: "Avalie esta resposta",
+      correct: "Correta",
+      partial: "Parcialmente correta",
+      incorrect: "Incorreta",
+      fabricated: "Inventada",
+      thanks: "Feedback registrado — alimenta a fila de triagem de qualidade.",
+      error: "Não foi possível enviar o feedback. Tente novamente.",
+    },
     answer: {
       noEvidence: "Sem evidência",
       closestDatum: "Dado governado mais próximo:",

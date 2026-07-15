@@ -24,6 +24,8 @@ tags:
     description: Data Center — sources, ingestion pipeline, validation queue, freshness
   - name: brand-room
     description: Brand Room — templates, tone of voice, governed resources, live Brand Guardian
+  - name: quality
+    description: Quality & feedback — golden-set evaluation runs, answer feedback, triage queue
 paths:
   /healthz:
     get:
@@ -2875,6 +2877,307 @@ paths:
               schema:
                 $ref: "#/components/schemas/GuardianResult"
 
+  /quality/feedback:
+    post:
+      operationId: submitQualityFeedback
+      tags: [quality]
+      summary: Record a four-way verdict on an Ask answer (L2 feedback loop)
+      description: >
+        Stores the user's verdict (correct / partial / incorrect / fabricated)
+        together with the question, the answer's governance status, the cited
+        documents and — when the turn carried an audit id — a snapshot of the
+        exact retrieval trace, so every report is reproducible. Verdicts below
+        "correct" open a triage item. Requires use_modules (partial).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QualityFeedbackBody"
+      responses:
+        "200":
+          description: Stored feedback entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityFeedbackEntry"
+        "403":
+          description: Persona lacks the use_modules capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listQualityFeedback
+      tags: [quality]
+      summary: Feedback entries with embedded triage state (L3 queue)
+      description: >
+        Newest first. Retrieval traces are omitted from the list — fetch one
+        entry via /quality/feedback-item for the full trace. Requires
+        view_audit (partial).
+      parameters:
+        - name: viewerRoleId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Acting persona — must hold the view_audit capability
+      responses:
+        "200":
+          description: Feedback list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityFeedbackPage"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quality/feedback-item:
+    get:
+      operationId: getQualityFeedbackItem
+      tags: [quality]
+      summary: One feedback entry including its snapshotted retrieval trace
+      parameters:
+        - name: viewerRoleId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: feedbackId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Feedback entry with retrieval trace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityFeedbackDetail"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown feedback id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quality/goldens:
+    get:
+      operationId: listQualityGoldens
+      tags: [quality]
+      summary: The weekly golden question set (L1)
+      description: >
+        Every golden is grounded in the governed corpus - persona, language,
+        expected governance status and (for answered goldens) the documents
+        that must be cited. Requires view_audit (partial).
+      parameters:
+        - name: viewerRoleId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Golden set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityGoldenSet"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quality/runs:
+    get:
+      operationId: listQualityRuns
+      tags: [quality]
+      summary: Evaluation run history and the weekly schedule anchor (L1 scorecard)
+      description: >
+        Run summaries newest first (results omitted - fetch one run via
+        /quality/run), plus the next scheduled weekly eval time. Requires
+        view_audit (partial).
+      parameters:
+        - name: viewerRoleId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Run history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityRunsPage"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: startQualityRun
+      tags: [quality]
+      summary: Start a manual golden-set evaluation run
+      description: >
+        Replays the full golden set through the real Ask agent (concurrency 2)
+        and scores accuracy, citation correctness, hallucination rate and
+        latency percentiles. Returns 202 immediately - poll /quality/run.
+        Refused while another run is in flight. Requires approve_sensitive
+        (full).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QualityRunStartBody"
+      responses:
+        "202":
+          description: Run started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityRunStarted"
+        "403":
+          description: Persona lacks the approve_sensitive capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Another evaluation run is already in flight (code run_in_flight)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quality/run:
+    get:
+      operationId: getQualityRun
+      tags: [quality]
+      summary: One evaluation run with its full per-golden results
+      parameters:
+        - name: viewerRoleId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: runId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Full run detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityEvalRun"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown run id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quality/feedback/classify:
+    post:
+      operationId: classifyQualityFeedback
+      tags: [quality]
+      summary: Triage a feedback item - error class and corrective action (L3)
+      description: >
+        Classifies an open feedback item (retrieval miss, stale source, bad
+        citation, model error, permission gap, or not an error) and records
+        the corrective action taken. Requires approve_sensitive (full).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QualityClassifyBody"
+      responses:
+        "200":
+          description: Updated feedback entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityFeedbackEntry"
+        "403":
+          description: Persona lacks the approve_sensitive capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown feedback id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /quality/reeval:
+    post:
+      operationId: startQualityReeval
+      tags: [quality]
+      summary: Launch a re-evaluation run to close a triaged feedback item (L3)
+      description: >
+        Starts a full golden-set run linked to a classified feedback item.
+        When the run completes, the item is marked resolved and the run's
+        scorecard documents whether the corrective action held. Returns 202 -
+        poll /quality/run. Requires approve_sensitive (full).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QualityReevalBody"
+      responses:
+        "202":
+          description: Re-evaluation run started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QualityRunStarted"
+        "403":
+          description: Persona lacks the approve_sensitive capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown feedback id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Item not yet classified, or another run is in flight
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     BrandTemplateSection:
@@ -3343,6 +3646,12 @@ components:
         status:
           type: string
           description: answered | no_evidence | permission_blocked | conflict
+        auditId:
+          type: ["string", "null"]
+          description: >
+            Retrieval-audit id of this turn (F3 log). Sent back with answer
+            feedback so the exact retrieval trace is attached to the report.
+            Null on conversational turns that never retrieved.
         answer:
           type: string
         citations:
@@ -8241,3 +8550,321 @@ components:
           oneOf:
             - $ref: "#/components/schemas/RetagQdrantProof"
             - type: "null"
+
+    QualityGolden:
+      type: object
+      required: [id, question, roleId, lang, expectedStatus, rationale]
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+        roleId:
+          type: string
+          description: Persona the question is asked as — governance is part of what is tested.
+        lang:
+          type: string
+          description: en | es | de | pt
+        expectedStatus:
+          type: string
+          description: answered | no_evidence | permission_blocked | conflict
+        expectedDocIds:
+          type: array
+          items:
+            type: string
+          description: For answered goldens, at least one of these must be cited.
+        expectHistoric:
+          type: boolean
+        rationale:
+          type: string
+
+    QualityGoldenSet:
+      type: object
+      required: [total, items]
+      properties:
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QualityGolden"
+
+    QualityEvalMetrics:
+      type: object
+      required:
+        [total, passed, failed, accuracy, hallucinationRate, p50LatencyMs, p95LatencyMs]
+      properties:
+        total:
+          type: integer
+        passed:
+          type: integer
+        failed:
+          type: integer
+        accuracy:
+          type: number
+          description: 0..1 — goldens fully passed.
+        citationCorrectness:
+          type: ["number", "null"]
+          description: 0..1 — cited sources grounded in the audited retrieval; null when no row carried citations.
+        hallucinationRate:
+          type: number
+          description: 0..1 — rows with fabricated evidence, i.e. a citation outside the row's own audited retrieval. Refusal misses count against accuracy, not here.
+        p50LatencyMs:
+          type: number
+        p95LatencyMs:
+          type: number
+
+    QualityEvalResultRow:
+      type: object
+      required:
+        [
+          goldenId,
+          question,
+          roleId,
+          lang,
+          expectedStatus,
+          citedDocIds,
+          citationsTotal,
+          citationsGrounded,
+          hallucinated,
+          pass,
+          latencyMs,
+        ]
+      properties:
+        goldenId:
+          type: string
+        question:
+          type: string
+        roleId:
+          type: string
+        lang:
+          type: string
+        expectedStatus:
+          type: string
+        actualStatus:
+          type: ["string", "null"]
+          description: Null when the golden errored before a status was produced.
+        citedDocIds:
+          type: array
+          items:
+            type: string
+        expectedDocCited:
+          type: ["boolean", "null"]
+          description: Whether at least one expected doc was cited; null when not applicable.
+        historicOk:
+          type: ["boolean", "null"]
+        citationsTotal:
+          type: integer
+        citationsGrounded:
+          type: integer
+        hallucinated:
+          type: boolean
+        pass:
+          type: boolean
+        latencyMs:
+          type: number
+        error:
+          type: ["string", "null"]
+
+    QualityEvalRunSummary:
+      type: object
+      required:
+        [id, trigger, startedAt, status, progressDone, progressTotal]
+      properties:
+        id:
+          type: string
+        trigger:
+          type: string
+          description: scheduled | manual | reeval
+        reevalOfFeedbackId:
+          type: ["string", "null"]
+        startedAt:
+          type: string
+        finishedAt:
+          type: ["string", "null"]
+        status:
+          type: string
+          description: running | completed | failed
+        progressDone:
+          type: integer
+        progressTotal:
+          type: integer
+        metrics:
+          oneOf:
+            - $ref: "#/components/schemas/QualityEvalMetrics"
+            - type: "null"
+        error:
+          type: ["string", "null"]
+
+    QualityEvalRun:
+      allOf:
+        - $ref: "#/components/schemas/QualityEvalRunSummary"
+        - type: object
+          required: [results]
+          properties:
+            results:
+              type: array
+              items:
+                $ref: "#/components/schemas/QualityEvalResultRow"
+
+    QualityRunsPage:
+      type: object
+      required: [nextEvalAt, running, items]
+      properties:
+        nextEvalAt:
+          type: ["string", "null"]
+          description: When the weekly scheduled evaluation fires next.
+        running:
+          type: boolean
+          description: Whether a run is currently in flight.
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QualityEvalRunSummary"
+
+    QualityRunStartBody:
+      type: object
+      required: [roleId]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the approve_sensitive capability at full level.
+
+    QualityRunStarted:
+      type: object
+      required: [runId]
+      properties:
+        runId:
+          type: string
+
+    QualityFeedbackBody:
+      type: object
+      required: [roleId, verdict, question, answer, status]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the use_modules capability.
+        verdict:
+          type: string
+          description: correct | partial | incorrect | fabricated
+        question:
+          type: string
+        answer:
+          type: string
+          description: The answer text as shown; only a preview is stored.
+        status:
+          type: string
+          description: The answer's governance status (answered | no_evidence | permission_blocked | conflict).
+        citedDocIds:
+          type: array
+          items:
+            type: string
+        auditId:
+          type: ["string", "null"]
+          description: The turn's retrieval-audit id, when it had one.
+        note:
+          type: ["string", "null"]
+        lang:
+          type: ["string", "null"]
+
+    QualityFeedbackTriage:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+          description: open | classified | resolved
+        errorClass:
+          type: ["string", "null"]
+          description: retrieval_miss | stale_source | bad_citation | model_error | permission_gap | not_an_error
+        correctiveAction:
+          type: ["string", "null"]
+        classifiedByRoleId:
+          type: ["string", "null"]
+        classifiedAt:
+          type: ["string", "null"]
+        reevalRunId:
+          type: ["string", "null"]
+        resolvedAt:
+          type: ["string", "null"]
+
+    QualityFeedbackEntry:
+      type: object
+      required:
+        [id, createdAt, verdict, question, answerPreview, answerStatus, citedDocIds, roleId, triage]
+      properties:
+        id:
+          type: string
+        createdAt:
+          type: string
+        verdict:
+          type: string
+          description: correct | partial | incorrect | fabricated
+        note:
+          type: ["string", "null"]
+        question:
+          type: string
+        answerPreview:
+          type: string
+        answerStatus:
+          type: string
+        citedDocIds:
+          type: array
+          items:
+            type: string
+        roleId:
+          type: string
+        lang:
+          type: ["string", "null"]
+        auditId:
+          type: ["string", "null"]
+        triage:
+          $ref: "#/components/schemas/QualityFeedbackTriage"
+
+    QualityFeedbackDetail:
+      allOf:
+        - $ref: "#/components/schemas/QualityFeedbackEntry"
+        - type: object
+          properties:
+            retrievalTrace:
+              oneOf:
+                - $ref: "#/components/schemas/RetrievalLogEntry"
+                - type: "null"
+              description: Snapshot of the audited retrieval taken at feedback time.
+
+    QualityFeedbackPage:
+      type: object
+      required: [total, items]
+      properties:
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QualityFeedbackEntry"
+
+    QualityClassifyBody:
+      type: object
+      required: [roleId, feedbackId, errorClass, correctiveAction]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the approve_sensitive capability at full level.
+        feedbackId:
+          type: string
+        errorClass:
+          type: string
+          description: retrieval_miss | stale_source | bad_citation | model_error | permission_gap | not_an_error
+        correctiveAction:
+          type: string
+          description: What was done about it — free text, shown in the queue and the audit trail.
+
+    QualityReevalBody:
+      type: object
+      required: [roleId, feedbackId]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the approve_sensitive capability at full level.
+        feedbackId:
+          type: string

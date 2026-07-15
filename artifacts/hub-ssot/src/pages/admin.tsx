@@ -21,6 +21,7 @@ import CostModelSection from "@/components/admin/cost-model";
 import SourceSyncSection from "@/components/admin/source-sync";
 import RetrievalLogSection from "@/components/admin/retrieval-log";
 import AgentSection from "@/components/admin/agent";
+import QualitySection from "@/components/admin/quality";
 import {
   Box,
   Boxed,
@@ -602,6 +603,7 @@ export default function AdminPage() {
               { text: t.tabs.operations },
               { text: t.tabs.audit },
               { text: t.tabs.agent },
+              { text: t.tabs.quality },
             ]}
           />
           <Divider />
@@ -986,6 +988,8 @@ export default function AdminPage() {
         )}
 
         {adminTab === 6 && <AgentSection />}
+
+        {adminTab === 7 && <QualitySection />}
       </Stack>
 
       {/* Register / Edit user dialog */}

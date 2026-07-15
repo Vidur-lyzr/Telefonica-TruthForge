@@ -233,6 +233,10 @@ interface NumericOut {
 
 export interface AskAgentResult {
   status: "answered" | "no_evidence" | "permission_blocked" | "conflict";
+  // Retrieval-audit id (F3 log) for this turn. Exposed so answer feedback can
+  // link the exact retrieval trace, making every quality report reproducible.
+  // Null only on the pre-retrieval conversational fast path.
+  auditId?: string | null;
   answer: string;
   citations: Citation[];
   historic: boolean;
@@ -814,7 +818,7 @@ export async function runAskAgent(
           : route.intent === "refine"
             ? "There is no previous answer in this conversation to rework yet. Ask me about strategy, brand or corporate facts and I will answer with citations."
             : conversationalAnswer("capabilities", role.label);
-      return conversationalTurnResult({
+      const conv = await conversationalTurnResult({
         situation,
         fallback,
         question: input.question,
@@ -824,6 +828,7 @@ export async function runAskAgent(
         log,
         emit,
       });
+      return { ...conv, auditId };
     }
   }
 
@@ -877,6 +882,7 @@ export async function runAskAgent(
       detail: "no evidence — answering honestly, no model call",
     });
     return {
+      auditId,
       status: "no_evidence",
       answer: REFUSAL_COPY[input.lang ?? "en"].noEvidence,
       citations: [],
@@ -922,7 +928,7 @@ export async function runAskAgent(
       state: "done",
       detail: "conflict — two permitted sources disagree; surfacing both",
     });
-    return conflict.result(relatedEntities, attachmentAck);
+    return { ...conflict.result(relatedEntities, attachmentAck), auditId };
   }
 
   // Only blocked material is relevant → permission block, no model call, no leak.
@@ -970,6 +976,7 @@ export async function runAskAgent(
       detail: "permission blocked — nothing revealed, no model call",
     });
     return {
+      auditId,
       status: "permission_blocked",
       answer:
         need != null
@@ -1335,6 +1342,7 @@ export async function runAskAgent(
   });
 
   return {
+    auditId,
     status: "answered",
     answer: finalAnswer,
     documents: generatedDocuments.length > 0 ? generatedDocuments : undefined,

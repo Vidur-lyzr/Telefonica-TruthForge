@@ -16,6 +16,11 @@ import type { SuggestedNext } from './suggestedNext';
 export interface AskResult {
   /** answered | no_evidence | permission_blocked | conflict */
   status: string;
+  /**
+     * Retrieval-audit id of this turn (F3 log). Sent back with answer feedback so the exact retrieval trace is attached to the report. Null on conversational turns that never retrieved.
+     * @nullable
+     */
+  auditId?: string | null;
   answer: string;
   citations: Citation[];
   historic: boolean;

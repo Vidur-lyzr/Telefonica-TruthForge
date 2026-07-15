@@ -1,12 +1,14 @@
 ---
 name: answer-cited
 description: The default skill. Any natural-language question over the governed knowledge — answer with cited evidence and the honest states (no_evidence, permission_blocked, historic, conflict).
-confidence: 0.96
-usage_count: 23
-success_count: 22
-failure_count: 1
+confidence: 0.93
+usage_count: 58
+success_count: 55
+failure_count: 3
 negative_examples:
   - Provided sources do not explicitly list the five Transform and Grow strategic axes; partial answer given with honest no_evidence state for the specific sub-question.
+  - No permitted governed source covers group headcount or attrition rate; numeric tool returned no_evidence for both metrics
+  - No permitted governed source covers group headcount or attrition rate in current retrieval results. Headcount figure exists but is outside current permission scope.
 ---
 
 # SKILL: answer-cited

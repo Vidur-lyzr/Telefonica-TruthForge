@@ -85,6 +85,8 @@ import type {
   GetPlanningEventParams,
   GetPlanningInsightsParams,
   GetPlanningOverviewParams,
+  GetQualityFeedbackItemParams,
+  GetQualityRunParams,
   GetSourceSyncStateParams,
   GetUsageMeterParams,
   GetUserVisibilityMatrixParams,
@@ -113,6 +115,9 @@ import type {
   ListPlanningForecastSchedulesParams,
   ListPlanningSyncParams,
   ListPlatformUsersParams,
+  ListQualityFeedbackParams,
+  ListQualityGoldensParams,
+  ListQualityRunsParams,
   ListRadarParams,
   ListRetrievalLogParams,
   ListScheduledDocumentsParams,
@@ -149,6 +154,17 @@ import type {
   PlanningSyncRecord,
   PlatformUser,
   PublishReviewItemResult,
+  QualityClassifyBody,
+  QualityEvalRun,
+  QualityFeedbackBody,
+  QualityFeedbackDetail,
+  QualityFeedbackEntry,
+  QualityFeedbackPage,
+  QualityGoldenSet,
+  QualityReevalBody,
+  QualityRunStartBody,
+  QualityRunStarted,
+  QualityRunsPage,
   RadarItem,
   RefineInput,
   RelevanceFilterSnapshot,
@@ -8698,5 +8714,712 @@ export const useCheckBrandText = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCheckBrandTextMutationOptions(options));
+    }
+
+export const getSubmitQualityFeedbackUrl = () => {
+
+
+
+
+  return `/api/quality/feedback`
+}
+
+/**
+ * Stores the user's verdict (correct / partial / incorrect / fabricated) together with the question, the answer's governance status, the cited documents and — when the turn carried an audit id — a snapshot of the exact retrieval trace, so every report is reproducible. Verdicts below "correct" open a triage item. Requires use_modules (partial).
+ * @summary Record a four-way verdict on an Ask answer (L2 feedback loop)
+ */
+export const submitQualityFeedback = async (qualityFeedbackBody: QualityFeedbackBody, options?: RequestInit): Promise<QualityFeedbackEntry> => {
+
+  return customFetch<QualityFeedbackEntry>(getSubmitQualityFeedbackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(qualityFeedbackBody)
+  }
+);}
+
+
+
+
+export const getSubmitQualityFeedbackMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitQualityFeedback>>, TError,{data: BodyType<QualityFeedbackBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitQualityFeedback>>, TError,{data: BodyType<QualityFeedbackBody>}, TContext> => {
+
+const mutationKey = ['submitQualityFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitQualityFeedback>>, {data: BodyType<QualityFeedbackBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitQualityFeedback(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitQualityFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof submitQualityFeedback>>>
+    export type SubmitQualityFeedbackMutationBody = BodyType<QualityFeedbackBody>
+    export type SubmitQualityFeedbackMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Record a four-way verdict on an Ask answer (L2 feedback loop)
+ */
+export const useSubmitQualityFeedback = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitQualityFeedback>>, TError,{data: BodyType<QualityFeedbackBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof submitQualityFeedback>>,
+        TError,
+        {data: BodyType<QualityFeedbackBody>},
+        TContext
+      > => {
+      return useMutation(getSubmitQualityFeedbackMutationOptions(options));
+    }
+
+export const getListQualityFeedbackUrl = (params: ListQualityFeedbackParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/quality/feedback?${stringifiedParams}` : `/api/quality/feedback`
+}
+
+/**
+ * Newest first. Retrieval traces are omitted from the list — fetch one entry via /quality/feedback-item for the full trace. Requires view_audit (partial).
+ * @summary Feedback entries with embedded triage state (L3 queue)
+ */
+export const listQualityFeedback = async (params: ListQualityFeedbackParams, options?: RequestInit): Promise<QualityFeedbackPage> => {
+
+  return customFetch<QualityFeedbackPage>(getListQualityFeedbackUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListQualityFeedbackQueryKey = (params?: ListQualityFeedbackParams,) => {
+    return [
+    `/api/quality/feedback`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListQualityFeedbackQueryOptions = <TData = Awaited<ReturnType<typeof listQualityFeedback>>, TError = ErrorType<ErrorResponse>>(params: ListQualityFeedbackParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listQualityFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListQualityFeedbackQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listQualityFeedback>>> = ({ signal }) => listQualityFeedback(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listQualityFeedback>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListQualityFeedbackQueryResult = NonNullable<Awaited<ReturnType<typeof listQualityFeedback>>>
+export type ListQualityFeedbackQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Feedback entries with embedded triage state (L3 queue)
+ */
+
+export function useListQualityFeedback<TData = Awaited<ReturnType<typeof listQualityFeedback>>, TError = ErrorType<ErrorResponse>>(
+ params: ListQualityFeedbackParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listQualityFeedback>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListQualityFeedbackQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetQualityFeedbackItemUrl = (params: GetQualityFeedbackItemParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/quality/feedback-item?${stringifiedParams}` : `/api/quality/feedback-item`
+}
+
+/**
+ * @summary One feedback entry including its snapshotted retrieval trace
+ */
+export const getQualityFeedbackItem = async (params: GetQualityFeedbackItemParams, options?: RequestInit): Promise<QualityFeedbackDetail> => {
+
+  return customFetch<QualityFeedbackDetail>(getGetQualityFeedbackItemUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQualityFeedbackItemQueryKey = (params?: GetQualityFeedbackItemParams,) => {
+    return [
+    `/api/quality/feedback-item`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetQualityFeedbackItemQueryOptions = <TData = Awaited<ReturnType<typeof getQualityFeedbackItem>>, TError = ErrorType<ErrorResponse>>(params: GetQualityFeedbackItemParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityFeedbackItem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQualityFeedbackItemQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQualityFeedbackItem>>> = ({ signal }) => getQualityFeedbackItem(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQualityFeedbackItem>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQualityFeedbackItemQueryResult = NonNullable<Awaited<ReturnType<typeof getQualityFeedbackItem>>>
+export type GetQualityFeedbackItemQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary One feedback entry including its snapshotted retrieval trace
+ */
+
+export function useGetQualityFeedbackItem<TData = Awaited<ReturnType<typeof getQualityFeedbackItem>>, TError = ErrorType<ErrorResponse>>(
+ params: GetQualityFeedbackItemParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityFeedbackItem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQualityFeedbackItemQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListQualityGoldensUrl = (params: ListQualityGoldensParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/quality/goldens?${stringifiedParams}` : `/api/quality/goldens`
+}
+
+/**
+ * Every golden is grounded in the governed corpus - persona, language, expected governance status and (for answered goldens) the documents that must be cited. Requires view_audit (partial).
+ * @summary The weekly golden question set (L1)
+ */
+export const listQualityGoldens = async (params: ListQualityGoldensParams, options?: RequestInit): Promise<QualityGoldenSet> => {
+
+  return customFetch<QualityGoldenSet>(getListQualityGoldensUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListQualityGoldensQueryKey = (params?: ListQualityGoldensParams,) => {
+    return [
+    `/api/quality/goldens`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListQualityGoldensQueryOptions = <TData = Awaited<ReturnType<typeof listQualityGoldens>>, TError = ErrorType<ErrorResponse>>(params: ListQualityGoldensParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listQualityGoldens>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListQualityGoldensQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listQualityGoldens>>> = ({ signal }) => listQualityGoldens(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listQualityGoldens>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListQualityGoldensQueryResult = NonNullable<Awaited<ReturnType<typeof listQualityGoldens>>>
+export type ListQualityGoldensQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary The weekly golden question set (L1)
+ */
+
+export function useListQualityGoldens<TData = Awaited<ReturnType<typeof listQualityGoldens>>, TError = ErrorType<ErrorResponse>>(
+ params: ListQualityGoldensParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listQualityGoldens>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListQualityGoldensQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListQualityRunsUrl = (params: ListQualityRunsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/quality/runs?${stringifiedParams}` : `/api/quality/runs`
+}
+
+/**
+ * Run summaries newest first (results omitted - fetch one run via /quality/run), plus the next scheduled weekly eval time. Requires view_audit (partial).
+ * @summary Evaluation run history and the weekly schedule anchor (L1 scorecard)
+ */
+export const listQualityRuns = async (params: ListQualityRunsParams, options?: RequestInit): Promise<QualityRunsPage> => {
+
+  return customFetch<QualityRunsPage>(getListQualityRunsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListQualityRunsQueryKey = (params?: ListQualityRunsParams,) => {
+    return [
+    `/api/quality/runs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListQualityRunsQueryOptions = <TData = Awaited<ReturnType<typeof listQualityRuns>>, TError = ErrorType<ErrorResponse>>(params: ListQualityRunsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listQualityRuns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListQualityRunsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listQualityRuns>>> = ({ signal }) => listQualityRuns(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listQualityRuns>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListQualityRunsQueryResult = NonNullable<Awaited<ReturnType<typeof listQualityRuns>>>
+export type ListQualityRunsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Evaluation run history and the weekly schedule anchor (L1 scorecard)
+ */
+
+export function useListQualityRuns<TData = Awaited<ReturnType<typeof listQualityRuns>>, TError = ErrorType<ErrorResponse>>(
+ params: ListQualityRunsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listQualityRuns>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListQualityRunsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStartQualityRunUrl = () => {
+
+
+
+
+  return `/api/quality/runs`
+}
+
+/**
+ * Replays the full golden set through the real Ask agent (concurrency 2) and scores accuracy, citation correctness, hallucination rate and latency percentiles. Returns 202 immediately - poll /quality/run. Refused while another run is in flight. Requires approve_sensitive (full).
+ * @summary Start a manual golden-set evaluation run
+ */
+export const startQualityRun = async (qualityRunStartBody: QualityRunStartBody, options?: RequestInit): Promise<QualityRunStarted> => {
+
+  return customFetch<QualityRunStarted>(getStartQualityRunUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(qualityRunStartBody)
+  }
+);}
+
+
+
+
+export const getStartQualityRunMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startQualityRun>>, TError,{data: BodyType<QualityRunStartBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startQualityRun>>, TError,{data: BodyType<QualityRunStartBody>}, TContext> => {
+
+const mutationKey = ['startQualityRun'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startQualityRun>>, {data: BodyType<QualityRunStartBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startQualityRun(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartQualityRunMutationResult = NonNullable<Awaited<ReturnType<typeof startQualityRun>>>
+    export type StartQualityRunMutationBody = BodyType<QualityRunStartBody>
+    export type StartQualityRunMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Start a manual golden-set evaluation run
+ */
+export const useStartQualityRun = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startQualityRun>>, TError,{data: BodyType<QualityRunStartBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startQualityRun>>,
+        TError,
+        {data: BodyType<QualityRunStartBody>},
+        TContext
+      > => {
+      return useMutation(getStartQualityRunMutationOptions(options));
+    }
+
+export const getGetQualityRunUrl = (params: GetQualityRunParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/quality/run?${stringifiedParams}` : `/api/quality/run`
+}
+
+/**
+ * @summary One evaluation run with its full per-golden results
+ */
+export const getQualityRun = async (params: GetQualityRunParams, options?: RequestInit): Promise<QualityEvalRun> => {
+
+  return customFetch<QualityEvalRun>(getGetQualityRunUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQualityRunQueryKey = (params?: GetQualityRunParams,) => {
+    return [
+    `/api/quality/run`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetQualityRunQueryOptions = <TData = Awaited<ReturnType<typeof getQualityRun>>, TError = ErrorType<ErrorResponse>>(params: GetQualityRunParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityRun>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQualityRunQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQualityRun>>> = ({ signal }) => getQualityRun(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQualityRun>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQualityRunQueryResult = NonNullable<Awaited<ReturnType<typeof getQualityRun>>>
+export type GetQualityRunQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary One evaluation run with its full per-golden results
+ */
+
+export function useGetQualityRun<TData = Awaited<ReturnType<typeof getQualityRun>>, TError = ErrorType<ErrorResponse>>(
+ params: GetQualityRunParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQualityRun>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQualityRunQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getClassifyQualityFeedbackUrl = () => {
+
+
+
+
+  return `/api/quality/feedback/classify`
+}
+
+/**
+ * Classifies an open feedback item (retrieval miss, stale source, bad citation, model error, permission gap, or not an error) and records the corrective action taken. Requires approve_sensitive (full).
+ * @summary Triage a feedback item - error class and corrective action (L3)
+ */
+export const classifyQualityFeedback = async (qualityClassifyBody: QualityClassifyBody, options?: RequestInit): Promise<QualityFeedbackEntry> => {
+
+  return customFetch<QualityFeedbackEntry>(getClassifyQualityFeedbackUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(qualityClassifyBody)
+  }
+);}
+
+
+
+
+export const getClassifyQualityFeedbackMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof classifyQualityFeedback>>, TError,{data: BodyType<QualityClassifyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof classifyQualityFeedback>>, TError,{data: BodyType<QualityClassifyBody>}, TContext> => {
+
+const mutationKey = ['classifyQualityFeedback'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof classifyQualityFeedback>>, {data: BodyType<QualityClassifyBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  classifyQualityFeedback(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClassifyQualityFeedbackMutationResult = NonNullable<Awaited<ReturnType<typeof classifyQualityFeedback>>>
+    export type ClassifyQualityFeedbackMutationBody = BodyType<QualityClassifyBody>
+    export type ClassifyQualityFeedbackMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Triage a feedback item - error class and corrective action (L3)
+ */
+export const useClassifyQualityFeedback = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof classifyQualityFeedback>>, TError,{data: BodyType<QualityClassifyBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof classifyQualityFeedback>>,
+        TError,
+        {data: BodyType<QualityClassifyBody>},
+        TContext
+      > => {
+      return useMutation(getClassifyQualityFeedbackMutationOptions(options));
+    }
+
+export const getStartQualityReevalUrl = () => {
+
+
+
+
+  return `/api/quality/reeval`
+}
+
+/**
+ * Starts a full golden-set run linked to a classified feedback item. When the run completes, the item is marked resolved and the run's scorecard documents whether the corrective action held. Returns 202 - poll /quality/run. Requires approve_sensitive (full).
+ * @summary Launch a re-evaluation run to close a triaged feedback item (L3)
+ */
+export const startQualityReeval = async (qualityReevalBody: QualityReevalBody, options?: RequestInit): Promise<QualityRunStarted> => {
+
+  return customFetch<QualityRunStarted>(getStartQualityReevalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(qualityReevalBody)
+  }
+);}
+
+
+
+
+export const getStartQualityReevalMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startQualityReeval>>, TError,{data: BodyType<QualityReevalBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startQualityReeval>>, TError,{data: BodyType<QualityReevalBody>}, TContext> => {
+
+const mutationKey = ['startQualityReeval'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startQualityReeval>>, {data: BodyType<QualityReevalBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  startQualityReeval(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartQualityReevalMutationResult = NonNullable<Awaited<ReturnType<typeof startQualityReeval>>>
+    export type StartQualityReevalMutationBody = BodyType<QualityReevalBody>
+    export type StartQualityReevalMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Launch a re-evaluation run to close a triaged feedback item (L3)
+ */
+export const useStartQualityReeval = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startQualityReeval>>, TError,{data: BodyType<QualityReevalBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof startQualityReeval>>,
+        TError,
+        {data: BodyType<QualityReevalBody>},
+        TContext
+      > => {
+      return useMutation(getStartQualityReevalMutationOptions(options));
     }
 

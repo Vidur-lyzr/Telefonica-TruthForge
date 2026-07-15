@@ -521,6 +521,11 @@ export interface ExternalWebSource {
 export interface AskResult {
   /** answered | no_evidence | permission_blocked | conflict */
   status: string;
+  /**
+     * Retrieval-audit id of this turn (F3 log). Sent back with answer feedback so the exact retrieval trace is attached to the report. Null on conversational turns that never retrieved.
+     * @nullable
+     */
+  auditId?: string | null;
   answer: string;
   citations: Citation[];
   historic: boolean;
@@ -3368,6 +3373,200 @@ export interface TaxonomyRollbackResult {
   qdrant?: RetagQdrantProof | null;
 }
 
+export interface QualityGolden {
+  id: string;
+  question: string;
+  /** Persona the question is asked as — governance is part of what is tested. */
+  roleId: string;
+  /** en | es | de | pt */
+  lang: string;
+  /** answered | no_evidence | permission_blocked | conflict */
+  expectedStatus: string;
+  /** For answered goldens, at least one of these must be cited. */
+  expectedDocIds?: string[];
+  expectHistoric?: boolean;
+  rationale: string;
+}
+
+export interface QualityGoldenSet {
+  total: number;
+  items: QualityGolden[];
+}
+
+export interface QualityEvalMetrics {
+  total: number;
+  passed: number;
+  failed: number;
+  /** 0..1 — goldens fully passed. */
+  accuracy: number;
+  /**
+     * 0..1 — cited sources grounded in the audited retrieval; null when no row carried citations.
+     * @nullable
+     */
+  citationCorrectness?: number | null;
+  /** 0..1 — rows with fabricated evidence, i.e. a citation outside the row's own audited retrieval. Refusal misses count against accuracy, not here. */
+  hallucinationRate: number;
+  p50LatencyMs: number;
+  p95LatencyMs: number;
+}
+
+export interface QualityEvalResultRow {
+  goldenId: string;
+  question: string;
+  roleId: string;
+  lang: string;
+  expectedStatus: string;
+  /**
+     * Null when the golden errored before a status was produced.
+     * @nullable
+     */
+  actualStatus?: string | null;
+  citedDocIds: string[];
+  /**
+     * Whether at least one expected doc was cited; null when not applicable.
+     * @nullable
+     */
+  expectedDocCited?: boolean | null;
+  /** @nullable */
+  historicOk?: boolean | null;
+  citationsTotal: number;
+  citationsGrounded: number;
+  hallucinated: boolean;
+  pass: boolean;
+  latencyMs: number;
+  /** @nullable */
+  error?: string | null;
+}
+
+export interface QualityEvalRunSummary {
+  id: string;
+  /** scheduled | manual | reeval */
+  trigger: string;
+  /** @nullable */
+  reevalOfFeedbackId?: string | null;
+  startedAt: string;
+  /** @nullable */
+  finishedAt?: string | null;
+  /** running | completed | failed */
+  status: string;
+  progressDone: number;
+  progressTotal: number;
+  metrics?: QualityEvalMetrics | null;
+  /** @nullable */
+  error?: string | null;
+}
+
+export type QualityEvalRun = QualityEvalRunSummary & {
+  results: QualityEvalResultRow[];
+};
+
+export interface QualityRunsPage {
+  /**
+     * When the weekly scheduled evaluation fires next.
+     * @nullable
+     */
+  nextEvalAt: string | null;
+  /** Whether a run is currently in flight. */
+  running: boolean;
+  items: QualityEvalRunSummary[];
+}
+
+export interface QualityRunStartBody {
+  /** Acting persona — must hold the approve_sensitive capability at full level. */
+  roleId: string;
+}
+
+export interface QualityRunStarted {
+  runId: string;
+}
+
+export interface QualityFeedbackBody {
+  /** Acting persona — must hold the use_modules capability. */
+  roleId: string;
+  /** correct | partial | incorrect | fabricated */
+  verdict: string;
+  question: string;
+  /** The answer text as shown; only a preview is stored. */
+  answer: string;
+  /** The answer's governance status (answered | no_evidence | permission_blocked | conflict). */
+  status: string;
+  citedDocIds?: string[];
+  /**
+     * The turn's retrieval-audit id, when it had one.
+     * @nullable
+     */
+  auditId?: string | null;
+  /** @nullable */
+  note?: string | null;
+  /** @nullable */
+  lang?: string | null;
+}
+
+export interface QualityFeedbackTriage {
+  /** open | classified | resolved */
+  state: string;
+  /**
+     * retrieval_miss | stale_source | bad_citation | model_error | permission_gap | not_an_error
+     * @nullable
+     */
+  errorClass?: string | null;
+  /** @nullable */
+  correctiveAction?: string | null;
+  /** @nullable */
+  classifiedByRoleId?: string | null;
+  /** @nullable */
+  classifiedAt?: string | null;
+  /** @nullable */
+  reevalRunId?: string | null;
+  /** @nullable */
+  resolvedAt?: string | null;
+}
+
+export interface QualityFeedbackEntry {
+  id: string;
+  createdAt: string;
+  /** correct | partial | incorrect | fabricated */
+  verdict: string;
+  /** @nullable */
+  note?: string | null;
+  question: string;
+  answerPreview: string;
+  answerStatus: string;
+  citedDocIds: string[];
+  roleId: string;
+  /** @nullable */
+  lang?: string | null;
+  /** @nullable */
+  auditId?: string | null;
+  triage: QualityFeedbackTriage;
+}
+
+export type QualityFeedbackDetail = QualityFeedbackEntry & ({
+  /** Snapshot of the audited retrieval taken at feedback time. */
+  retrievalTrace?: RetrievalLogEntry | null;
+});
+
+export interface QualityFeedbackPage {
+  total: number;
+  items: QualityFeedbackEntry[];
+}
+
+export interface QualityClassifyBody {
+  /** Acting persona — must hold the approve_sensitive capability at full level. */
+  roleId: string;
+  feedbackId: string;
+  /** retrieval_miss | stale_source | bad_citation | model_error | permission_gap | not_an_error */
+  errorClass: string;
+  /** What was done about it — free text, shown in the queue and the audit trail. */
+  correctiveAction: string;
+}
+
+export interface QualityReevalBody {
+  /** Acting persona — must hold the approve_sensitive capability at full level. */
+  roleId: string;
+  feedbackId: string;
+}
+
 export type GetCorpusStatsParams = {
 /**
  * Optional persona id to scope stats by clearance
@@ -3578,4 +3777,29 @@ export const GetExportTemplatePreviewPage = {
   cover: 'cover',
   body: 'body',
 } as const;
+
+export type ListQualityFeedbackParams = {
+/**
+ * Acting persona — must hold the view_audit capability
+ */
+viewerRoleId: string;
+};
+
+export type GetQualityFeedbackItemParams = {
+viewerRoleId: string;
+feedbackId: string;
+};
+
+export type ListQualityGoldensParams = {
+viewerRoleId: string;
+};
+
+export type ListQualityRunsParams = {
+viewerRoleId: string;
+};
+
+export type GetQualityRunParams = {
+viewerRoleId: string;
+runId: string;
+};
 

@@ -11,6 +11,7 @@
 // two ticks). nextRunAt is recomputed from the run time by markScheduleRun.
 
 import { runGenerateAgent } from "./generateAgent";
+import { maybeStartScheduledEval } from "./evalRunner";
 import { logger } from "../lib/logger";
 import {
   markScheduleRun,
@@ -127,6 +128,9 @@ let timer: NodeJS.Timeout | null = null;
 export function startScheduler(): void {
   if (timer) return;
   timer = setInterval(() => {
+    // Weekly golden-set evaluation rides the same tick — the claim inside is
+    // mark-before-run, so a slot can never double-fire across ticks.
+    maybeStartScheduledEval();
     for (const schedule of listDueSchedules()) {
       if (inFlight.has(schedule.id)) continue;
       logger.info(

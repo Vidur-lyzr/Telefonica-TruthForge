@@ -50,6 +50,7 @@ export const AskBody = zod.object({
 
 export const AskResponse = zod.object({
   "status": zod.string().describe('answered | no_evidence | permission_blocked | conflict'),
+  "auditId": zod.string().nullish().describe('Retrieval-audit id of this turn (F3 log). Sent back with answer feedback so the exact retrieval trace is attached to the report. Null on conversational turns that never retrieved.\n'),
   "answer": zod.string(),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
@@ -1197,6 +1198,7 @@ export const AskKpisBody = zod.object({
 
 export const AskKpisResponse = zod.object({
   "status": zod.string().describe('answered | no_evidence | permission_blocked | conflict'),
+  "auditId": zod.string().nullish().describe('Retrieval-audit id of this turn (F3 log). Sent back with answer feedback so the exact retrieval trace is attached to the report. Null on conversational turns that never retrieved.\n'),
   "answer": zod.string(),
   "citations": zod.array(zod.object({
   "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
@@ -7308,6 +7310,304 @@ export const CheckBrandTextResponse = zod.object({
   "end": zod.number()
 }),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
 }))
+})
+
+
+/**
+ * Stores the user's verdict (correct / partial / incorrect / fabricated) together with the question, the answer's governance status, the cited documents and — when the turn carried an audit id — a snapshot of the exact retrieval trace, so every report is reproducible. Verdicts below "correct" open a triage item. Requires use_modules (partial).
+ * @summary Record a four-way verdict on an Ask answer (L2 feedback loop)
+ */
+export const SubmitQualityFeedbackBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the use_modules capability.'),
+  "verdict": zod.string().describe('correct | partial | incorrect | fabricated'),
+  "question": zod.string(),
+  "answer": zod.string().describe('The answer text as shown; only a preview is stored.'),
+  "status": zod.string().describe('The answer\'s governance status (answered | no_evidence | permission_blocked | conflict).'),
+  "citedDocIds": zod.array(zod.string()).optional(),
+  "auditId": zod.string().nullish().describe('The turn\'s retrieval-audit id, when it had one.'),
+  "note": zod.string().nullish(),
+  "lang": zod.string().nullish()
+})
+
+export const SubmitQualityFeedbackResponse = zod.object({
+  "id": zod.string(),
+  "createdAt": zod.string(),
+  "verdict": zod.string().describe('correct | partial | incorrect | fabricated'),
+  "note": zod.string().nullish(),
+  "question": zod.string(),
+  "answerPreview": zod.string(),
+  "answerStatus": zod.string(),
+  "citedDocIds": zod.array(zod.string()),
+  "roleId": zod.string(),
+  "lang": zod.string().nullish(),
+  "auditId": zod.string().nullish(),
+  "triage": zod.object({
+  "state": zod.string().describe('open | classified | resolved'),
+  "errorClass": zod.string().nullish().describe('retrieval_miss | stale_source | bad_citation | model_error | permission_gap | not_an_error'),
+  "correctiveAction": zod.string().nullish(),
+  "classifiedByRoleId": zod.string().nullish(),
+  "classifiedAt": zod.string().nullish(),
+  "reevalRunId": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish()
+})
+})
+
+
+/**
+ * Newest first. Retrieval traces are omitted from the list — fetch one entry via /quality/feedback-item for the full trace. Requires view_audit (partial).
+ * @summary Feedback entries with embedded triage state (L3 queue)
+ */
+export const ListQualityFeedbackQueryParams = zod.object({
+  "viewerRoleId": zod.coerce.string().describe('Acting persona — must hold the view_audit capability')
+})
+
+export const ListQualityFeedbackResponse = zod.object({
+  "total": zod.number(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "createdAt": zod.string(),
+  "verdict": zod.string().describe('correct | partial | incorrect | fabricated'),
+  "note": zod.string().nullish(),
+  "question": zod.string(),
+  "answerPreview": zod.string(),
+  "answerStatus": zod.string(),
+  "citedDocIds": zod.array(zod.string()),
+  "roleId": zod.string(),
+  "lang": zod.string().nullish(),
+  "auditId": zod.string().nullish(),
+  "triage": zod.object({
+  "state": zod.string().describe('open | classified | resolved'),
+  "errorClass": zod.string().nullish().describe('retrieval_miss | stale_source | bad_citation | model_error | permission_gap | not_an_error'),
+  "correctiveAction": zod.string().nullish(),
+  "classifiedByRoleId": zod.string().nullish(),
+  "classifiedAt": zod.string().nullish(),
+  "reevalRunId": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish()
+})
+}))
+})
+
+
+/**
+ * @summary One feedback entry including its snapshotted retrieval trace
+ */
+export const GetQualityFeedbackItemQueryParams = zod.object({
+  "viewerRoleId": zod.coerce.string(),
+  "feedbackId": zod.coerce.string()
+})
+
+export const GetQualityFeedbackItemResponse = zod.object({
+  "id": zod.string(),
+  "createdAt": zod.string(),
+  "verdict": zod.string().describe('correct | partial | incorrect | fabricated'),
+  "note": zod.string().nullish(),
+  "question": zod.string(),
+  "answerPreview": zod.string(),
+  "answerStatus": zod.string(),
+  "citedDocIds": zod.array(zod.string()),
+  "roleId": zod.string(),
+  "lang": zod.string().nullish(),
+  "auditId": zod.string().nullish(),
+  "triage": zod.object({
+  "state": zod.string().describe('open | classified | resolved'),
+  "errorClass": zod.string().nullish().describe('retrieval_miss | stale_source | bad_citation | model_error | permission_gap | not_an_error'),
+  "correctiveAction": zod.string().nullish(),
+  "classifiedByRoleId": zod.string().nullish(),
+  "classifiedAt": zod.string().nullish(),
+  "reevalRunId": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish()
+})
+}).and(zod.object({
+  "retrievalTrace": zod.union([zod.object({
+  "id": zod.string(),
+  "timestamp": zod.string(),
+  "surface": zod.string().describe('ask | generate'),
+  "roleId": zod.string().nullable(),
+  "roleLabel": zod.string().nullable(),
+  "clearance": zod.string(),
+  "area": zod.string().nullable(),
+  "status": zod.string().nullable().describe('Final outcome set by the agent (answered, no_evidence, permission_blocked, drafted, ...)'),
+  "events": zod.array(zod.object({
+  "engine": zod.string().describe('qdrant | native'),
+  "query": zod.string().describe('Truncated retrieval query (max 120 chars) — never chunk text'),
+  "filterExpr": zod.string().describe('Human-readable governance filter applied inside the search'),
+  "hits": zod.array(zod.object({
+  "chunkId": zod.string(),
+  "docId": zod.string(),
+  "score": zod.number(),
+  "accessible": zod.boolean()
+}))
+}))
+}),zod.null()]).optional().describe('Snapshot of the audited retrieval taken at feedback time.')
+}))
+
+
+/**
+ * Every golden is grounded in the governed corpus - persona, language, expected governance status and (for answered goldens) the documents that must be cited. Requires view_audit (partial).
+ * @summary The weekly golden question set (L1)
+ */
+export const ListQualityGoldensQueryParams = zod.object({
+  "viewerRoleId": zod.coerce.string()
+})
+
+export const ListQualityGoldensResponse = zod.object({
+  "total": zod.number(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "question": zod.string(),
+  "roleId": zod.string().describe('Persona the question is asked as — governance is part of what is tested.'),
+  "lang": zod.string().describe('en | es | de | pt'),
+  "expectedStatus": zod.string().describe('answered | no_evidence | permission_blocked | conflict'),
+  "expectedDocIds": zod.array(zod.string()).optional().describe('For answered goldens, at least one of these must be cited.'),
+  "expectHistoric": zod.boolean().optional(),
+  "rationale": zod.string()
+}))
+})
+
+
+/**
+ * Run summaries newest first (results omitted - fetch one run via /quality/run), plus the next scheduled weekly eval time. Requires view_audit (partial).
+ * @summary Evaluation run history and the weekly schedule anchor (L1 scorecard)
+ */
+export const ListQualityRunsQueryParams = zod.object({
+  "viewerRoleId": zod.coerce.string()
+})
+
+export const ListQualityRunsResponse = zod.object({
+  "nextEvalAt": zod.string().nullable().describe('When the weekly scheduled evaluation fires next.'),
+  "running": zod.boolean().describe('Whether a run is currently in flight.'),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "trigger": zod.string().describe('scheduled | manual | reeval'),
+  "reevalOfFeedbackId": zod.string().nullish(),
+  "startedAt": zod.string(),
+  "finishedAt": zod.string().nullish(),
+  "status": zod.string().describe('running | completed | failed'),
+  "progressDone": zod.number(),
+  "progressTotal": zod.number(),
+  "metrics": zod.union([zod.object({
+  "total": zod.number(),
+  "passed": zod.number(),
+  "failed": zod.number(),
+  "accuracy": zod.number().describe('0..1 — goldens fully passed.'),
+  "citationCorrectness": zod.number().nullish().describe('0..1 — cited sources grounded in the audited retrieval; null when no row carried citations.'),
+  "hallucinationRate": zod.number().describe('0..1 — rows with fabricated evidence, i.e. a citation outside the row\'s own audited retrieval. Refusal misses count against accuracy, not here.'),
+  "p50LatencyMs": zod.number(),
+  "p95LatencyMs": zod.number()
+}),zod.null()]).optional(),
+  "error": zod.string().nullish()
+}))
+})
+
+
+/**
+ * Replays the full golden set through the real Ask agent (concurrency 2) and scores accuracy, citation correctness, hallucination rate and latency percentiles. Returns 202 immediately - poll /quality/run. Refused while another run is in flight. Requires approve_sensitive (full).
+ * @summary Start a manual golden-set evaluation run
+ */
+export const StartQualityRunBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the approve_sensitive capability at full level.')
+})
+
+export const StartQualityRunResponse = zod.object({
+  "runId": zod.string()
+})
+
+
+/**
+ * @summary One evaluation run with its full per-golden results
+ */
+export const GetQualityRunQueryParams = zod.object({
+  "viewerRoleId": zod.coerce.string(),
+  "runId": zod.coerce.string()
+})
+
+export const GetQualityRunResponse = zod.object({
+  "id": zod.string(),
+  "trigger": zod.string().describe('scheduled | manual | reeval'),
+  "reevalOfFeedbackId": zod.string().nullish(),
+  "startedAt": zod.string(),
+  "finishedAt": zod.string().nullish(),
+  "status": zod.string().describe('running | completed | failed'),
+  "progressDone": zod.number(),
+  "progressTotal": zod.number(),
+  "metrics": zod.union([zod.object({
+  "total": zod.number(),
+  "passed": zod.number(),
+  "failed": zod.number(),
+  "accuracy": zod.number().describe('0..1 — goldens fully passed.'),
+  "citationCorrectness": zod.number().nullish().describe('0..1 — cited sources grounded in the audited retrieval; null when no row carried citations.'),
+  "hallucinationRate": zod.number().describe('0..1 — rows with fabricated evidence, i.e. a citation outside the row\'s own audited retrieval. Refusal misses count against accuracy, not here.'),
+  "p50LatencyMs": zod.number(),
+  "p95LatencyMs": zod.number()
+}),zod.null()]).optional(),
+  "error": zod.string().nullish()
+}).and(zod.object({
+  "results": zod.array(zod.object({
+  "goldenId": zod.string(),
+  "question": zod.string(),
+  "roleId": zod.string(),
+  "lang": zod.string(),
+  "expectedStatus": zod.string(),
+  "actualStatus": zod.string().nullish().describe('Null when the golden errored before a status was produced.'),
+  "citedDocIds": zod.array(zod.string()),
+  "expectedDocCited": zod.boolean().nullish().describe('Whether at least one expected doc was cited; null when not applicable.'),
+  "historicOk": zod.boolean().nullish(),
+  "citationsTotal": zod.number(),
+  "citationsGrounded": zod.number(),
+  "hallucinated": zod.boolean(),
+  "pass": zod.boolean(),
+  "latencyMs": zod.number(),
+  "error": zod.string().nullish()
+}))
+}))
+
+
+/**
+ * Classifies an open feedback item (retrieval miss, stale source, bad citation, model error, permission gap, or not an error) and records the corrective action taken. Requires approve_sensitive (full).
+ * @summary Triage a feedback item - error class and corrective action (L3)
+ */
+export const ClassifyQualityFeedbackBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the approve_sensitive capability at full level.'),
+  "feedbackId": zod.string(),
+  "errorClass": zod.string().describe('retrieval_miss | stale_source | bad_citation | model_error | permission_gap | not_an_error'),
+  "correctiveAction": zod.string().describe('What was done about it — free text, shown in the queue and the audit trail.')
+})
+
+export const ClassifyQualityFeedbackResponse = zod.object({
+  "id": zod.string(),
+  "createdAt": zod.string(),
+  "verdict": zod.string().describe('correct | partial | incorrect | fabricated'),
+  "note": zod.string().nullish(),
+  "question": zod.string(),
+  "answerPreview": zod.string(),
+  "answerStatus": zod.string(),
+  "citedDocIds": zod.array(zod.string()),
+  "roleId": zod.string(),
+  "lang": zod.string().nullish(),
+  "auditId": zod.string().nullish(),
+  "triage": zod.object({
+  "state": zod.string().describe('open | classified | resolved'),
+  "errorClass": zod.string().nullish().describe('retrieval_miss | stale_source | bad_citation | model_error | permission_gap | not_an_error'),
+  "correctiveAction": zod.string().nullish(),
+  "classifiedByRoleId": zod.string().nullish(),
+  "classifiedAt": zod.string().nullish(),
+  "reevalRunId": zod.string().nullish(),
+  "resolvedAt": zod.string().nullish()
+})
+})
+
+
+/**
+ * Starts a full golden-set run linked to a classified feedback item. When the run completes, the item is marked resolved and the run's scorecard documents whether the corrective action held. Returns 202 - poll /quality/run. Requires approve_sensitive (full).
+ * @summary Launch a re-evaluation run to close a triaged feedback item (L3)
+ */
+export const StartQualityReevalBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the approve_sensitive capability at full level.'),
+  "feedbackId": zod.string()
+})
+
+export const StartQualityReevalResponse = zod.object({
+  "runId": zod.string()
 })
 
 
