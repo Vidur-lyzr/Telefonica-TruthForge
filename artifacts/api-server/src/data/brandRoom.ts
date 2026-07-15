@@ -5,6 +5,7 @@
 // BEFORE they are returned (fail-closed), mirroring the rest of the platform.
 
 import { CLEARANCE_RANK, ROLES, type Clearance, type Validity } from "./corpus";
+import { getTonePrinciples } from "./toneStore";
 import {
   TEMPLATES,
   BOILERPLATES,
@@ -542,7 +543,7 @@ export interface BrandToneView {
 
 export function brandTone(): BrandToneView {
   return {
-    principles: TONE_PRINCIPLES,
+    principles: getTonePrinciples(),
     rules: BRAND_RULES,
     prohibited: UNAPPROVED_CLAIM_PATTERNS.map((p) => ({
       id: p.id,

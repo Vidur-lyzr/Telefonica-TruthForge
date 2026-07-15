@@ -185,6 +185,7 @@ const LANGUAGE_OPTIONS: { value: string; text: string }[] = [
 type BriefValues = {
   shape: Shape;
   topic: string;
+  templateId: string | null;
   audience: Audience;
   language: string;
   axisIds: string[];
@@ -1823,6 +1824,7 @@ function BriefForm({
   const buildValues = (finalTopic: string, overrides: Partial<BriefValues> = {}): BriefValues => ({
     shape,
     topic: finalTopic,
+    templateId: pickedTemplateId,
     audience,
     language,
     axisIds,
@@ -2087,7 +2089,6 @@ function BriefForm({
                   roleId={roleId ?? undefined}
                   onUse={(s) => {
                     if (s in SHAPE_META) setShape(s as Shape);
-                    setPickedTemplateId(null);
                   }}
                 />
               )}
@@ -2984,6 +2985,7 @@ export default function Generate() {
           topic: v.topic,
           roleId,
           audience: v.audience,
+          templateId: v.templateId,
           language: v.language,
           axisIds: v.axisIds,
           confidentiality: v.confidentiality,

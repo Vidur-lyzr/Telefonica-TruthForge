@@ -108,6 +108,20 @@ export interface BrandStrings {
   skillVersion: (v: number) => string;
   skillDefaultTag: string;
   skillEditedTag: string;
+  editTone: string;
+  toneSheetTitle: string;
+  toneSheetSub: string;
+  toneTitleLabel: string;
+  toneGuidanceLabel: string;
+  toneDosLabel: string;
+  toneDontsLabel: string;
+  toneListHint: string;
+  addPrinciple: string;
+  removePrinciple: string;
+  saveTone: string;
+  savingTone: string;
+  resetTone: string;
+  toneSaveError: string;
   guardianError: string;
 }
 
@@ -229,7 +243,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     findingSeverity: { error: "Error", warning: "Warning" },
     fixPrefix: "Fix:",
     guardianIntro:
-      "Paste any copy — a caption, an intro, a tweet — and the Brand Guardian agent checks it live: deterministic hard rules first, then a Claude review of voice and register against the editable agent skill. Every violation is flagged inline.",
+      "Paste any copy — a caption, an intro, a tweet — and the Brand Guardian agent checks it live: deterministic hard rules first, then a review of voice and register against the editable agent skill. Every violation is flagged inline.",
     pasteLabel: "Paste copy to check",
     checking: "Checking…",
     runGuardian: "Run Brand Guardian",
@@ -252,6 +266,21 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     skillVersion: (v) => `Version ${v}`,
     skillDefaultTag: "Governed default",
     skillEditedTag: "Edited",
+    editTone: "Edit tone of voice",
+    toneSheetTitle: "Tone of voice",
+    toneSheetSub:
+      "Refine the governed tone-of-voice principles. Changes apply across the Brand Room immediately.",
+    toneTitleLabel: "Principle",
+    toneGuidanceLabel: "Guidance",
+    toneDosLabel: "Do (one per line)",
+    toneDontsLabel: "Don't (one per line)",
+    toneListHint: "Enter one item per line.",
+    addPrinciple: "Add principle",
+    removePrinciple: "Remove",
+    saveTone: "Save tone of voice",
+    savingTone: "Saving…",
+    resetTone: "Reset to default",
+    toneSaveError: "The tone of voice could not be saved.",
     guardianError: "The Brand Guardian could not complete this check. Try again.",
   },
   ES: {
@@ -373,7 +402,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     findingSeverity: { error: "Error", warning: "Advertencia" },
     fixPrefix: "Corrección:",
     guardianIntro:
-      "Pega cualquier texto — un pie de foto, una introducción, un tuit — y el agente Brand Guardian lo revisa en vivo: primero las reglas duras deterministas y después una revisión de voz y registro con Claude según la skill editable del agente. Cada infracción se marca en línea.",
+      "Pega cualquier texto — un pie de foto, una introducción, un tuit — y el agente Brand Guardian lo revisa en vivo: primero las reglas duras deterministas y después una revisión de voz y registro según la skill editable del agente. Cada infracción se marca en línea.",
     pasteLabel: "Pega el texto para comprobar",
     checking: "Comprobando…",
     runGuardian: "Ejecutar Brand Guardian",
@@ -396,6 +425,21 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     skillVersion: (v) => `Versión ${v}`,
     skillDefaultTag: "Estándar gobernado",
     skillEditedTag: "Editada",
+    editTone: "Editar el tono de voz",
+    toneSheetTitle: "Tono de voz",
+    toneSheetSub:
+      "Ajusta los principios gobernados del tono de voz. Los cambios se aplican en el Brand Room de inmediato.",
+    toneTitleLabel: "Principio",
+    toneGuidanceLabel: "Guía",
+    toneDosLabel: "Haz (uno por línea)",
+    toneDontsLabel: "Evita (uno por línea)",
+    toneListHint: "Introduce un elemento por línea.",
+    addPrinciple: "Añadir principio",
+    removePrinciple: "Eliminar",
+    saveTone: "Guardar tono de voz",
+    savingTone: "Guardando…",
+    resetTone: "Restaurar el valor por defecto",
+    toneSaveError: "No se pudo guardar el tono de voz.",
     guardianError: "El Brand Guardian no pudo completar esta comprobación. Inténtalo de nuevo.",
   },
   DE: {
@@ -518,7 +562,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     findingSeverity: { error: "Fehler", warning: "Warnung" },
     fixPrefix: "Korrektur:",
     guardianIntro:
-      "Fügen Sie beliebigen Text ein — eine Bildunterschrift, eine Einleitung, einen Tweet — und der Brand-Guardian-Agent prüft ihn live: zuerst die deterministischen Grundregeln, danach eine Claude-Prüfung von Stimme und Register anhand des editierbaren Agenten-Skills. Jeder Verstoß wird inline markiert.",
+      "Fügen Sie beliebigen Text ein — eine Bildunterschrift, eine Einleitung, einen Tweet — und der Brand-Guardian-Agent prüft ihn live: zuerst die deterministischen Grundregeln, danach eine Prüfung von Stimme und Register anhand des editierbaren Agenten-Skills. Jeder Verstoß wird inline markiert.",
     pasteLabel: "Text zum Prüfen einfügen",
     checking: "Wird geprüft…",
     runGuardian: "Brand Guardian ausführen",
@@ -541,6 +585,21 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     skillVersion: (v) => `Version ${v}`,
     skillDefaultTag: "Governance-Standard",
     skillEditedTag: "Bearbeitet",
+    editTone: "Tonalität bearbeiten",
+    toneSheetTitle: "Tonalität",
+    toneSheetSub:
+      "Passe die geregelten Tonalitätsprinzipien an. Änderungen gelten sofort im Brand Room.",
+    toneTitleLabel: "Prinzip",
+    toneGuidanceLabel: "Leitlinie",
+    toneDosLabel: "Tun (eins pro Zeile)",
+    toneDontsLabel: "Vermeiden (eins pro Zeile)",
+    toneListHint: "Ein Element pro Zeile eingeben.",
+    addPrinciple: "Prinzip hinzufügen",
+    removePrinciple: "Entfernen",
+    saveTone: "Tonalität speichern",
+    savingTone: "Wird gespeichert…",
+    resetTone: "Auf Standard zurücksetzen",
+    toneSaveError: "Die Tonalität konnte nicht gespeichert werden.",
     guardianError: "Der Brand Guardian konnte diese Prüfung nicht abschließen. Bitte erneut versuchen.",
   },
   PT: {
@@ -661,7 +720,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     findingSeverity: { error: "Erro", warning: "Aviso" },
     fixPrefix: "Correção:",
     guardianIntro:
-      "Cole qualquer texto — uma legenda, uma introdução, um tweet — e o agente Brand Guardian o verifica ao vivo: primeiro as regras rígidas determinísticas e depois uma revisão de voz e registro com Claude segundo a skill editável do agente. Cada violação é marcada em linha.",
+      "Cole qualquer texto — uma legenda, uma introdução, um tweet — e o agente Brand Guardian o verifica ao vivo: primeiro as regras rígidas determinísticas e depois uma revisão de voz e registro segundo a skill editável do agente. Cada violação é marcada em linha.",
     pasteLabel: "Cole o texto para verificar",
     checking: "Verificando…",
     runGuardian: "Executar Brand Guardian",
@@ -684,6 +743,21 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     skillVersion: (v) => `Versão ${v}`,
     skillDefaultTag: "Padrão governado",
     skillEditedTag: "Editada",
+    editTone: "Editar o tom de voz",
+    toneSheetTitle: "Tom de voz",
+    toneSheetSub:
+      "Ajuste os princípios governados do tom de voz. As alterações valem no Brand Room imediatamente.",
+    toneTitleLabel: "Princípio",
+    toneGuidanceLabel: "Orientação",
+    toneDosLabel: "Faça (um por linha)",
+    toneDontsLabel: "Evite (um por linha)",
+    toneListHint: "Insira um item por linha.",
+    addPrinciple: "Adicionar princípio",
+    removePrinciple: "Remover",
+    saveTone: "Salvar tom de voz",
+    savingTone: "Salvando…",
+    resetTone: "Redefinir para o padrão",
+    toneSaveError: "Não foi possível salvar o tom de voz.",
     guardianError: "O Brand Guardian não conseguiu concluir esta verificação. Tente novamente.",
   },
 };

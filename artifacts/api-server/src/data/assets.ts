@@ -289,6 +289,11 @@ export function getTemplate(shape: DocShape): DocumentTemplate | undefined {
   return templateByShape.get(shape);
 }
 
+const templateById = new Map(TEMPLATES.map((t) => [t.id, t]));
+export function getTemplateById(id: string): DocumentTemplate | undefined {
+  return templateById.get(id);
+}
+
 const disclaimerById = new Map(DISCLAIMERS.map((d) => [d.id, d]));
 export function getDisclaimer(id: string): Disclaimer | undefined {
   return disclaimerById.get(id);

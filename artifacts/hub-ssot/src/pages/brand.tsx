@@ -15,6 +15,9 @@ import {
   ExportTemplateDesignHeadingStyle,
   ExportTemplateDesignTableHeader,
   useGetBrandTone,
+  useUpdateToneOfVoice,
+  useResetToneOfVoice,
+  getGetBrandToneQueryKey,
   useGetBrandResources,
   useGetBrandSkill,
   useUpdateBrandSkill,
@@ -73,6 +76,7 @@ import {
   IconBookRegular,
   IconAppsRegular,
   IconOpenRegular,
+  IconPenRegular,
 } from "@telefonica/mistica";
 
 type IconType = (props: { size?: number; color?: string }) => React.ReactElement;
@@ -893,15 +897,199 @@ function SpellingPanel({ spelling }: { spelling: SpellingPref[] }) {
   );
 }
 
+type PrincipleDraft = {
+  id: string;
+  title: string;
+  guidance: string;
+  dos: string;
+  donts: string;
+};
+
+let toneDraftSeq = 0;
+function nextDraftId(): string {
+  toneDraftSeq += 1;
+  return `tone-new-${Date.now()}-${toneDraftSeq}`;
+}
+
+function toDraft(p: TonePrinciple): PrincipleDraft {
+  return {
+    id: p.id,
+    title: p.title,
+    guidance: p.guidance,
+    dos: p.dos.join("\n"),
+    donts: p.donts.join("\n"),
+  };
+}
+
+function fromDraft(d: PrincipleDraft): TonePrinciple {
+  const lines = (v: string) =>
+    v
+      .split("\n")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  return {
+    id: d.id,
+    title: d.title.trim(),
+    guidance: d.guidance.trim(),
+    dos: lines(d.dos),
+    donts: lines(d.donts),
+  };
+}
+
+// Editor for the governed tone-of-voice principles. Saves through the server so
+// the Brand Room, exports and generation immediately reflect the edit.
+function ToneSheet({
+  principles,
+  onClose,
+  t,
+}: {
+  principles: TonePrinciple[];
+  onClose: () => void;
+  t: BrandStrings;
+}) {
+  const { roleId } = useApp();
+  const queryClient = useQueryClient();
+  const update = useUpdateToneOfVoice();
+  const reset = useResetToneOfVoice();
+  const [drafts, setDrafts] = React.useState<PrincipleDraft[]>(() => principles.map(toDraft));
+  const [error, setError] = React.useState<string | null>(null);
+  const busy = update.isPending || reset.isPending;
+
+  const setField = (id: string, key: keyof PrincipleDraft, value: string) => {
+    setDrafts((prev) => prev.map((d) => (d.id === id ? { ...d, [key]: value } : d)));
+  };
+  const removeAt = (id: string) => setDrafts((prev) => prev.filter((d) => d.id !== id));
+  const add = () =>
+    setDrafts((prev) => [
+      ...prev,
+      { id: nextDraftId(), title: "", guidance: "", dos: "", donts: "" },
+    ]);
+
+  const applyState = (next: { principles: TonePrinciple[] }) => {
+    queryClient.invalidateQueries({ queryKey: getGetBrandToneQueryKey() });
+    setDrafts(next.principles.map(toDraft));
+    setError(null);
+  };
+
+  const save = () => {
+    const principlesOut = drafts.map(fromDraft).filter((p) => p.title.length > 0);
+    if (principlesOut.length === 0) {
+      setError(t.toneSaveError);
+      return;
+    }
+    setError(null);
+    update.mutate(
+      { data: { roleId, principles: principlesOut } },
+      { onSuccess: applyState, onError: () => setError(t.toneSaveError) },
+    );
+  };
+
+  return (
+    <Sheet onClose={onClose}>
+      {() => (
+        <Box paddingX={24} paddingTop={40} paddingBottom={32}>
+          <Stack space={16}>
+            <Stack space={8}>
+              <Title3>{t.toneSheetTitle}</Title3>
+              <Text2 regular color={skinVars.colors.textSecondary}>
+                {t.toneSheetSub}
+              </Text2>
+            </Stack>
+            {error && (
+              <Callout
+                variant="default"
+                asset={<IconCloseRegular color={skinVars.colors.error} />}
+                title={t.toneSaveError}
+                description=""
+              />
+            )}
+            <Stack space={24}>
+              {drafts.map((d) => (
+                <Boxed key={d.id}>
+                  <Box padding={20}>
+                    <Stack space={12}>
+                      <TextField
+                        name={`tone-title-${d.id}`}
+                        label={t.toneTitleLabel}
+                        value={d.title}
+                        onChangeValue={(v) => setField(d.id, "title", v)}
+                        fullWidth
+                      />
+                      <TextField
+                        multiline
+                        name={`tone-guidance-${d.id}`}
+                        label={t.toneGuidanceLabel}
+                        value={d.guidance}
+                        onChangeValue={(v) => setField(d.id, "guidance", v)}
+                        fullWidth
+                      />
+                      <TextField
+                        multiline
+                        name={`tone-dos-${d.id}`}
+                        label={t.toneDosLabel}
+                        value={d.dos}
+                        onChangeValue={(v) => setField(d.id, "dos", v)}
+                        fullWidth
+                      />
+                      <TextField
+                        multiline
+                        name={`tone-donts-${d.id}`}
+                        label={t.toneDontsLabel}
+                        value={d.donts}
+                        onChangeValue={(v) => setField(d.id, "donts", v)}
+                        fullWidth
+                      />
+                      <Inline space={16} alignItems="center">
+                        <ButtonLink onPress={() => removeAt(d.id)} disabled={busy}>
+                          {t.removePrinciple}
+                        </ButtonLink>
+                      </Inline>
+                    </Stack>
+                  </Box>
+                </Boxed>
+              ))}
+            </Stack>
+            <Inline space={16} alignItems="center" wrap>
+              <ButtonPrimary onPress={save} disabled={busy} showSpinner={update.isPending}>
+                {update.isPending ? t.savingTone : t.saveTone}
+              </ButtonPrimary>
+              <ButtonSecondary
+                onPress={() => {
+                  reset.mutate({ data: { roleId } }, { onSuccess: applyState });
+                }}
+                disabled={busy}
+                showSpinner={reset.isPending}
+              >
+                {t.resetTone}
+              </ButtonSecondary>
+              <ButtonLink onPress={add} disabled={busy}>
+                {t.addPrinciple}
+              </ButtonLink>
+            </Inline>
+          </Stack>
+        </Box>
+      )}
+    </Sheet>
+  );
+}
+
 function ToneArea() {
   const { lang } = useApp();
   const t = BRAND_I18N[lang];
   const { data, isLoading } = useGetBrandTone();
+  const [editing, setEditing] = React.useState(false);
   if (isLoading) return <Loading />;
   if (!data) return null;
   return (
     <Stack space={32}>
-      <IntroLine>{t.toneIntro}</IntroLine>
+      <Inline space={16} alignItems="center" wrap>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <IntroLine>{t.toneIntro}</IntroLine>
+        </div>
+        <ButtonSecondary onPress={() => setEditing(true)} StartIcon={IconPenRegular}>
+          {t.editTone}
+        </ButtonSecondary>
+      </Inline>
       <Grid columns={3} gap={24}>
         {data.principles.map((p) => (
           <PrincipleCard key={p.id} p={p} />
@@ -914,6 +1102,9 @@ function ToneArea() {
           <SpellingPanel spelling={data.spelling} />
         </Stack>
       </Grid>
+      {editing && (
+        <ToneSheet principles={data.principles} onClose={() => setEditing(false)} t={t} />
+      )}
     </Stack>
   );
 }

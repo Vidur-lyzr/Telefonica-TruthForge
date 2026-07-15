@@ -3125,6 +3125,7 @@ export const GenerateBody = zod.object({
   "topic": zod.string().min(1),
   "roleId": zod.string().describe('Active persona id (drives clearance)'),
   "audience": zod.string().describe('internal | external'),
+  "templateId": zod.string().nullish().describe('Optional brand template chosen in the Generate tab. When present and valid it drives the section blueprint, required disclaimers and default export template.\n'),
   "language": zod.string().optional().describe('BCP-47-ish code, e.g. en, es'),
   "confidentiality": zod.string().optional().describe('Destination confidentiality of the document'),
   "format": zod.string().optional().describe('Output format hint, e.g. document, email, note'),
@@ -6120,6 +6121,7 @@ export const StartGenerateJobBody = zod.object({
   "topic": zod.string().min(1),
   "roleId": zod.string().describe('Active persona id (drives clearance)'),
   "audience": zod.string().describe('internal | external'),
+  "templateId": zod.string().nullish().describe('Optional brand template chosen in the Generate tab. When present and valid it drives the section blueprint, required disclaimers and default export template.\n'),
   "language": zod.string().optional().describe('BCP-47-ish code, e.g. en, es'),
   "confidentiality": zod.string().optional().describe('Destination confidentiality of the document'),
   "format": zod.string().optional().describe('Output format hint, e.g. document, email, note'),
@@ -7262,6 +7264,55 @@ export const GetBrandToneResponse = zod.object({
   "american": zod.string(),
   "european": zod.string()
 }))
+})
+
+
+/**
+ * @summary Save a governed edit of the tone-of-voice principles
+ */
+export const UpdateToneOfVoiceBody = zod.object({
+  "roleId": zod.string(),
+  "principles": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "guidance": zod.string(),
+  "dos": zod.array(zod.string()),
+  "donts": zod.array(zod.string())
+}))
+})
+
+export const UpdateToneOfVoiceResponse = zod.object({
+  "principles": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "guidance": zod.string(),
+  "dos": zod.array(zod.string()),
+  "donts": zod.array(zod.string())
+})),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "isDefault": zod.boolean()
+})
+
+
+/**
+ * @summary Reset the tone-of-voice principles to the governed default
+ */
+export const ResetToneOfVoiceBody = zod.object({
+  "roleId": zod.string()
+})
+
+export const ResetToneOfVoiceResponse = zod.object({
+  "principles": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "guidance": zod.string(),
+  "dos": zod.array(zod.string()),
+  "donts": zod.array(zod.string())
+})),
+  "version": zod.number(),
+  "updatedAt": zod.string(),
+  "isDefault": zod.boolean()
 })
 
 

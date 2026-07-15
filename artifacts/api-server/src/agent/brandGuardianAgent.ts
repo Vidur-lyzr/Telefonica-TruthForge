@@ -182,7 +182,7 @@ export async function runBrandGuardianAgent(
   throwIfAborted();
 
   // 3. Claude review against the skill.
-  step("model", "Reviewing voice and register with Claude", "active");
+  step("model", "Reviewing voice and register", "active");
   let modelFindings: GuardianFinding[] = [];
   let modelSummary: string | null = null;
   let modelUnavailable = false;
@@ -207,20 +207,20 @@ export async function runBrandGuardianAgent(
           : null;
       step(
         "model",
-        "Reviewing voice and register with Claude",
+        "Reviewing voice and register",
         "done",
         `${modelFindings.length} ${modelFindings.length === 1 ? "finding" : "findings"}`,
       );
     } else {
       modelUnavailable = true;
       log.warn({ raw: raw.slice(0, 200) }, "brand guardian: unusable model verdict");
-      step("model", "Reviewing voice and register with Claude", "done", "Review unavailable");
+      step("model", "Reviewing voice and register", "done", "Review unavailable");
     }
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") throw err;
     modelUnavailable = true;
     log.warn({ err }, "brand guardian: model review failed; deterministic verdict only");
-    step("model", "Reviewing voice and register with Claude", "done", "Review unavailable");
+    step("model", "Reviewing voice and register", "done", "Review unavailable");
   }
 
   // 4. Compose the verdict.

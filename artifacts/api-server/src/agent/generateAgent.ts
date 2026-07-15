@@ -28,13 +28,15 @@ import {
 } from "../data/corpus";
 import {
   getTemplate,
+  getTemplateById,
   getDisclaimer,
   APPROVED_QUOTES,
   BOILERPLATES,
   PRESS_CONTACT,
   type DocShape,
 } from "../data/assets";
-import { TONE_PRINCIPLES, BRAND_RULES } from "../data/brandRoom";
+import { BRAND_RULES } from "../data/brandRoom";
+import { getTonePrinciples } from "../data/toneStore";
 import { runBrandGuardian } from "./brandGuardian";
 import { parseQaBody, serializeQaPairs, normalizeQuestion } from "./qa";
 import { sanitizeSectionBody } from "./bodyText";
@@ -243,6 +245,11 @@ export interface GenerateInput {
   topic: string;
   roleId: string;
   audience: Audience;
+  // Optional brand template chosen in the Generate tab. When present and valid
+  // it drives the section blueprint, required disclaimers and default export
+  // template — overriding the shape-derived default so the draft follows the
+  // corporate template the user selected.
+  templateId?: string | null;
   language?: string;
   confidentiality?: string;
   format?: string;
@@ -365,7 +372,8 @@ async function compose(
   const confidentiality = input.confidentiality ?? (audience === "external" ? "public" : "internal");
   const format = input.format ?? "document";
   const shape = input.shape;
-  const template = getTemplate(shape);
+  const chosenTemplate = input.templateId ? getTemplateById(input.templateId) : undefined;
+  const template = chosenTemplate ?? getTemplate(shape);
   const templateId = template?.id ?? "tmpl-multiformat";
 
   // Dual filter: the model may only see material that BOTH the persona is
@@ -955,7 +963,7 @@ async function compose(
     "Spokesperson notes and any internal-only guidance draw on the internal guidance sources [G#]; these support the drafter and must never be phrased as external-facing copy.",
     // Brand Room tone of voice: every draft is composed under the same
     // governed principles and hard rules the Brand Guardian later enforces.
-    `BRAND ROOM TONE OF VOICE — write every sentence under these governed principles: ${TONE_PRINCIPLES.map(
+    `BRAND ROOM TONE OF VOICE — write every sentence under these governed principles: ${getTonePrinciples().map(
       (p) => `${p.title}: ${p.guidance} Do: ${p.dos.join("; ")}. Don't: ${p.donts.join("; ")}.`,
     ).join(" ")}`,
     `HARD BRAND RULES (enforced after drafting — violations are rejected): ${BRAND_RULES.map(

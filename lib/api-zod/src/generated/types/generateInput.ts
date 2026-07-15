@@ -18,6 +18,11 @@ export interface GenerateInput {
   roleId: string;
   /** internal | external */
   audience: string;
+  /**
+     * Optional brand template chosen in the Generate tab. When present and valid it drives the section blueprint, required disclaimers and default export template.
+     * @nullable
+     */
+  templateId?: string | null;
   /** BCP-47-ish code, e.g. en, es */
   language?: string;
   /** Destination confidentiality of the document */

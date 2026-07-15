@@ -174,6 +174,7 @@ import type {
   RadarItem,
   RefineInput,
   RelevanceFilterSnapshot,
+  ResetToneBody,
   RetagApplyInput,
   RetagApplyResult,
   RetagProposeInput,
@@ -194,6 +195,8 @@ import type {
   TaxonomyRollbackResult,
   TaxonomyState,
   TemplateSuggestion,
+  ToneStateView,
+  UpdateToneBody,
   UsageMeter,
   ValidationItem,
   VisibilityMatrix,
@@ -8467,6 +8470,146 @@ export function useGetBrandTone<TData = Awaited<ReturnType<typeof getBrandTone>>
 
 
 
+
+export const getUpdateToneOfVoiceUrl = () => {
+
+
+
+
+  return `/api/brand/tone`
+}
+
+/**
+ * @summary Save a governed edit of the tone-of-voice principles
+ */
+export const updateToneOfVoice = async (updateToneBody: UpdateToneBody, options?: RequestInit): Promise<ToneStateView> => {
+
+  return customFetch<ToneStateView>(getUpdateToneOfVoiceUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateToneBody)
+  }
+);}
+
+
+
+
+export const getUpdateToneOfVoiceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateToneOfVoice>>, TError,{data: BodyType<UpdateToneBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateToneOfVoice>>, TError,{data: BodyType<UpdateToneBody>}, TContext> => {
+
+const mutationKey = ['updateToneOfVoice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateToneOfVoice>>, {data: BodyType<UpdateToneBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateToneOfVoice(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateToneOfVoiceMutationResult = NonNullable<Awaited<ReturnType<typeof updateToneOfVoice>>>
+    export type UpdateToneOfVoiceMutationBody = BodyType<UpdateToneBody>
+    export type UpdateToneOfVoiceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Save a governed edit of the tone-of-voice principles
+ */
+export const useUpdateToneOfVoice = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateToneOfVoice>>, TError,{data: BodyType<UpdateToneBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateToneOfVoice>>,
+        TError,
+        {data: BodyType<UpdateToneBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateToneOfVoiceMutationOptions(options));
+    }
+
+export const getResetToneOfVoiceUrl = () => {
+
+
+
+
+  return `/api/brand/tone/reset`
+}
+
+/**
+ * @summary Reset the tone-of-voice principles to the governed default
+ */
+export const resetToneOfVoice = async (resetToneBody: ResetToneBody, options?: RequestInit): Promise<ToneStateView> => {
+
+  return customFetch<ToneStateView>(getResetToneOfVoiceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(resetToneBody)
+  }
+);}
+
+
+
+
+export const getResetToneOfVoiceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetToneOfVoice>>, TError,{data: BodyType<ResetToneBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetToneOfVoice>>, TError,{data: BodyType<ResetToneBody>}, TContext> => {
+
+const mutationKey = ['resetToneOfVoice'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetToneOfVoice>>, {data: BodyType<ResetToneBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  resetToneOfVoice(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetToneOfVoiceMutationResult = NonNullable<Awaited<ReturnType<typeof resetToneOfVoice>>>
+    export type ResetToneOfVoiceMutationBody = BodyType<ResetToneBody>
+    export type ResetToneOfVoiceMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Reset the tone-of-voice principles to the governed default
+ */
+export const useResetToneOfVoice = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetToneOfVoice>>, TError,{data: BodyType<ResetToneBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetToneOfVoice>>,
+        TError,
+        {data: BodyType<ResetToneBody>},
+        TContext
+      > => {
+      return useMutation(getResetToneOfVoiceMutationOptions(options));
+    }
 
 export const getGetBrandResourcesUrl = (params?: GetBrandResourcesParams,) => {
   const normalizedParams = new URLSearchParams();

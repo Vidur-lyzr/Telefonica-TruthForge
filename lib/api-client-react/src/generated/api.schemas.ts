@@ -95,6 +95,22 @@ export interface BrandToneView {
   spelling: SpellingPref[];
 }
 
+export interface ToneStateView {
+  principles: TonePrinciple[];
+  version: number;
+  updatedAt: string;
+  isDefault: boolean;
+}
+
+export interface UpdateToneBody {
+  roleId: string;
+  principles: TonePrinciple[];
+}
+
+export interface ResetToneBody {
+  roleId: string;
+}
+
 export interface BrandResource {
   id: string;
   name: string;
@@ -2429,6 +2445,11 @@ export interface GenerateInput {
   roleId: string;
   /** internal | external */
   audience: string;
+  /**
+     * Optional brand template chosen in the Generate tab. When present and valid it drives the section blueprint, required disclaimers and default export template.
+     * @nullable
+     */
+  templateId?: string | null;
   /** BCP-47-ish code, e.g. en, es */
   language?: string;
   /** Destination confidentiality of the document */

@@ -2848,6 +2848,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BrandToneView"
+    put:
+      operationId: updateToneOfVoice
+      tags: [brand-room]
+      summary: Save a governed edit of the tone-of-voice principles
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateToneBody"
+      responses:
+        "200":
+          description: Updated tone principles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToneStateView"
+  /brand/tone/reset:
+    post:
+      operationId: resetToneOfVoice
+      tags: [brand-room]
+      summary: Reset the tone-of-voice principles to the governed default
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetToneBody"
+      responses:
+        "200":
+          description: Reset tone principles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ToneStateView"
 
   /brand/resources:
     get:
@@ -3569,6 +3604,36 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SpellingPref"
+    ToneStateView:
+      type: object
+      required: [principles, version, updatedAt, isDefault]
+      properties:
+        principles:
+          type: array
+          items:
+            $ref: "#/components/schemas/TonePrinciple"
+        version:
+          type: integer
+        updatedAt:
+          type: string
+        isDefault:
+          type: boolean
+    UpdateToneBody:
+      type: object
+      required: [roleId, principles]
+      properties:
+        roleId:
+          type: string
+        principles:
+          type: array
+          items:
+            $ref: "#/components/schemas/TonePrinciple"
+    ResetToneBody:
+      type: object
+      required: [roleId]
+      properties:
+        roleId:
+          type: string
     BrandResource:
       type: object
       required: [id, name, category, description, detail, format, clearance, validity]
@@ -6993,6 +7058,12 @@ components:
         audience:
           type: string
           description: internal | external
+        templateId:
+          type: ["string", "null"]
+          description: >
+            Optional brand template chosen in the Generate tab. When present
+            and valid it drives the section blueprint, required disclaimers and
+            default export template.
         language:
           type: string
           description: BCP-47-ish code, e.g. en, es

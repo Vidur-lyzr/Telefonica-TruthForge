@@ -15,6 +15,10 @@ import {
   UpdateBrandSkillBody,
   UpdateBrandSkillResponse,
   ResetBrandSkillResponse,
+  UpdateToneOfVoiceBody,
+  UpdateToneOfVoiceResponse,
+  ResetToneOfVoiceBody,
+  ResetToneOfVoiceResponse,
 } from "@workspace/api-zod";
 import { getExportTemplate } from "../export/exportTemplates";
 import { renderTemplatePreview } from "../export/templatePreview";
@@ -41,6 +45,7 @@ import {
   updateBrandSkill,
   resetBrandSkill,
 } from "../data/brandSkillStore";
+import { updateTonePrinciples, resetTonePrinciples } from "../data/toneStore";
 import { requireCapability, type CapabilityGrant } from "../data/accessControl";
 import type { Request, Response } from "express";
 import { ResetBrandSkillBody } from "@workspace/api-zod";
@@ -90,6 +95,41 @@ router.get("/brand/template", (req, res) => {
 
 router.get("/brand/tone", (_req, res) => {
   res.json(GetBrandToneResponse.parse(brandTone()));
+});
+
+router.put("/brand/tone", (req, res) => {
+  const parsed = UpdateToneOfVoiceBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid tone edit",
+      code: "invalid_tone_edit",
+      details: parsed.error.issues,
+    });
+    return;
+  }
+  if (!requireBrandRoom(req, res, parsed.data.roleId)) return;
+  if (parsed.data.principles.length === 0) {
+    res.status(400).json({
+      error: "At least one tone principle is required.",
+      code: "empty_tone_edit",
+    });
+    return;
+  }
+  const state = updateTonePrinciples(parsed.data.principles);
+  req.log.info({ version: state.version }, "tone of voice updated");
+  res.json(UpdateToneOfVoiceResponse.parse(state));
+});
+
+router.post("/brand/tone/reset", (req, res) => {
+  const parsed = ResetToneOfVoiceBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  if (!requireBrandRoom(req, res, parsed.data.roleId)) return;
+  const state = resetTonePrinciples();
+  req.log.info({ version: state.version }, "tone of voice reset to default");
+  res.json(ResetToneOfVoiceResponse.parse(state));
 });
 
 router.get("/brand/resources", (req, res) => {
