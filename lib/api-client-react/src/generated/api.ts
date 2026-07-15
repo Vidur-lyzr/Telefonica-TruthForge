@@ -113,6 +113,8 @@ import type {
   LiveIngestAcceptResult,
   LiveIngestSearchInput,
   LiveIngestSearchResult,
+  ManualUploadForm,
+  ManualUploadResult,
   NotificationRecord,
   PlanningAlert,
   PlanningAskInput,
@@ -7434,6 +7436,94 @@ export const useLiveIngestAccept = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getLiveIngestAcceptMutationOptions(options));
+    }
+
+export const getManualUploadUrl = () => {
+
+
+
+
+  return `/api/data/upload`
+}
+
+/**
+ * Accepts a real file (PDF, Word .docx, plain text or Markdown), extracts its text server-side, splits it into governed chunks, creates an A-category corpus document with the metadata the documentalist supplied, and upserts the chunks into the vector index. The document is immediately retrievable by the Ask agent under the same governance filters as any other corpus document, and survives restarts via the index payload.
+ * @summary Manual document upload — extract, chunk, embed and index a real file
+ */
+export const manualUpload = async (manualUploadForm: ManualUploadForm, options?: RequestInit): Promise<ManualUploadResult> => {
+    const formData = new FormData();
+formData.append(`file`, manualUploadForm.file);
+formData.append(`title`, manualUploadForm.title);
+formData.append(`owner`, manualUploadForm.owner);
+if(manualUploadForm.country !== undefined) {
+ formData.append(`country`, manualUploadForm.country);
+ }
+if(manualUploadForm.brand !== undefined) {
+ formData.append(`brand`, manualUploadForm.brand);
+ }
+formData.append(`confidentiality`, manualUploadForm.confidentiality);
+if(manualUploadForm.area !== undefined) {
+ formData.append(`area`, manualUploadForm.area);
+ }
+if(manualUploadForm.language !== undefined) {
+ formData.append(`language`, manualUploadForm.language);
+ }
+
+  return customFetch<ManualUploadResult>(getManualUploadUrl(),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body: formData
+  }
+);}
+
+
+
+
+export const getManualUploadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof manualUpload>>, TError,{data: BodyType<ManualUploadForm>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof manualUpload>>, TError,{data: BodyType<ManualUploadForm>}, TContext> => {
+
+const mutationKey = ['manualUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof manualUpload>>, {data: BodyType<ManualUploadForm>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  manualUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ManualUploadMutationResult = NonNullable<Awaited<ReturnType<typeof manualUpload>>>
+    export type ManualUploadMutationBody = BodyType<ManualUploadForm>
+    export type ManualUploadMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Manual document upload — extract, chunk, embed and index a real file
+ */
+export const useManualUpload = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof manualUpload>>, TError,{data: BodyType<ManualUploadForm>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof manualUpload>>,
+        TError,
+        {data: BodyType<ManualUploadForm>},
+        TContext
+      > => {
+      return useMutation(getManualUploadMutationOptions(options));
     }
 
 export const getListValidationItemsUrl = () => {

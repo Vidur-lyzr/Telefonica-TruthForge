@@ -1,4 +1,5 @@
 import { Router, type IRouter } from "express";
+import multer from "multer";
 import {
   ListDataSourcesResponse,
   GetIngestionSnapshotResponse,
@@ -9,6 +10,7 @@ import {
   LiveIngestSearchResponse,
   LiveIngestAcceptBody,
   LiveIngestAcceptResponse,
+  ManualUploadResponse,
 } from "@workspace/api-zod";
 import {
   DATA_SOURCES,
@@ -24,6 +26,13 @@ import {
   type LiveIngestFilter,
 } from "../adapters/perplexity";
 import { createLiveDocs } from "../data/liveIngest";
+import {
+  extractUploadText,
+  buildUploadDoc,
+  UploadError,
+} from "../data/manualUpload";
+import { DOCS, type Area, type Clearance } from "../data/corpus";
+import { registerDocInIndex } from "../adapters/kb";
 import {
   isQdrantConfigured,
   upsertChunks,
@@ -194,5 +203,182 @@ router.post("/data/ingest/accept", async (req, res) => {
     res.status(500).json({ error: "The accepted mentions could not be ingested." });
   }
 });
+
+// ── Manual upload — the real file-intake path ────────────────────────────────
+
+const UPLOAD_MAX_BYTES = 15 * 1024 * 1024;
+const uploadMiddleware = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: UPLOAD_MAX_BYTES },
+}).single("file");
+
+const UPLOAD_CLEARANCES: Clearance[] = [
+  "public",
+  "private",
+  "confidential",
+  "off_the_record",
+];
+const UPLOAD_AREAS: Area[] = ["Comunicación", "Marca", "Gabinete"];
+const UPLOAD_LANGUAGES = ["en", "es", "de", "pt"];
+
+router.post(
+  "/data/upload",
+  (req, res, next) => {
+    uploadMiddleware(req, res, (err: unknown) => {
+      if (err) {
+        const tooLarge =
+          typeof err === "object" &&
+          err !== null &&
+          (err as { code?: string }).code === "LIMIT_FILE_SIZE";
+        res.status(tooLarge ? 413 : 400).json({
+          error: tooLarge
+            ? "The file is too large — the manual upload limit is 15 MB."
+            : "The upload could not be read.",
+          code: tooLarge ? "file_too_large" : "bad_upload",
+        });
+        return;
+      }
+      next();
+    });
+  },
+  async (req, res) => {
+    const file = req.file;
+    if (!file || file.buffer.length === 0) {
+      res.status(400).json({
+        error: "No file was attached — pick a PDF, Word, text or Markdown file.",
+        code: "missing_file",
+      });
+      return;
+    }
+
+    const body = req.body as Record<string, unknown>;
+    const str = (key: string): string =>
+      typeof body[key] === "string" ? (body[key] as string).trim() : "";
+
+    const title = str("title");
+    const owner = str("owner");
+    const confidentiality = str("confidentiality") as Clearance;
+    const areaRaw = str("area");
+    const language = str("language") || "en";
+
+    if (!title || !owner) {
+      res.status(400).json({
+        error: "Title and owner are mandatory — nothing enters the pipeline underspecified.",
+        code: "missing_metadata",
+      });
+      return;
+    }
+    if (!UPLOAD_CLEARANCES.includes(confidentiality)) {
+      res.status(400).json({
+        error: "A valid confidentiality tier is mandatory.",
+        code: "invalid_confidentiality",
+      });
+      return;
+    }
+    if (areaRaw !== "" && !UPLOAD_AREAS.includes(areaRaw as Area)) {
+      res.status(400).json({ error: "Unknown area.", code: "invalid_area" });
+      return;
+    }
+    if (!UPLOAD_LANGUAGES.includes(language)) {
+      res.status(400).json({ error: "Unknown language.", code: "invalid_language" });
+      return;
+    }
+
+    try {
+      const { text, sourceFormat } = await extractUploadText(
+        file.originalname,
+        file.buffer,
+      );
+      if (text.replace(/\s+/g, " ").trim().length < 40) {
+        res.status(422).json({
+          error:
+            "No readable text could be extracted from this file — scanned images without a text layer cannot be ingested.",
+          code: "empty_extraction",
+        });
+        return;
+      }
+
+      const { doc, chunks } = buildUploadDoc({
+        title,
+        owner,
+        country: str("country") || "Group",
+        brand: str("brand") || "Telefónica",
+        confidentiality,
+        area: areaRaw === "" ? null : (areaRaw as Area),
+        language,
+        filename: file.originalname,
+        text,
+        sourceFormat,
+      });
+
+      // Index FIRST, commit to the corpus after: a failed vector write must
+      // never leave a doc that answers now but silently dies on restart.
+      const before = isQdrantConfigured() ? await collectionStatus() : null;
+      let upserted = 0;
+      if (isQdrantConfigured()) {
+        const version = currentTaxonomyVersion();
+        const points: UpsertChunk[] = chunks.map((chunk) => ({
+          chunkId: chunk.id,
+          embedText: `${doc.title} — ${chunk.heading}. ${chunk.text} ${doc.topics.join(" ")}`,
+          payload: {
+            chunkId: chunk.id,
+            docId: doc.id,
+            category: doc.category,
+            confidentiality: doc.confidentiality,
+            areas: doc.areas ?? [],
+            country: doc.country,
+            brand: doc.brand,
+            quarter: doc.quarter,
+            type: doc.type,
+            validity: doc.validity,
+            axisIds: doc.axisIds,
+            topics: doc.topics,
+            taxonomyVersion: version,
+            live: true,
+            liveDoc: doc,
+          },
+        }));
+        await upsertChunks(points);
+        upserted = points.length;
+      }
+      DOCS.push(doc);
+      registerDocInIndex(doc);
+      const after = isQdrantConfigured() ? await collectionStatus() : null;
+
+      req.log.info(
+        {
+          docId: doc.id,
+          chunks: chunks.length,
+          upserted,
+          extractedChars: text.length,
+          sourceFormat,
+        },
+        "manual upload: document ingested",
+      );
+      res.json(
+        ManualUploadResponse.parse({
+          docId: doc.id,
+          title: doc.title,
+          chunkCount: chunks.length,
+          upsertedChunks: upserted,
+          pointsBefore: before?.pointsCount ?? 0,
+          pointsAfter: after?.pointsCount ?? 0,
+          extractedChars: text.length,
+          sourceFormat,
+        }),
+      );
+    } catch (err) {
+      if (err instanceof UploadError) {
+        res.status(err.status).json({ error: err.message, code: err.code });
+        return;
+      }
+      req.log.error({ err }, "manual upload: ingestion failed");
+      res.status(502).json({
+        error: "The document could not be ingested into the knowledge core.",
+        code: "upload_ingest_failed",
+      });
+    }
+  },
+);
 
 export default router;

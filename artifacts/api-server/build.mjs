@@ -37,6 +37,9 @@ async function buildAll() {
       // resolution that do not survive bundling; keep them external.
       "@open-gitagent/*",
       "@mariozechner/*",
+      // unpdf ships its own serverless pdf.js build resolved at runtime —
+      // keep it external so that resolution survives.
+      "unpdf",
       "sharp",
       "better-sqlite3",
       "sqlite3",

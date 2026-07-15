@@ -13,6 +13,10 @@ export interface UploadedDoc {
   confidentiality: string;
   country: string;
   brand: string;
+  docId: string;
+  chunkCount: number;
+  pointsBefore: number;
+  pointsAfter: number;
 }
 
 export interface ActivityEntry {

@@ -2326,6 +2326,33 @@ paths:
               schema:
                 $ref: "#/components/schemas/LiveIngestAcceptResult"
 
+  /data/upload:
+    post:
+      operationId: manualUpload
+      tags: [data]
+      summary: Manual document upload — extract, chunk, embed and index a real file
+      description: >
+        Accepts a real file (PDF, Word .docx, plain text or Markdown), extracts
+        its text server-side, splits it into governed chunks, creates an
+        A-category corpus document with the metadata the documentalist supplied,
+        and upserts the chunks into the vector index. The document is
+        immediately retrievable by the Ask agent under the same governance
+        filters as any other corpus document, and survives restarts via the
+        index payload.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/ManualUploadForm"
+      responses:
+        "200":
+          description: The created document and index proof
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManualUploadResult"
+
   /data/validation:
     get:
       operationId: listValidationItems
@@ -3976,6 +4003,67 @@ components:
         pointsAfter:
           type: integer
           description: Vector point count after ingestion (grew by upsertedChunks)
+
+    ManualUploadForm:
+      type: object
+      required: [file, title, owner, confidentiality]
+      properties:
+        file:
+          type: string
+          format: binary
+        title:
+          type: string
+        owner:
+          type: string
+        country:
+          type: string
+        brand:
+          type: string
+        confidentiality:
+          type: string
+          enum: [public, private, confidential, off_the_record]
+        area:
+          type: string
+          description: One governed area, or empty for all areas
+        language:
+          type: string
+
+    ManualUploadResult:
+      type: object
+      required:
+        [
+          docId,
+          title,
+          chunkCount,
+          upsertedChunks,
+          pointsBefore,
+          pointsAfter,
+          extractedChars,
+          sourceFormat,
+        ]
+      properties:
+        docId:
+          type: string
+        title:
+          type: string
+        chunkCount:
+          type: integer
+          description: Chunks created from the extracted text
+        upsertedChunks:
+          type: integer
+          description: Chunks upserted into the vector index (0 when the index is unconfigured)
+        pointsBefore:
+          type: integer
+          description: Vector point count before the upload
+        pointsAfter:
+          type: integer
+          description: Vector point count after the upload
+        extractedChars:
+          type: integer
+          description: Characters of text extracted from the file
+        sourceFormat:
+          type: string
+          description: Detected source format (PDF, Word document, Plain text, Markdown)
 
     IngestFilter:
       type: object

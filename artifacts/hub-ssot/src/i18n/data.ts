@@ -104,10 +104,10 @@ export interface DataStrings {
     manualUpload: string;
     connectorPlanned: string;
     addedThisSession: string;
-    queuedToIntake: string;
     uploadTitle: string;
     uploadDesc: string;
-    addToIntake: string;
+    uploadAndIndex: string;
+    uploading: string;
     cancel: string;
     title: string;
     owner: string;
@@ -115,6 +115,14 @@ export interface DataStrings {
     brand: string;
     confidentiality: string;
     area: string;
+    allAreas: string;
+    language: string;
+    file: string;
+    chooseFile: string;
+    fileHint: string;
+    uploadFailed: string;
+    inCorpus: (chunks: number) => string;
+    indexProof: (before: number, after: number) => string;
   };
 
   ingestion: {
@@ -456,11 +464,11 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       manualUpload: "Manual upload",
       connectorPlanned: "Connector planned — no documents ingested yet.",
       addedThisSession: "Added this session",
-      queuedToIntake: "Queued to intake",
       uploadTitle: "Manual upload",
       uploadDesc:
-        "Mandatory metadata is captured up front so the document never enters the pipeline underspecified. This is session-only for the demo.",
-      addToIntake: "Add to intake",
+        "Attach the document and its mandatory metadata. The text is extracted on the server, chunked, embedded and indexed into the governed knowledge core — the Ask agent can cite it immediately.",
+      uploadAndIndex: "Upload & index",
+      uploading: "Extracting and indexing…",
       cancel: "Cancel",
       title: "Title",
       owner: "Owner",
@@ -468,6 +476,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       brand: "Brand",
       confidentiality: "Confidentiality",
       area: "Area",
+      allAreas: "All areas",
+      language: "Language",
+      file: "File",
+      chooseFile: "Choose file",
+      fileHint: "PDF, Word (.docx), plain text or Markdown — up to 15 MB.",
+      uploadFailed: "The upload failed.",
+      inCorpus: (chunks: number) =>
+        `In corpus · ${chunks} ${chunks === 1 ? "chunk" : "chunks"} indexed`,
+      indexProof: (before: number, after: number) =>
+        `Vector index grew from ${before.toLocaleString("en")} to ${after.toLocaleString("en")} points.`,
     },
     ingestion: {
       live: {
@@ -853,11 +871,11 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       connectorPlanned:
         "Conector planificado — todavía no se han ingerido documentos.",
       addedThisSession: "Añadidos en esta sesión",
-      queuedToIntake: "En cola para admisión",
       uploadTitle: "Carga manual",
       uploadDesc:
-        "Los metadatos obligatorios se capturan de antemano para que el documento nunca entre en el pipeline sin la información necesaria. Solo para la sesión de la demo.",
-      addToIntake: "Añadir a la admisión",
+        "Adjunta el documento y sus metadatos obligatorios. El texto se extrae en el servidor, se trocea, se vectoriza y se indexa en el núcleo de conocimiento gobernado — el agente de Ask puede citarlo de inmediato.",
+      uploadAndIndex: "Subir e indexar",
+      uploading: "Extrayendo e indexando…",
       cancel: "Cancelar",
       title: "Título",
       owner: "Responsable",
@@ -865,6 +883,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       brand: "Marca",
       confidentiality: "Confidencialidad",
       area: "Área",
+      allAreas: "Todas las áreas",
+      language: "Idioma",
+      file: "Archivo",
+      chooseFile: "Elegir archivo",
+      fileHint: "PDF, Word (.docx), texto plano o Markdown — hasta 15 MB.",
+      uploadFailed: "La carga ha fallado.",
+      inCorpus: (chunks: number) =>
+        `En el corpus · ${chunks} ${chunks === 1 ? "fragmento indexado" : "fragmentos indexados"}`,
+      indexProof: (before: number, after: number) =>
+        `El índice vectorial creció de ${before.toLocaleString("es")} a ${after.toLocaleString("es")} puntos.`,
     },
     ingestion: {
       live: {
@@ -1246,11 +1274,11 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       manualUpload: "Manueller Upload",
       connectorPlanned: "Konnektor geplant — noch keine Dokumente aufgenommen.",
       addedThisSession: "In dieser Sitzung hinzugefügt",
-      queuedToIntake: "Für die Aufnahme eingereiht",
       uploadTitle: "Manueller Upload",
       uploadDesc:
-        "Pflicht-Metadaten werden vorab erfasst, damit das Dokument nie unvollständig in die Pipeline gelangt. Nur für die Demo-Sitzung.",
-      addToIntake: "Zur Aufnahme hinzufügen",
+        "Hängen Sie das Dokument und seine Pflicht-Metadaten an. Der Text wird serverseitig extrahiert, in Abschnitte zerlegt, vektorisiert und in den kontrollierten Wissenskern indexiert — der Ask-Agent kann ihn sofort zitieren.",
+      uploadAndIndex: "Hochladen & indexieren",
+      uploading: "Extrahieren und Indexieren…",
       cancel: "Abbrechen",
       title: "Titel",
       owner: "Verantwortlich",
@@ -1258,6 +1286,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       brand: "Marke",
       confidentiality: "Vertraulichkeit",
       area: "Bereich",
+      allAreas: "Alle Bereiche",
+      language: "Sprache",
+      file: "Datei",
+      chooseFile: "Datei auswählen",
+      fileHint: "PDF, Word (.docx), Text oder Markdown — bis 15 MB.",
+      uploadFailed: "Der Upload ist fehlgeschlagen.",
+      inCorpus: (chunks: number) =>
+        `Im Korpus · ${chunks} ${chunks === 1 ? "Abschnitt" : "Abschnitte"} indexiert`,
+      indexProof: (before: number, after: number) =>
+        `Der Vektorindex wuchs von ${before.toLocaleString("de")} auf ${after.toLocaleString("de")} Punkte.`,
     },
     ingestion: {
       live: {
@@ -1643,11 +1681,11 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       manualUpload: "Envio manual",
       connectorPlanned: "Conector planejado — nenhum documento ingerido ainda.",
       addedThisSession: "Adicionados nesta sessão",
-      queuedToIntake: "Na fila para admissão",
       uploadTitle: "Envio manual",
       uploadDesc:
-        "Os metadados obrigatórios são capturados antecipadamente para que o documento nunca entre no pipeline subespecificado. Apenas para a sessão da demonstração.",
-      addToIntake: "Adicionar à admissão",
+        "Anexe o documento e seus metadados obrigatórios. O texto é extraído no servidor, segmentado, vetorizado e indexado no núcleo de conhecimento governado — o agente Ask pode citá-lo de imediato.",
+      uploadAndIndex: "Enviar e indexar",
+      uploading: "Extraindo e indexando…",
       cancel: "Cancelar",
       title: "Título",
       owner: "Responsável",
@@ -1655,6 +1693,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       brand: "Marca",
       confidentiality: "Confidencialidade",
       area: "Área",
+      allAreas: "Todas as áreas",
+      language: "Idioma",
+      file: "Arquivo",
+      chooseFile: "Escolher arquivo",
+      fileHint: "PDF, Word (.docx), texto simples ou Markdown — até 15 MB.",
+      uploadFailed: "O envio falhou.",
+      inCorpus: (chunks: number) =>
+        `No corpus · ${chunks} ${chunks === 1 ? "fragmento indexado" : "fragmentos indexados"}`,
+      indexProof: (before: number, after: number) =>
+        `O índice vetorial cresceu de ${before.toLocaleString("pt")} para ${after.toLocaleString("pt")} pontos.`,
     },
     ingestion: {
       live: {

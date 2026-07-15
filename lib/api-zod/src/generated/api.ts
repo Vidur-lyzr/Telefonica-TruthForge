@@ -6804,6 +6804,33 @@ export const LiveIngestAcceptResponse = zod.object({
 
 
 /**
+ * Accepts a real file (PDF, Word .docx, plain text or Markdown), extracts its text server-side, splits it into governed chunks, creates an A-category corpus document with the metadata the documentalist supplied, and upserts the chunks into the vector index. The document is immediately retrievable by the Ask agent under the same governance filters as any other corpus document, and survives restarts via the index payload.
+ * @summary Manual document upload — extract, chunk, embed and index a real file
+ */
+export const ManualUploadBody = zod.object({
+  "file": zod.instanceof(File),
+  "title": zod.string(),
+  "owner": zod.string(),
+  "country": zod.string().optional(),
+  "brand": zod.string().optional(),
+  "confidentiality": zod.enum(['public', 'private', 'confidential', 'off_the_record']),
+  "area": zod.string().optional().describe('One governed area, or empty for all areas'),
+  "language": zod.string().optional()
+})
+
+export const ManualUploadResponse = zod.object({
+  "docId": zod.string(),
+  "title": zod.string(),
+  "chunkCount": zod.number().describe('Chunks created from the extracted text'),
+  "upsertedChunks": zod.number().describe('Chunks upserted into the vector index (0 when the index is unconfigured)'),
+  "pointsBefore": zod.number().describe('Vector point count before the upload'),
+  "pointsAfter": zod.number().describe('Vector point count after the upload'),
+  "extractedChars": zod.number().describe('Characters of text extracted from the file'),
+  "sourceFormat": zod.string().describe('Detected source format (PDF, Word document, Plain text, Markdown)')
+})
+
+
+/**
  * @summary The validation queue with proposed three-layer classification
  */
 export const ListValidationItemsResponseItem = zod.object({

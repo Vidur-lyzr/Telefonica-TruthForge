@@ -990,6 +990,45 @@ export interface LiveIngestAcceptResult {
   pointsAfter: number;
 }
 
+export type ManualUploadFormConfidentiality = typeof ManualUploadFormConfidentiality[keyof typeof ManualUploadFormConfidentiality];
+
+
+export const ManualUploadFormConfidentiality = {
+  public: 'public',
+  private: 'private',
+  confidential: 'confidential',
+  off_the_record: 'off_the_record',
+} as const;
+
+export interface ManualUploadForm {
+  file: Blob;
+  title: string;
+  owner: string;
+  country?: string;
+  brand?: string;
+  confidentiality: ManualUploadFormConfidentiality;
+  /** One governed area, or empty for all areas */
+  area?: string;
+  language?: string;
+}
+
+export interface ManualUploadResult {
+  docId: string;
+  title: string;
+  /** Chunks created from the extracted text */
+  chunkCount: number;
+  /** Chunks upserted into the vector index (0 when the index is unconfigured) */
+  upsertedChunks: number;
+  /** Vector point count before the upload */
+  pointsBefore: number;
+  /** Vector point count after the upload */
+  pointsAfter: number;
+  /** Characters of text extracted from the file */
+  extractedChars: number;
+  /** Detected source format (PDF, Word document, Plain text, Markdown) */
+  sourceFormat: string;
+}
+
 export interface DocumentChunk {
   id: string;
   breadcrumb: string;

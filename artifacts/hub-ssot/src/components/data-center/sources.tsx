@@ -1,5 +1,6 @@
 import React from "react";
 import { useListDataSources } from "@workspace/api-client-react";
+import type { ManualUploadResult } from "@workspace/api-client-react";
 import {
   Box,
   Stack,
@@ -12,6 +13,7 @@ import {
   Tag,
   Callout,
   ButtonPrimary,
+  ButtonSecondary,
   TextField,
   Select,
   Drawer,
@@ -52,8 +54,24 @@ const emptyUpload = {
   country: "Group",
   brand: "Telefónica",
   confidentiality: "private",
-  area: "Comunicación",
+  area: "",
+  language: "en",
 };
+
+const UPLOAD_LANGUAGES = [
+  { value: "en", text: "English" },
+  { value: "es", text: "Español" },
+  { value: "de", text: "Deutsch" },
+  { value: "pt", text: "Português" },
+];
+
+const ACCEPTED_EXTENSIONS = ".pdf,.docx,.txt,.md,.markdown";
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function SourceMeta({ label, value }: { label: string; value: string }) {
   return (
@@ -77,6 +95,10 @@ export default function SourcesArea() {
 
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [draft, setDraft] = React.useState({ ...emptyUpload });
+  const [file, setFile] = React.useState<File | null>(null);
+  const [uploading, setUploading] = React.useState(false);
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const sessionUploadCount = uploads.length;
 
@@ -86,21 +108,72 @@ export default function SourcesArea() {
     );
   }, [sources, sessionUploadCount]);
 
-  const draftValid = draft.title.trim().length > 0 && draft.owner.trim().length > 0;
+  const draftValid =
+    draft.title.trim().length > 0 && draft.owner.trim().length > 0 && file !== null;
 
-  function commitUpload() {
-    const doc: UploadedDoc = {
-      id: `upload-${Date.now()}`,
-      title: draft.title,
-      source: "Manual upload",
-      owner: draft.owner,
-      confidentiality: draft.confidentiality,
-      country: draft.country,
-      brand: draft.brand,
-    };
-    addUpload(doc);
-    setDraft({ ...emptyUpload });
+  function onFilePicked(picked: File | null) {
+    setFile(picked);
+    setUploadError(null);
+    if (picked && draft.title.trim().length === 0) {
+      const base = picked.name
+        .replace(/\.[^.]+$/, "")
+        .replace(/[-_]+/g, " ")
+        .trim();
+      if (base) setDraft((d) => ({ ...d, title: base }));
+    }
+  }
+
+  function closeDialog() {
+    if (uploading) return;
     setDialogOpen(false);
+    setUploadError(null);
+  }
+
+  async function commitUpload() {
+    if (!file || uploading) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("title", draft.title.trim());
+      form.append("owner", draft.owner.trim());
+      form.append("country", draft.country.trim());
+      form.append("brand", draft.brand.trim());
+      form.append("confidentiality", draft.confidentiality);
+      form.append("area", draft.area);
+      form.append("language", draft.language);
+
+      const response = await fetch("/api/data/upload", { method: "POST", body: form });
+      const payload = (await response.json().catch(() => null)) as
+        | (ManualUploadResult & { error?: string })
+        | null;
+      if (!response.ok || !payload || typeof payload.docId !== "string") {
+        throw new Error(payload?.error || s2.uploadFailed);
+      }
+
+      const doc: UploadedDoc = {
+        id: payload.docId,
+        docId: payload.docId,
+        title: payload.title,
+        source: "Manual upload",
+        owner: draft.owner.trim(),
+        confidentiality: draft.confidentiality,
+        country: draft.country.trim(),
+        brand: draft.brand.trim(),
+        chunkCount: payload.chunkCount,
+        pointsBefore: payload.pointsBefore,
+        pointsAfter: payload.pointsAfter,
+      };
+      addUpload(doc);
+      setDraft({ ...emptyUpload });
+      setFile(null);
+      setDialogOpen(false);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : s2.uploadFailed);
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
@@ -185,7 +258,14 @@ export default function SourcesArea() {
                     </Inline>
 
                     {s.status === "manual" && (
-                      <ButtonPrimary small onPress={() => setDialogOpen(true)}>
+                      <ButtonPrimary
+                        small
+                        onPress={() => {
+                          setFile(null);
+                          setUploadError(null);
+                          setDialogOpen(true);
+                        }}
+                      >
                         {s2.manualUpload}
                       </ButtonPrimary>
                     )}
@@ -224,10 +304,15 @@ export default function SourcesArea() {
                             {u.title}
                           </Text2>
                           <Text1 regular color={skinVars.colors.textSecondary}>
-                            {u.owner} · {u.country} · {u.brand}
+                            {u.owner} · {u.country} · {u.brand} · {u.docId}
                           </Text1>
+                          {u.pointsAfter > u.pointsBefore && (
+                            <Text1 regular color={skinVars.colors.textSecondary}>
+                              {s2.indexProof(u.pointsBefore, u.pointsAfter)}
+                            </Text1>
+                          )}
                         </Stack>
-                        <Tag type="promo">{s2.queuedToIntake}</Tag>
+                        <Tag type="success">{s2.inCorpus(u.chunkCount)}</Tag>
                       </Inline>
                     </Box>
                   </React.Fragment>
@@ -242,16 +327,39 @@ export default function SourcesArea() {
         <Drawer
           title={s2.uploadTitle}
           description={s2.uploadDesc}
-          onClose={() => setDialogOpen(false)}
-          onDismiss={() => setDialogOpen(false)}
-          button={{
-            text: s2.addToIntake,
-            onPress: commitUpload,
-            disabled: !draftValid,
-          }}
-          secondaryButton={{ text: s2.cancel, onPress: () => setDialogOpen(false) }}
+          onClose={closeDialog}
+          onDismiss={closeDialog}
         >
           <Stack space={16}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_EXTENSIONS}
+              style={{ display: "none" }}
+              onChange={(e) => onFilePicked(e.target.files?.[0] ?? null)}
+            />
+            <Stack space={8}>
+              <Text1 medium color={skinVars.colors.textSecondary} transform="uppercase">
+                {s2.file}
+              </Text1>
+              <Inline space={12} alignItems="center">
+                <ButtonSecondary
+                  small
+                  onPress={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {s2.chooseFile}
+                </ButtonSecondary>
+                <Text2
+                  regular
+                  color={
+                    file ? skinVars.colors.textPrimary : skinVars.colors.textSecondary
+                  }
+                >
+                  {file ? `${file.name} · ${formatFileSize(file.size)}` : s2.fileHint}
+                </Text2>
+              </Inline>
+            </Stack>
             <TextField
               name="up-title"
               label={s2.title}
@@ -298,9 +406,34 @@ export default function SourcesArea() {
                   label={s2.area}
                   value={draft.area}
                   onChangeValue={(v) => setDraft((d) => ({ ...d, area: v }))}
-                  options={AREAS.map((a) => ({ value: a, text: a }))}
+                  options={[
+                    { value: "", text: s2.allAreas },
+                    ...AREAS.map((a) => ({ value: a, text: a })),
+                  ]}
                 />
               </div>
+            </Inline>
+            <Select
+              name="up-language"
+              label={s2.language}
+              value={draft.language}
+              onChangeValue={(v) => setDraft((d) => ({ ...d, language: v }))}
+              options={UPLOAD_LANGUAGES}
+            />
+            {uploadError && (
+              <Callout
+                title={s2.uploadFailed}
+                description={uploadError}
+                onClose={() => setUploadError(null)}
+              />
+            )}
+            <Inline space={12}>
+              <ButtonPrimary onPress={commitUpload} disabled={!draftValid || uploading}>
+                {uploading ? s2.uploading : s2.uploadAndIndex}
+              </ButtonPrimary>
+              <ButtonSecondary onPress={closeDialog} disabled={uploading}>
+                {s2.cancel}
+              </ButtonSecondary>
             </Inline>
           </Stack>
         </Drawer>

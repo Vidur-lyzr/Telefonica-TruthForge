@@ -76,7 +76,7 @@ export const DATA_SOURCES: DataSource[] = [
     externalFilter: false,
     filterNote: null,
     description:
-      "Documents added by hand through a guided metadata form. Mandatory fields are captured up front so nothing enters the pipeline underspecified.",
+      "Real documents uploaded by hand. The file's text is extracted, chunked, embedded and indexed into the governed knowledge core, with mandatory metadata captured up front so nothing enters the pipeline underspecified.",
   },
   {
     id: "src-sic",
