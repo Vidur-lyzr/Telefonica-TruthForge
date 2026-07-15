@@ -24,6 +24,8 @@ import {
   useRecordEditorialReview,
   useExportDocument,
   useExportDocumentPack,
+  exportDocumentPreview,
+  type ExportPreviewGates,
   useGetExportTemplates,
   useCanvasSuggestions,
   useCanvasEditBlock,
@@ -1116,6 +1118,199 @@ function QaBlock({
   );
 }
 
+// ---- WYSIWYG export rendition preview ---------------------------------------
+// Renders exactly what the download produces: the server runs the same export
+// pipeline (same template, gates and confidentiality checks) and returns a PDF
+// rendition of the chosen format. PDF previews are byte-exact; DOCX/PPTX are
+// print renditions of the same layout engine.
+function ExportRenditionPreview({
+  draft,
+  format,
+  destination,
+  templateId,
+}: {
+  draft: GeneratedDraft;
+  format: "pdf" | "docx" | "pptx";
+  destination: "internal" | "external";
+  templateId: string | null;
+}) {
+  const { lang } = useApp();
+  const tp = GENERATE_I18N[lang].editor.preview;
+
+  type PreviewState =
+    | { kind: "loading" }
+    | { kind: "error" }
+    | { kind: "refused"; message: string; gates: ExportPreviewGates }
+    | { kind: "ok"; url: string; exact: boolean; gates: ExportPreviewGates };
+  const [state, setState] = React.useState<PreviewState>({ kind: "loading" });
+  const urlRef = React.useRef<string | null>(null);
+
+  // Re-render the preview only when something that reaches the exported file
+  // changes; debounced so live edits don't spam the renderer.
+  const requestSignature = JSON.stringify([
+    format,
+    destination,
+    templateId,
+    draft.id,
+    draft.title,
+    draft.umbrella,
+    draft.audience,
+    draft.confidentiality,
+    draft.language,
+    draft.sections.map((s) => [s.id, s.heading, s.body, s.internalOnly]),
+    draft.tables ?? [],
+    draft.qaNotes ?? [],
+    draft.disclaimers,
+    draft.spokesperson ?? null,
+    draft.charts,
+    draft.citations,
+  ]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setState({ kind: "loading" });
+    const t = window.setTimeout(() => {
+      exportDocumentPreview({ draft, format, destination, templateId })
+        .then((res) => {
+          if (cancelled) return;
+          if (res.status === "refused") {
+            setState({
+              kind: "refused",
+              message: res.refusedMessage ?? "",
+              gates: res.gates,
+            });
+            return;
+          }
+          if (!res.pdfBase64) {
+            setState({ kind: "error" });
+            return;
+          }
+          const bin = atob(res.pdfBase64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+          if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+          urlRef.current = url;
+          setState({ kind: "ok", url, exact: res.exact === true, gates: res.gates });
+        })
+        .catch(() => {
+          if (!cancelled) setState({ kind: "error" });
+        });
+    }, 700);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestSignature]);
+
+  React.useEffect(
+    () => () => {
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    },
+    [],
+  );
+
+  const gateChips = (gates: ExportPreviewGates) => (
+    <Inline space={8} alignItems="center" wrap>
+      <Text2 medium color={c.textSecondary}>
+        {tp.gatesLabel}
+      </Text2>
+      {[
+        { label: tp.gateGuardian, gate: gates.guardian },
+        { label: tp.gateApproval, gate: gates.approval },
+        { label: tp.gateEditorial, gate: gates.editorial },
+      ].map(({ label, gate }) => (
+        <Tag key={label} type={gate.blocked ? "error" : "success"}>
+          {`${label}: ${gate.blocked ? tp.gateBlocked : tp.gateClear}`}
+        </Tag>
+      ))}
+    </Inline>
+  );
+
+  if (state.kind === "loading") {
+    return (
+      <Boxed>
+        <Box padding={32}>
+          <Inline space={12} alignItems="center">
+            <Spinner size={24} />
+            <Text2 regular color={c.textSecondary}>
+              {tp.rendering}
+            </Text2>
+          </Inline>
+        </Box>
+      </Boxed>
+    );
+  }
+
+  if (state.kind === "error") {
+    return (
+      <Boxed>
+        <Box padding={32}>
+          <Inline space={8} alignItems="center">
+            <IconAlertRegular size={20} color={c.error} />
+            <Text2 regular color={c.textSecondary}>
+              {tp.renderFailed}
+            </Text2>
+          </Inline>
+        </Box>
+      </Boxed>
+    );
+  }
+
+  if (state.kind === "refused") {
+    return (
+      <Boxed>
+        <Box padding={32}>
+          <Stack space={16}>
+            <Inline space={8} alignItems="center">
+              <IconLockClosedRegular size={20} color={c.error} />
+              <Text3 medium>{tp.blockedTitle}</Text3>
+            </Inline>
+            {state.message && (
+              <Text2 regular color={c.textSecondary}>
+                {state.message}
+              </Text2>
+            )}
+            {gateChips(state.gates)}
+          </Stack>
+        </Box>
+      </Boxed>
+    );
+  }
+
+  return (
+    <Stack space={16}>
+      <Inline space={8} alignItems="center">
+        <IconDocumentOtherRegular size={16} color={c.textSecondary} />
+        <Text2 regular color={c.textSecondary}>
+          {state.exact ? tp.exactNote : tp.approxNote}
+        </Text2>
+      </Inline>
+      {gateChips(state.gates)}
+      <div
+        style={{
+          borderRadius: skinVars.borderRadii.container,
+          border: `1px solid ${c.divider}`,
+          overflow: "hidden",
+          backgroundColor: c.backgroundAlternative,
+        }}
+      >
+        <iframe
+          src={state.url}
+          title={tp.frameTitle(format.toUpperCase())}
+          style={{
+            display: "block",
+            width: "100%",
+            height: format === "pptx" ? 480 : 760,
+            border: "none",
+          }}
+        />
+      </div>
+    </Stack>
+  );
+}
+
 // ---- The document canvas -----------------------------------------------------
 function DocumentCanvas({
   draft,
@@ -1127,6 +1322,8 @@ function DocumentCanvas({
   onAskSelection,
   editingSectionId,
   onEditBlock,
+  destination,
+  templateId,
 }: {
   draft: GeneratedDraft;
   onSectionChange: (id: string, body: string) => void;
@@ -1137,13 +1334,20 @@ function DocumentCanvas({
   onAskSelection: (passage: string) => void;
   editingSectionId: string | null;
   onEditBlock: (id: string) => void;
+  destination: "internal" | "external";
+  templateId: string | null;
 }) {
   const { lang } = useApp();
   const te = GENERATE_I18N[lang].editor;
+  const tp = te.preview;
   const tde = DOCUMENT_EDITOR_I18N[lang];
   // Reading view by default; the Edit toggle switches the whole document
   // into full editing format (toolbar, live editors, table inputs).
   const [editMode, setEditMode] = React.useState(false);
+  // WYSIWYG rendition tabs: the Editor tab is the live document; the PDF,
+  // DOCX and PPTX tabs show a server-rendered preview of the actual export.
+  const viewModes = ["editor", "pdf", "docx", "pptx"] as const;
+  const [viewMode, setViewMode] = React.useState<(typeof viewModes)[number]>("editor");
   const externalStripped = draft.audience === "external";
   const visibleSections = externalStripped
     ? draft.sections.filter((s) => !s.internalOnly)
@@ -1157,6 +1361,29 @@ function DocumentCanvas({
   return (
     <EditorFocusProvider>
       <div style={{ maxWidth: 768 }}>
+        <Stack space={16}>
+        <Tabs
+          selectedIndex={viewModes.indexOf(viewMode)}
+          onChange={(idx) => {
+            const next = viewModes[idx];
+            setViewMode(next);
+            if (next !== "editor") setEditMode(false);
+          }}
+          tabs={[
+            { text: tp.tabEditor },
+            { text: "PDF" },
+            { text: "DOCX" },
+            { text: "PPTX" },
+          ]}
+        />
+        {viewMode !== "editor" ? (
+          <ExportRenditionPreview
+            draft={draft}
+            format={viewMode}
+            destination={destination}
+            templateId={templateId}
+          />
+        ) : (
         <Boxed>
           <Box padding={32}>
             <Stack space={32}>
@@ -1380,6 +1607,8 @@ function DocumentCanvas({
           </Stack>
         </Box>
       </Boxed>
+        )}
+        </Stack>
       </div>
     </EditorFocusProvider>
   );
@@ -3112,6 +3341,8 @@ export default function Generate() {
                 onAskSelection={(passage) => setPendingSelection(passage)}
                 editingSectionId={editingSectionId}
                 onEditBlock={setEditingSectionId}
+                destination={draft.audience === "external" ? "external" : "internal"}
+                templateId={effectiveTemplateId}
               />
             )}
           </div>

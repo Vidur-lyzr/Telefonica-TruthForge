@@ -20,6 +20,9 @@ export interface BrandStrings {
   };
   designIntro: string;
   openDesignSite: string;
+  brandFactoryTitle: string;
+  brandFactoryBlurb: string;
+  openBrandFactory: string;
   loading: string;
   blockedNote: (count: number, noun: BrandNoun) => string;
   permissionBlockedTitle: string;
@@ -93,6 +96,10 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     designIntro:
       "Mística — Telefónica's official design system, embedded live from the public component catalogue. Every surface in this Hub is built with these components and tokens.",
     openDesignSite: "Open in a new tab",
+    brandFactoryTitle: "Brand Factory",
+    brandFactoryBlurb:
+      "Mística is governed and distributed through Brand Factory, Telefónica's official brand platform (brandfactory.telefonica.com). Because this Hub is built directly on the Mística library, every component, colour and token here follows the same source of truth the brand teams publish there.",
+    openBrandFactory: "Open Brand Factory",
     loading: "Loading…",
     blockedNote: (count, noun) => {
       const forms = {
@@ -194,6 +201,10 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     designIntro:
       "Mística — el sistema de diseño oficial de Telefónica, incrustado en vivo desde el catálogo público de componentes. Cada superficie de este Hub está construida con estos componentes y tokens.",
     openDesignSite: "Abrir en una pestaña nueva",
+    brandFactoryTitle: "Brand Factory",
+    brandFactoryBlurb:
+      "Mística se gobierna y distribuye a través de Brand Factory, la plataforma oficial de marca de Telefónica (brandfactory.telefonica.com). Como este Hub está construido directamente sobre la librería Mística, cada componente, color y token sigue la misma fuente de verdad que publican allí los equipos de marca.",
+    openBrandFactory: "Abrir Brand Factory",
     loading: "Cargando…",
     blockedNote: (count, noun) => {
       const forms = {
@@ -297,6 +308,10 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     designIntro:
       "Mística — das offizielle Designsystem von Telefónica, live aus dem öffentlichen Komponentenkatalog eingebettet. Jede Oberfläche dieses Hubs ist mit diesen Komponenten und Tokens gebaut.",
     openDesignSite: "In neuem Tab öffnen",
+    brandFactoryTitle: "Brand Factory",
+    brandFactoryBlurb:
+      "Mística wird über Brand Factory gesteuert und verteilt, Telefónicas offizielle Markenplattform (brandfactory.telefonica.com). Da dieser Hub direkt auf der Mística-Bibliothek aufbaut, folgt jede Komponente, Farbe und jedes Token derselben Quelle der Wahrheit, die die Markenteams dort veröffentlichen.",
+    openBrandFactory: "Brand Factory öffnen",
     loading: "Wird geladen…",
     blockedNote: (count, noun) => {
       const forms = {
@@ -400,6 +415,10 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     designIntro:
       "Mística — o sistema de design oficial da Telefónica, incorporado ao vivo do catálogo público de componentes. Cada superfície deste Hub é construída com esses componentes e tokens.",
     openDesignSite: "Abrir em nova guia",
+    brandFactoryTitle: "Brand Factory",
+    brandFactoryBlurb:
+      "A Mística é governada e distribuída através do Brand Factory, a plataforma oficial de marca da Telefónica (brandfactory.telefonica.com). Como este Hub é construído diretamente sobre a biblioteca Mística, cada componente, cor e token segue a mesma fonte de verdade que as equipas de marca publicam lá.",
+    openBrandFactory: "Abrir o Brand Factory",
     loading: "Carregando…",
     blockedNote: (count, noun) => {
       const forms = {

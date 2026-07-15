@@ -23,6 +23,8 @@ import {
   GetGenerationJobResponse,
   ExportDocumentBody,
   ExportDocumentPackBody,
+  ExportDocumentPreviewBody,
+  ExportDocumentPreviewResponse,
   RecordEditorialReviewBody,
   RecordEditorialReviewResponse,
   SuggestTemplateBody,
@@ -47,6 +49,7 @@ import {
   type ExportDestination,
 } from "../export/exportService";
 import type { ExportFormat } from "../export/exportTemplates";
+import { renderExportPreview, type PreviewFormat } from "../export/previewService";
 import {
   runGenerateAgent,
   refineDraft,
@@ -582,6 +585,41 @@ router.post("/generate/export/pack", async (req, res) => {
     }
     req.log.error({ err }, "export pack route failed");
     res.status(500).json({ error: "The Hub could not export this document pack." });
+  }
+});
+
+// WYSIWYG export preview: renders what the download WOULD produce as an
+// inline PDF. Content gates (confidentiality, exportability, template/format)
+// refuse exactly like a real export; release gates (guardian, approval,
+// editorial review) never block the preview but their live status is always
+// returned so the UI can show which of them would block the download.
+router.post("/generate/export-preview", async (req, res) => {
+  const parsed = ExportDocumentPreviewBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const draft = parsed.data.draft as unknown as GeneratedDraft;
+  const format = parsed.data.format as PreviewFormat;
+  const destination = (parsed.data.destination as ExportDestination | undefined) ?? "internal";
+  try {
+    const result = await renderExportPreview(draft, format, destination, parsed.data.templateId ?? null);
+    req.log.info(
+      {
+        format,
+        destination,
+        status: result.status,
+        exact: result.exact,
+        templateId: result.templateId,
+        refusedCode: result.refusedCode,
+        bytes: result.pdfBase64 ? result.pdfBase64.length : 0,
+      },
+      "export preview rendered",
+    );
+    res.json(ExportDocumentPreviewResponse.parse(result));
+  } catch (err) {
+    req.log.error({ err }, "export preview route failed");
+    res.status(500).json({ error: "The Hub could not render this preview." });
   }
 });
 

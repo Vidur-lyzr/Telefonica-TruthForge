@@ -146,6 +146,23 @@ export interface GenerateStrings {
     umbrellaMessage: string;
     evidenceAndCitations: string;
 
+    // Rendition preview (WYSIWYG export tabs)
+    preview: {
+      tabEditor: string;
+      rendering: string;
+      renderFailed: string;
+      exactNote: string;
+      approxNote: string;
+      blockedTitle: string;
+      gatesLabel: string;
+      gateGuardian: string;
+      gateApproval: string;
+      gateEditorial: string;
+      gateClear: string;
+      gateBlocked: string;
+      frameTitle: (format: string) => string;
+    };
+
     // Exclusions panel
     exclusionsTitle: string;
     exclusionsBlurb: string;
@@ -512,6 +529,23 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       historicSource: "Historic source",
       umbrellaMessage: "Umbrella message",
       evidenceAndCitations: "Evidence and citations",
+
+      preview: {
+        tabEditor: "Editor",
+        rendering: "Rendering preview…",
+        renderFailed: "The Hub could not render this preview. Try again.",
+        exactNote: "This is the exact PDF file the download produces.",
+        approxNote:
+          "Print rendition of the downloaded file — same template, content and layout.",
+        blockedTitle: "Preview refused",
+        gatesLabel: "Release gates",
+        gateGuardian: "Brand Guardian",
+        gateApproval: "Approval",
+        gateEditorial: "Editorial review",
+        gateClear: "clear",
+        gateBlocked: "blocks download",
+        frameTitle: (format: string) => `${format} preview`,
+      },
 
       exclusionsTitle: "Sources excluded by governance",
       exclusionsBlurb:
@@ -894,6 +928,23 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       historicSource: "Fuente histórica",
       umbrellaMessage: "Mensaje paraguas",
       evidenceAndCitations: "Evidencia y citas",
+
+      preview: {
+        tabEditor: "Editor",
+        rendering: "Generando la vista previa…",
+        renderFailed: "El Hub no pudo generar esta vista previa. Inténtalo de nuevo.",
+        exactNote: "Este es exactamente el PDF que produce la descarga.",
+        approxNote:
+          "Rendición impresa del archivo descargado — misma plantilla, contenido y maquetación.",
+        blockedTitle: "Vista previa rechazada",
+        gatesLabel: "Controles de publicación",
+        gateGuardian: "Brand Guardian",
+        gateApproval: "Aprobación",
+        gateEditorial: "Revisión editorial",
+        gateClear: "sin bloqueos",
+        gateBlocked: "bloquea la descarga",
+        frameTitle: (format: string) => `Vista previa ${format}`,
+      },
 
       exclusionsTitle: "Fuentes excluidas por gobernanza",
       exclusionsBlurb:
@@ -1283,6 +1334,23 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       umbrellaMessage: "Übergreifende Botschaft",
       evidenceAndCitations: "Belege und Zitate",
 
+      preview: {
+        tabEditor: "Editor",
+        rendering: "Vorschau wird erstellt…",
+        renderFailed: "Der Hub konnte diese Vorschau nicht erstellen. Bitte erneut versuchen.",
+        exactNote: "Dies ist exakt die PDF-Datei, die der Download erzeugt.",
+        approxNote:
+          "Druckansicht der heruntergeladenen Datei — gleiche Vorlage, gleicher Inhalt, gleiches Layout.",
+        blockedTitle: "Vorschau verweigert",
+        gatesLabel: "Freigabe-Gates",
+        gateGuardian: "Brand Guardian",
+        gateApproval: "Freigabe",
+        gateEditorial: "Redaktionelle Prüfung",
+        gateClear: "frei",
+        gateBlocked: "blockiert den Download",
+        frameTitle: (format: string) => `${format}-Vorschau`,
+      },
+
       exclusionsTitle: "Durch Governance ausgeschlossene Quellen",
       exclusionsBlurb:
         "Zwei Filter laufen, bevor etwas die Engine erreicht: Ihre Berechtigung, dann die Ziel-Vertraulichkeit dieses Dokuments.",
@@ -1669,6 +1737,23 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       historicSource: "Fonte histórica",
       umbrellaMessage: "Mensagem guarda-chuva",
       evidenceAndCitations: "Evidência e citações",
+
+      preview: {
+        tabEditor: "Editor",
+        rendering: "A gerar a pré-visualização…",
+        renderFailed: "O Hub não conseguiu gerar esta pré-visualização. Tente novamente.",
+        exactNote: "Este é exatamente o PDF que o download produz.",
+        approxNote:
+          "Rendição impressa do ficheiro descarregado — mesmo modelo, conteúdo e layout.",
+        blockedTitle: "Pré-visualização recusada",
+        gatesLabel: "Portões de publicação",
+        gateGuardian: "Brand Guardian",
+        gateApproval: "Aprovação",
+        gateEditorial: "Revisão editorial",
+        gateClear: "livre",
+        gateBlocked: "bloqueia o download",
+        frameTitle: (format: string) => `Pré-visualização ${format}`,
+      },
 
       exclusionsTitle: "Fontes excluídas pela governança",
       exclusionsBlurb:

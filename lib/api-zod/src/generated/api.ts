@@ -4829,6 +4829,167 @@ export const ExportDocumentPackResponse = zod.unknown()
 
 
 /**
+ * Renders the draft through the SAME export pipeline and template engine as a real download and returns the rendition as a PDF (base64) for on-screen display. The PDF preview is the exact engine output a download would produce; DOCX and PPTX previews are drawn with the same theme, geometry and layout rules as their renderers (print-preview approximation — Word/PowerPoint reflow can differ slightly). Confidentiality gates run exactly as on export: an external destination strips internal-only material and refuses any non-public content. Release gates (Brand Guardian, scheduled approval, editorial review) do not block the preview — their would-block status is reported so the UI can flag that the document cannot be exported yet.
+ * @summary WYSIWYG preview of the exact document an export would download
+ */
+export const ExportDocumentPreviewBody = zod.object({
+  "draft": zod.object({
+  "id": zod.string(),
+  "status": zod.string().describe('drafted | no_evidence | permission_blocked'),
+  "shape": zod.string(),
+  "templateId": zod.string(),
+  "title": zod.string(),
+  "language": zod.string(),
+  "audience": zod.string(),
+  "confidentiality": zod.string(),
+  "umbrella": zod.string().nullish(),
+  "exclusions": zod.array(zod.object({
+  "reason": zod.string().describe('clearance | destination'),
+  "docTitle": zod.string().nullable().describe('Null when the exclusion must not reveal the source title'),
+  "confidentiality": zod.string(),
+  "note": zod.string()
+})).optional().describe('Sources considered but excluded by governance — either above the persona\'s clearance or above the destination confidentiality. Clearance exclusions never reveal the document title.\n'),
+  "sections": zod.array(zod.object({
+  "id": zod.string(),
+  "kind": zod.string(),
+  "heading": zod.string(),
+  "axisId": zod.string().nullish(),
+  "body": zod.string(),
+  "citationIds": zod.array(zod.string()),
+  "internalOnly": zod.boolean()
+})),
+  "spokesperson": zod.array(zod.object({
+  "question": zod.string(),
+  "guidance": zod.string(),
+  "doNotSay": zod.string().nullish()
+})),
+  "charts": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "type": zod.string().describe('bar | line'),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "points": zod.array(zod.object({
+  "label": zod.string(),
+  "value": zod.number()
+}))
+})),
+  "tables": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "unit": zod.string(),
+  "source": zod.string(),
+  "citationId": zod.string().nullish(),
+  "columns": zod.array(zod.string()),
+  "rows": zod.array(zod.array(zod.string()))
+})).optional().describe('Cited data tables built from governed numeric series permitted for this draft\'s destination.\n'),
+  "citations": zod.array(zod.object({
+  "id": zod.string().describe('Marker referenced in the answer, e.g. S1'),
+  "docId": zod.string(),
+  "docTitle": zod.string(),
+  "sourceLoc": zod.string().describe('Human-readable location, e.g. \"Q1 2026 Results › slide 12\"'),
+  "version": zod.string(),
+  "owner": zod.string(),
+  "validUntil": zod.string().nullish(),
+  "confidence": zod.number(),
+  "relevance": zod.number().nullish().describe('Retrieval relevance score (idf coverage) for this source.'),
+  "corroboration": zod.number().nullish().describe('How many permitted sources agree with this source\'s headline figure.'),
+  "confidentiality": zod.string().describe('public | private | confidential | off_the_record'),
+  "validity": zod.string().describe('approved | historic | review | superseded'),
+  "conflicting": zod.boolean().optional().describe('True when this source materially disagrees with another cited source.'),
+  "snippet": zod.string(),
+  "value": zod.string().nullish().describe('Optional headline figure for numeric evidence'),
+  "period": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "brand": zod.string().nullish(),
+  "topics": zod.array(zod.string()).optional(),
+  "entities": zod.array(zod.string()).optional(),
+  "axisIds": zod.array(zod.string()).optional()
+})),
+  "disclaimers": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "text": zod.string()
+})),
+  "qaNotes": zod.array(zod.object({
+  "question": zod.string(),
+  "note": zod.string()
+})).optional().describe('Internal per-answer working notes for the Q&A section, keyed by the question text. Internal only — the export service strips them server-side for any external destination.\n'),
+  "axisIds": zod.array(zod.string()),
+  "guardian": zod.object({
+  "status": zod.string().describe('pass | block'),
+  "summary": zod.string(),
+  "findings": zod.array(zod.object({
+  "severity": zod.string().describe('error | warning'),
+  "rule": zod.string(),
+  "message": zod.string(),
+  "suggestion": zod.string().nullish(),
+  "location": zod.union([zod.object({
+  "start": zod.number(),
+  "end": zod.number()
+}),zod.null()]).optional().describe('Character span in the checked text (live checker only)')
+}))
+}),
+  "historic": zod.boolean(),
+  "historicNote": zod.string().nullish(),
+  "permissionNote": zod.string().nullish(),
+  "note": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "params": zod.object({
+  "shape": zod.string(),
+  "topic": zod.string(),
+  "roleId": zod.string(),
+  "audience": zod.string(),
+  "language": zod.string(),
+  "confidentiality": zod.string(),
+  "format": zod.string(),
+  "axisIds": zod.array(zod.string()),
+  "spokesperson": zod.string().nullish(),
+  "eventDate": zod.string().nullish()
+}),
+  "origin": zod.string().optional().describe('manual | scheduled'),
+  "reviewItemId": zod.string().nullish(),
+  "approved": zod.boolean().optional(),
+  "askSignals": zod.union([zod.null(),zod.object({
+  "question": zod.string(),
+  "conflict": zod.boolean(),
+  "lowConfidence": zod.boolean(),
+  "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
+  "note": zod.string().nullish()
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+}),
+  "format": zod.enum(['pdf', 'docx', 'pptx']),
+  "destination": zod.enum(['internal', 'external']).optional().describe('Preview destination. \"external\" strips internal-only material and refuses any non-public content — exactly as the real export would.\n'),
+  "templateId": zod.string().nullish().describe('Export template id; defaults to the draft shape\'s template.')
+})
+
+export const ExportDocumentPreviewResponse = zod.object({
+  "status": zod.enum(['ok', 'refused']),
+  "format": zod.enum(['pdf', 'docx', 'pptx']).optional(),
+  "pdfBase64": zod.string().nullish().describe('The rendition as PDF bytes (base64); present when status is ok.'),
+  "exact": zod.boolean().optional().describe('True when the preview bytes come from the very renderer the download uses (pdf); false for the docx\/pptx print-preview approximations.\n'),
+  "templateId": zod.string().nullish(),
+  "gates": zod.object({
+  "guardian": zod.object({
+  "blocked": zod.boolean(),
+  "message": zod.string().nullish()
+}),
+  "approval": zod.object({
+  "blocked": zod.boolean(),
+  "message": zod.string().nullish()
+}),
+  "editorial": zod.object({
+  "blocked": zod.boolean(),
+  "message": zod.string().nullish()
+})
+}).describe('Would-block status of the release gates a real export enforces. The preview still renders when one is blocked — the UI flags that the document cannot be exported yet.\n'),
+  "refusedCode": zod.string().nullish().describe('Machine-readable refusal code when status is refused.'),
+  "refusedMessage": zod.string().nullish()
+})
+
+
+/**
  * Renders one format of a document the doc-gen Superflow registered during an Ask turn. The full export governance stack runs server-side (Brand Guardian re-run, destination gates, external stripping) — a chat-born document obeys exactly the same rules as a Generate export.
  * @summary Download a document generated from an Ask conversation
  */

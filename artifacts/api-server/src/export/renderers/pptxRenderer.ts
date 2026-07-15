@@ -9,6 +9,7 @@ import type { ExportDocumentModel } from "../exportService";
 import type { TemplateDesign } from "../exportTemplates";
 import { THEME_COLORS } from "../exportTheme";
 import { brandMarkPng, BRAND_FONT_FAMILY } from "../brandAssets";
+import { buildSlides } from "../slideModel";
 
 const hex = (c: string) => c.replace("#", "");
 const BRAND = hex(THEME_COLORS.brand);
@@ -171,178 +172,163 @@ export async function renderPptx(model: ExportDocumentModel): Promise<Buffer> {
   pptx.author = "Hub SSoT";
   pptx.title = model.title;
 
-  addTitleSlide(pptx, model, design);
-
-  // Umbrella slide
-  if (model.umbrella) {
-    const s = contentSlide(pptx, design);
-    s.addText("Umbrella message", {
-      x: 0.8, y: 0.6, w: 11.6, h: 0.6, fontFace: FONT, fontSize: 22, bold: true, color: NAVY,
-    });
-    s.addText(model.umbrella, {
-      x: 0.8, y: 2.0, w: 11.6, h: 3.4, fontFace: FONT, fontSize: 26, bold: true, color: accent,
-    });
-    addFooter(s, model, design);
-  }
-
-  // Section slides. The raw Q&A section is skipped when the structured Q&A
-  // block is present — it is rendered as styled per-question slides below,
-  // never as an unformatted text blob.
-  for (const section of model.sections) {
-    if (section.isQa && model.qa.length > 0) continue;
-    const s = contentSlide(pptx, design);
-    s.addText(section.heading, {
-      x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
-    });
-    if (section.internalOnly) {
-      s.addText("Internal only — not for external distribution", {
-        x: 0.8, y: 1.15, w: 11.6, h: 0.35, fontFace: FONT, fontSize: 12, italic: true, color: MUTED,
-      });
-    }
-    s.addText(section.body, {
-      x: 0.8, y: 1.7, w: 11.7, h: 4.9, fontFace: FONT, fontSize: 15, color: TEXT, valign: "top",
-      lineSpacingMultiple: 1.2,
-    });
-    addFooter(s, model, design);
-  }
-
-  // Structured Q&A slides: one question per slide, with the answer, its
-  // provenance line and (internal exports only) the internal note.
-  if (model.qa.length > 0) {
-    for (const [index, item] of model.qa.entries()) {
-      const s = contentSlide(pptx, design);
-      s.addText(`${model.qaHeading ?? "Q&A"} — ${index + 1}/${model.qa.length}`, {
-        x: 0.8, y: 0.5, w: 11.6, h: 0.4, fontFace: FONT, fontSize: 12, color: MUTED,
-      });
-      s.addText(item.question, {
-        x: 0.8, y: 1.0, w: 11.7, h: 1.1, fontFace: FONT, fontSize: 22, bold: true, color: NAVY, valign: "top",
-      });
-      s.addText(item.answer, {
-        x: 0.8, y: 2.2, w: 11.7, h: 3.2, fontFace: FONT, fontSize: 15, color: TEXT, valign: "top",
-        lineSpacingMultiple: 1.2,
-      });
-      s.addText(
-        item.provenance.length > 0
-          ? `Sources: ${item.provenance
-              .map((p) => [p.docTitle, p.version, p.owner].filter(Boolean).join(" · "))
-              .join(" | ")}`
-          : "Not covered by approved material — no governed source backs this answer.",
-        { x: 0.8, y: 5.5, w: 11.7, h: 0.5, fontFace: FONT, fontSize: 11, italic: true, color: MUTED, valign: "top" },
-      );
-      if (item.note) {
-        s.addText(`Internal note — not exportable externally: ${item.note}`, {
-          x: 0.8, y: 6.1, w: 11.7, h: 0.6, fontFace: FONT, fontSize: 11, italic: true, color: MUTED, valign: "top",
-          fill: { color: hex(THEME_COLORS.warningLow) },
-        });
+  // Slide sequence comes from the shared slide model — the WYSIWYG preview
+  // iterates exactly the same specs, so the deck a user downloads always
+  // matches the deck they previewed, slide for slide.
+  for (const spec of buildSlides(model)) {
+    switch (spec.kind) {
+      case "title": {
+        addTitleSlide(pptx, model, design);
+        break;
       }
-      addFooter(s, model, design);
-    }
-  }
-
-  // Spokesperson guidance slides (internal exports only — the export model
-  // already strips this block for external audiences).
-  if (model.spokesperson.length > 0) {
-    const perSlide = 2;
-    for (let i = 0; i < model.spokesperson.length; i += perSlide) {
-      const batch = model.spokesperson.slice(i, i + perSlide);
-      const s = contentSlide(pptx, design);
-      s.addText("Spokesperson guidance (internal only)", {
-        x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
-      });
-      batch.forEach((note, j) => {
-        const y = 1.6 + j * 2.6;
-        s.addText(`If asked: ${note.question}`, {
-          x: 0.8, y, w: 11.7, h: 0.6, fontFace: FONT, fontSize: 15, bold: true, color: NAVY, valign: "top",
+      case "umbrella": {
+        const s = contentSlide(pptx, design);
+        s.addText("Umbrella message", {
+          x: 0.8, y: 0.6, w: 11.6, h: 0.6, fontFace: FONT, fontSize: 22, bold: true, color: NAVY,
         });
-        s.addText(note.guidance, {
-          x: 0.8, y: y + 0.65, w: 11.7, h: 1.3, fontFace: FONT, fontSize: 13, color: TEXT, valign: "top",
-          lineSpacingMultiple: 1.15,
+        s.addText(spec.text, {
+          x: 0.8, y: 2.0, w: 11.6, h: 3.4, fontFace: FONT, fontSize: 26, bold: true, color: accent,
         });
-        if (note.doNotSay) {
-          s.addText(`Do not say: ${note.doNotSay}`, {
-            x: 0.8, y: y + 2.0, w: 11.7, h: 0.45, fontFace: FONT, fontSize: 11, italic: true, color: MUTED, valign: "top",
+        addFooter(s, model, design);
+        break;
+      }
+      case "section": {
+        const s = contentSlide(pptx, design);
+        s.addText(spec.heading, {
+          x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
+        });
+        if (spec.internalOnly) {
+          s.addText("Internal only — not for external distribution", {
+            x: 0.8, y: 1.15, w: 11.6, h: 0.35, fontFace: FONT, fontSize: 12, italic: true, color: MUTED,
           });
         }
-      });
-      addFooter(s, model, design);
+        s.addText(spec.body, {
+          x: 0.8, y: 1.7, w: 11.7, h: 4.9, fontFace: FONT, fontSize: 15, color: TEXT, valign: "top",
+          lineSpacingMultiple: 1.2,
+        });
+        addFooter(s, model, design);
+        break;
+      }
+      case "qa": {
+        const s = contentSlide(pptx, design);
+        s.addText(`${model.qaHeading ?? "Q&A"} — ${spec.index + 1}/${spec.total}`, {
+          x: 0.8, y: 0.5, w: 11.6, h: 0.4, fontFace: FONT, fontSize: 12, color: MUTED,
+        });
+        s.addText(spec.question, {
+          x: 0.8, y: 1.0, w: 11.7, h: 1.1, fontFace: FONT, fontSize: 22, bold: true, color: NAVY, valign: "top",
+        });
+        s.addText(spec.answer, {
+          x: 0.8, y: 2.2, w: 11.7, h: 3.2, fontFace: FONT, fontSize: 15, color: TEXT, valign: "top",
+          lineSpacingMultiple: 1.2,
+        });
+        s.addText(spec.sourcesLine, {
+          x: 0.8, y: 5.5, w: 11.7, h: 0.5, fontFace: FONT, fontSize: 11, italic: true, color: MUTED, valign: "top",
+        });
+        if (spec.note) {
+          s.addText(`Internal note — not exportable externally: ${spec.note}`, {
+            x: 0.8, y: 6.1, w: 11.7, h: 0.6, fontFace: FONT, fontSize: 11, italic: true, color: MUTED, valign: "top",
+            fill: { color: hex(THEME_COLORS.warningLow) },
+          });
+        }
+        addFooter(s, model, design);
+        break;
+      }
+      case "spokesperson": {
+        const s = contentSlide(pptx, design);
+        s.addText("Spokesperson guidance (internal only)", {
+          x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
+        });
+        spec.batch.forEach((note, j) => {
+          const y = 1.6 + j * 2.6;
+          s.addText(`If asked: ${note.question}`, {
+            x: 0.8, y, w: 11.7, h: 0.6, fontFace: FONT, fontSize: 15, bold: true, color: NAVY, valign: "top",
+          });
+          s.addText(note.guidance, {
+            x: 0.8, y: y + 0.65, w: 11.7, h: 1.3, fontFace: FONT, fontSize: 13, color: TEXT, valign: "top",
+            lineSpacingMultiple: 1.15,
+          });
+          if (note.doNotSay) {
+            s.addText(`Do not say: ${note.doNotSay}`, {
+              x: 0.8, y: y + 2.0, w: 11.7, h: 0.45, fontFace: FONT, fontSize: 11, italic: true, color: MUTED, valign: "top",
+            });
+          }
+        });
+        addFooter(s, model, design);
+        break;
+      }
+      case "chart": {
+        const s = contentSlide(pptx, design);
+        s.addImage({
+          data: `image/png;base64,${spec.chart.png.toString("base64")}`,
+          x: 1.9, y: 0.9, w: 9.6, h: 5.0,
+        });
+        addFooter(s, model, design);
+        break;
+      }
+      case "table": {
+        const s = contentSlide(pptx, design);
+        s.addText(spec.title, {
+          x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
+        });
+        s.addText(spec.sourceLine, {
+          x: 0.8, y: 1.15, w: 11.6, h: 0.35, fontFace: FONT, fontSize: 12, color: MUTED,
+        });
+        const tRows: PptxGenJS.TableRow[] = [
+          spec.columns.map((t) => ({
+            text: t,
+            options: { bold: true, color: headerStyle.color, fill: { color: headerStyle.fill }, fontFace: FONT, fontSize: 11 },
+          })),
+          ...spec.rows.map((row) =>
+            row.map((value, i) => ({
+              text: value,
+              options: { color: i === 0 ? NAVY : TEXT, bold: i === 0, fontFace: FONT, fontSize: 10 },
+            })),
+          ),
+        ];
+        s.addTable(tRows, {
+          x: 0.8, y: 1.7, w: 11.7,
+          border: { type: "solid", color: DIVIDER, pt: 0.5 },
+        });
+        addFooter(s, model, design);
+        break;
+      }
+      case "citations": {
+        const s = contentSlide(pptx, design);
+        s.addText("Evidence and citations", {
+          x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
+        });
+        const rows: PptxGenJS.TableRow[] = [
+          ["Ref", "Source", "Location", "Owner"].map((t) => ({
+            text: t,
+            options: { bold: true, color: headerStyle.color, fill: { color: headerStyle.fill }, fontFace: FONT, fontSize: 11 },
+          })),
+          ...model.citations.map((c) => [
+            { text: c.id, options: { color: accent, bold: true, fontFace: FONT, fontSize: 10 } },
+            { text: `${c.docTitle} (v${c.version})`, options: { color: TEXT, fontFace: FONT, fontSize: 10 } },
+            { text: c.sourceLoc, options: { color: TEXT, fontFace: FONT, fontSize: 10 } },
+            { text: c.owner, options: { color: TEXT, fontFace: FONT, fontSize: 10 } },
+          ]),
+        ];
+        s.addTable(rows, {
+          x: 0.8, y: 1.5, w: 11.7, colW: [1.1, 5.4, 2.8, 2.4],
+          border: { type: "solid", color: DIVIDER, pt: 0.5 },
+        });
+        addFooter(s, model, design);
+        break;
+      }
+      case "disclaimers": {
+        const s = contentSlide(pptx, design);
+        s.addText("Disclaimers", {
+          x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
+        });
+        s.addText(
+          model.disclaimers.map((d) => `${d.name}: ${d.text}`).join("\n\n"),
+          { x: 0.8, y: 1.6, w: 11.7, h: 4.8, fontFace: FONT, fontSize: 12, color: MUTED, valign: "top" },
+        );
+        addFooter(s, model, design);
+        break;
+      }
     }
-  }
-
-  // Chart slides
-  for (const chart of model.charts) {
-    const s = contentSlide(pptx, design);
-    s.addImage({
-      data: `image/png;base64,${chart.png.toString("base64")}`,
-      x: 1.9, y: 0.9, w: 9.6, h: 5.0,
-    });
-    addFooter(s, model, design);
-  }
-
-  // Cited data-table slides
-  for (const table of model.tables) {
-    const s = contentSlide(pptx, design);
-    s.addText(table.title, {
-      x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
-    });
-    s.addText(
-      `Source: ${table.source}${table.citationId ? ` · cited [${table.citationId}]` : ""}`,
-      { x: 0.8, y: 1.15, w: 11.6, h: 0.35, fontFace: FONT, fontSize: 12, color: MUTED },
-    );
-    const tRows: PptxGenJS.TableRow[] = [
-      table.columns.map((t) => ({
-        text: t,
-        options: { bold: true, color: headerStyle.color, fill: { color: headerStyle.fill }, fontFace: FONT, fontSize: 11 },
-      })),
-      ...table.rows.map((row) =>
-        row.map((value, i) => ({
-          text: value,
-          options: { color: i === 0 ? NAVY : TEXT, bold: i === 0, fontFace: FONT, fontSize: 10 },
-        })),
-      ),
-    ];
-    s.addTable(tRows, {
-      x: 0.8, y: 1.7, w: 11.7,
-      border: { type: "solid", color: DIVIDER, pt: 0.5 },
-    });
-    addFooter(s, model, design);
-  }
-
-  // Citations slide
-  if (model.citations.length > 0) {
-    const s = contentSlide(pptx, design);
-    s.addText("Evidence and citations", {
-      x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
-    });
-    const rows: PptxGenJS.TableRow[] = [
-      ["Ref", "Source", "Location", "Owner"].map((t) => ({
-        text: t,
-        options: { bold: true, color: headerStyle.color, fill: { color: headerStyle.fill }, fontFace: FONT, fontSize: 11 },
-      })),
-      ...model.citations.map((c) => [
-        { text: c.id, options: { color: accent, bold: true, fontFace: FONT, fontSize: 10 } },
-        { text: `${c.docTitle} (v${c.version})`, options: { color: TEXT, fontFace: FONT, fontSize: 10 } },
-        { text: c.sourceLoc, options: { color: TEXT, fontFace: FONT, fontSize: 10 } },
-        { text: c.owner, options: { color: TEXT, fontFace: FONT, fontSize: 10 } },
-      ]),
-    ];
-    s.addTable(rows, {
-      x: 0.8, y: 1.5, w: 11.7, colW: [1.1, 5.4, 2.8, 2.4],
-      border: { type: "solid", color: DIVIDER, pt: 0.5 },
-    });
-    addFooter(s, model, design);
-  }
-
-  // Disclaimers slide
-  if (model.disclaimers.length > 0) {
-    const s = contentSlide(pptx, design);
-    s.addText("Disclaimers", {
-      x: 0.8, y: 0.5, w: 11.6, h: 0.7, fontFace: FONT, fontSize: 24, bold: true, color: NAVY,
-    });
-    s.addText(
-      model.disclaimers.map((d) => `${d.name}: ${d.text}`).join("\n\n"),
-      { x: 0.8, y: 1.6, w: 11.7, h: 4.8, fontFace: FONT, fontSize: 12, color: MUTED, valign: "top" },
-    );
-    addFooter(s, model, design);
   }
 
   const out = await pptx.write({ outputType: "nodebuffer" });

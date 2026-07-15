@@ -59,6 +59,8 @@ import type {
   ErrorResponse,
   ExportDocumentInput,
   ExportPackInput,
+  ExportPreviewInput,
+  ExportPreviewResponse,
   ExportTemplate,
   GenerateInput,
   GeneratedAssets,
@@ -5545,6 +5547,77 @@ export const useExportDocumentPack = <TError = ErrorType<ErrorResponse>,
         TContext
       > => {
       return useMutation(getExportDocumentPackMutationOptions(options));
+    }
+
+export const getExportDocumentPreviewUrl = () => {
+
+
+
+
+  return `/api/generate/export-preview`
+}
+
+/**
+ * Renders the draft through the SAME export pipeline and template engine as a real download and returns the rendition as a PDF (base64) for on-screen display. The PDF preview is the exact engine output a download would produce; DOCX and PPTX previews are drawn with the same theme, geometry and layout rules as their renderers (print-preview approximation — Word/PowerPoint reflow can differ slightly). Confidentiality gates run exactly as on export: an external destination strips internal-only material and refuses any non-public content. Release gates (Brand Guardian, scheduled approval, editorial review) do not block the preview — their would-block status is reported so the UI can flag that the document cannot be exported yet.
+ * @summary WYSIWYG preview of the exact document an export would download
+ */
+export const exportDocumentPreview = async (exportPreviewInput: ExportPreviewInput, options?: RequestInit): Promise<ExportPreviewResponse> => {
+
+  return customFetch<ExportPreviewResponse>(getExportDocumentPreviewUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(exportPreviewInput)
+  }
+);}
+
+
+
+
+export const getExportDocumentPreviewMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportDocumentPreview>>, TError,{data: BodyType<ExportPreviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof exportDocumentPreview>>, TError,{data: BodyType<ExportPreviewInput>}, TContext> => {
+
+const mutationKey = ['exportDocumentPreview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof exportDocumentPreview>>, {data: BodyType<ExportPreviewInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  exportDocumentPreview(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExportDocumentPreviewMutationResult = NonNullable<Awaited<ReturnType<typeof exportDocumentPreview>>>
+    export type ExportDocumentPreviewMutationBody = BodyType<ExportPreviewInput>
+    export type ExportDocumentPreviewMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary WYSIWYG preview of the exact document an export would download
+ */
+export const useExportDocumentPreview = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof exportDocumentPreview>>, TError,{data: BodyType<ExportPreviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof exportDocumentPreview>>,
+        TError,
+        {data: BodyType<ExportPreviewInput>},
+        TContext
+      > => {
+      return useMutation(getExportDocumentPreviewMutationOptions(options));
     }
 
 export const getExportAskDocumentUrl = () => {

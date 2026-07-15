@@ -203,15 +203,56 @@ function stripEmphasisMarkers(text: string): string {
     .replace(/(^|[\s(])\*([^*\n]+)\*(?=[\s).,;:!?]|$)/g, "$1$2");
 }
 
+// Release gates (guardian / scheduled approval / editorial review) decide
+// whether a document may LEAVE the system — they are skippable for the
+// on-screen WYSIWYG preview of a draft still being edited. Confidentiality
+// gates (gateDestination + the external stripping below) are NEVER skippable:
+// a preview obeys exactly the same secrecy rules as a download.
+export interface BuildExportModelOptions {
+  releaseGates?: boolean;
+}
+
+// Would-block status of each release gate, computed by running the very gate
+// functions a real export enforces — never a parallel reimplementation.
+export interface ExportGateStatus {
+  guardian: { blocked: boolean; message: string | null };
+  approval: { blocked: boolean; message: string | null };
+  editorial: { blocked: boolean; message: string | null };
+}
+
+function gateStatusOf(fn: () => void): { blocked: boolean; message: string | null } {
+  try {
+    fn();
+    return { blocked: false, message: null };
+  } catch (err) {
+    if (err instanceof ExportRefusedError) {
+      return { blocked: true, message: err.message };
+    }
+    throw err;
+  }
+}
+
+export function computeGateStatus(draft: GeneratedDraft): ExportGateStatus {
+  return {
+    guardian: gateStatusOf(() => assertGuardian(draft)),
+    approval: gateStatusOf(() => assertScheduledApproval(draft)),
+    editorial: gateStatusOf(() => assertEditorialReview(draft)),
+  };
+}
+
 export function buildExportModel(
   draft: GeneratedDraft,
   destination: ExportDestination,
   templateId?: string | null,
+  options?: BuildExportModelOptions,
 ): ExportDocumentModel {
+  const releaseGates = options?.releaseGates !== false;
   assertExportable(draft);
-  assertGuardian(draft);
-  assertScheduledApproval(draft);
-  assertEditorialReview(draft);
+  if (releaseGates) {
+    assertGuardian(draft);
+    assertScheduledApproval(draft);
+    assertEditorialReview(draft);
+  }
   gateDestination(draft, destination);
 
   const template =

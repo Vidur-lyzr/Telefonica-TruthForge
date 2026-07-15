@@ -76,6 +76,7 @@ const TABS: { id: TabId; icon: IconType }[] = [
 ];
 
 const DESIGN_SYSTEM_URL = "https://mistica-web.vercel.app";
+const BRAND_FACTORY_URL = "https://brandfactory.telefonica.com";
 
 // ---- Shared pieces ----------------------------------------------------------
 
@@ -710,6 +711,28 @@ function DesignSystemArea() {
           {t.openDesignSite}
         </ButtonLink>
       </Inline>
+      <Boxed>
+        <Box padding={16}>
+          <Inline space={16} alignItems="center" wrap>
+            <div style={{ flex: 1, minWidth: 280 }}>
+              <Stack space={4}>
+                <Text3 medium>{t.brandFactoryTitle}</Text3>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  {t.brandFactoryBlurb}
+                </Text2>
+              </Stack>
+            </div>
+            <ButtonLink
+              onPress={() => {
+                window.open(BRAND_FACTORY_URL, "_blank", "noopener");
+              }}
+              StartIcon={IconOpenRegular}
+            >
+              {t.openBrandFactory}
+            </ButtonLink>
+          </Inline>
+        </Box>
+      </Boxed>
       <div
         style={{
           borderRadius: skinVars.borderRadii.container,

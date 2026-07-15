@@ -1732,6 +1732,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /generate/export-preview:
+    post:
+      operationId: exportDocumentPreview
+      tags: [generate]
+      summary: WYSIWYG preview of the exact document an export would download
+      description: >
+        Renders the draft through the SAME export pipeline and template engine
+        as a real download and returns the rendition as a PDF (base64) for
+        on-screen display. The PDF preview is the exact engine output a
+        download would produce; DOCX and PPTX previews are drawn with the same
+        theme, geometry and layout rules as their renderers (print-preview
+        approximation — Word/PowerPoint reflow can differ slightly).
+        Confidentiality gates run exactly as on export: an external
+        destination strips internal-only material and refuses any non-public
+        content. Release gates (Brand Guardian, scheduled approval, editorial
+        review) do not block the preview — their would-block status is
+        reported so the UI can flag that the document cannot be exported yet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportPreviewInput"
+      responses:
+        "200":
+          description: Preview rendition, or a structured refusal with gate status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportPreviewResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /ask/documents/export:
     post:
       operationId: exportAskDocument
@@ -6816,6 +6853,82 @@ components:
           enum: [internal, external]
         templateId:
           type: ["string", "null"]
+
+    ExportPreviewInput:
+      type: object
+      required: [draft, format]
+      properties:
+        draft:
+          $ref: "#/components/schemas/GeneratedDraft"
+        format:
+          type: string
+          enum: [pdf, docx, pptx]
+        destination:
+          type: string
+          enum: [internal, external]
+          description: >
+            Preview destination. "external" strips internal-only material and
+            refuses any non-public content — exactly as the real export would.
+        templateId:
+          type: ["string", "null"]
+          description: Export template id; defaults to the draft shape's template.
+
+    ExportPreviewGate:
+      type: object
+      required: [blocked]
+      properties:
+        blocked:
+          type: boolean
+        message:
+          type: ["string", "null"]
+
+    ExportPreviewGates:
+      type: object
+      required: [guardian, approval, editorial]
+      description: >
+        Would-block status of the release gates a real export enforces. The
+        preview still renders when one is blocked — the UI flags that the
+        document cannot be exported yet.
+      properties:
+        guardian:
+          $ref: "#/components/schemas/ExportPreviewGate"
+        approval:
+          $ref: "#/components/schemas/ExportPreviewGate"
+        editorial:
+          $ref: "#/components/schemas/ExportPreviewGate"
+
+    ExportPreviewResponse:
+      type: object
+      required: [status, gates]
+      properties:
+        status:
+          type: string
+          enum: [ok, refused]
+        format:
+          type: string
+          enum: [pdf, docx, pptx]
+        pdfBase64:
+          type: string
+          nullable: true
+          description: The rendition as PDF bytes (base64); present when status is ok.
+        exact:
+          type: boolean
+          description: >
+            True when the preview bytes come from the very renderer the
+            download uses (pdf); false for the docx/pptx print-preview
+            approximations.
+        templateId:
+          type: string
+          nullable: true
+        gates:
+          $ref: "#/components/schemas/ExportPreviewGates"
+        refusedCode:
+          type: string
+          nullable: true
+          description: Machine-readable refusal code when status is refused.
+        refusedMessage:
+          type: string
+          nullable: true
 
     AskDocumentExportInput:
       type: object

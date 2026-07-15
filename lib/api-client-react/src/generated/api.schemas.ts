@@ -2484,6 +2484,84 @@ export interface ExportPackInput {
   templateId?: string | null;
 }
 
+export type ExportPreviewInputFormat = typeof ExportPreviewInputFormat[keyof typeof ExportPreviewInputFormat];
+
+
+export const ExportPreviewInputFormat = {
+  pdf: 'pdf',
+  docx: 'docx',
+  pptx: 'pptx',
+} as const;
+
+/**
+ * Preview destination. "external" strips internal-only material and refuses any non-public content — exactly as the real export would.
+ */
+export type ExportPreviewInputDestination = typeof ExportPreviewInputDestination[keyof typeof ExportPreviewInputDestination];
+
+
+export const ExportPreviewInputDestination = {
+  internal: 'internal',
+  external: 'external',
+} as const;
+
+export interface ExportPreviewInput {
+  draft: GeneratedDraft;
+  format: ExportPreviewInputFormat;
+  /** Preview destination. "external" strips internal-only material and refuses any non-public content — exactly as the real export would. */
+  destination?: ExportPreviewInputDestination;
+  /**
+     * Export template id; defaults to the draft shape's template.
+     * @nullable
+     */
+  templateId?: string | null;
+}
+
+export interface ExportPreviewGate {
+  blocked: boolean;
+  /** @nullable */
+  message?: string | null;
+}
+
+/**
+ * Would-block status of the release gates a real export enforces. The preview still renders when one is blocked — the UI flags that the document cannot be exported yet.
+ */
+export interface ExportPreviewGates {
+  guardian: ExportPreviewGate;
+  approval: ExportPreviewGate;
+  editorial: ExportPreviewGate;
+}
+
+export type ExportPreviewResponseStatus = typeof ExportPreviewResponseStatus[keyof typeof ExportPreviewResponseStatus];
+
+
+export const ExportPreviewResponseStatus = {
+  ok: 'ok',
+  refused: 'refused',
+} as const;
+
+export type ExportPreviewResponseFormat = typeof ExportPreviewResponseFormat[keyof typeof ExportPreviewResponseFormat];
+
+
+export const ExportPreviewResponseFormat = {
+  pdf: 'pdf',
+  docx: 'docx',
+  pptx: 'pptx',
+} as const;
+
+export interface ExportPreviewResponse {
+  status: ExportPreviewResponseStatus;
+  format?: ExportPreviewResponseFormat;
+  /** The rendition as PDF bytes (base64); present when status is ok. */
+  pdfBase64?: string | null;
+  /** True when the preview bytes come from the very renderer the download uses (pdf); false for the docx/pptx print-preview approximations. */
+  exact?: boolean;
+  templateId?: string | null;
+  gates: ExportPreviewGates;
+  /** Machine-readable refusal code when status is refused. */
+  refusedCode?: string | null;
+  refusedMessage?: string | null;
+}
+
 export type AskDocumentExportInputFormat = typeof AskDocumentExportInputFormat[keyof typeof AskDocumentExportInputFormat];
 
 
