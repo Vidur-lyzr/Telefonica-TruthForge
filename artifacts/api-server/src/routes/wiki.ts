@@ -277,6 +277,9 @@ router.post("/wiki/search/stream", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
+  // Tell the reverse proxy not to buffer the stream — otherwise the browser
+  // receives nothing until the response ends and the chat appears stuck.
+  res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
   let closed = false;

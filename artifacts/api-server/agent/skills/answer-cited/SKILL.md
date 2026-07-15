@@ -1,9 +1,9 @@
 ---
 name: answer-cited
 description: The default skill. Any natural-language question over the governed knowledge — answer with cited evidence and the honest states (no_evidence, permission_blocked, historic, conflict).
-confidence: 0.93
-usage_count: 58
-success_count: 55
+confidence: 0.95
+usage_count: 60
+success_count: 57
 failure_count: 3
 negative_examples:
   - Provided sources do not explicitly list the five Transform and Grow strategic axes; partial answer given with honest no_evidence state for the specific sub-question.

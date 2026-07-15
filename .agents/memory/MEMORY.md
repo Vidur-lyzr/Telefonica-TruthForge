@@ -24,6 +24,7 @@
 - [Lazy schedule runs](lazy-schedule-runs.md) — no-daemon recurring runs: mark-run-before-compose on lazy reads, compose-before-persist on create, 400 on unknown roleId (never fallback).
 - [Q&A internal notes keying](qa-notes-keying.md) — notes keyed by normalized question (survive refine), excluded from content hash, stripped server-side for external exports.
 - [Corpus parallel authoring](corpus-parallel-authoring.md) — unique id prefixes + shared brief let parallel authors scale the corpus collision-free; .gitagent state self-mutates.
+- [SSE proxy buffering](sse-proxy-buffering.md) — SSE routes hang in the browser (works via curl) unless `X-Accel-Buffering: no` header is set; Replit proxy buffers otherwise.
 - [Wiki compile-on-miss governance](wiki-compile-on-miss.md) — per-scope compiles; confidentiality AND area derive from ALL shown chunks; never reuse a slug-colliding page without an access check.
 - [Eval golden calibration](eval-golden-calibration.md) — corpus graze docs flip blocked goldens to honest answered; recalibrate by replay+grounding; hallucination = ungrounded citations only.
 - [Raw fetch contract drift](raw-fetch-contract-drift.md) — required-param additions miss raw fetch()/FormData call sites (typecheck can't see them); grep fetch( and curl-verify.

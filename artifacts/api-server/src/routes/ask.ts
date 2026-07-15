@@ -58,6 +58,10 @@ router.post("/ask/stream", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
+  // Tell the reverse proxy (nginx-style) not to buffer the stream — without
+  // this the browser receives nothing until the response ends, so the run
+  // appears stuck on "Contacting the governed agent...".
+  res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
   let closed = false;
