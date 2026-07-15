@@ -1,5 +1,5 @@
 import React from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, type Editor } from "@tiptap/react";
 import { Node, mergeAttributes, type JSONContent } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import { skinVars } from "@telefonica/mistica";
@@ -230,16 +230,43 @@ const CitationChip = Node.create({
   },
 });
 
+// ---- Active-editor tracking -------------------------------------------------------
+// The document is composed of several independent section editors, so the
+// docked toolbar binds to whichever editor holds (or last held) focus. The
+// provider is optional: editors rendered outside it (drawers, side panels)
+// simply skip registration.
+
+interface ActiveEditorCtx {
+  active: Editor | null;
+  focus: (e: Editor) => void;
+  release: (e: Editor) => void;
+}
+
+const ActiveEditorContext = React.createContext<ActiveEditorCtx | null>(null);
+
+export function EditorFocusProvider({ children }: { children: React.ReactNode }) {
+  const [active, setActive] = React.useState<Editor | null>(null);
+  const focus = React.useCallback((e: Editor) => setActive(e), []);
+  const release = React.useCallback(
+    (e: Editor) => setActive((cur) => (cur === e ? null : cur)),
+    [],
+  );
+  const value = React.useMemo(() => ({ active, focus, release }), [active, focus, release]);
+  return <ActiveEditorContext.Provider value={value}>{children}</ActiveEditorContext.Provider>;
+}
+
 // ---- Bubble toolbar --------------------------------------------------------------
 
 function ToolbarButton({
   label,
   active,
+  disabled,
   onPress,
   children,
 }: {
   label: string;
   active?: boolean;
+  disabled?: boolean;
   onPress: () => void;
   children: React.ReactNode;
 }) {
@@ -248,9 +275,10 @@ function ToolbarButton({
       type="button"
       aria-label={label}
       title={label}
+      disabled={disabled}
       onMouseDown={(e) => {
         e.preventDefault();
-        onPress();
+        if (!disabled) onPress();
       }}
       style={{
         border: "none",
@@ -258,14 +286,110 @@ function ToolbarButton({
         padding: "4px 8px",
         fontSize: 13,
         lineHeight: "18px",
-        cursor: "pointer",
+        cursor: disabled ? "default" : "pointer",
         fontFamily: "inherit",
+        opacity: disabled ? 0.4 : 1,
         backgroundColor: active ? skinVars.colors.brand : "transparent",
         color: active ? skinVars.colors.textPrimaryInverse : skinVars.colors.textPrimary,
       }}
     >
       {children}
     </button>
+  );
+}
+
+// ---- Docked toolbar ---------------------------------------------------------------
+// Always-visible formatting bar for the document canvas. It signals that the
+// document is an edit surface even before the user clicks in, and applies
+// commands to the focused (or last-focused) section editor.
+
+export function DocumentToolbar() {
+  const ctx = React.useContext(ActiveEditorContext);
+  const { lang } = useApp();
+  const t = DOCUMENT_EDITOR_I18N[lang];
+  const editor = ctx?.active && !ctx.active.isDestroyed ? ctx.active : null;
+
+  // Re-render on every transaction so active states (bold, list...) track the caret.
+  const [, force] = React.useReducer((x: number) => x + 1, 0);
+  React.useEffect(() => {
+    if (!editor) return;
+    editor.on("transaction", force);
+    return () => {
+      editor.off("transaction", force);
+    };
+  }, [editor]);
+
+  const disabled = !editor;
+  return (
+    <div
+      style={{
+        position: "sticky",
+        top: 8,
+        zIndex: 5,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 8,
+        padding: 4,
+        borderRadius: 8,
+        backgroundColor: skinVars.colors.backgroundContainer,
+        border: `1px solid ${skinVars.colors.divider}`,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <ToolbarButton
+          label={t.bold}
+          disabled={disabled}
+          active={editor?.isActive("bold")}
+          onPress={() => editor?.chain().focus().toggleBold().run()}
+        >
+          <span style={{ fontWeight: 700 }}>B</span>
+        </ToolbarButton>
+        <ToolbarButton
+          label={t.italic}
+          disabled={disabled}
+          active={editor?.isActive("italic")}
+          onPress={() => editor?.chain().focus().toggleItalic().run()}
+        >
+          <span style={{ fontStyle: "italic" }}>I</span>
+        </ToolbarButton>
+        <ToolbarButton
+          label={t.heading}
+          disabled={disabled}
+          active={editor?.isActive("heading", { level: 2 })}
+          onPress={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+        >
+          <span style={{ fontWeight: 700 }}>H2</span>
+        </ToolbarButton>
+        <ToolbarButton
+          label={t.subheading}
+          disabled={disabled}
+          active={editor?.isActive("heading", { level: 3 })}
+          onPress={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+        >
+          <span style={{ fontWeight: 700 }}>H3</span>
+        </ToolbarButton>
+        <ToolbarButton
+          label={t.bulletList}
+          disabled={disabled}
+          active={editor?.isActive("bulletList")}
+          onPress={() => editor?.chain().focus().toggleBulletList().run()}
+        >
+          <span>&bull; {t.listLabel}</span>
+        </ToolbarButton>
+      </div>
+      {disabled && (
+        <span
+          style={{
+            fontSize: 13,
+            paddingRight: 8,
+            color: skinVars.colors.textSecondary,
+          }}
+        >
+          {t.toolbarHint}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -299,6 +423,9 @@ export function RichTextEditor({
   openCitationRef.current = onOpenCitation;
   const askSelectionRef = React.useRef(onAskSelection);
   askSelectionRef.current = onAskSelection;
+  const focusCtx = React.useContext(ActiveEditorContext);
+  const focusCtxRef = React.useRef(focusCtx);
+  focusCtxRef.current = focusCtx;
 
   const editor = useEditor({
     extensions: [
@@ -351,11 +478,23 @@ export function RichTextEditor({
         left: Math.max(0, (start.left + end.left) / 2 - rect.left - 90),
       });
     },
+    onFocus: ({ editor: ed }) => {
+      focusCtxRef.current?.focus(ed);
+    },
     onBlur: () => {
       // Delay so toolbar button mousedown fires first.
       window.setTimeout(() => setToolbar((t) => t), 0);
     },
   });
+
+  // Unregister from the docked toolbar when this editor unmounts (draft
+  // switch, section removal) so the toolbar never points at a destroyed editor.
+  React.useEffect(() => {
+    if (!editor) return;
+    return () => {
+      focusCtxRef.current?.release(editor);
+    };
+  }, [editor]);
 
   // Sync external changes (refine result, opening another draft) into the editor
   // without clobbering the caret during the user's own typing.

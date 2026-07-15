@@ -14,6 +14,7 @@ export interface DocumentEditorStrings {
   askAgentTooltip: string;
   askAgent: string;
   openCitation: string;
+  toolbarHint: string;
 }
 
 export const DOCUMENT_EDITOR_I18N: Record<Lang, DocumentEditorStrings> = {
@@ -27,6 +28,7 @@ export const DOCUMENT_EDITOR_I18N: Record<Lang, DocumentEditorStrings> = {
     askAgentTooltip: "Ask the agent about this passage",
     askAgent: "Ask agent",
     openCitation: "Open citation",
+    toolbarHint: "Click anywhere in the document to edit",
   },
   ES: {
     bold: "Negrita",
@@ -38,6 +40,7 @@ export const DOCUMENT_EDITOR_I18N: Record<Lang, DocumentEditorStrings> = {
     askAgentTooltip: "Pregunta al agente sobre este pasaje",
     askAgent: "Preguntar al agente",
     openCitation: "Abrir cita",
+    toolbarHint: "Haz clic en cualquier parte del documento para editar",
   },
   DE: {
     bold: "Fett",
@@ -49,6 +52,7 @@ export const DOCUMENT_EDITOR_I18N: Record<Lang, DocumentEditorStrings> = {
     askAgentTooltip: "Den Agenten zu dieser Passage fragen",
     askAgent: "Agent fragen",
     openCitation: "Zitat öffnen",
+    toolbarHint: "Klicken Sie an eine beliebige Stelle im Dokument, um zu bearbeiten",
   },
   PT: {
     bold: "Negrito",
@@ -60,5 +64,6 @@ export const DOCUMENT_EDITOR_I18N: Record<Lang, DocumentEditorStrings> = {
     askAgentTooltip: "Pergunte ao agente sobre este trecho",
     askAgent: "Perguntar ao agente",
     openCitation: "Abrir citação",
+    toolbarHint: "Clique em qualquer parte do documento para editar",
   },
 };

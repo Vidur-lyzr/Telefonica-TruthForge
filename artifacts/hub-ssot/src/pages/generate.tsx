@@ -53,7 +53,7 @@ import {
 import { useApp } from "@/components/app-provider";
 import { GENERATE_I18N } from "@/i18n/generate";
 import { localeFor } from "@/i18n/planning";
-import { RichTextEditor } from "@/components/document-editor";
+import { RichTextEditor, EditorFocusProvider, DocumentToolbar } from "@/components/document-editor";
 import {
   Box,
   Stack,
@@ -1138,20 +1138,23 @@ function DocumentCanvas({
   };
 
   return (
-    <div style={{ maxWidth: 768 }}>
-      <Boxed>
-        <Box padding={32}>
-          <Stack space={32}>
-            <Stack space={12}>
-              <Inline space={8} alignItems="center" wrap>
-                <Tag type="promo">{GENERATE_I18N[lang].form.shapes[draft.shape as Shape]?.name ?? draft.shape}</Tag>
-                <Tag type={draft.audience === "external" ? "success" : "info"}>{te.audience[draft.audience] ?? draft.audience}</Tag>
-                <Tag type="inactive">{draft.confidentiality}</Tag>
-                <Tag type="inactive">{draft.language}</Tag>
-              </Inline>
-              <Title2>{draft.title}</Title2>
-              <Divider />
-            </Stack>
+    <EditorFocusProvider>
+      <div style={{ maxWidth: 768 }}>
+        <Boxed>
+          <Box padding={32}>
+            <Stack space={32}>
+              <Stack space={12}>
+                <Inline space={8} alignItems="center" wrap>
+                  <Tag type="promo">{GENERATE_I18N[lang].form.shapes[draft.shape as Shape]?.name ?? draft.shape}</Tag>
+                  <Tag type={draft.audience === "external" ? "success" : "info"}>{te.audience[draft.audience] ?? draft.audience}</Tag>
+                  <Tag type="inactive">{draft.confidentiality}</Tag>
+                  <Tag type="inactive">{draft.language}</Tag>
+                </Inline>
+                <Title2>{draft.title}</Title2>
+                <Divider />
+              </Stack>
+
+              <DocumentToolbar />
 
             {draft.historic && (
               <div
@@ -1331,7 +1334,8 @@ function DocumentCanvas({
           </Stack>
         </Box>
       </Boxed>
-    </div>
+      </div>
+    </EditorFocusProvider>
   );
 }
 
