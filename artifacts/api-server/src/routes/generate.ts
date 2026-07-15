@@ -312,6 +312,7 @@ router.post("/generate/schedules", async (req, res) => {
     audience: (d.audience as "internal" | "external") ?? "internal",
     confidentiality: d.confidentiality ?? "private",
     frequency: (d.frequency as "daily" | "weekly" | "monthly") ?? "weekly",
+    timeOfDay: d.timeOfDay ?? null,
     ownerRoleId: d.ownerRoleId,
     ownerLabel: roleLabel(d.ownerRoleId),
     reviewFolder: d.reviewFolder ?? "Review inbox",

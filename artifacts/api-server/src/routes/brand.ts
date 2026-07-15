@@ -5,6 +5,10 @@ import {
   GetBrandToneResponse,
   GetBrandResourcesResponse,
   GetExportTemplatesResponse,
+  RenderExportTemplateRenditionBody,
+  RenderExportTemplateRenditionResponse,
+  SaveExportTemplateOverrideBody,
+  SaveExportTemplateOverrideResponse,
   CheckBrandTextBody,
   CheckBrandTextResponse,
   GetBrandSkillResponse,
@@ -12,8 +16,15 @@ import {
   UpdateBrandSkillResponse,
   ResetBrandSkillResponse,
 } from "@workspace/api-zod";
-import { EXPORT_TEMPLATES } from "../export/exportTemplates";
+import { getExportTemplate } from "../export/exportTemplates";
 import { renderTemplatePreview } from "../export/templatePreview";
+import { renderTemplateRendition } from "../export/templateRendition";
+import {
+  effectiveTemplates,
+  saveTemplateOverride,
+  resetTemplateOverride,
+  TemplateEditError,
+} from "../data/templateOverrides";
 import {
   accessibleTemplates,
   accessibleTemplate,
@@ -63,7 +74,82 @@ router.get("/brand/resources", (req, res) => {
 });
 
 router.get("/brand/export-templates", (_req, res) => {
-  res.json(GetExportTemplatesResponse.parse(EXPORT_TEMPLATES));
+  // Effective templates: any saved edit is applied, with customized + rev so
+  // the client can flag edited templates and bust cached page previews.
+  res.json(GetExportTemplatesResponse.parse(effectiveTemplates()));
+});
+
+// Full-document rendition (PDF bytes) of the template's illustrative sample
+// through the real export renderers — pdf exact, docx/pptx print renditions.
+// Accepts an optional unsaved edit so the editor can live-preview changes.
+router.post("/brand/export-template-rendition", async (req, res) => {
+  const parsed = RenderExportTemplateRenditionBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid rendition request",
+      code: "invalid_request",
+      details: parsed.error.issues,
+    });
+    return;
+  }
+  const { templateId, format, override } = parsed.data;
+  try {
+    const result = await renderTemplateRendition(templateId, format, override);
+    if (!result) {
+      res.status(404).json({ error: "Unknown export template", code: "unknown_template" });
+      return;
+    }
+    req.log.info({ templateId, format, override: Boolean(override) }, "template rendition");
+    res.json(RenderExportTemplateRenditionResponse.parse(result));
+  } catch (err) {
+    if (err instanceof TemplateEditError) {
+      res.status(400).json({ error: err.message, code: err.code });
+      return;
+    }
+    throw err;
+  }
+});
+
+// Save or reset a governed edit of an export template. The saved edit becomes
+// the effective template for every future export, preview and generation.
+router.post("/brand/export-template-override", (req, res) => {
+  const parsed = SaveExportTemplateOverrideBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({
+      error: "Invalid template edit",
+      code: "invalid_template_edit",
+      details: parsed.error.issues,
+    });
+    return;
+  }
+  const { templateId, reset, edit } = parsed.data;
+  if (!getExportTemplate(templateId)) {
+    res.status(404).json({ error: "Unknown export template", code: "unknown_template" });
+    return;
+  }
+  if (!reset && (!edit || Object.keys(edit).length === 0)) {
+    res.status(400).json({
+      error: "No changes supplied — provide an edit or set reset.",
+      code: "empty_template_edit",
+    });
+    return;
+  }
+  try {
+    const template = reset
+      ? resetTemplateOverride(templateId)
+      : saveTemplateOverride(templateId, edit ?? {});
+    req.log.info(
+      { templateId, reset: Boolean(reset), rev: template.rev },
+      "template override saved",
+    );
+    res.json(SaveExportTemplateOverrideResponse.parse({ template }));
+  } catch (err) {
+    if (err instanceof TemplateEditError) {
+      res.status(400).json({ error: err.message, code: err.code });
+      return;
+    }
+    throw err;
+  }
 });
 
 // Deterministic server-rendered page preview (PNG) of an export template.

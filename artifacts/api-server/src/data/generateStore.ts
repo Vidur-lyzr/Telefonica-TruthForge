@@ -53,6 +53,10 @@ export interface Schedule {
   audience: "internal" | "external";
   confidentiality: string;
   frequency: ScheduleFrequency;
+  // Wall-clock run time (HH:mm, server-local) the scheduler aligns runs to.
+  // Null for schedules created before time-of-day existed: they keep the
+  // legacy fixed-interval behaviour.
+  timeOfDay: string | null;
   ownerRoleId: string;
   ownerLabel: string;
   reviewFolder: string;
@@ -72,10 +76,35 @@ const FREQUENCY_MS: Record<ScheduleFrequency, number> = {
 export function computeNextRunAt(
   frequency: ScheduleFrequency,
   from: string,
+  timeOfDay?: string | null,
 ): string {
-  const base = Date.parse(from);
-  const interval = FREQUENCY_MS[frequency] ?? FREQUENCY_MS.weekly;
-  return new Date((Number.isNaN(base) ? Date.now() : base) + interval).toISOString();
+  const parsed = Date.parse(from);
+  const base = new Date(Number.isNaN(parsed) ? Date.now() : parsed);
+  const match = timeOfDay ? /^([01]\d|2[0-3]):([0-5]\d)$/.exec(timeOfDay) : null;
+  if (!match) {
+    // Legacy interval behaviour for schedules without a time of day.
+    const interval = FREQUENCY_MS[frequency] ?? FREQUENCY_MS.weekly;
+    return new Date(base.getTime() + interval).toISOString();
+  }
+  // Align the next run to the requested wall-clock time (server-local).
+  // Daily: the next occurrence of HH:mm after `from`. Weekly: 7 days on at
+  // HH:mm. Monthly: same day next month at HH:mm (calendar month, not 30d).
+  const next = new Date(base);
+  next.setHours(Number(match[1]), Number(match[2]), 0, 0);
+  if (frequency === "daily") {
+    if (next.getTime() <= base.getTime()) next.setDate(next.getDate() + 1);
+  } else if (frequency === "weekly") {
+    next.setDate(next.getDate() + 7);
+  } else {
+    // Same day next month, clamped to that month's last day so Jan 31
+    // becomes Feb 28/29 rather than overflowing into March.
+    const day = next.getDate();
+    next.setDate(1);
+    next.setMonth(next.getMonth() + 1);
+    const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+    next.setDate(Math.min(day, lastDay));
+  }
+  return next.toISOString();
 }
 
 // A simulated Teams/email delivery to the schedule owner, recorded when a
@@ -204,8 +233,11 @@ function load(): void {
     // Migration: schedules persisted before the automatic scheduler existed
     // have no nextRunAt — derive it so they join the timer without re-creation.
     for (const s of schedules) {
+      // Migration: schedules persisted before time-of-day existed keep the
+      // legacy interval behaviour (timeOfDay: null).
+      if (typeof s.timeOfDay !== "string") s.timeOfDay = null;
       if (!s.nextRunAt) {
-        s.nextRunAt = computeNextRunAt(s.frequency, s.lastRunAt ?? s.createdAt);
+        s.nextRunAt = computeNextRunAt(s.frequency, s.lastRunAt ?? s.createdAt, s.timeOfDay);
       }
     }
     idCounter = typeof raw.idCounter === "number" ? raw.idCounter : 0;
@@ -480,7 +512,7 @@ export function createSchedule(
     id: nextId("sch"),
     createdAt,
     lastRunAt: null,
-    nextRunAt: computeNextRunAt(input.frequency, createdAt),
+    nextRunAt: computeNextRunAt(input.frequency, createdAt, input.timeOfDay),
   };
   schedules.push(record);
   persist();
@@ -501,7 +533,7 @@ export function markScheduleRun(id: string): void {
   const s = schedules.find((x) => x.id === id);
   if (s) {
     s.lastRunAt = new Date().toISOString();
-    s.nextRunAt = computeNextRunAt(s.frequency, s.lastRunAt);
+    s.nextRunAt = computeNextRunAt(s.frequency, s.lastRunAt, s.timeOfDay);
     persist();
   }
 }

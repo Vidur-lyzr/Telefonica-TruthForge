@@ -493,6 +493,7 @@ router.post("/planning/forecast/schedules/create", async (req, res) => {
       language: "en",
       audience: "internal",
       confidentiality: "internal",
+      timeOfDay: null,
       frequency,
       ownerRoleId: role.id,
       ownerLabel: role.label,

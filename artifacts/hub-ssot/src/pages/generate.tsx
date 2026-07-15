@@ -1695,6 +1695,12 @@ function BriefForm({
   const [topic, setTopic] = React.useState("");
   const [audience, setAudience] = React.useState<Audience>("internal");
   const [language, setLanguage] = React.useState(() => globalLang.toLowerCase());
+  // The brief's output language follows the UI language until the user picks
+  // one explicitly (or a suggestion sets it) — then their choice wins.
+  const languageTouchedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!languageTouchedRef.current) setLanguage(globalLang.toLowerCase());
+  }, [globalLang]);
   const [axisIds, setAxisIds] = React.useState<string[]>([]);
   const [confidentiality, setConfidentiality] = React.useState("private");
   const [spokesperson, setSpokesperson] = React.useState("");
@@ -1779,7 +1785,10 @@ function BriefForm({
     } else if (b.confidentiality) {
       setConfidentiality(b.confidentiality);
     }
-    if (b.language && LANGUAGE_OPTIONS.some((l) => l.value === b.language)) setLanguage(b.language);
+    if (b.language && LANGUAGE_OPTIONS.some((l) => l.value === b.language)) {
+      languageTouchedRef.current = true;
+      setLanguage(b.language);
+    }
     if (b.axisIds.length > 0) setAxisIds(b.axisIds);
     if (b.spokesperson) setSpokesperson(b.spokesperson);
     if (b.eventDate) setEventDate(b.eventDate);
@@ -2242,7 +2251,10 @@ function BriefForm({
               name="language"
               label={t.languageLabel}
               value={language}
-              onChangeValue={setLanguage}
+              onChangeValue={(v) => {
+                languageTouchedRef.current = true;
+                setLanguage(v);
+              }}
               options={LANGUAGE_OPTIONS.map((o) => ({
                 value: o.value,
                 text: t.languageOptions[o.value] ?? o.text,
@@ -4026,6 +4038,7 @@ function ScheduledTab({
       queries: string[];
       audience: string;
       frequency: string;
+      timeOfDay: string;
       ownerRoleId: string;
       language: string;
       confidentiality: string;
@@ -4048,6 +4061,7 @@ function ScheduledTab({
   const [topic, setTopic] = React.useState("");
   const [shape, setShape] = React.useState<Shape>("messaging");
   const [frequency, setFrequency] = React.useState("weekly");
+  const [timeOfDay, setTimeOfDay] = React.useState("09:00");
   const [audience, setAudience] = React.useState<Audience>("internal");
   const [ownerRoleId, setOwnerRoleId] = React.useState("");
   const [reviewFolder, setReviewFolder] = React.useState("");
@@ -4075,6 +4089,7 @@ function ScheduledTab({
           .filter(Boolean),
         audience,
         frequency,
+        timeOfDay,
         ownerRoleId: owner,
         language: "en",
         confidentiality: audience === "external" ? "public" : "private",
@@ -4125,6 +4140,18 @@ function ScheduledTab({
                     value={frequency}
                     onChangeValue={setFrequency}
                     options={(["daily", "weekly", "monthly"] as const).map((f) => ({ value: f, text: te.frequency[f] ?? f }))}
+                    fullWidth
+                  />
+                  <Select
+                    name="scheduleTimeOfDay"
+                    label={td.timeOfDayLabel}
+                    value={timeOfDay}
+                    onChangeValue={setTimeOfDay}
+                    helperText={td.timeOfDayHelper}
+                    options={Array.from({ length: 48 }, (_, i) => {
+                      const v = `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`;
+                      return { value: v, text: v };
+                    })}
                     fullWidth
                   />
                   <Select
@@ -4207,6 +4234,7 @@ function ScheduledTab({
                             {s.name}
                           </Text2>
                           <Tag type="inactive">{te.frequency[s.frequency] ?? s.frequency}</Tag>
+                          {s.timeOfDay ? <Tag type="inactive">{s.timeOfDay}</Tag> : null}
                           <Tag type="inactive">{te.audience[s.audience] ?? s.audience}</Tag>
                         </Inline>
                         <Text2 regular color={c.textSecondary}>

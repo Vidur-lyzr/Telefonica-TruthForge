@@ -33,6 +33,35 @@ export interface BrandStrings {
   exportCoverLabel: string;
   exportBodyLabel: string;
   exportPreviewAria: (name: string) => string;
+  exportCustomizedTag: string;
+  exportEditAction: string;
+  exportEditBack: string;
+  exportEditIntro: string;
+  exportFieldName: string;
+  exportFieldDescription: string;
+  exportFieldCoverStyle: string;
+  exportFieldAccent: string;
+  exportFieldHeadingStyle: string;
+  exportFieldTableHeader: string;
+  exportFieldFooter: string;
+  exportFieldTone: string;
+  exportBlocksTitle: string;
+  exportBlocksIntro: string;
+  exportBlockNoteLabel: string;
+  exportCoverStyles: Record<string, string>;
+  exportAccents: Record<string, string>;
+  exportHeadingStyles: Record<string, string>;
+  exportTableHeaders: Record<string, string>;
+  exportSave: string;
+  exportReset: string;
+  exportSaved: string;
+  exportSaveError: string;
+  exportPreviewPaneTitle: string;
+  exportRenditionExact: string;
+  exportRenditionPrint: string;
+  exportRendering: string;
+  exportRenderError: string;
+  exportSampleNote: string;
   meta: { owner: string; format: string; version: string; sections: string };
   viewStructure: string;
   openTemplateAria: (name: string) => string;
@@ -126,6 +155,43 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     exportCoverLabel: "Cover",
     exportBodyLabel: "Body page",
     exportPreviewAria: (name) => `Preview of export template ${name}`,
+    exportCustomizedTag: "Customised",
+    exportEditAction: "Customise",
+    exportEditBack: "Back to gallery",
+    exportEditIntro:
+      "Adjust the wording and design of this corporate template. The preview shows exactly what exports will produce — saved changes govern every future export that uses this template.",
+    exportFieldName: "Template name",
+    exportFieldDescription: "Description",
+    exportFieldCoverStyle: "Cover style",
+    exportFieldAccent: "Accent colour",
+    exportFieldHeadingStyle: "Heading style",
+    exportFieldTableHeader: "Table header",
+    exportFieldFooter: "Footer label",
+    exportFieldTone: "Tone guidance",
+    exportBlocksTitle: "Section blocks",
+    exportBlocksIntro: "Rename sections or adjust their notes. The structure itself is fixed by the corporate standard.",
+    exportBlockNoteLabel: "Note",
+    exportCoverStyles: {
+      "navy-full": "Navy full cover",
+      "brand-full": "Brand blue full cover",
+      "brand-band": "Brand band",
+      masthead: "Masthead",
+      split: "Split",
+      minimal: "Minimal",
+    },
+    exportAccents: { brand: "Brand blue", navy: "Navy" },
+    exportHeadingStyles: { bar: "Left bar", rule: "Hairline rule", block: "Tinted block" },
+    exportTableHeaders: { navy: "Navy", brand: "Brand blue", light: "Light" },
+    exportSave: "Save changes",
+    exportReset: "Reset to corporate standard",
+    exportSaved: "Saved — future exports now use this version.",
+    exportSaveError: "Could not save the changes. Please try again.",
+    exportPreviewPaneTitle: "Live preview",
+    exportRenditionExact: "Byte-exact PDF preview",
+    exportRenditionPrint: "Print rendition of the same layout",
+    exportRendering: "Rendering preview…",
+    exportRenderError: "The preview could not be rendered.",
+    exportSampleNote: "Illustrative sample content — your real documents replace it on export.",
     meta: { owner: "Owner", format: "Format", version: "Version", sections: "Sections" },
     viewStructure: "View structure",
     openTemplateAria: (name) => `Open template ${name}`,
@@ -231,6 +297,43 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     exportCoverLabel: "Portada",
     exportBodyLabel: "Página interior",
     exportPreviewAria: (name) => `Vista previa de la plantilla de exportación ${name}`,
+    exportCustomizedTag: "Personalizada",
+    exportEditAction: "Personalizar",
+    exportEditBack: "Volver a la galería",
+    exportEditIntro:
+      "Ajusta el texto y el diseño de esta plantilla corporativa. La vista previa muestra exactamente lo que producirán las exportaciones: los cambios guardados rigen todas las exportaciones futuras que usen esta plantilla.",
+    exportFieldName: "Nombre de la plantilla",
+    exportFieldDescription: "Descripción",
+    exportFieldCoverStyle: "Estilo de portada",
+    exportFieldAccent: "Color de acento",
+    exportFieldHeadingStyle: "Estilo de encabezado",
+    exportFieldTableHeader: "Cabecera de tabla",
+    exportFieldFooter: "Texto del pie",
+    exportFieldTone: "Guía de tono",
+    exportBlocksTitle: "Bloques de sección",
+    exportBlocksIntro: "Renombra secciones o ajusta sus notas. La estructura está fijada por el estándar corporativo.",
+    exportBlockNoteLabel: "Nota",
+    exportCoverStyles: {
+      "navy-full": "Portada azul marino",
+      "brand-full": "Portada azul de marca",
+      "brand-band": "Banda de marca",
+      masthead: "Cabecera",
+      split: "Dividida",
+      minimal: "Minimalista",
+    },
+    exportAccents: { brand: "Azul de marca", navy: "Azul marino" },
+    exportHeadingStyles: { bar: "Barra izquierda", rule: "Línea fina", block: "Bloque tintado" },
+    exportTableHeaders: { navy: "Azul marino", brand: "Azul de marca", light: "Claro" },
+    exportSave: "Guardar cambios",
+    exportReset: "Restablecer al estándar corporativo",
+    exportSaved: "Guardado: las próximas exportaciones usan esta versión.",
+    exportSaveError: "No se pudieron guardar los cambios. Inténtalo de nuevo.",
+    exportPreviewPaneTitle: "Vista previa en vivo",
+    exportRenditionExact: "Vista previa PDF exacta byte a byte",
+    exportRenditionPrint: "Rendición de impresión del mismo diseño",
+    exportRendering: "Generando vista previa…",
+    exportRenderError: "No se pudo generar la vista previa.",
+    exportSampleNote: "Contenido de muestra ilustrativo: tus documentos reales lo sustituyen al exportar.",
     meta: { owner: "Responsable", format: "Formato", version: "Versión", sections: "Secciones" },
     viewStructure: "Ver estructura",
     openTemplateAria: (name) => `Abrir plantilla ${name}`,
@@ -338,6 +441,44 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     exportCoverLabel: "Titelseite",
     exportBodyLabel: "Innenseite",
     exportPreviewAria: (name) => `Vorschau der Exportvorlage ${name}`,
+    exportCustomizedTag: "Angepasst",
+    exportEditAction: "Anpassen",
+    exportEditBack: "Zurück zur Galerie",
+    exportEditIntro:
+      "Passen Sie Text und Design dieser Corporate-Vorlage an. Die Vorschau zeigt genau, was Exporte erzeugen — gespeicherte Änderungen gelten für alle künftigen Exporte mit dieser Vorlage.",
+    exportFieldName: "Vorlagenname",
+    exportFieldDescription: "Beschreibung",
+    exportFieldCoverStyle: "Cover-Stil",
+    exportFieldAccent: "Akzentfarbe",
+    exportFieldHeadingStyle: "Überschriftenstil",
+    exportFieldTableHeader: "Tabellenkopf",
+    exportFieldFooter: "Fußzeilentext",
+    exportFieldTone: "Tonalität",
+    exportBlocksTitle: "Abschnittsblöcke",
+    exportBlocksIntro:
+      "Benennen Sie Abschnitte um oder passen Sie ihre Hinweise an. Die Struktur selbst ist durch den Corporate-Standard festgelegt.",
+    exportBlockNoteLabel: "Hinweis",
+    exportCoverStyles: {
+      "navy-full": "Vollflächig Marineblau",
+      "brand-full": "Vollflächig Markenblau",
+      "brand-band": "Markenband",
+      masthead: "Kopfleiste",
+      split: "Geteilt",
+      minimal: "Minimal",
+    },
+    exportAccents: { brand: "Markenblau", navy: "Marineblau" },
+    exportHeadingStyles: { bar: "Balken links", rule: "Feine Linie", block: "Getönter Block" },
+    exportTableHeaders: { navy: "Marineblau", brand: "Markenblau", light: "Hell" },
+    exportSave: "Änderungen speichern",
+    exportReset: "Auf Corporate-Standard zurücksetzen",
+    exportSaved: "Gespeichert — künftige Exporte verwenden diese Version.",
+    exportSaveError: "Die Änderungen konnten nicht gespeichert werden. Bitte erneut versuchen.",
+    exportPreviewPaneTitle: "Live-Vorschau",
+    exportRenditionExact: "Byte-genaue PDF-Vorschau",
+    exportRenditionPrint: "Druckwiedergabe desselben Layouts",
+    exportRendering: "Vorschau wird erstellt…",
+    exportRenderError: "Die Vorschau konnte nicht erstellt werden.",
+    exportSampleNote: "Illustrativer Beispielinhalt — beim Export ersetzen ihn Ihre echten Dokumente.",
     meta: { owner: "Verantwortlich", format: "Format", version: "Version", sections: "Abschnitte" },
     viewStructure: "Struktur ansehen",
     openTemplateAria: (name) => `Vorlage ${name} öffnen`,
@@ -445,6 +586,43 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     exportCoverLabel: "Capa",
     exportBodyLabel: "Página interna",
     exportPreviewAria: (name) => `Pré-visualização do modelo de exportação ${name}`,
+    exportCustomizedTag: "Personalizado",
+    exportEditAction: "Personalizar",
+    exportEditBack: "Voltar à galeria",
+    exportEditIntro:
+      "Ajuste o texto e o design deste modelo corporativo. A pré-visualização mostra exatamente o que as exportações vão produzir — as alterações salvas regem todas as exportações futuras que usarem este modelo.",
+    exportFieldName: "Nome do modelo",
+    exportFieldDescription: "Descrição",
+    exportFieldCoverStyle: "Estilo de capa",
+    exportFieldAccent: "Cor de destaque",
+    exportFieldHeadingStyle: "Estilo de título",
+    exportFieldTableHeader: "Cabeçalho de tabela",
+    exportFieldFooter: "Texto do rodapé",
+    exportFieldTone: "Guia de tom",
+    exportBlocksTitle: "Blocos de seção",
+    exportBlocksIntro: "Renomeie seções ou ajuste suas notas. A estrutura em si é fixada pelo padrão corporativo.",
+    exportBlockNoteLabel: "Nota",
+    exportCoverStyles: {
+      "navy-full": "Capa azul-marinho",
+      "brand-full": "Capa azul da marca",
+      "brand-band": "Faixa da marca",
+      masthead: "Cabeçalho",
+      split: "Dividida",
+      minimal: "Minimalista",
+    },
+    exportAccents: { brand: "Azul da marca", navy: "Azul-marinho" },
+    exportHeadingStyles: { bar: "Barra à esquerda", rule: "Linha fina", block: "Bloco tingido" },
+    exportTableHeaders: { navy: "Azul-marinho", brand: "Azul da marca", light: "Claro" },
+    exportSave: "Salvar alterações",
+    exportReset: "Restaurar o padrão corporativo",
+    exportSaved: "Salvo — as próximas exportações usam esta versão.",
+    exportSaveError: "Não foi possível salvar as alterações. Tente novamente.",
+    exportPreviewPaneTitle: "Pré-visualização ao vivo",
+    exportRenditionExact: "Pré-visualização PDF exata byte a byte",
+    exportRenditionPrint: "Rendição de impressão do mesmo layout",
+    exportRendering: "Gerando pré-visualização…",
+    exportRenderError: "Não foi possível gerar a pré-visualização.",
+    exportSampleNote: "Conteúdo de amostra ilustrativo — seus documentos reais o substituem na exportação.",
     meta: { owner: "Responsável", format: "Formato", version: "Versão", sections: "Seções" },
     viewStructure: "Ver estrutura",
     openTemplateAria: (name) => `Abrir modelo ${name}`,

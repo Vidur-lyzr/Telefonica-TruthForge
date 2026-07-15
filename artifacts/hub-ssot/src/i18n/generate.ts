@@ -303,6 +303,8 @@ export interface GenerateStrings {
     standingBriefLabel: string;
     standingBriefPlaceholder: string;
     frequencyLabel: string;
+    timeOfDayLabel: string;
+    timeOfDayHelper: string;
     audienceLabel: string;
     audienceInternal: string;
     audienceExternal: string;
@@ -704,6 +706,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       standingBriefLabel: "Standing brief",
       standingBriefPlaceholder: "e.g. Weekly readout of Transform & Grow progress",
       frequencyLabel: "Frequency",
+      timeOfDayLabel: "Time of day",
+      timeOfDayHelper: "Runs at this time (server local time).",
       audienceLabel: "Audience",
       audienceInternal: "Internal",
       audienceExternal: "External",
@@ -1107,6 +1111,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       standingBriefLabel: "Brief permanente",
       standingBriefPlaceholder: "p. ej. Lectura semanal del progreso de Transform & Grow",
       frequencyLabel: "Frecuencia",
+      timeOfDayLabel: "Hora del día",
+      timeOfDayHelper: "Se ejecuta a esta hora (hora local del servidor).",
       audienceLabel: "Audiencia",
       audienceInternal: "Interna",
       audienceExternal: "Externa",
@@ -1511,6 +1517,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       standingBriefLabel: "Dauerhaftes Briefing",
       standingBriefPlaceholder: "z. B. Wöchentlicher Bericht zum Fortschritt von Transform & Grow",
       frequencyLabel: "Häufigkeit",
+      timeOfDayLabel: "Uhrzeit",
+      timeOfDayHelper: "Läuft zu dieser Uhrzeit (lokale Serverzeit).",
       audienceLabel: "Zielgruppe",
       audienceInternal: "Intern",
       audienceExternal: "Extern",
@@ -1915,6 +1923,8 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       standingBriefLabel: "Brief permanente",
       standingBriefPlaceholder: "ex.: Leitura semanal do progresso de Transform & Grow",
       frequencyLabel: "Frequência",
+      timeOfDayLabel: "Hora do dia",
+      timeOfDayHelper: "Executa a esta hora (hora local do servidor).",
       audienceLabel: "Público",
       audienceInternal: "Interno",
       audienceExternal: "Externo",

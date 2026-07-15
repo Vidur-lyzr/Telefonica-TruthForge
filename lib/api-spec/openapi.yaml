@@ -2478,6 +2478,81 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /brand/export-template-rendition:
+    post:
+      operationId: renderExportTemplateRendition
+      tags: [brand-room]
+      summary: Full-document rendition of an export template's sample content
+      description: >
+        Renders the template's built-in illustrative sample through the same
+        renderers the real export uses and returns a PDF rendition. For pdf the
+        bytes come from the exact export renderer; for docx and pptx the PDF is
+        a faithful print rendition of the same template, content and layout.
+        An optional unsaved edit can be applied so the editor previews changes
+        before saving.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportTemplateRenditionRequest"
+      responses:
+        "200":
+          description: PDF rendition of the template sample
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportTemplateRenditionResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /brand/export-template-override:
+    post:
+      operationId: saveExportTemplateOverride
+      tags: [brand-room]
+      summary: Save or reset a governed edit of an export template
+      description: >
+        Persists a validated edit of an export template (name, description,
+        design spec, block labels and notes). The edit becomes the effective
+        template for every future export, preview and generation until it is
+        reset back to the corporate standard with reset=true. Structure is
+        fixed — block kinds, order, formats and accepted shapes cannot change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExportTemplateOverrideRequest"
+      responses:
+        "200":
+          description: The effective template after the save or reset
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExportTemplateOverrideResponse"
+        "400":
+          description: Invalid edit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /brand/skill:
     get:
       operationId: getBrandSkill
@@ -6702,6 +6777,10 @@ components:
         frequency:
           type: string
           description: daily | weekly | monthly
+        timeOfDay:
+          type: string
+          pattern: "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+          description: Wall-clock run time (HH:mm, server-local) the scheduler aligns each run to.
         ownerRoleId:
           type: string
         reviewFolder:
@@ -6736,6 +6815,9 @@ components:
           type: string
         frequency:
           type: string
+        timeOfDay:
+          type: ["string", "null"]
+          description: Wall-clock run time (HH:mm, server-local); null for schedules created before time-of-day existed.
         ownerRoleId:
           type: string
         ownerLabel:
@@ -7016,7 +7098,7 @@ components:
 
     ExportTemplate:
       type: object
-      required: [id, name, description, owner, version, shapes, formats, blocks, preview, design]
+      required: [id, name, description, owner, version, shapes, formats, blocks, preview, design, customized, rev]
       properties:
         id:
           type: string
@@ -7046,6 +7128,76 @@ components:
           $ref: "#/components/schemas/ExportTemplatePreview"
         design:
           $ref: "#/components/schemas/ExportTemplateDesign"
+        customized:
+          type: boolean
+          description: True when a saved edit currently replaces the corporate standard.
+        rev:
+          type: integer
+          description: Monotonic revision counter — bumps on every save or reset, used to bust cached previews.
+
+    ExportTemplateEdit:
+      type: object
+      description: >
+        The editable surface of an export template. Structure is fixed — the
+        server rejects edits that change block kinds, order or count.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 300
+        design:
+          $ref: "#/components/schemas/ExportTemplateDesign"
+        blocks:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExportTemplateBlock"
+
+    ExportTemplateRenditionRequest:
+      type: object
+      required: [templateId, format]
+      properties:
+        templateId:
+          type: string
+        format:
+          type: string
+          enum: [pdf, docx, pptx]
+        override:
+          $ref: "#/components/schemas/ExportTemplateEdit"
+
+    ExportTemplateRenditionResponse:
+      type: object
+      required: [pdfBase64, exact]
+      properties:
+        pdfBase64:
+          type: string
+          description: The rendition document as base64 PDF bytes.
+        exact:
+          type: boolean
+          description: >
+            True when the bytes are exactly what the pdf download produces;
+            false for the docx/pptx print renditions.
+
+    ExportTemplateOverrideRequest:
+      type: object
+      required: [templateId]
+      properties:
+        templateId:
+          type: string
+        reset:
+          type: boolean
+          description: When true, discards the saved edit and restores the corporate standard.
+        edit:
+          $ref: "#/components/schemas/ExportTemplateEdit"
+
+    ExportTemplateOverrideResponse:
+      type: object
+      required: [template]
+      properties:
+        template:
+          $ref: "#/components/schemas/ExportTemplate"
 
     SavedVersion:
       type: object

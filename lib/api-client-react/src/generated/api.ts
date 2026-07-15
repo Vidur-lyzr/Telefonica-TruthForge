@@ -62,6 +62,10 @@ import type {
   ExportPreviewInput,
   ExportPreviewResponse,
   ExportTemplate,
+  ExportTemplateOverrideRequest,
+  ExportTemplateOverrideResponse,
+  ExportTemplateRenditionRequest,
+  ExportTemplateRenditionResponse,
   GenerateInput,
   GeneratedAssets,
   GeneratedDraft,
@@ -8000,6 +8004,148 @@ export function useGetExportTemplatePreview<TData = Awaited<ReturnType<typeof ge
 
 
 
+
+export const getRenderExportTemplateRenditionUrl = () => {
+
+
+
+
+  return `/api/brand/export-template-rendition`
+}
+
+/**
+ * Renders the template's built-in illustrative sample through the same renderers the real export uses and returns a PDF rendition. For pdf the bytes come from the exact export renderer; for docx and pptx the PDF is a faithful print rendition of the same template, content and layout. An optional unsaved edit can be applied so the editor previews changes before saving.
+ * @summary Full-document rendition of an export template's sample content
+ */
+export const renderExportTemplateRendition = async (exportTemplateRenditionRequest: ExportTemplateRenditionRequest, options?: RequestInit): Promise<ExportTemplateRenditionResponse> => {
+
+  return customFetch<ExportTemplateRenditionResponse>(getRenderExportTemplateRenditionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(exportTemplateRenditionRequest)
+  }
+);}
+
+
+
+
+export const getRenderExportTemplateRenditionMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof renderExportTemplateRendition>>, TError,{data: BodyType<ExportTemplateRenditionRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof renderExportTemplateRendition>>, TError,{data: BodyType<ExportTemplateRenditionRequest>}, TContext> => {
+
+const mutationKey = ['renderExportTemplateRendition'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof renderExportTemplateRendition>>, {data: BodyType<ExportTemplateRenditionRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  renderExportTemplateRendition(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RenderExportTemplateRenditionMutationResult = NonNullable<Awaited<ReturnType<typeof renderExportTemplateRendition>>>
+    export type RenderExportTemplateRenditionMutationBody = BodyType<ExportTemplateRenditionRequest>
+    export type RenderExportTemplateRenditionMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Full-document rendition of an export template's sample content
+ */
+export const useRenderExportTemplateRendition = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof renderExportTemplateRendition>>, TError,{data: BodyType<ExportTemplateRenditionRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof renderExportTemplateRendition>>,
+        TError,
+        {data: BodyType<ExportTemplateRenditionRequest>},
+        TContext
+      > => {
+      return useMutation(getRenderExportTemplateRenditionMutationOptions(options));
+    }
+
+export const getSaveExportTemplateOverrideUrl = () => {
+
+
+
+
+  return `/api/brand/export-template-override`
+}
+
+/**
+ * Persists a validated edit of an export template (name, description, design spec, block labels and notes). The edit becomes the effective template for every future export, preview and generation until it is reset back to the corporate standard with reset=true. Structure is fixed — block kinds, order, formats and accepted shapes cannot change.
+ * @summary Save or reset a governed edit of an export template
+ */
+export const saveExportTemplateOverride = async (exportTemplateOverrideRequest: ExportTemplateOverrideRequest, options?: RequestInit): Promise<ExportTemplateOverrideResponse> => {
+
+  return customFetch<ExportTemplateOverrideResponse>(getSaveExportTemplateOverrideUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(exportTemplateOverrideRequest)
+  }
+);}
+
+
+
+
+export const getSaveExportTemplateOverrideMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveExportTemplateOverride>>, TError,{data: BodyType<ExportTemplateOverrideRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveExportTemplateOverride>>, TError,{data: BodyType<ExportTemplateOverrideRequest>}, TContext> => {
+
+const mutationKey = ['saveExportTemplateOverride'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveExportTemplateOverride>>, {data: BodyType<ExportTemplateOverrideRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveExportTemplateOverride(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveExportTemplateOverrideMutationResult = NonNullable<Awaited<ReturnType<typeof saveExportTemplateOverride>>>
+    export type SaveExportTemplateOverrideMutationBody = BodyType<ExportTemplateOverrideRequest>
+    export type SaveExportTemplateOverrideMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Save or reset a governed edit of an export template
+ */
+export const useSaveExportTemplateOverride = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveExportTemplateOverride>>, TError,{data: BodyType<ExportTemplateOverrideRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveExportTemplateOverride>>,
+        TError,
+        {data: BodyType<ExportTemplateOverrideRequest>},
+        TContext
+      > => {
+      return useMutation(getSaveExportTemplateOverrideMutationOptions(options));
+    }
 
 export const getGetBrandSkillUrl = () => {
 

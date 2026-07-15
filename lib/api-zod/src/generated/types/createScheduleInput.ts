@@ -20,6 +20,11 @@ export interface CreateScheduleInput {
   confidentiality?: string;
   /** daily | weekly | monthly */
   frequency: string;
+  /**
+     * Wall-clock run time (HH:mm, server-local) the scheduler aligns each run to.
+     * @pattern ^([01][0-9]|2[0-3]):[0-5][0-9]$
+     */
+  timeOfDay?: string;
   ownerRoleId: string;
   reviewFolder?: string;
 }

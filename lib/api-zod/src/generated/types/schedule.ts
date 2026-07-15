@@ -17,6 +17,11 @@ export interface Schedule {
   audience: string;
   confidentiality: string;
   frequency: string;
+  /**
+     * Wall-clock run time (HH:mm, server-local); null for schedules created before time-of-day existed.
+     * @nullable
+     */
+  timeOfDay?: string | null;
   ownerRoleId: string;
   ownerLabel: string;
   reviewFolder: string;

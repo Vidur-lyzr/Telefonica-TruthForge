@@ -27,12 +27,13 @@ import {
   normalizeQuestion,
 } from "../agent/qa";
 import { renderChart, type RenderedChart, type ExportSeries } from "./chartEngine";
+import type { ExportTemplate, ExportFormat } from "./exportTemplates";
+// Effective template resolution: exports always follow any saved edit of the
+// corporate template until it is reset.
 import {
-  getExportTemplate,
-  defaultTemplateForShape,
-  type ExportTemplate,
-  type ExportFormat,
-} from "./exportTemplates";
+  effectiveTemplate as getExportTemplate,
+  effectiveDefaultTemplateForShape as defaultTemplateForShape,
+} from "../data/templateOverrides";
 import JSZip from "jszip";
 import { renderDocx } from "./renderers/docxRenderer";
 import { renderPptx } from "./renderers/pptxRenderer";

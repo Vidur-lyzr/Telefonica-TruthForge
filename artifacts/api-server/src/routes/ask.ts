@@ -13,11 +13,11 @@ import {
   ExportRefusedError,
   type ExportDestination,
 } from "../export/exportService";
+import type { ExportFormat } from "../export/exportTemplates";
 import {
-  getExportTemplate,
-  defaultTemplateForShape,
-  type ExportFormat,
-} from "../export/exportTemplates";
+  effectiveTemplate as getExportTemplate,
+  effectiveDefaultTemplateForShape as defaultTemplateForShape,
+} from "../data/templateOverrides";
 
 const router: IRouter = Router();
 

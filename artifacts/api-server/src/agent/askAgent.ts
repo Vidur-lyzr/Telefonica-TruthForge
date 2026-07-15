@@ -56,9 +56,9 @@ import {
 } from "../data/askDocuments";
 import { saveVersion } from "../data/generateStore";
 import {
-  getExportTemplate,
-  defaultTemplateForShape,
-} from "../export/exportTemplates";
+  effectiveTemplate as getExportTemplate,
+  effectiveDefaultTemplateForShape as defaultTemplateForShape,
+} from "../data/templateOverrides";
 
 type DocAccessTarget = { confidentiality: Clearance; areas: Area[] };
 type CanReadDoc = (doc: DocAccessTarget) => boolean;

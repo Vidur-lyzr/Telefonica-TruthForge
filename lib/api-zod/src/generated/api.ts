@@ -2052,6 +2052,7 @@ export const ListPlanningForecastSchedulesResponseItem = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "frequency": zod.string(),
+  "timeOfDay": zod.string().nullish().describe('Wall-clock run time (HH:mm, server-local); null for schedules created before time-of-day existed.'),
   "ownerRoleId": zod.string(),
   "ownerLabel": zod.string(),
   "reviewFolder": zod.string(),
@@ -2083,6 +2084,7 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "frequency": zod.string(),
+  "timeOfDay": zod.string().nullish().describe('Wall-clock run time (HH:mm, server-local); null for schedules created before time-of-day existed.'),
   "ownerRoleId": zod.string(),
   "ownerLabel": zod.string(),
   "reviewFolder": zod.string(),
@@ -3489,6 +3491,7 @@ export const ListSchedulesResponseItem = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "frequency": zod.string(),
+  "timeOfDay": zod.string().nullish().describe('Wall-clock run time (HH:mm, server-local); null for schedules created before time-of-day existed.'),
   "ownerRoleId": zod.string(),
   "ownerLabel": zod.string(),
   "reviewFolder": zod.string(),
@@ -3504,6 +3507,7 @@ export const ListSchedulesResponse = zod.array(ListSchedulesResponseItem)
  */
 
 
+export const createScheduleBodyTimeOfDayRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
 
 
 export const CreateScheduleBody = zod.object({
@@ -3516,6 +3520,7 @@ export const CreateScheduleBody = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string().optional(),
   "frequency": zod.string().describe('daily | weekly | monthly'),
+  "timeOfDay": zod.string().regex(createScheduleBodyTimeOfDayRegExp).optional().describe('Wall-clock run time (HH:mm, server-local) the scheduler aligns each run to.'),
   "ownerRoleId": zod.string(),
   "reviewFolder": zod.string().optional()
 })
@@ -3531,6 +3536,7 @@ export const CreateScheduleResponse = zod.object({
   "audience": zod.string(),
   "confidentiality": zod.string(),
   "frequency": zod.string(),
+  "timeOfDay": zod.string().nullish().describe('Wall-clock run time (HH:mm, server-local); null for schedules created before time-of-day existed.'),
   "ownerRoleId": zod.string(),
   "ownerLabel": zod.string(),
   "reviewFolder": zod.string(),
@@ -6502,7 +6508,9 @@ export const GetExportTemplatesResponseItem = zod.object({
   "tableHeader": zod.enum(['navy', 'brand', 'light']).describe('Table header row style.'),
   "footerLabel": zod.string().describe('Template-specific footer wording on every content page.'),
   "tone": zod.string().describe('One-line voice guidance shown with the template.')
-}).describe('The deterministic Telefónica design spec the renderers follow for this template — cover layout, accent colour role, heading treatment, table header style and footer label. Every value maps onto the shared export theme tokens; renderers never invent design values.\n')
+}).describe('The deterministic Telefónica design spec the renderers follow for this template — cover layout, accent colour role, heading treatment, table header style and footer label. Every value maps onto the shared export theme tokens; renderers never invent design values.\n'),
+  "customized": zod.boolean().describe('True when a saved edit currently replaces the corporate standard.'),
+  "rev": zod.number().describe('Monotonic revision counter — bumps on every save or reset, used to bust cached previews.')
 })
 export const GetExportTemplatesResponse = zod.array(GetExportTemplatesResponseItem)
 
@@ -6517,6 +6525,108 @@ export const GetExportTemplatePreviewQueryParams = zod.object({
 })
 
 export const GetExportTemplatePreviewResponse = zod.unknown()
+
+
+/**
+ * Renders the template's built-in illustrative sample through the same renderers the real export uses and returns a PDF rendition. For pdf the bytes come from the exact export renderer; for docx and pptx the PDF is a faithful print rendition of the same template, content and layout. An optional unsaved edit can be applied so the editor previews changes before saving.
+ * @summary Full-document rendition of an export template's sample content
+ */
+export const renderExportTemplateRenditionBodyOverrideNameMax = 80;
+
+export const renderExportTemplateRenditionBodyOverrideDescriptionMax = 300;
+
+
+
+export const RenderExportTemplateRenditionBody = zod.object({
+  "templateId": zod.string(),
+  "format": zod.enum(['pdf', 'docx', 'pptx']),
+  "override": zod.object({
+  "name": zod.string().min(1).max(renderExportTemplateRenditionBodyOverrideNameMax).optional(),
+  "description": zod.string().max(renderExportTemplateRenditionBodyOverrideDescriptionMax).optional(),
+  "design": zod.object({
+  "coverStyle": zod.enum(['navy-full', 'brand-full', 'brand-band', 'masthead', 'split', 'minimal']).describe('Cover page layout variant.'),
+  "accent": zod.enum(['brand', 'navy']).describe('Which theme colour drives heading rules and emphasis.'),
+  "headingStyle": zod.enum(['bar', 'rule', 'block']).describe('Section heading treatment — left bar, bottom hairline rule, or tinted block.'),
+  "tableHeader": zod.enum(['navy', 'brand', 'light']).describe('Table header row style.'),
+  "footerLabel": zod.string().describe('Template-specific footer wording on every content page.'),
+  "tone": zod.string().describe('One-line voice guidance shown with the template.')
+}).optional().describe('The deterministic Telefónica design spec the renderers follow for this template — cover layout, accent colour role, heading treatment, table header style and footer label. Every value maps onto the shared export theme tokens; renderers never invent design values.\n'),
+  "blocks": zod.array(zod.object({
+  "kind": zod.string(),
+  "label": zod.string(),
+  "note": zod.string().nullish()
+})).optional()
+}).optional().describe('The editable surface of an export template. Structure is fixed — the server rejects edits that change block kinds, order or count.\n')
+})
+
+export const RenderExportTemplateRenditionResponse = zod.object({
+  "pdfBase64": zod.string().describe('The rendition document as base64 PDF bytes.'),
+  "exact": zod.boolean().describe('True when the bytes are exactly what the pdf download produces; false for the docx\/pptx print renditions.\n')
+})
+
+
+/**
+ * Persists a validated edit of an export template (name, description, design spec, block labels and notes). The edit becomes the effective template for every future export, preview and generation until it is reset back to the corporate standard with reset=true. Structure is fixed — block kinds, order, formats and accepted shapes cannot change.
+ * @summary Save or reset a governed edit of an export template
+ */
+export const saveExportTemplateOverrideBodyEditNameMax = 80;
+
+export const saveExportTemplateOverrideBodyEditDescriptionMax = 300;
+
+
+
+export const SaveExportTemplateOverrideBody = zod.object({
+  "templateId": zod.string(),
+  "reset": zod.boolean().optional().describe('When true, discards the saved edit and restores the corporate standard.'),
+  "edit": zod.object({
+  "name": zod.string().min(1).max(saveExportTemplateOverrideBodyEditNameMax).optional(),
+  "description": zod.string().max(saveExportTemplateOverrideBodyEditDescriptionMax).optional(),
+  "design": zod.object({
+  "coverStyle": zod.enum(['navy-full', 'brand-full', 'brand-band', 'masthead', 'split', 'minimal']).describe('Cover page layout variant.'),
+  "accent": zod.enum(['brand', 'navy']).describe('Which theme colour drives heading rules and emphasis.'),
+  "headingStyle": zod.enum(['bar', 'rule', 'block']).describe('Section heading treatment — left bar, bottom hairline rule, or tinted block.'),
+  "tableHeader": zod.enum(['navy', 'brand', 'light']).describe('Table header row style.'),
+  "footerLabel": zod.string().describe('Template-specific footer wording on every content page.'),
+  "tone": zod.string().describe('One-line voice guidance shown with the template.')
+}).optional().describe('The deterministic Telefónica design spec the renderers follow for this template — cover layout, accent colour role, heading treatment, table header style and footer label. Every value maps onto the shared export theme tokens; renderers never invent design values.\n'),
+  "blocks": zod.array(zod.object({
+  "kind": zod.string(),
+  "label": zod.string(),
+  "note": zod.string().nullish()
+})).optional()
+}).optional().describe('The editable surface of an export template. Structure is fixed — the server rejects edits that change block kinds, order or count.\n')
+})
+
+export const SaveExportTemplateOverrideResponse = zod.object({
+  "template": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "owner": zod.string(),
+  "version": zod.string(),
+  "shapes": zod.array(zod.string()).describe('Draft shapes this template accepts; empty accepts any.'),
+  "formats": zod.array(zod.enum(['docx', 'pptx', 'pdf', 'txt', 'md'])),
+  "blocks": zod.array(zod.object({
+  "kind": zod.string(),
+  "label": zod.string(),
+  "note": zod.string().nullish()
+})),
+  "preview": zod.object({
+  "heading": zod.string(),
+  "lines": zod.array(zod.string())
+}),
+  "design": zod.object({
+  "coverStyle": zod.enum(['navy-full', 'brand-full', 'brand-band', 'masthead', 'split', 'minimal']).describe('Cover page layout variant.'),
+  "accent": zod.enum(['brand', 'navy']).describe('Which theme colour drives heading rules and emphasis.'),
+  "headingStyle": zod.enum(['bar', 'rule', 'block']).describe('Section heading treatment — left bar, bottom hairline rule, or tinted block.'),
+  "tableHeader": zod.enum(['navy', 'brand', 'light']).describe('Table header row style.'),
+  "footerLabel": zod.string().describe('Template-specific footer wording on every content page.'),
+  "tone": zod.string().describe('One-line voice guidance shown with the template.')
+}).describe('The deterministic Telefónica design spec the renderers follow for this template — cover layout, accent colour role, heading treatment, table header style and footer label. Every value maps onto the shared export theme tokens; renderers never invent design values.\n'),
+  "customized": zod.boolean().describe('True when a saved edit currently replaces the corporate standard.'),
+  "rev": zod.number().describe('Monotonic revision counter — bumps on every save or reset, used to bust cached previews.')
+})
+})
 
 
 /**

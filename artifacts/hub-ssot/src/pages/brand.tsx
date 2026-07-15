@@ -3,7 +3,17 @@ import {
   useGetBrandTemplates,
   useGetBrandTemplate,
   useGetExportTemplates,
+  getGetExportTemplatesQueryKey,
+  renderExportTemplateRendition,
+  saveExportTemplateOverride,
   type ExportTemplate,
+  type ExportTemplateEdit,
+  type ExportTemplateDesign,
+  type ExportTemplateBlock,
+  ExportTemplateDesignCoverStyle,
+  ExportTemplateDesignAccent,
+  ExportTemplateDesignHeadingStyle,
+  ExportTemplateDesignTableHeader,
   useGetBrandTone,
   useGetBrandResources,
   useGetBrandSkill,
@@ -37,6 +47,7 @@ import {
   Touchable,
   Circle,
   TextField,
+  Select,
   ButtonPrimary,
   ButtonSecondary,
   ButtonLink,
@@ -337,11 +348,11 @@ function TemplatesArea({ roleId }: { roleId?: string }) {
 
 // ---- Corporate export templates ---------------------------------------------
 
-function exportPreviewUrl(templateId: string, page: "cover" | "body"): string {
-  return `${import.meta.env.BASE_URL}api/brand/export-template-preview?templateId=${encodeURIComponent(templateId)}&page=${page}`;
+function exportPreviewUrl(templateId: string, page: "cover" | "body", rev: number): string {
+  return `${import.meta.env.BASE_URL}api/brand/export-template-preview?templateId=${encodeURIComponent(templateId)}&page=${page}&v=${rev}`;
 }
 
-function ExportTemplateCard({ tpl }: { tpl: ExportTemplate }) {
+function ExportTemplateCard({ tpl, onOpen }: { tpl: ExportTemplate; onOpen: () => void }) {
   const { lang } = useApp();
   const t = BRAND_I18N[lang];
   const [page, setPage] = React.useState<"cover" | "body">("cover");
@@ -349,22 +360,24 @@ function ExportTemplateCard({ tpl }: { tpl: ExportTemplate }) {
     <Boxed>
       <Box padding={16}>
         <Stack space={12}>
-          <div
-            style={{
-              borderRadius: 8,
-              overflow: "hidden",
-              border: `1px solid ${skinVars.colors.border}`,
-              background: skinVars.colors.backgroundAlternative,
-              lineHeight: 0,
-            }}
-          >
-            <img
-              src={exportPreviewUrl(tpl.id, page)}
-              alt={t.exportPreviewAria(tpl.name)}
-              loading="lazy"
-              style={{ width: "100%", height: "auto", display: "block" }}
-            />
-          </div>
+          <Touchable onPress={onOpen} aria-label={t.exportPreviewAria(tpl.name)}>
+            <div
+              style={{
+                borderRadius: 8,
+                overflow: "hidden",
+                border: `1px solid ${skinVars.colors.border}`,
+                background: skinVars.colors.backgroundAlternative,
+                lineHeight: 0,
+              }}
+            >
+              <img
+                src={exportPreviewUrl(tpl.id, page, tpl.rev)}
+                alt={t.exportPreviewAria(tpl.name)}
+                loading="lazy"
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
+            </div>
+          </Touchable>
           <Inline space={8}>
             <Touchable onPress={() => setPage("cover")} aria-pressed={page === "cover"}>
               <Tag type={page === "cover" ? "active" : "inactive"}>{t.exportCoverLabel}</Tag>
@@ -374,18 +387,334 @@ function ExportTemplateCard({ tpl }: { tpl: ExportTemplate }) {
             </Touchable>
           </Inline>
           <Stack space={4}>
-            <Title3>{tpl.name}</Title3>
+            <Inline space={8} alignItems="center">
+              <Title3>{tpl.name}</Title3>
+              {tpl.customized && <Tag type="promo">{t.exportCustomizedTag}</Tag>}
+            </Inline>
             <Text2 regular color={skinVars.colors.textSecondary}>
               {tpl.description}
             </Text2>
           </Stack>
-          <Inline space={8}>
+          <Inline space={8} alignItems="center">
             {tpl.formats.map((f) => (
               <Tag key={f} type="inactive">
                 {f.toUpperCase()}
               </Tag>
             ))}
           </Inline>
+          <ButtonLink onPress={onOpen} bleedLeft>
+            {t.exportEditAction}
+          </ButtonLink>
+        </Stack>
+      </Box>
+    </Boxed>
+  );
+}
+
+const RENDITION_FORMATS = ["pdf", "docx", "pptx"] as const;
+type RenditionFormat = (typeof RENDITION_FORMATS)[number];
+
+function ExportTemplateEditor({ tpl, onBack }: { tpl: ExportTemplate; onBack: () => void }) {
+  const { lang } = useApp();
+  const t = BRAND_I18N[lang];
+  const queryClient = useQueryClient();
+  const [name, setName] = React.useState(tpl.name);
+  const [description, setDescription] = React.useState(tpl.description);
+  const [design, setDesign] = React.useState<ExportTemplateDesign>({ ...tpl.design });
+  const [blocks, setBlocks] = React.useState<ExportTemplateBlock[]>(tpl.blocks.map((b) => ({ ...b })));
+  const [format, setFormat] = React.useState<RenditionFormat>("pdf");
+  const [saving, setSaving] = React.useState(false);
+  const [saveState, setSaveState] = React.useState<"idle" | "saved" | "error">("idle");
+
+  const edit = React.useMemo<ExportTemplateEdit>(
+    () => ({ name, description, design, blocks }),
+    [name, description, design, blocks],
+  );
+
+  type PreviewState = { kind: "loading" } | { kind: "error" } | { kind: "ok"; url: string; exact: boolean };
+  const [preview, setPreview] = React.useState<PreviewState>({ kind: "loading" });
+  const urlRef = React.useRef<string | null>(null);
+
+  // Debounced live WYSIWYG: the server renders the current (unsaved) edit
+  // through the same export pipeline the downloads use.
+  const requestSignature = JSON.stringify([tpl.id, format, edit]);
+  React.useEffect(() => {
+    let cancelled = false;
+    setPreview({ kind: "loading" });
+    const timer = window.setTimeout(() => {
+      renderExportTemplateRendition({ templateId: tpl.id, format, override: edit })
+        .then((res) => {
+          if (cancelled) return;
+          const bin = atob(res.pdfBase64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+          if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+          urlRef.current = url;
+          setPreview({ kind: "ok", url, exact: res.exact === true });
+        })
+        .catch(() => {
+          if (!cancelled) setPreview({ kind: "error" });
+        });
+    }, 600);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requestSignature]);
+
+  React.useEffect(
+    () => () => {
+      if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    },
+    [],
+  );
+
+  const applyTemplate = (next: ExportTemplate) => {
+    setName(next.name);
+    setDescription(next.description);
+    setDesign({ ...next.design });
+    setBlocks(next.blocks.map((b) => ({ ...b })));
+  };
+
+  const persist = async (payload: { edit: ExportTemplateEdit } | { reset: true }) => {
+    setSaving(true);
+    setSaveState("idle");
+    try {
+      const res = await saveExportTemplateOverride({ templateId: tpl.id, ...payload });
+      if ("reset" in payload) applyTemplate(res.template);
+      await queryClient.invalidateQueries({ queryKey: getGetExportTemplatesQueryKey() });
+      setSaveState("saved");
+    } catch {
+      setSaveState("error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const setDesignField = <K extends keyof ExportTemplateDesign>(key: K, value: ExportTemplateDesign[K]) => {
+    setDesign((prev) => ({ ...prev, [key]: value }));
+  };
+  const setBlockField = (index: number, patch: Partial<ExportTemplateBlock>) => {
+    setBlocks((prev) => prev.map((b, i) => (i === index ? { ...b, ...patch } : b)));
+  };
+
+  const twoCol: React.CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+    gap: 16,
+  };
+
+  return (
+    <Boxed>
+      <Box padding={24}>
+        <Stack space={24}>
+          <Stack space={8}>
+            <ButtonLink onPress={onBack} bleedLeft>
+              {t.exportEditBack}
+            </ButtonLink>
+            <Inline space={8} alignItems="center">
+              <Title2>{tpl.name}</Title2>
+              {tpl.customized && <Tag type="promo">{t.exportCustomizedTag}</Tag>}
+            </Inline>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {t.exportEditIntro}
+            </Text2>
+          </Stack>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+              gap: 32,
+              alignItems: "start",
+            }}
+          >
+            <Stack space={16}>
+              <TextField
+                name="tplName"
+                label={t.exportFieldName}
+                value={name}
+                onChangeValue={setName}
+                maxLength={80}
+                fullWidth
+              />
+              <TextField
+                name="tplDescription"
+                label={t.exportFieldDescription}
+                value={description}
+                onChangeValue={setDescription}
+                maxLength={300}
+                multiline
+                fullWidth
+              />
+              <div style={twoCol}>
+                <Select
+                  name="tplCoverStyle"
+                  label={t.exportFieldCoverStyle}
+                  value={design.coverStyle}
+                  onChangeValue={(v) => setDesignField("coverStyle", v as ExportTemplateDesign["coverStyle"])}
+                  options={Object.values(ExportTemplateDesignCoverStyle).map((v) => ({
+                    value: v,
+                    text: t.exportCoverStyles[v] ?? v,
+                  }))}
+                  fullWidth
+                />
+                <Select
+                  name="tplAccent"
+                  label={t.exportFieldAccent}
+                  value={design.accent}
+                  onChangeValue={(v) => setDesignField("accent", v as ExportTemplateDesign["accent"])}
+                  options={Object.values(ExportTemplateDesignAccent).map((v) => ({
+                    value: v,
+                    text: t.exportAccents[v] ?? v,
+                  }))}
+                  fullWidth
+                />
+                <Select
+                  name="tplHeadingStyle"
+                  label={t.exportFieldHeadingStyle}
+                  value={design.headingStyle}
+                  onChangeValue={(v) => setDesignField("headingStyle", v as ExportTemplateDesign["headingStyle"])}
+                  options={Object.values(ExportTemplateDesignHeadingStyle).map((v) => ({
+                    value: v,
+                    text: t.exportHeadingStyles[v] ?? v,
+                  }))}
+                  fullWidth
+                />
+                <Select
+                  name="tplTableHeader"
+                  label={t.exportFieldTableHeader}
+                  value={design.tableHeader}
+                  onChangeValue={(v) => setDesignField("tableHeader", v as ExportTemplateDesign["tableHeader"])}
+                  options={Object.values(ExportTemplateDesignTableHeader).map((v) => ({
+                    value: v,
+                    text: t.exportTableHeaders[v] ?? v,
+                  }))}
+                  fullWidth
+                />
+              </div>
+              <TextField
+                name="tplFooter"
+                label={t.exportFieldFooter}
+                value={design.footerLabel}
+                onChangeValue={(v) => setDesignField("footerLabel", v)}
+                fullWidth
+              />
+              <TextField
+                name="tplTone"
+                label={t.exportFieldTone}
+                value={design.tone}
+                onChangeValue={(v) => setDesignField("tone", v)}
+                fullWidth
+              />
+              <Stack space={12}>
+                <Stack space={4}>
+                  <Title3>{t.exportBlocksTitle}</Title3>
+                  <Text2 regular color={skinVars.colors.textSecondary}>
+                    {t.exportBlocksIntro}
+                  </Text2>
+                </Stack>
+                {blocks.map((b, i) => (
+                  <div key={`${b.kind}-${i}`} style={twoCol}>
+                    <TextField
+                      name={`block-label-${i}`}
+                      label={`${i + 1} · ${b.kind}`}
+                      value={b.label}
+                      onChangeValue={(v) => setBlockField(i, { label: v })}
+                      fullWidth
+                    />
+                    <TextField
+                      name={`block-note-${i}`}
+                      label={t.exportBlockNoteLabel}
+                      value={b.note ?? ""}
+                      onChangeValue={(v) => setBlockField(i, { note: v })}
+                      fullWidth
+                    />
+                  </div>
+                ))}
+              </Stack>
+              <Inline space={12} alignItems="center" wrap>
+                <ButtonPrimary
+                  onPress={() => {
+                    void persist({ edit });
+                  }}
+                  disabled={saving || !name.trim()}
+                >
+                  {t.exportSave}
+                </ButtonPrimary>
+                <ButtonSecondary
+                  onPress={() => {
+                    void persist({ reset: true });
+                  }}
+                  disabled={saving}
+                >
+                  {t.exportReset}
+                </ButtonSecondary>
+                {saving && <Spinner size={20} />}
+              </Inline>
+              {saveState === "saved" && (
+                <Text2 medium color={skinVars.colors.successHigh}>
+                  {t.exportSaved}
+                </Text2>
+              )}
+              {saveState === "error" && (
+                <Text2 medium color={skinVars.colors.errorHigh}>
+                  {t.exportSaveError}
+                </Text2>
+              )}
+            </Stack>
+            <Stack space={12}>
+              <Title3>{t.exportPreviewPaneTitle}</Title3>
+              <Tabs
+                selectedIndex={RENDITION_FORMATS.indexOf(format)}
+                onChange={(idx) => setFormat(RENDITION_FORMATS[idx])}
+                tabs={RENDITION_FORMATS.map((f) => ({ text: f.toUpperCase() }))}
+              />
+              {preview.kind === "loading" && (
+                <Boxed>
+                  <Box padding={32}>
+                    <Inline space={12} alignItems="center">
+                      <Spinner size={24} />
+                      <Text2 regular color={skinVars.colors.textSecondary}>
+                        {t.exportRendering}
+                      </Text2>
+                    </Inline>
+                  </Box>
+                </Boxed>
+              )}
+              {preview.kind === "error" && (
+                <Boxed>
+                  <Box padding={32}>
+                    <Text2 regular color={skinVars.colors.textSecondary}>
+                      {t.exportRenderError}
+                    </Text2>
+                  </Box>
+                </Boxed>
+              )}
+              {preview.kind === "ok" && (
+                <Stack space={8}>
+                  <iframe
+                    title={t.exportPreviewPaneTitle}
+                    src={`${preview.url}#toolbar=0&navpanes=0`}
+                    style={{
+                      width: "100%",
+                      height: 560,
+                      border: `1px solid ${skinVars.colors.border}`,
+                      borderRadius: 8,
+                      background: "#ffffff",
+                    }}
+                  />
+                  <Text1 regular color={skinVars.colors.textSecondary}>
+                    {preview.exact ? t.exportRenditionExact : t.exportRenditionPrint}
+                  </Text1>
+                </Stack>
+              )}
+              <Text1 regular color={skinVars.colors.textSecondary}>
+                {t.exportSampleNote}
+              </Text1>
+            </Stack>
+          </div>
         </Stack>
       </Box>
     </Boxed>
@@ -396,7 +725,9 @@ function ExportTemplateGallery() {
   const { lang } = useApp();
   const t = BRAND_I18N[lang];
   const { data, isLoading } = useGetExportTemplates();
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
   if (isLoading || !data || data.length === 0) return null;
+  const selected = selectedId ? (data.find((tpl) => tpl.id === selectedId) ?? null) : null;
   return (
     <Stack space={16}>
       <Stack space={4}>
@@ -405,11 +736,15 @@ function ExportTemplateGallery() {
           {t.exportTemplatesIntro}
         </Text2>
       </Stack>
-      <Grid columns={3} gap={24}>
-        {data.map((tpl) => (
-          <ExportTemplateCard key={tpl.id} tpl={tpl} />
-        ))}
-      </Grid>
+      {selected ? (
+        <ExportTemplateEditor key={selected.id} tpl={selected} onBack={() => setSelectedId(null)} />
+      ) : (
+        <Grid columns={3} gap={24}>
+          {data.map((tpl) => (
+            <ExportTemplateCard key={tpl.id} tpl={tpl} onOpen={() => setSelectedId(tpl.id)} />
+          ))}
+        </Grid>
+      )}
     </Stack>
   );
 }

@@ -12,11 +12,10 @@ import {
   LINE_HEIGHT,
   PDF_PAGE,
 } from "./exportTheme";
-import {
-  getExportTemplate,
-  type ExportTemplate,
-  type TemplateDesign,
-} from "./exportTemplates";
+import type { ExportTemplate, TemplateDesign } from "./exportTemplates";
+// Effective template resolution: PNG page previews reflect any saved edit of
+// the template, exactly like the real exporters do.
+import { effectiveTemplate as getExportTemplate } from "../data/templateOverrides";
 import { renderChart } from "./chartEngine";
 import { brandFontPath, brandMarkPng, BRAND_FONT_FAMILY } from "./brandAssets";
 
@@ -331,7 +330,8 @@ const cache = new Map<string, Buffer>();
 export function renderTemplatePreview(templateId: string, page: PreviewPage): Buffer | null {
   const template = getExportTemplate(templateId);
   if (!template) return null;
-  const key = `${templateId}:${page}:${template.version}`;
+  // rev busts the cache whenever a template edit is saved or reset.
+  const key = `${templateId}:${page}:${template.version}:${template.rev}`;
   const hit = cache.get(key);
   if (hit) return hit;
 

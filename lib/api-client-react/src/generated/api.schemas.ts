@@ -1981,6 +1981,11 @@ export interface Schedule {
   audience: string;
   confidentiality: string;
   frequency: string;
+  /**
+     * Wall-clock run time (HH:mm, server-local); null for schedules created before time-of-day existed.
+     * @nullable
+     */
+  timeOfDay?: string | null;
   ownerRoleId: string;
   ownerLabel: string;
   reviewFolder: string;
@@ -2397,6 +2402,11 @@ export interface CreateScheduleInput {
   confidentiality?: string;
   /** daily | weekly | monthly */
   frequency: string;
+  /**
+     * Wall-clock run time (HH:mm, server-local) the scheduler aligns each run to.
+     * @pattern ^([01][0-9]|2[0-3]):[0-5][0-9]$
+     */
+  timeOfDay?: string;
   ownerRoleId: string;
   reviewFolder?: string;
 }
@@ -2720,6 +2730,58 @@ export interface ExportTemplate {
   blocks: ExportTemplateBlock[];
   preview: ExportTemplatePreview;
   design: ExportTemplateDesign;
+  /** True when a saved edit currently replaces the corporate standard. */
+  customized: boolean;
+  /** Monotonic revision counter — bumps on every save or reset, used to bust cached previews. */
+  rev: number;
+}
+
+/**
+ * The editable surface of an export template. Structure is fixed — the server rejects edits that change block kinds, order or count.
+ */
+export interface ExportTemplateEdit {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name?: string;
+  /** @maxLength 300 */
+  description?: string;
+  design?: ExportTemplateDesign;
+  blocks?: ExportTemplateBlock[];
+}
+
+export type ExportTemplateRenditionRequestFormat = typeof ExportTemplateRenditionRequestFormat[keyof typeof ExportTemplateRenditionRequestFormat];
+
+
+export const ExportTemplateRenditionRequestFormat = {
+  pdf: 'pdf',
+  docx: 'docx',
+  pptx: 'pptx',
+} as const;
+
+export interface ExportTemplateRenditionRequest {
+  templateId: string;
+  format: ExportTemplateRenditionRequestFormat;
+  override?: ExportTemplateEdit;
+}
+
+export interface ExportTemplateRenditionResponse {
+  /** The rendition document as base64 PDF bytes. */
+  pdfBase64: string;
+  /** True when the bytes are exactly what the pdf download produces; false for the docx/pptx print renditions. */
+  exact: boolean;
+}
+
+export interface ExportTemplateOverrideRequest {
+  templateId: string;
+  /** When true, discards the saved edit and restores the corporate standard. */
+  reset?: boolean;
+  edit?: ExportTemplateEdit;
+}
+
+export interface ExportTemplateOverrideResponse {
+  template: ExportTemplate;
 }
 
 export interface SavedVersion {

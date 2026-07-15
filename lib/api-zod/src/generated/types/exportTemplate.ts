@@ -22,4 +22,8 @@ export interface ExportTemplate {
   blocks: ExportTemplateBlock[];
   preview: ExportTemplatePreview;
   design: ExportTemplateDesign;
+  /** True when a saved edit currently replaces the corporate standard. */
+  customized: boolean;
+  /** Monotonic revision counter — bumps on every save or reset, used to bust cached previews. */
+  rev: number;
 }
