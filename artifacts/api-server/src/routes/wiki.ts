@@ -27,7 +27,7 @@ import {
   type AccessSubject,
 } from "../data/governance";
 import { buildWikiGraph } from "../adapters/kg";
-import { runWikiSearch } from "../agent/wikiSearchAgent";
+import { runWikiSearch, type WikiStreamEvent } from "../agent/wikiSearchAgent";
 import { requireCapability } from "../data/accessControl";
 import type { Request, Response } from "express";
 
@@ -258,6 +258,57 @@ router.post("/wiki/search", async (req, res) => {
     req.log.error({ err }, "wiki search route failed");
     res.status(500).json({ error: "The Hub could not complete this request." });
     return;
+  }
+});
+
+// Same governed run as /wiki/search, streamed over SSE: real `step`
+// milestones, the model's own `token` deltas, then the terminal `result`
+// (evidence lands last), then `done`. Guards run BEFORE the stream opens so a
+// blocked persona gets a clean JSON refusal instead of an SSE channel.
+router.post("/wiki/search/stream", async (req, res) => {
+  const parsed = SearchWikiBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const subject = requireSubject(req, res, parsed.data.roleId);
+  if (!subject) return;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  let closed = false;
+  const abort = new AbortController();
+  res.on("close", () => {
+    closed = true;
+    abort.abort();
+  });
+
+  const send = (event: string, data: unknown) => {
+    if (closed) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const emit = (ev: WikiStreamEvent) => {
+    if (ev.type === "step") send("step", ev);
+    else send("token", { content: ev.content });
+  };
+
+  try {
+    const result = await runWikiSearch(parsed.data, subject, req.log, emit, abort.signal);
+    send("result", SearchWikiResponse.parse(result));
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      req.log.info("wiki search stream cancelled: client disconnected");
+    } else {
+      req.log.error({ err }, "wiki search stream failed");
+      send("error", { error: "The Hub could not complete this request." });
+    }
+  } finally {
+    send("done", {});
+    res.end();
   }
 });
 

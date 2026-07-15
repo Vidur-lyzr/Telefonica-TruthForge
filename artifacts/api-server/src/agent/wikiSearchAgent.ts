@@ -14,7 +14,7 @@
 
 import { z } from "zod/v4";
 
-import { meteredCreate } from "./metering";
+import { meteredCreate, meteredStream } from "./metering";
 import {
   COMPILED_PAGES,
   AXES,
@@ -61,6 +61,21 @@ interface Logger {
   warn: (obj: unknown, msg?: string) => void;
   error: (obj: unknown, msg?: string) => void;
 }
+
+// Streamed progress the Graph Assistant UI renders live. Steps are real
+// milestones of the run (never simulated); tokens are the model's own text
+// deltas; the result — evidence included — always lands last.
+export type WikiStreamEvent =
+  | {
+      type: "step";
+      id: string;
+      label: string;
+      state: "active" | "done";
+      detail?: string | null;
+    }
+  | { type: "token"; content: string };
+
+export type WikiEmit = (event: WikiStreamEvent) => void;
 
 export interface WikiChatTurn {
   role: "user" | "assistant";
@@ -226,11 +241,22 @@ export async function runWikiSearch(
   input: WikiSearchInput,
   subject: AccessSubject,
   log: Logger,
+  emit?: WikiEmit,
+  signal?: AbortSignal,
 ): Promise<WikiSearchResult> {
   const role = ROLES.find((r) => r.id === input.roleId) ?? ROLES[0];
 
   // ---- Intent router: greetings and meta turns never hit retrieval. ----
+  emit?.({ type: "step", id: "intent", label: "Reading the question", state: "active" });
   const intent = routeIntent(input.question);
+  emit?.({
+    type: "step",
+    id: "intent",
+    label: "Reading the question",
+    state: "done",
+    detail:
+      intent === "topical" ? "topical — governed retrieval" : "conversational turn",
+  });
   if (intent === "greeting") {
     log.info({ q: input.question, roleId: role.id }, "wiki-chat: greeting");
     const s = graphStats(subject);
@@ -254,6 +280,12 @@ export async function runWikiSearch(
   }
 
   // ---- Topical: coverage-gated retrieval over the current question only. ----
+  emit?.({
+    type: "step",
+    id: "scan",
+    label: "Scanning the compiled memory",
+    state: "active",
+  });
   const scored = scorePages(input.question);
   const permitted = scored.filter(
     (s) => resolvePageAccess(s.page, subject).accessible,
@@ -261,6 +293,26 @@ export async function runWikiSearch(
   const blocked = scored.filter(
     (s) => !resolvePageAccess(s.page, subject).accessible,
   );
+  emit?.({
+    type: "step",
+    id: "scan",
+    label: "Scanning the compiled memory",
+    state: "done",
+    detail:
+      scored.length === 0
+        ? "no compiled page matches"
+        : `${scored.length} candidate page${scored.length === 1 ? "" : "s"}`,
+  });
+  emit?.({
+    type: "step",
+    id: "scope",
+    label: "Resolving permission scope",
+    state: "done",
+    detail:
+      scored.length === 0
+        ? `clearance "${subject.clearance}"`
+        : `${permitted.length} permitted · ${blocked.length} blocked`,
+  });
 
   // Nothing compiled matched → the query op: try to compile a page on demand
   // from the governed RAW corpus instead of refusing outright. All governance
@@ -271,7 +323,7 @@ export async function runWikiSearch(
       { q: input.question, roleId: role.id },
       "wiki-chat: no compiled match — compile-on-miss",
     );
-    return compileOnMiss(input, subject, role, log);
+    return compileOnMiss(input, subject, role, log, emit, signal);
   }
 
   // Only blocked pages matched → permission block, no model call, no leak.
@@ -365,18 +417,51 @@ export async function runWikiSearch(
 
   const userPrompt = `Question: ${input.question}\n\nCompiled positions:\n${positionBlock}\n\nEvidence:\n${evidenceBlock}${linkList}`;
 
+  emit?.({
+    type: "step",
+    id: "evidence",
+    label: "Gathering governed evidence",
+    state: "done",
+    detail: `${evidence.length} snippet${evidence.length === 1 ? "" : "s"} from ${pages.length} page${pages.length === 1 ? "" : "s"}`,
+  });
+  emit?.({
+    type: "step",
+    id: "compose",
+    label: "Composing from compiled memory",
+    state: "active",
+  });
+
+  // Token forwarding holds text back while the reply could still be the
+  // INSUFFICIENT sentinel; the sentinel itself must never reach the client.
+  let pendingTokens = "";
+  let tokensFlushed = false;
+  const forwardToken = (delta: string) => {
+    if (!emit) return;
+    if (tokensFlushed) {
+      emit({ type: "token", content: delta });
+      return;
+    }
+    pendingTokens += delta;
+    if ("INSUFFICIENT".startsWith(pendingTokens.trim())) return;
+    tokensFlushed = true;
+    emit({ type: "token", content: pendingTokens });
+  };
+
   let answer = "";
   try {
-    const message = await meteredCreate("wiki", {
-      model: MODEL,
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [...historyTurns, { role: "user", content: userPrompt }],
-    });
-    answer = message.content
-      .map((b) => (b.type === "text" ? b.text : ""))
-      .join("")
-      .trim();
+    answer = (
+      await meteredStream(
+        "wiki",
+        {
+          model: MODEL,
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [...historyTurns, { role: "user", content: userPrompt }],
+        },
+        forwardToken,
+        signal,
+      )
+    ).trim();
   } catch (err) {
     log.error({ err }, "wiki-chat: model call failed, using extractive fallback");
     answer = `${pages[0].summary} ${evidence[0] ? "[E1]" : ""}`.trim();
@@ -385,13 +470,26 @@ export async function runWikiSearch(
   // The compose model judged the compiled positions insufficient for this
   // question → same query op as a full miss: compile from the raw corpus.
   if (INSUFFICIENT_RE.test(answer)) {
+    emit?.({
+      type: "step",
+      id: "compose",
+      label: "Composing from compiled memory",
+      state: "done",
+      detail: "compiled positions insufficient",
+    });
     log.info(
       { q: input.question, roleId: role.id, pages: pages.length },
       "wiki-chat: compiled positions insufficient — compile-on-miss",
     );
-    return compileOnMiss(input, subject, role, log);
+    return compileOnMiss(input, subject, role, log, emit, signal);
   }
   if (!answer) answer = `${pages[0].summary} ${evidence[0] ? "[E1]" : ""}`.trim();
+  emit?.({
+    type: "step",
+    id: "compose",
+    label: "Composing from compiled memory",
+    state: "done",
+  });
 
   const renumbered = renumberMarkers(answer, evidence);
   const finalEvidence = renumbered.evidence;
@@ -428,6 +526,13 @@ export async function runWikiSearch(
 
   const citedDocIds = new Set(finalEvidence.map((e) => e.docId));
   const traversal = buildTraversal(pages, citedDocIds);
+  emit?.({
+    type: "step",
+    id: "trace",
+    label: "Tracing the path on the graph",
+    state: "done",
+    detail: `${traversal.nodeIds.length} node${traversal.nodeIds.length === 1 ? "" : "s"}`,
+  });
 
   log.info(
     { q: input.question, roleId: role.id, pages: pages.length, evidence: finalEvidence.length },
@@ -516,12 +621,24 @@ function compileOnMiss(
   subject: AccessSubject,
   role: Role,
   log: Logger,
+  emit?: WikiEmit,
+  signal?: AbortSignal,
 ): Promise<WikiSearchResult> {
   const topic = [...new Set(tokenize(input.question))].sort().join(" ");
   const key = `${subject.clearance}|${subject.area ?? "-"}|${topic}`;
   const existing = inFlightCompiles.get(key);
-  if (existing) return existing;
-  const p = doCompile(input, subject, role, log).finally(() => {
+  if (existing) {
+    // A compile of this same scoped topic is already running — join it. The
+    // joining caller gets the milestone but not the first caller's stream.
+    emit?.({
+      type: "step",
+      id: "compile-join",
+      label: "Joining an in-flight compile of this topic",
+      state: "done",
+    });
+    return existing;
+  }
+  const p = doCompile(input, subject, role, log, emit, signal).finally(() => {
     inFlightCompiles.delete(key);
   });
   inFlightCompiles.set(key, p);
@@ -533,9 +650,17 @@ async function doCompile(
   subject: AccessSubject,
   role: Role,
   log: Logger,
+  emit?: WikiEmit,
+  _signal?: AbortSignal,
 ): Promise<WikiSearchResult> {
   // Governed retrieval: the question alone (never chat wording — coverage
   // dilution), the persona's clearance and area as must-filters.
+  emit?.({
+    type: "step",
+    id: "raw-retrieve",
+    label: "Searching the governed source corpus",
+    state: "active",
+  });
   const retrieval = await retrieveGoverned(
     {
       question: input.question,
@@ -548,6 +673,16 @@ async function doCompile(
   const relevant = retrieval.chunks.filter((c) => c.coverage >= RAW_COVERAGE_MIN);
   const permitted = relevant.filter((c) => c.accessible && !!getDoc(c.docId));
   const blockedChunks = relevant.filter((c) => !c.accessible);
+  emit?.({
+    type: "step",
+    id: "raw-retrieve",
+    label: "Searching the governed source corpus",
+    state: "done",
+    detail:
+      relevant.length === 0
+        ? "no relevant source material"
+        : `${permitted.length} permitted · ${blockedChunks.length} blocked chunk${blockedChunks.length === 1 ? "" : "s"}`,
+  });
 
   // Only blocked raw material matches → permission block. No model call,
   // no snippet, only the classification label.
@@ -622,6 +757,17 @@ async function doCompile(
 
   const userPrompt = `Question: ${input.question}\n\nStrategic axes (pick the closest axisId): ${axisList}\n\nGoverned evidence:\n${evidenceBlock}`;
 
+  // The compile reply is strict JSON (title/summary/position/answer), so
+  // token-streaming it would show raw JSON — this step reports the milestone
+  // and the finished page lands with the result event instead.
+  emit?.({
+    type: "step",
+    id: "compile",
+    label: "Compiling a new wiki page from the sources",
+    state: "active",
+    detail: `${evidence.length} evidence snippet${evidence.length === 1 ? "" : "s"}`,
+  });
+
   let parsed: z.infer<typeof compiledJsonSchema> | null = null;
   for (let attempt = 0; attempt < 2 && !parsed; attempt += 1) {
     try {
@@ -645,6 +791,13 @@ async function doCompile(
     }
   }
   if (!parsed) {
+    emit?.({
+      type: "step",
+      id: "compile",
+      label: "Compiling a new wiki page from the sources",
+      state: "done",
+      detail: "compile did not produce a valid page",
+    });
     log.error({ q: input.question, roleId: role.id }, "wiki-chat: compile failed");
     return conversationalResult(
       "The governed sources contain material on this topic, but the Hub could not compile a page just now. Please ask again in a moment.",
@@ -772,6 +925,21 @@ async function doCompile(
       wikiLinks.push({ id: rp.id, nodeId: rp.nodeId, title: rp.title, locked: false });
     }
   }
+
+  emit?.({
+    type: "step",
+    id: "compile",
+    label: "Compiling a new wiki page from the sources",
+    state: "done",
+    detail: `"${page.title}" filed into the wiki`,
+  });
+  emit?.({
+    type: "step",
+    id: "trace",
+    label: "Tracing the path on the graph",
+    state: "done",
+    detail: `${traversal.nodeIds.length} node${traversal.nodeIds.length === 1 ? "" : "s"}`,
+  });
 
   log.info(
     {

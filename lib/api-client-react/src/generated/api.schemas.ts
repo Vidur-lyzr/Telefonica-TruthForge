@@ -1082,6 +1082,11 @@ export interface CorpusDocument {
   /** Simulated connector / provenance the document arrived through */
   connector: string;
   /**
+     * ISO timestamp of when the document actually entered the corpus (live uploads and feed items); seed documents omit it
+     * @nullable
+     */
+  addedAt?: string | null;
+  /**
      * Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)
      * @nullable
      */
@@ -1360,6 +1365,8 @@ export interface ValidationItem {
   /** high | medium | low */
   confidence: string;
   confidenceScore: number;
+  /** Why this item is held in the validation queue instead of entering the corpus automatically */
+  reason: string;
   classification: ProposedClassification;
   metadata: ProposedMetadata;
   refinedNote: string;

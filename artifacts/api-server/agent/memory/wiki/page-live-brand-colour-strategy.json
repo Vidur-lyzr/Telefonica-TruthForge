@@ -1,0 +1,71 @@
+{
+  "id": "page-live-brand-colour-strategy",
+  "nodeId": "page-live-brand-colour-strategy",
+  "title": "Brand Colour Strategy",
+  "axisId": "ax-digital",
+  "confidentiality": "confidential",
+  "validity": "approved",
+  "summary": "Telefónica's brand colour strategy centres on a defined palette anchored by brand blue #0066FF, with navy reserved for dark bands and semantic colours used sparingly, applied consistently across all corporate communications.",
+  "position": "The primary brand colour is blue #0066FF, which serves as the dominant colour across all corporate templates and communications [E2, E4]. Surfaces are restricted to white and one or two blues, while navy blue is reserved exclusively for dark bands [E2]. Intense blue is further specified for covers and band elements, with the five-pointed 'T' logotype rendered in white on a blue background [E3]. Semantic colours are permitted only in moderation and must remain coherent with the 2026 brand guidelines [E2]. Colour must never be used as the sole means of conveying information, and all colour applications must meet minimum contrast ratios to satisfy accessibility requirements [E1]. Global Brand Director Lucía Ferrer is responsible for validating coherence with global brand identity [E4].",
+  "evidence": [
+    {
+      "marker": "E1",
+      "docId": "doc-a-brand-templates-2026",
+      "chunkId": "doc-a-brand-templates-2026#d6",
+      "note": "Accesibilidad"
+    },
+    {
+      "marker": "E2",
+      "docId": "doc-a-brand-templates-2026",
+      "chunkId": "doc-a-brand-templates-2026#d4",
+      "note": "Sistema de color y tipografía"
+    },
+    {
+      "marker": "E3",
+      "docId": "doc-a-brand-templates-2026",
+      "chunkId": "doc-a-brand-templates-2026#d2",
+      "note": "Plantilla de presentación"
+    },
+    {
+      "marker": "E4",
+      "docId": "doc-a-usp-conexion-entiende-messaging",
+      "chunkId": "doc-a-usp-conexion-entiende-messaging#d4",
+      "note": "Tono y estilo"
+    }
+  ],
+  "resolvedFacts": [],
+  "openItems": [],
+  "relatedPageIds": [
+    "page-simplify",
+    "page-live-current-institutional-position-no-live-data-avai"
+  ],
+  "changeLog": [
+    {
+      "id": "cl-1784123801517",
+      "at": "2026-07-15",
+      "by": "Wiki query agent",
+      "summary": "Compiled on demand from 2 governed source(s) in answer to a query."
+    }
+  ],
+  "owners": [
+    "Wiki query agent"
+  ],
+  "sourceDocIds": [
+    "doc-a-brand-templates-2026",
+    "doc-a-usp-conexion-entiende-messaging"
+  ],
+  "lastRefinedBy": "Wiki query agent",
+  "lastRefinedAt": "2026-07-15",
+  "refined": true,
+  "keywords": [
+    "brand colour",
+    "brand blue",
+    "colour palette",
+    "corporate identity",
+    "accessibility",
+    "visual hierarchy",
+    "brand guidelines",
+    "typography",
+    "templates"
+  ]
+}

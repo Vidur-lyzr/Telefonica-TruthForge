@@ -102,6 +102,8 @@ export interface CorpusDoc {
   sourceFormat: string;
   /** Simulated connector / provenance the document arrived through (honestly labelled — no real connector). */
   connector: string;
+  /** ISO timestamp of when the document actually entered the corpus (live uploads and feed items). Seed documents omit it. */
+  addedAt?: string;
   /** Refresh cadence of the source (e.g. "quarterly", "~48h", "near-real-time", "ad hoc"). */
   frequency?: string;
   /** Version label for versioned material (mostly SSoT-generated E outputs). */

@@ -357,12 +357,24 @@ export default function CorpusArea() {
 
   const sortedDocuments = React.useMemo(() => {
     const docs = [...filteredDocuments];
+    // Same-quarter ties are broken by the real ingestion timestamp, so a
+    // document uploaded a minute ago surfaces above the seed corpus.
+    const addedRank = (d: { addedAt?: string | null }) =>
+      d.addedAt ? Date.parse(d.addedAt) || 0 : 0;
     switch (sort) {
       case "newest":
-        docs.sort((a, b) => quarterRank(b.quarter) - quarterRank(a.quarter));
+        docs.sort(
+          (a, b) =>
+            quarterRank(b.quarter) - quarterRank(a.quarter) ||
+            addedRank(b) - addedRank(a),
+        );
         break;
       case "oldest":
-        docs.sort((a, b) => quarterRank(a.quarter) - quarterRank(b.quarter));
+        docs.sort(
+          (a, b) =>
+            quarterRank(a.quarter) - quarterRank(b.quarter) ||
+            addedRank(a) - addedRank(b),
+        );
         break;
       case "title":
         docs.sort((a, b) => a.title.localeCompare(b.title));

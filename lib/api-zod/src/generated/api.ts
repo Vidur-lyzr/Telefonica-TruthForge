@@ -220,6 +220,7 @@ export const ListDocumentsResponseItem = zod.object({
   "chunkCount": zod.number(),
   "sourceFormat": zod.string().describe('Simulated source format (structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump)'),
   "connector": zod.string().describe('Simulated connector \/ provenance the document arrived through'),
+  "addedAt": zod.string().nullish().describe('ISO timestamp of when the document actually entered the corpus (live uploads and feed items); seed documents omit it'),
   "frequency": zod.string().nullish().describe('Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)'),
   "version": zod.string().nullish().describe('Version label for versioned material (mostly SSoT-generated outputs)'),
   "ingestFilter": zod.union([zod.object({
@@ -370,6 +371,7 @@ export const GetDocumentResponse = zod.object({
   "chunkCount": zod.number(),
   "sourceFormat": zod.string().describe('Simulated source format (structured Word, Excel numeric, PDF, self-explanatory PPT, API feed, manual form, SharePoint dump)'),
   "connector": zod.string().describe('Simulated connector \/ provenance the document arrived through'),
+  "addedAt": zod.string().nullish().describe('ISO timestamp of when the document actually entered the corpus (live uploads and feed items); seed documents omit it'),
   "frequency": zod.string().nullish().describe('Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)'),
   "version": zod.string().nullish().describe('Version label for versioned material (mostly SSoT-generated outputs)'),
   "ingestFilter": zod.union([zod.object({
@@ -1249,6 +1251,25 @@ export const AskStreamBody = zod.object({
 })
 
 export const AskStreamResponse = zod.unknown()
+
+
+/**
+ * Same governed run as /wiki/search, streamed. Emits SSE events as they genuinely happen: `step` (real run milestones — intent routing, compiled-memory scan, permission scope, retrieval, composition or compile-on-miss), `token` (the model's own text deltas), then a terminal `result` event carrying the full WikiSearchResult (evidence lands last), then `done`.
+ * @summary Knowledge-graph chat with live progress streaming (Server-Sent Events)
+ */
+
+
+
+export const SearchWikiStreamBody = zod.object({
+  "question": zod.string().min(1),
+  "roleId": zod.string(),
+  "history": zod.array(zod.object({
+  "role": zod.enum(['user', 'assistant']),
+  "content": zod.string()
+})).optional().describe('Prior turns of this knowledge-graph conversation (oldest first). Used only for conversational continuity — retrieval relevance is always scored against the current question alone.\n')
+})
+
+export const SearchWikiStreamResponse = zod.unknown()
 
 
 /**
@@ -7029,6 +7050,7 @@ export const ListValidationItemsResponseItem = zod.object({
   "kind": zod.string().describe('standard | conflict'),
   "confidence": zod.string().describe('high | medium | low'),
   "confidenceScore": zod.number(),
+  "reason": zod.string().describe('Why this item is held in the validation queue instead of entering the corpus automatically'),
   "classification": zod.object({
   "deterministic": zod.string(),
   "semantic": zod.array(zod.string()),

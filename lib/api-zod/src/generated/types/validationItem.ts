@@ -18,6 +18,8 @@ export interface ValidationItem {
   /** high | medium | low */
   confidence: string;
   confidenceScore: number;
+  /** Why this item is held in the validation queue instead of entering the corpus automatically */
+  reason: string;
   classification: ProposedClassification;
   metadata: ProposedMetadata;
   refinedNote: string;

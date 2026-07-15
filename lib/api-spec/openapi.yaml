@@ -989,6 +989,31 @@ paths:
             text/event-stream:
               schema:
                 type: string
+  /wiki/search/stream:
+    post:
+      operationId: searchWikiStream
+      tags: [wiki]
+      summary: Knowledge-graph chat with live progress streaming (Server-Sent Events)
+      description: >
+        Same governed run as /wiki/search, streamed. Emits SSE events as they
+        genuinely happen: `step` (real run milestones — intent routing,
+        compiled-memory scan, permission scope, retrieval, composition or
+        compile-on-miss), `token` (the model's own text deltas), then a
+        terminal `result` event carrying the full WikiSearchResult (evidence
+        lands last), then `done`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WikiSearchInput"
+      responses:
+        "200":
+          description: Server-Sent Events stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
   /kpis/ask/stream:
     post:
       operationId: askKpisStream
@@ -4635,6 +4660,9 @@ components:
         connector:
           type: string
           description: Simulated connector / provenance the document arrived through
+        addedAt:
+          type: ["string", "null"]
+          description: ISO timestamp of when the document actually entered the corpus (live uploads and feed items); seed documents omit it
         frequency:
           type: ["string", "null"]
           description: Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)
@@ -5101,7 +5129,7 @@ components:
 
     ValidationItem:
       type: object
-      required: [id, title, source, kind, confidence, confidenceScore, classification, metadata, refinedNote]
+      required: [id, title, source, kind, confidence, confidenceScore, reason, classification, metadata, refinedNote]
       properties:
         id:
           type: string
@@ -5117,6 +5145,9 @@ components:
           description: high | medium | low
         confidenceScore:
           type: number
+        reason:
+          type: string
+          description: Why this item is held in the validation queue instead of entering the corpus automatically
         classification:
           $ref: "#/components/schemas/ProposedClassification"
         metadata:

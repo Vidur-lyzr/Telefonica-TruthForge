@@ -33,6 +33,11 @@ export interface CorpusDocument {
   /** Simulated connector / provenance the document arrived through */
   connector: string;
   /**
+     * ISO timestamp of when the document actually entered the corpus (live uploads and feed items); seed documents omit it
+     * @nullable
+     */
+  addedAt?: string | null;
+  /**
      * Refresh cadence of the source (quarterly, ~48h, near-real-time, ad hoc...)
      * @nullable
      */

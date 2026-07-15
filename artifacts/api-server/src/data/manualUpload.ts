@@ -471,6 +471,7 @@ export function buildUploadDoc(input: BuildUploadDocInput): BuiltUploadDoc {
     areas: input.area ? [input.area] : [],
     sourceFormat: input.sourceFormat,
     connector: "Manual upload",
+    addedAt: new Date().toISOString(),
     frequency: "ad hoc",
     summary: `${preview}${input.text.length > 180 ? "…" : ""} Uploaded manually on ${today} from ${input.filename} (${input.sourceFormat}).`,
     chunks,

@@ -170,6 +170,22 @@ export default function ValidationArea() {
                       </Tag>
                     </Inline>
 
+                    <div
+                      style={{
+                        borderLeft: `2px solid ${skinVars.colors.warning}`,
+                        paddingLeft: 12,
+                      }}
+                    >
+                      <Stack space={2}>
+                        <Text1 medium transform="uppercase" color={skinVars.colors.textSecondary}>
+                          {t.whyQueued}
+                        </Text1>
+                        <Text2 regular color={skinVars.colors.textPrimary}>
+                          {it.reason}
+                        </Text2>
+                      </Stack>
+                    </div>
+
                     {it.kind === "conflict" && it.conflict ? (
                       <Boxed>
                         <Box padding={16}>

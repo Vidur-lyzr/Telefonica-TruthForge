@@ -2896,6 +2896,77 @@ export const useAskStream = <TError = ErrorType<unknown>,
       return useMutation(getAskStreamMutationOptions(options));
     }
 
+export const getSearchWikiStreamUrl = () => {
+
+
+
+
+  return `/api/wiki/search/stream`
+}
+
+/**
+ * Same governed run as /wiki/search, streamed. Emits SSE events as they genuinely happen: `step` (real run milestones — intent routing, compiled-memory scan, permission scope, retrieval, composition or compile-on-miss), `token` (the model's own text deltas), then a terminal `result` event carrying the full WikiSearchResult (evidence lands last), then `done`.
+ * @summary Knowledge-graph chat with live progress streaming (Server-Sent Events)
+ */
+export const searchWikiStream = async (wikiSearchInput: WikiSearchInput, options?: RequestInit): Promise<string> => {
+
+  return customFetch<string>(getSearchWikiStreamUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(wikiSearchInput)
+  }
+);}
+
+
+
+
+export const getSearchWikiStreamMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchWikiStream>>, TError,{data: BodyType<WikiSearchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof searchWikiStream>>, TError,{data: BodyType<WikiSearchInput>}, TContext> => {
+
+const mutationKey = ['searchWikiStream'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof searchWikiStream>>, {data: BodyType<WikiSearchInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  searchWikiStream(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SearchWikiStreamMutationResult = NonNullable<Awaited<ReturnType<typeof searchWikiStream>>>
+    export type SearchWikiStreamMutationBody = BodyType<WikiSearchInput>
+    export type SearchWikiStreamMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Knowledge-graph chat with live progress streaming (Server-Sent Events)
+ */
+export const useSearchWikiStream = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof searchWikiStream>>, TError,{data: BodyType<WikiSearchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof searchWikiStream>>,
+        TError,
+        {data: BodyType<WikiSearchInput>},
+        TContext
+      > => {
+      return useMutation(getSearchWikiStreamMutationOptions(options));
+    }
+
 export const getAskKpisStreamUrl = () => {
 
 

@@ -8,7 +8,6 @@ import {
   useListWikiLineage,
   useGetWikiStats,
   useListAxes,
-  useSearchWiki,
   type WikiGraph,
   type WikiNode,
   type WikiPageSummary,
@@ -18,6 +17,9 @@ import {
   type WikiSearchResult,
 } from "@workspace/api-client-react";
 import { useApp, type Lang } from "@/components/app-provider";
+import { Streamdown } from "streamdown";
+import { streamWikiSearch } from "@/hooks/wiki-search-stream";
+import type { AskStep } from "@/hooks/ask-stream";
 import { KnowledgeGraph } from "@/components/wiki/knowledge-graph";
 import { WIKI_I18N } from "@/i18n/wiki";
 import {
@@ -58,6 +60,7 @@ import {
   IconAlertRegular,
   IconCheckedRegular,
   IconStarRegular,
+  Spinner,
   IconArrowRightRegular,
   IconCloseRegular,
   IconArrowUpDownRegular,
@@ -81,6 +84,20 @@ interface ChatMsg {
   role: "user" | "assistant";
   text: string;
   result?: WikiSearchResult;
+  /** Live agent milestones streamed while this assistant turn runs. */
+  steps?: AskStep[];
+  /** True while the assistant turn is still streaming. */
+  pending?: boolean;
+}
+
+// While tokens stream, hide any trailing half-typed marker, unwrap [[wiki
+// links]] and drop raw [E#] markers — the final answer (with chips) replaces
+// the streamed text when the result lands.
+function streamDisplayText(text: string): string {
+  return text
+    .replace(/\[[^\]]*$/, "")
+    .replace(/\[\[([^\]]+)\]\]/g, "$1")
+    .replace(/\[[^\]]*E\s*\d[^\]]*\]/gi, "");
 }
 
 const BLUE = skinVars.colors.brand;
@@ -330,7 +347,7 @@ export default function Wiki() {
       },
     },
   );
-  const { mutate: runSearch, isPending: searching } = useSearchWiki();
+  const [searching, setSearching] = React.useState(false);
 
   // The most recent governed answer drives traversal highlighting on the Map.
   const lastResult = useMemo(
@@ -487,32 +504,70 @@ export default function Wiki() {
 
   // Conversational send: the last turns travel as presentation-only history;
   // retrieval on the server is always scored against the new question alone.
-  const sendChat = (text?: string) => {
+  // The turn streams over SSE: real agent milestones land as steps, the
+  // model's own tokens as text, and the governed result (evidence) last.
+  const sendChat = async (text?: string) => {
     const q = (text ?? question).trim();
     if (!q || !roleId || searching) return;
-    const history = chat.slice(-6).map((m) => ({ role: m.role, content: m.text }));
-    setChat((c) => [...c, { role: "user" as const, text: q }]);
+    const history = chat
+      .filter((m) => !m.pending)
+      .slice(-6)
+      .map((m) => ({ role: m.role, content: m.text }));
+    setChat((c) => [
+      ...c,
+      { role: "user" as const, text: q },
+      { role: "assistant" as const, text: "", steps: [], pending: true },
+    ]);
     setQuestion("");
-    runSearch(
-      { data: { question: q, roleId, history } },
-      {
-        onSuccess: (res) => {
-          setChat((c) => [
-            ...c,
-            { role: "assistant" as const, text: res.answer, result: res },
-          ]);
-          if (res.compiledPage) {
-            // The query op filed a new page into the wiki — refresh the
-            // graph, page list and lineage so the new node appears live.
-            void queryClient.invalidateQueries({ queryKey: ["wiki-graph", roleId] });
-            void queryClient.invalidateQueries({ queryKey: ["wiki-pages", roleId] });
-            void queryClient.invalidateQueries({ queryKey: ["wiki-lineage", roleId] });
+    setSearching(true);
+    // Async stream events must merge into CURRENT state via functional set —
+    // never replace state with a captured snapshot.
+    const patchPending = (fn: (m: ChatMsg) => ChatMsg) =>
+      setChat((c) => {
+        for (let i = c.length - 1; i >= 0; i -= 1) {
+          if (c[i].pending) {
+            const next = [...c];
+            next[i] = fn(next[i]);
+            return next;
           }
+        }
+        return c;
+      });
+    try {
+      const res = await streamWikiSearch(
+        { question: q, roleId, history },
+        {
+          onStep: (step) =>
+            patchPending((m) => {
+              const steps = [...(m.steps ?? [])];
+              const idx = steps.findIndex((s) => s.id === step.id);
+              if (idx >= 0) steps[idx] = step;
+              else steps.push(step);
+              return { ...m, steps };
+            }),
+          onToken: (content) =>
+            patchPending((m) => ({ ...m, text: m.text + content })),
         },
-        onError: () =>
-          setChat((c) => [...c, { role: "assistant" as const, text: t.chat.error }]),
-      },
-    );
+      );
+      patchPending((m) => ({
+        ...m,
+        pending: false,
+        steps: undefined,
+        text: res.answer,
+        result: res,
+      }));
+      if (res.compiledPage) {
+        // The query op filed a new page into the wiki — refresh the
+        // graph, page list and lineage so the new node appears live.
+        void queryClient.invalidateQueries({ queryKey: ["wiki-graph", roleId] });
+        void queryClient.invalidateQueries({ queryKey: ["wiki-pages", roleId] });
+        void queryClient.invalidateQueries({ queryKey: ["wiki-lineage", roleId] });
+      }
+    } catch {
+      patchPending((m) => ({ ...m, pending: false, steps: undefined, text: t.chat.error }));
+    } finally {
+      setSearching(false);
+    }
   };
 
   const tabs = [
@@ -1043,6 +1098,59 @@ export default function Wiki() {
                             </div>
                           );
                         }
+                        if (m.pending) {
+                          const steps = m.steps ?? [];
+                          return (
+                            <div key={i} style={{ display: "flex", justifyContent: "flex-start" }}>
+                              <div
+                                style={{
+                                  maxWidth: "92%",
+                                  background: ALT,
+                                  padding: "10px 12px",
+                                  borderRadius: RADIUS,
+                                }}
+                              >
+                                <Stack space={8}>
+                                  {steps.length === 0 ? (
+                                    <Inline space={8} alignItems="center">
+                                      <Spinner size={16} />
+                                      <Text2 regular color={MUTED}>
+                                        {t.chat.thinking}
+                                      </Text2>
+                                    </Inline>
+                                  ) : (
+                                    <Stack space={4}>
+                                      {steps.map((s) => (
+                                        <Inline space={8} alignItems="center" key={s.id}>
+                                          {s.state === "done" ? (
+                                            <IconCheckedRegular
+                                              size={14}
+                                              color={skinVars.colors.success}
+                                            />
+                                          ) : (
+                                            <Spinner size={14} />
+                                          )}
+                                          <Text1
+                                            regular
+                                            color={s.state === "done" ? MUTED : NAVY}
+                                          >
+                                            {s.label}
+                                            {s.detail ? ` — ${s.detail}` : ""}
+                                          </Text1>
+                                        </Inline>
+                                      ))}
+                                    </Stack>
+                                  )}
+                                  {m.text ? (
+                                    <div className="answer-markdown">
+                                      <Streamdown>{streamDisplayText(m.text)}</Streamdown>
+                                    </div>
+                                  ) : null}
+                                </Stack>
+                              </div>
+                            </div>
+                          );
+                        }
                         const res = m.result;
                         const blocked = res?.status === "permission_blocked";
                         const noEvidence = res?.status === "no_evidence";
@@ -1076,11 +1184,9 @@ export default function Wiki() {
                                     </Text1>
                                   </Inline>
                                 )}
-                                {m.text.split("\n").filter(Boolean).map((para, j) => (
-                                  <Text2 regular color={NAVY} key={j}>
-                                    {para}
-                                  </Text2>
-                                ))}
+                                <div className="answer-markdown">
+                                  <Streamdown>{m.text}</Streamdown>
+                                </div>
                                 {blocked && res?.permissionNote && (
                                   <Text1 regular color={MUTED}>
                                     {res.permissionNote}
@@ -1190,21 +1296,6 @@ export default function Wiki() {
                           </div>
                         );
                       })}
-                      {searching && (
-                        <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                          <div
-                            style={{
-                              background: ALT,
-                              padding: "8px 12px",
-                              borderRadius: RADIUS,
-                            }}
-                          >
-                            <Text2 regular color={MUTED}>
-                              {t.chat.thinking}
-                            </Text2>
-                          </div>
-                        </div>
-                      )}
                     </Stack>
                   )}
                 </div>

@@ -241,9 +241,9 @@ function PersonaCard({ collapsed }: { collapsed: boolean }) {
 
   React.useEffect(() => {
     if (roles && roles.length > 0 && !roleId) {
-      // Default to the Brand Manager persona: broad clearance, so a first-time
-      // visitor sees the Hub with most content visible rather than blocked.
-      const preferred = roles.find((r) => r.id === "role-brand") ?? roles[0];
+      // Default to the super-user persona: full clearance, so a first-time
+      // visitor sees the whole Hub rather than permission-blocked states.
+      const preferred = roles.find((r) => r.id === "role-superuser") ?? roles[0];
       setRoleId(preferred.id);
     }
   }, [roles, roleId, setRoleId]);

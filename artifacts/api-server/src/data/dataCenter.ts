@@ -412,6 +412,8 @@ export interface ValidationItem {
   kind: ValidationKind;
   confidence: ConfidenceTier;
   confidenceScore: number;
+  /** Why the item is held for human review instead of entering the corpus automatically. */
+  reason: string;
   classification: ProposedClassification;
   metadata: ProposedMetadata;
   refinedNote: string;
@@ -426,6 +428,8 @@ export const VALIDATION_ITEMS: ValidationItem[] = [
     kind: "conflict",
     confidence: "medium",
     confidenceScore: 0.74,
+    reason:
+      "The fresh Talkwalker read (34%) contradicts the figure the corpus currently holds (31%, Germany strategy deck 2024). Conflicting numeric claims never overwrite the SSoT automatically — a documentalist must decide which figure the Hub defends.",
     classification: {
       deterministic: "Market update",
       semantic: ["Germany", "O2", "market share", "mobile"],
@@ -456,6 +460,8 @@ export const VALIDATION_ITEMS: ValidationItem[] = [
     kind: "standard",
     confidence: "medium",
     confidenceScore: 0.68,
+    reason:
+      "Automatic classification confidence (68%) is below the auto-ingest threshold: the extract mixes sustainability and skills-programme vocabulary, so the proposed axis and public confidentiality need a human check before the document becomes citable.",
     classification: {
       deterministic: "Report",
       semantic: ["sustainability", "inclusion", "digital skills"],
@@ -478,6 +484,8 @@ export const VALIDATION_ITEMS: ValidationItem[] = [
     kind: "standard",
     confidence: "medium",
     confidenceScore: 0.71,
+    reason:
+      "A working note from Asana proposed as confidential clearance. Working material below the confidence threshold (71%) cannot enter the corpus unreviewed — the owning team must confirm the classification and who may see it.",
     classification: {
       deterministic: "Strategy",
       semantic: ["B2B", "enterprise", "cloud", "cyber"],
@@ -500,6 +508,8 @@ export const VALIDATION_ITEMS: ValidationItem[] = [
     kind: "standard",
     confidence: "medium",
     confidenceScore: 0.66,
+    reason:
+      "Classification confidence is the lowest in the queue (66%) and the proposed validity window ends 30 Jun 2026, which is already past — a reviewer must confirm the dates or the asset would enter the corpus as expired material.",
     classification: {
       deterministic: "Campaign",
       semantic: ["pricing", "Movistar", "loyalty", "advertising"],

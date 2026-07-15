@@ -61,6 +61,7 @@ export interface DataStrings {
     clearedThisSession: (n: number) => string;
     noneWaiting: string;
     sourceConflict: string;
+    whyQueued: string;
     conflictHeadline: string;
     currentlyLive: string;
     fresherSource: string;
@@ -439,6 +440,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noneWaiting:
         "No medium- or low-confidence classifications are waiting on a human.",
       sourceConflict: "Source conflict",
+      whyQueued: "Why it is in the queue",
       conflictHeadline:
         "A fresher source disagrees with the value already in the core.",
       currentlyLive: "Currently live",
@@ -864,6 +866,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noneWaiting:
         "No hay clasificaciones de confianza media o baja a la espera de una persona.",
       sourceConflict: "Conflicto de fuentes",
+      whyQueued: "Por qué está en la cola",
       conflictHeadline:
         "Una fuente más reciente discrepa del valor que ya está en el núcleo.",
       currentlyLive: "Actualmente en vivo",
@@ -1288,6 +1291,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noneWaiting:
         "Keine Klassifikationen mit mittlerer oder niedriger Konfidenz warten auf einen Menschen.",
       sourceConflict: "Quellenkonflikt",
+      whyQueued: "Warum es in der Warteschlange steht",
       conflictHeadline:
         "Eine neuere Quelle widerspricht dem Wert, der bereits im Kern liegt.",
       currentlyLive: "Derzeit live",
@@ -1715,6 +1719,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       noneWaiting:
         "Nenhuma classificação de confiança média ou baixa aguarda uma pessoa.",
       sourceConflict: "Conflito de fontes",
+      whyQueued: "Por que está na fila",
       conflictHeadline:
         "Uma fonte mais recente diverge do valor que já está no núcleo.",
       currentlyLive: "Atualmente ativo",
