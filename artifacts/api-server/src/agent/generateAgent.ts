@@ -13,7 +13,7 @@
 //    permission_blocked state WITHOUT calling the model. We never fabricate.
 
 import { meteredCreate } from "./metering";
-import { retrieve, resolveDoc } from "../adapters/kb";
+import { retrieve, resolveDoc, chunksForDoc } from "../adapters/kb";
 import {
   beginRetrievalAudit,
   finalizeRetrievalAudit,
@@ -431,7 +431,6 @@ async function compose(
       kpiCards = [];
     }
   }
-  const kpiQueryText = kpiCards.map((k) => k.name).join(" ");
 
   // ---- Ask answer handoff (re-validated server-side, fail closed) -----------
   // Only doc IDS travel. Each is re-resolved against the server corpus and
@@ -484,7 +483,10 @@ async function compose(
   // concise") would inflate the denominator and starve every chunk, flipping a
   // valid refine into no_evidence. Instead the instruction gets its own
   // retrieval pass below, gated by the same coverage threshold.
-  const retrievalQuery = [input.topic, sourceQueryText, kpiQueryText, axisNames]
+  // kpiQueryText is likewise kept OUT of the main query: a KPI report's topic
+  // is UI-generated summary prose, and folding nine KPI names on top would
+  // dilute coverage for every chunk. Each KPI name gets its own gated pass.
+  const retrievalQuery = [input.topic, sourceQueryText, axisNames]
     .filter(Boolean)
     .join(" ");
 
@@ -534,6 +536,41 @@ async function compose(
       if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
         seen.add(c.chunkId);
         retrieved.push(c);
+      }
+    }
+  }
+  if (kpiCards.length > 0) {
+    // KPI handoff: retrieve for each KPI name in its own coverage-gated pass
+    // (never folded into the main query or each other — coverage is a ratio,
+    // so mixing texts starves all of them). This is what makes the sources
+    // behind the panel citeable [S#] evidence in the report body.
+    const seen = new Set(retrieved.map((c) => c.chunkId));
+    for (const k of kpiCards.slice(0, 10)) {
+      const extra = retrieve({
+        question: k.name,
+        clearance,
+        topK: 3,
+        audit: { id: auditId },
+      });
+      for (const c of extra) {
+        if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
+          seen.add(c.chunkId);
+          retrieved.push(c);
+        }
+      }
+      // Structural handoff: a KPI's declared source documents become numbered
+      // [S#] evidence directly — the linkage is by id, not text match, exactly
+      // like Ask-cited docIds. Access is recomputed server-side (fail closed);
+      // the persona and destination gates below still apply unchanged, so an
+      // over-clearance source surfaces as an exclusion, never as content.
+      for (const src of k.sources) {
+        if (!src.docId) continue;
+        for (const c of chunksForDoc(src.docId, { clearance }, 1)) {
+          if (!seen.has(c.chunkId)) {
+            seen.add(c.chunkId);
+            retrieved.push(c);
+          }
+        }
       }
     }
   }
@@ -620,7 +657,10 @@ async function compose(
     exclusions.push(ex);
   }
 
-  if (relevant.length === 0) {
+  // A KPI-context draft is never "no evidence" just because chunk retrieval
+  // came up empty: the recomputed KPI cards are themselves governed, permitted
+  // figures (already dual-filtered above) and can carry a panel-only report.
+  if (relevant.length === 0 && kpiCards.length === 0) {
     log.info({ topic: input.topic, roleId: role.id }, "generate: no_evidence");
     finalizeRetrievalAudit(auditId, "no_evidence");
     return {
@@ -650,7 +690,7 @@ async function compose(
     };
   }
 
-  if (permitted.length === 0) {
+  if (permitted.length === 0 && kpiCards.length === 0) {
     const need = [...blocked, ...destinationExcluded]
       .map((b) => resolveDoc(b.docId)?.confidentiality)
       .filter((c): c is Clearance => Boolean(c))
@@ -719,6 +759,22 @@ async function compose(
       (s) => CLEARANCE_RANK[resolveDoc(s.docId)?.confidentiality ?? "off_the_record"] <= bodyRank,
     );
     series = [...series, ...extra];
+  }
+  if (kpiCards.length > 0) {
+    // KPI reports chart the governed series behind the panel's KPIs (per-name
+    // lookup, same destination gate as every other series).
+    const seenSeries = new Set(series.map((s) => s.id));
+    for (const k of kpiCards) {
+      for (const s of querySeries(k.name)) {
+        if (
+          !seenSeries.has(s.id) &&
+          CLEARANCE_RANK[resolveDoc(s.docId)?.confidentiality ?? "off_the_record"] <= bodyRank
+        ) {
+          seenSeries.add(s.id);
+          series.push(s);
+        }
+      }
+    }
   }
   const charts: ChartSpec[] = series.slice(0, 2).map((s) => ({
     id: newId("chart"),

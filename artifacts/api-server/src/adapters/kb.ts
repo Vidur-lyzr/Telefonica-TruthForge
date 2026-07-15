@@ -256,6 +256,41 @@ export function resolveDoc(docId: string) {
   return getDoc(docId);
 }
 
+// Structural doc→chunk lookup for handoffs where the linkage is by id, not
+// text (e.g. a KPI's declared source document). The same governance access
+// computation as retrieval applies (fail closed: unknown doc → empty). The
+// caller is responsible for its own destination gating; coverage is reported
+// as 1 because the linkage is structural, not a text match.
+export function chunksForDoc(
+  docId: string,
+  opts: { clearance: Clearance; area?: Area | null },
+  limit = 2,
+): RetrievedChunk[] {
+  const doc = getDoc(docId);
+  if (!doc) return [];
+  return index
+    .filter((c) => c.docId === docId)
+    .slice(0, limit)
+    .map((chunk) => {
+      const access = accessFor(chunk.docId, chunk.confidentiality, {
+        question: "",
+        clearance: opts.clearance,
+        area: opts.area ?? null,
+      });
+      return {
+        chunkId: chunk.chunkId,
+        docId: chunk.docId,
+        score: 1,
+        coverage: 1,
+        heading: chunk.heading,
+        breadcrumb: chunk.breadcrumb,
+        text: chunk.text,
+        accessible: access.accessible,
+        blockedBy: access.blockedBy,
+      };
+    });
+}
+
 // ── Governed retrieval front door ───────────────────────────────────────────
 //
 // When Qdrant is configured (QDRANT_URL + QDRANT_API_KEY), retrieval runs as
