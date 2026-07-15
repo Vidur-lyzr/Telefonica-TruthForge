@@ -123,6 +123,16 @@ export interface DataStrings {
     uploadFailed: string;
     inCorpus: (chunks: number) => string;
     indexProof: (before: number, after: number) => string;
+    dropHint: string;
+    dropActive: string;
+    removeFile: string;
+    unsupportedType: string;
+    taggingTitle: string;
+    docType: string;
+    topicsLabel: string;
+    topicsHint: string;
+    addTopic: string;
+    axesLabel: string;
   };
 
   ingestion: {
@@ -344,6 +354,13 @@ export interface DataStrings {
     allLabel: string;
     matchCount: (shown: number, total: number) => string;
     noMatches: string;
+    uploadButton: string;
+    sortLabel: string;
+    sortNewest: string;
+    sortOldest: string;
+    sortTitle: string;
+    sortChunks: string;
+    clearFilters: string;
   };
 }
 
@@ -486,6 +503,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `In corpus · ${chunks} ${chunks === 1 ? "chunk" : "chunks"} indexed`,
       indexProof: (before: number, after: number) =>
         `Vector index grew from ${before.toLocaleString("en")} to ${after.toLocaleString("en")} points.`,
+      dropHint: "Drag and drop a file here, or click to browse",
+      dropActive: "Drop the file to attach it",
+      removeFile: "Remove file",
+      unsupportedType: "This file type is not supported.",
+      taggingTitle: "Classification and tagging",
+      docType: "Document type",
+      topicsLabel: "Topics",
+      topicsHint: "Add topics so the document is easier to find. If none are added, they are derived from the title.",
+      addTopic: "Add",
+      axesLabel: "Strategic axes",
     },
     ingestion: {
       live: {
@@ -748,6 +775,13 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       allLabel: "All",
       matchCount: (shown, total) => `Showing ${shown} of ${total} documents`,
       noMatches: "No documents match the current filters.",
+      uploadButton: "Upload document",
+      sortLabel: "Sort",
+      sortNewest: "Newest first",
+      sortOldest: "Oldest first",
+      sortTitle: "Title A–Z",
+      sortChunks: "Most chunks",
+      clearFilters: "Clear filters",
     },
   },
   ES: {
@@ -893,6 +927,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `En el corpus · ${chunks} ${chunks === 1 ? "fragmento indexado" : "fragmentos indexados"}`,
       indexProof: (before: number, after: number) =>
         `El índice vectorial creció de ${before.toLocaleString("es")} a ${after.toLocaleString("es")} puntos.`,
+      dropHint: "Arrastra y suelta un archivo aquí, o haz clic para buscarlo",
+      dropActive: "Suelta el archivo para adjuntarlo",
+      removeFile: "Quitar archivo",
+      unsupportedType: "Este tipo de archivo no es compatible.",
+      taggingTitle: "Clasificación y etiquetado",
+      docType: "Tipo de documento",
+      topicsLabel: "Temas",
+      topicsHint: "Añade temas para que el documento sea más fácil de encontrar. Si no añades ninguno, se derivan del título.",
+      addTopic: "Añadir",
+      axesLabel: "Ejes estratégicos",
     },
     ingestion: {
       live: {
@@ -1156,6 +1200,13 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       allLabel: "Todos",
       matchCount: (shown, total) => `Mostrando ${shown} de ${total} documentos`,
       noMatches: "Ningún documento coincide con los filtros actuales.",
+      uploadButton: "Subir documento",
+      sortLabel: "Ordenar",
+      sortNewest: "Más recientes primero",
+      sortOldest: "Más antiguos primero",
+      sortTitle: "Título A–Z",
+      sortChunks: "Más fragmentos",
+      clearFilters: "Limpiar filtros",
     },
   },
   DE: {
@@ -1296,6 +1347,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `Im Korpus · ${chunks} ${chunks === 1 ? "Abschnitt" : "Abschnitte"} indexiert`,
       indexProof: (before: number, after: number) =>
         `Der Vektorindex wuchs von ${before.toLocaleString("de")} auf ${after.toLocaleString("de")} Punkte.`,
+      dropHint: "Datei hierher ziehen und ablegen oder klicken, um zu suchen",
+      dropActive: "Datei loslassen, um sie anzuhängen",
+      removeFile: "Datei entfernen",
+      unsupportedType: "Dieser Dateityp wird nicht unterstützt.",
+      taggingTitle: "Klassifizierung und Verschlagwortung",
+      docType: "Dokumenttyp",
+      topicsLabel: "Themen",
+      topicsHint: "Themen hinzufügen, damit das Dokument leichter zu finden ist. Ohne Angabe werden sie aus dem Titel abgeleitet.",
+      addTopic: "Hinzufügen",
+      axesLabel: "Strategische Achsen",
     },
     ingestion: {
       live: {
@@ -1560,6 +1621,13 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       matchCount: (shown, total) =>
         `${shown} von ${total} Dokumenten angezeigt`,
       noMatches: "Keine Dokumente entsprechen den aktuellen Filtern.",
+      uploadButton: "Dokument hochladen",
+      sortLabel: "Sortieren",
+      sortNewest: "Neueste zuerst",
+      sortOldest: "Älteste zuerst",
+      sortTitle: "Titel A–Z",
+      sortChunks: "Meiste Abschnitte",
+      clearFilters: "Filter zurücksetzen",
     },
   },
   PT: {
@@ -1703,6 +1771,16 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         `No corpus · ${chunks} ${chunks === 1 ? "fragmento indexado" : "fragmentos indexados"}`,
       indexProof: (before: number, after: number) =>
         `O índice vetorial cresceu de ${before.toLocaleString("pt")} para ${after.toLocaleString("pt")} pontos.`,
+      dropHint: "Arraste e solte um ficheiro aqui, ou clique para procurar",
+      dropActive: "Solte o ficheiro para o anexar",
+      removeFile: "Remover ficheiro",
+      unsupportedType: "Este tipo de ficheiro não é suportado.",
+      taggingTitle: "Classificação e etiquetagem",
+      docType: "Tipo de documento",
+      topicsLabel: "Temas",
+      topicsHint: "Adicione temas para facilitar a localização do documento. Sem temas, são derivados do título.",
+      addTopic: "Adicionar",
+      axesLabel: "Eixos estratégicos",
     },
     ingestion: {
       live: {
@@ -1966,6 +2044,13 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       allLabel: "Todos",
       matchCount: (shown, total) => `A mostrar ${shown} de ${total} documentos`,
       noMatches: "Nenhum documento corresponde aos filtros atuais.",
+      uploadButton: "Carregar documento",
+      sortLabel: "Ordenar",
+      sortNewest: "Mais recentes primeiro",
+      sortOldest: "Mais antigos primeiro",
+      sortTitle: "Título A–Z",
+      sortChunks: "Mais fragmentos",
+      clearFilters: "Limpar filtros",
     },
   },
 };

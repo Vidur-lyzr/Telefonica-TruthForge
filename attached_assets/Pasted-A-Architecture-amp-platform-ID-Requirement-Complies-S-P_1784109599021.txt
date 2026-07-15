@@ -1,0 +1,148 @@
+A · Architecture &amp; platform
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+A1 Deployable on Telefónica’s certified corporate Azure Yes
+A2 Open, flexible architecture (not a closed single-vendor solution) Yes
+A3 Multi-LLM orchestration; best model per task (“LLM integrator”) Yes
+A4 Scalable and extensible in functionality Yes
+A5 Closed circuit: the AI is not trained on Telefónica’s data Yes
+A6 Cloud operation with availability / capacity / security / continuity Yes
+A7 Multi-language: ES · EN · DE · PT-Brazil (ingest and generate) Yes
+
+B · SSoT agent (conversational)
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+B1 Conversational chatbot over any ingested data Yes
+B2 Hybrid retrieval (keyword + semantic + re-ranking) Yes
+B3 Grounding + mandatory source citation with traceability Yes
+B4 Answers aligned to the 5 axes; do not invent when there is no
+evidence
+
+Yes
+B5 Answer filtered by the user’s permissions and confidentiality Yes
+
+C · Document generation
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+C1 Talking points, press releases, Q&amp;A, dossiers, conclusions
+C2 Multi-format: PPT, Word, charts
+C3 On-brand: corporate templates + brand guidelines
+C4 No limit on the number of documents
+C5 Scheduled reports (forecasts, weekly and half-yearly summaries)
+C6 Outputs focused on the 5 axes
+C7 Content forecasts for the next 10 days
+
+Accenture Song · Confidential · Telefónica — Single Source of Truth (RFP) · July 2026
+
+D · KPIs
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+D1 KPI / objectives tracking dashboard
+D2 Filters (topic, date…)
+D3 Cross-referencing ingested + external info (social media, news)
+
+E · Planning
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+E1 Integrated Communications + Brand calendar
+E2 Integration of heterogeneous sources (Excel, Asana…)
+E3 Predictive capability
+
+F · Data centre / Metadata space
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+F1 Review / modify sources and connections
+F2 AI metadata + information-specialist review (human-in-the-loop)
+F3 SLA per document / data item to keep it up to date
+
+G · Administration
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+G1 User and permission management (create / remove / grant /
+revoke)
+G2 Profile management
+G3 Scheduling and automation of repetitive content
+
+H · Brand Room
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+H1 Brand owners train the agents
+H2 Loading of guidelines, resources, templates and tone of voice
+H3 Brand Guardianship: ensure and correct off-brand outputs
+
+I · Profiles &amp; confidentiality
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+I1 Profiles: Superadmin / Admin / Editor / Audit
+I2 Profiles that can be combined and unified
+I3 Permissions by area (working across areas by permission)
+I4 Public / private / confidential levels (Microsoft labels)
+I5 Audit: traceability of who uploads / modifies / consults
+
+Accenture Song · Confidential · Telefónica — Single Source of Truth (RFP) · July 2026
+
+J · Ingestion, sources &amp; formats
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+J1 Internal sources (Asana, results, People, clients, USP, brand)
+J2 External sources (social listening, social media, SIC, competitors,
+sector)
+J3 API connectors + relevance filter on social media
+J4 Word / Excel (structured extraction + versions) / PDF / PPT
+J5 Manual ingestion of news
+J6 Migration of the current SharePoint SSoT, with no document cap
+
+K · Taxonomy &amp; metadata
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+K1 Taxonomy aligned to the 5 Transform &amp; Grow axes
+K2 Easily adaptable if the axes change
+K3 Minimum metadata (country/brand/legal/year-
+quarter/type/confid./owner/validity)
+K4 Accuracy: if not current, treat as historical
+K5 Version control (always the latest valid version)
+
+L · Quality &amp; feedback (RAG)
+ID Requirement Complies
+(S/P/N)
+
+Comment
+
+L1 Weekly evaluation of 50–200 Q (accuracy, citation, hallucination,
+latency)
+L2 Feedback: correct / partial / incorrect / fabricated
+L3 Error classification + corrective action + re-evaluation
+L4 Human filter: owner responsible for reviewing the AI Results

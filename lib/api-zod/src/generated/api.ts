@@ -6815,7 +6815,10 @@ export const ManualUploadBody = zod.object({
   "brand": zod.string().optional(),
   "confidentiality": zod.enum(['public', 'private', 'confidential', 'off_the_record']),
   "area": zod.string().optional().describe('One governed area, or empty for all areas'),
-  "language": zod.string().optional()
+  "language": zod.string().optional(),
+  "docType": zod.string().optional().describe('Document type label for the corpus (e.g. Report, Briefing)'),
+  "topics": zod.string().optional().describe('Comma-separated topic tags chosen by the uploader'),
+  "axisIds": zod.string().optional().describe('Comma-separated strategic axis ids to tag the document with')
 })
 
 export const ManualUploadResponse = zod.object({

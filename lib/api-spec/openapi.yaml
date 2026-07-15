@@ -4027,6 +4027,15 @@ components:
           description: One governed area, or empty for all areas
         language:
           type: string
+        docType:
+          type: string
+          description: Document type label for the corpus (e.g. Report, Briefing)
+        topics:
+          type: string
+          description: Comma-separated topic tags chosen by the uploader
+        axisIds:
+          type: string
+          description: Comma-separated strategic axis ids to tag the document with
 
     ManualUploadResult:
       type: object

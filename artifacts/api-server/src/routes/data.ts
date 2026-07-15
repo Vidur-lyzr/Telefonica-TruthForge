@@ -31,7 +31,7 @@ import {
   buildUploadDoc,
   UploadError,
 } from "../data/manualUpload";
-import { DOCS, type Area, type Clearance } from "../data/corpus";
+import { DOCS, AXES, type Area, type Clearance } from "../data/corpus";
 import { registerDocInIndex } from "../adapters/kb";
 import {
   isQdrantConfigured,
@@ -284,6 +284,37 @@ router.post(
       return;
     }
 
+    const docType = str("docType");
+    if (docType.length > 60) {
+      res.status(400).json({
+        error: "The document type label is too long.",
+        code: "invalid_doc_type",
+      });
+      return;
+    }
+    const topics = str("topics")
+      .split(",")
+      .map((t) => t.trim().slice(0, 60))
+      .filter((t) => t.length > 0)
+      .slice(0, 12);
+    const axisIds = [
+      ...new Set(
+        str("axisIds")
+          .split(",")
+          .map((a) => a.trim())
+          .filter((a) => a.length > 0),
+      ),
+    ];
+    const knownAxisIds = new Set(AXES.filter((a) => !a.retired).map((a) => a.id));
+    const unknownAxis = axisIds.find((id) => !knownAxisIds.has(id));
+    if (unknownAxis) {
+      res.status(400).json({
+        error: `Unknown strategic axis "${unknownAxis}".`,
+        code: "invalid_axis",
+      });
+      return;
+    }
+
     try {
       const { text, sourceFormat } = await extractUploadText(
         file.originalname,
@@ -309,6 +340,9 @@ router.post(
         filename: file.originalname,
         text,
         sourceFormat,
+        docType,
+        topics,
+        axisIds,
       });
 
       // Index FIRST, commit to the corpus after: a failed vector write must

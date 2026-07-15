@@ -7468,6 +7468,15 @@ if(manualUploadForm.area !== undefined) {
 if(manualUploadForm.language !== undefined) {
  formData.append(`language`, manualUploadForm.language);
  }
+if(manualUploadForm.docType !== undefined) {
+ formData.append(`docType`, manualUploadForm.docType);
+ }
+if(manualUploadForm.topics !== undefined) {
+ formData.append(`topics`, manualUploadForm.topics);
+ }
+if(manualUploadForm.axisIds !== undefined) {
+ formData.append(`axisIds`, manualUploadForm.axisIds);
+ }
 
   return customFetch<ManualUploadResult>(getManualUploadUrl(),
   {

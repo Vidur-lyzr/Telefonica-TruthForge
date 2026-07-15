@@ -187,6 +187,12 @@ export interface BuildUploadDocInput {
   filename: string;
   text: string;
   sourceFormat: string;
+  /** Uploader-chosen type label; falls back to "Uploaded document". */
+  docType?: string;
+  /** Uploader-chosen topic tags; falls back to title-derived tokens. */
+  topics?: string[];
+  /** Validated strategic axis ids (route checks them against AXES). */
+  axisIds?: string[];
 }
 
 export interface BuiltUploadDoc {
@@ -216,7 +222,13 @@ export function buildUploadDoc(input: BuildUploadDocInput): BuiltUploadDoc {
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const topics = [...new Set(tokenize(input.title))].slice(0, 8);
+  const chosenTopics = (input.topics ?? [])
+    .map((t) => t.trim().toLowerCase())
+    .filter((t) => t.length > 0);
+  const topics =
+    chosenTopics.length > 0
+      ? [...new Set(chosenTopics)].slice(0, 12)
+      : [...new Set(tokenize(input.title))].slice(0, 8);
   const preview = input.text.replace(/\s+/g, " ").trim().slice(0, 180);
 
   const doc: CorpusDoc = {
@@ -227,14 +239,14 @@ export function buildUploadDoc(input: BuildUploadDocInput): BuiltUploadDoc {
     brand: input.brand,
     entity: input.owner,
     quarter: currentQuarter(),
-    type: "Uploaded document",
+    type: input.docType?.trim() || "Uploaded document",
     confidentiality: input.confidentiality,
     owner: input.owner,
     validity: "approved",
     validUntil: null,
     language: input.language,
     topics,
-    axisIds: [],
+    axisIds: [...new Set(input.axisIds ?? [])],
     areas: input.area ? [input.area] : [],
     sourceFormat: input.sourceFormat,
     connector: "Manual upload",

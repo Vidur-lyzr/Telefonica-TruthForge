@@ -90,6 +90,81 @@ function seeded(id: string): number {
 
 const edgeKey = (from: string, to: string) => `${from}|${to}`;
 
+// One physics iteration over the position map. Pure with respect to React:
+// used by the interactive RAF loop AND by the synchronous pre-settle pass
+// that runs before first paint so the graph never visibly jitters on open.
+function physicsStep(
+  pos: Map<string, Pos>,
+  edges: WikiGraph["edges"],
+  alpha: number,
+  draggingId: string | null,
+) {
+  const ids = [...pos.keys()];
+  for (let i = 0; i < ids.length; i++) {
+    const a = pos.get(ids[i]);
+    if (!a) continue;
+    for (let j = i + 1; j < ids.length; j++) {
+      const b = pos.get(ids[j]);
+      if (!b) continue;
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      let d2 = dx * dx + dy * dy;
+      if (d2 < 0.01) d2 = 0.01;
+      const d = Math.sqrt(d2);
+      const rep = 2600 / d2;
+      const fx = (dx / d) * rep;
+      const fy = (dy / d) * rep;
+      a.vx += fx;
+      a.vy += fy;
+      b.vx -= fx;
+      b.vy -= fy;
+    }
+  }
+
+  edges.forEach((e) => {
+    const a = pos.get(e.from);
+    const b = pos.get(e.to);
+    if (!a || !b) return;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    let d = Math.sqrt(dx * dx + dy * dy);
+    if (d < 0.01) d = 0.01;
+    const target = e.type === "citation" ? 95 : 150;
+    const k = 0.03 * (d - target);
+    const fx = (dx / d) * k;
+    const fy = (dy / d) * k;
+    a.vx += fx;
+    a.vy += fy;
+    b.vx -= fx;
+    b.vy -= fy;
+  });
+
+  pos.forEach((p, id) => {
+    if (draggingId === id) {
+      p.vx = 0;
+      p.vy = 0;
+      return;
+    }
+    // Soft gravity towards the centre — no hard clamp, panning covers the rest.
+    p.vx += (WIDTH / 2 - p.x) * 0.0022;
+    p.vy += (HEIGHT / 2 - p.y) * 0.0022;
+    p.vx *= 0.86;
+    p.vy *= 0.86;
+    p.x += p.vx * alpha;
+    p.y += p.vy * alpha;
+  });
+}
+
+// Runs the simulation to rest without rendering. ~440 iterations at the decay
+// rate above; bounded hard so a pathological graph can never lock the thread.
+function settle(pos: Map<string, Pos>, edges: WikiGraph["edges"]) {
+  let alpha = 1;
+  for (let i = 0; i < 600 && alpha > ALPHA_MIN; i++) {
+    physicsStep(pos, edges, alpha, null);
+    alpha *= ALPHA_DECAY;
+  }
+}
+
 export function KnowledgeGraph({
   graph,
   axisColors,
@@ -124,69 +199,13 @@ export function KnowledgeGraph({
 
   const nodeKey = nodes.map((n) => n.id).join("|");
 
-  // Physics step. Runs only while the simulation is hot; once alpha cools to
-  // the floor the loop stops entirely (no idle RAF burn) until reheated.
+  // Interactive physics step. Runs only while the simulation is hot (drag /
+  // reheat); once alpha cools to the floor the loop stops entirely (no idle
+  // RAF burn) until reheated. Initial layout never goes through this loop —
+  // it is settled synchronously before first paint.
   const step = React.useCallback(() => {
-    const pos = posRef.current;
-    const alpha = alphaRef.current;
-    const ns = posRef.current;
-
-    const ids = [...ns.keys()];
-    for (let i = 0; i < ids.length; i++) {
-      const a = pos.get(ids[i]);
-      if (!a) continue;
-      for (let j = i + 1; j < ids.length; j++) {
-        const b = pos.get(ids[j]);
-        if (!b) continue;
-        let dx = a.x - b.x;
-        let dy = a.y - b.y;
-        let d2 = dx * dx + dy * dy;
-        if (d2 < 0.01) d2 = 0.01;
-        const d = Math.sqrt(d2);
-        const rep = 2600 / d2;
-        const fx = (dx / d) * rep;
-        const fy = (dy / d) * rep;
-        a.vx += fx;
-        a.vy += fy;
-        b.vx -= fx;
-        b.vy -= fy;
-      }
-    }
-
-    edges.forEach((e) => {
-      const a = pos.get(e.from);
-      const b = pos.get(e.to);
-      if (!a || !b) return;
-      let dx = b.x - a.x;
-      let dy = b.y - a.y;
-      let d = Math.sqrt(dx * dx + dy * dy);
-      if (d < 0.01) d = 0.01;
-      const target = e.type === "citation" ? 95 : 150;
-      const k = 0.03 * (d - target);
-      const fx = (dx / d) * k;
-      const fy = (dy / d) * k;
-      a.vx += fx;
-      a.vy += fy;
-      b.vx -= fx;
-      b.vy -= fy;
-    });
-
-    pos.forEach((p, id) => {
-      if (draggingRef.current === id) {
-        p.vx = 0;
-        p.vy = 0;
-        return;
-      }
-      // Soft gravity towards the centre — no hard clamp, panning covers the rest.
-      p.vx += (WIDTH / 2 - p.x) * 0.0022;
-      p.vy += (HEIGHT / 2 - p.y) * 0.0022;
-      p.vx *= 0.86;
-      p.vy *= 0.86;
-      p.x += p.vx * alpha;
-      p.y += p.vy * alpha;
-    });
-
-    alphaRef.current = alpha * ALPHA_DECAY;
+    physicsStep(posRef.current, edges, alphaRef.current, draggingRef.current);
+    alphaRef.current = alphaRef.current * ALPHA_DECAY;
     tick((v) => (v + 1) % 1_000_000);
 
     if (alphaRef.current <= ALPHA_MIN && draggingRef.current === null) {
@@ -210,10 +229,14 @@ export function KnowledgeGraph({
     [step],
   );
 
-  // Seeded initial layout whenever the node set changes; reheats the sim.
-  React.useEffect(() => {
+  // Seeded initial layout whenever the node set changes. The simulation is
+  // settled SYNCHRONOUSLY (layout effect, before the browser paints) so the
+  // graph appears already stable — no visible jitter on open. The RAF loop
+  // only ever runs for interactions (drag) afterwards.
+  React.useLayoutEffect(() => {
     const prev = posRef.current;
     const next = new Map<string, Pos>();
+    let hasNew = false;
     nodes.forEach((n, i) => {
       const kept = prev.get(n.id);
       if (kept) {
@@ -221,6 +244,7 @@ export function KnowledgeGraph({
         next.set(n.id, kept);
         return;
       }
+      hasNew = true;
       const angle = (i / Math.max(nodes.length, 1)) * Math.PI * 2;
       const ring = n.kind === "axis" ? 130 : 250;
       next.set(n.id, {
@@ -230,16 +254,17 @@ export function KnowledgeGraph({
         vy: 0,
       });
     });
+    if (hasNew || next.size !== prev.size) settle(next, edges);
     posRef.current = next;
-    alphaRef.current = 1;
-    reheat(1);
+    alphaRef.current = ALPHA_MIN;
+    tick((v) => (v + 1) % 1_000_000);
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       runningRef.current = false;
       rafRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeKey, reheat]);
+  }, [nodeKey]);
 
   // Wheel zoom needs a non-passive listener so preventDefault works; zoom is
   // anchored on the cursor. Page scroll elsewhere is untouched.

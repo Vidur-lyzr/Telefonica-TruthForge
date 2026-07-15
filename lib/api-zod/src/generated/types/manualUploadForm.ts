@@ -17,4 +17,10 @@ export interface ManualUploadForm {
   /** One governed area, or empty for all areas */
   area?: string;
   language?: string;
+  /** Document type label for the corpus (e.g. Report, Briefing) */
+  docType?: string;
+  /** Comma-separated topic tags chosen by the uploader */
+  topics?: string;
+  /** Comma-separated strategic axis ids to tag the document with */
+  axisIds?: string;
 }

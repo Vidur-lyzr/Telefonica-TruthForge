@@ -28,8 +28,11 @@ import {
   Title3,
   Spinner,
   Touchable,
-  Select,
   TextField,
+  Chip,
+  Menu,
+  MenuItem,
+  ButtonPrimary,
   skinVars,
   IconDatabaseRegular,
   IconWorldDeviceRegular,
@@ -38,6 +41,7 @@ import {
   IconCheckedRegular,
   IconCloseRegular,
 } from "@telefonica/mistica";
+import { UploadDrawer } from "./upload-drawer";
 
 type ChunkBlock =
   | { kind: "prose"; text: string }
@@ -193,7 +197,9 @@ function StatCard({
 
 const ALL = "__all__";
 
-function FilterSelect({
+// Standard Mística filter pattern: a compact Chip that opens a Menu of
+// checkbox items — one chip per facet instead of a wall of full-size Selects.
+function FilterChip({
   label,
   value,
   onChange,
@@ -206,20 +212,52 @@ function FilterSelect({
   options: { value: string; label: string }[];
   allLabel: string;
 }) {
+  const isActive = value !== ALL;
+  const selectedLabel = options.find((o) => o.value === value)?.label;
   return (
-    <div style={{ minWidth: 150 }}>
-      <Select
-        name={`corpus-filter-${label}`}
-        label={label}
-        value={value}
-        onChangeValue={onChange}
-        options={[
-          { value: ALL, text: allLabel },
-          ...options.map((o) => ({ value: o.value, text: o.label })),
-        ]}
-      />
-    </div>
+    <Menu
+      renderTarget={({ ref, onPress, isMenuOpen }) => (
+        <div ref={ref} style={{ display: "inline-flex" }}>
+          <Chip active={isActive || isMenuOpen} onPress={onPress}>
+            {isActive && selectedLabel ? `${label}: ${selectedLabel}` : label}
+          </Chip>
+        </div>
+      )}
+      renderMenu={({ ref, className, close }) => (
+        <div ref={ref} className={className}>
+          <MenuItem
+            label={allLabel}
+            controlType="checkbox"
+            checked={!isActive}
+            onPress={() => {
+              onChange(ALL);
+              close();
+            }}
+          />
+          {options.map((o) => (
+            <MenuItem
+              key={o.value}
+              label={o.label}
+              controlType="checkbox"
+              checked={value === o.value}
+              onPress={() => {
+                onChange(o.value);
+                close();
+              }}
+            />
+          ))}
+        </div>
+      )}
+    />
   );
+}
+
+type SortKey = "newest" | "oldest" | "title" | "chunks";
+
+// "Q3 2025" → sortable rank; unknown formats sink to the bottom.
+function quarterRank(quarter: string): number {
+  const m = /Q([1-4])\s*(\d{4})/.exec(quarter);
+  return m ? Number(m[2]) * 4 + Number(m[1]) : 0;
 }
 
 function uniqueSorted(values: string[]): string[] {
@@ -241,6 +279,8 @@ export default function CorpusArea() {
   const [clearance, setClearance] = React.useState(ALL);
   const [validity, setValidity] = React.useState(ALL);
   const [connector, setConnector] = React.useState(ALL);
+  const [sort, setSort] = React.useState<SortKey>("newest");
+  const [uploadOpen, setUploadOpen] = React.useState(false);
 
   const { data: docDetail, isLoading: isLoadingDetail } = useGetDocument(
     selectedDocId || "",
@@ -314,6 +354,51 @@ export default function CorpusArea() {
     connector,
   ]);
 
+  const sortedDocuments = React.useMemo(() => {
+    const docs = [...filteredDocuments];
+    switch (sort) {
+      case "newest":
+        docs.sort((a, b) => quarterRank(b.quarter) - quarterRank(a.quarter));
+        break;
+      case "oldest":
+        docs.sort((a, b) => quarterRank(a.quarter) - quarterRank(b.quarter));
+        break;
+      case "title":
+        docs.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case "chunks":
+        docs.sort((a, b) => b.chunkCount - a.chunkCount);
+        break;
+    }
+    return docs;
+  }, [filteredDocuments, sort]);
+
+  const sortLabels: Record<SortKey, string> = {
+    newest: c.sortNewest,
+    oldest: c.sortOldest,
+    title: c.sortTitle,
+    chunks: c.sortChunks,
+  };
+
+  const anyFilterActive =
+    search.trim() !== "" ||
+    category !== ALL ||
+    country !== ALL ||
+    brand !== ALL ||
+    clearance !== ALL ||
+    validity !== ALL ||
+    connector !== ALL;
+
+  function clearFilters() {
+    setSearch("");
+    setCategory(ALL);
+    setCountry(ALL);
+    setBrand(ALL);
+    setClearance(ALL);
+    setValidity(ALL);
+    setConnector(ALL);
+  }
+
   return (
     <Stack space={24}>
       <Grid columns={4} gap={16}>
@@ -356,81 +441,107 @@ export default function CorpusArea() {
       </Grid>
 
       <Stack space={16}>
-        <Inline space={8} alignItems="center">
-          <IconDocumentOtherRegular size={20} color={skinVars.colors.brand} />
-          <Title2>{c.governedCorpus}</Title2>
+        <Inline space="between" alignItems="center">
+          <Inline space={8} alignItems="center">
+            <IconDocumentOtherRegular size={20} color={skinVars.colors.brand} />
+            <Title2>{c.governedCorpus}</Title2>
+          </Inline>
+          <ButtonPrimary small onPress={() => setUploadOpen(true)}>
+            {c.uploadButton}
+          </ButtonPrimary>
         </Inline>
 
-        <div
-          style={{
-            backgroundColor: skinVars.colors.backgroundAlternative,
-            border: `1px solid ${skinVars.colors.divider}`,
-            borderRadius: skinVars.borderRadii.container,
-            padding: 12,
-          }}
-        >
-          <Stack space={12}>
-            <TextField
-              name="corpus-search"
-              label={c.searchLabel}
-              value={search}
-              onChangeValue={setSearch}
+        <TextField
+          name="corpus-search"
+          label={c.searchLabel}
+          value={search}
+          onChangeValue={setSearch}
+          fullWidth
+        />
+        <Inline space="between" alignItems="center">
+          <Inline space={8} alignItems="center" wrap>
+            <FilterChip
+              label={c.filterCategory}
+              allLabel={c.allLabel}
+              value={category}
+              onChange={setCategory}
+              options={facets.categories.map((v) => ({
+                value: v,
+                label: categoryLabel(v),
+              }))}
             />
-            <Inline space={12} alignItems="center" wrap>
-              <FilterSelect
-                label={c.filterCategory}
-                allLabel={c.allLabel}
-                value={category}
-                onChange={setCategory}
-                options={facets.categories.map((v) => ({
-                  value: v,
-                  label: categoryLabel(v),
-                }))}
-              />
-              <FilterSelect
-                label={c.filterCountry}
-                allLabel={c.allLabel}
-                value={country}
-                onChange={setCountry}
-                options={facets.countries.map((v) => ({ value: v, label: v }))}
-              />
-              <FilterSelect
-                label={c.filterBrand}
-                allLabel={c.allLabel}
-                value={brand}
-                onChange={setBrand}
-                options={facets.brands.map((v) => ({ value: v, label: v }))}
-              />
-              <FilterSelect
-                label={c.filterClearance}
-                allLabel={c.allLabel}
-                value={clearance}
-                onChange={setClearance}
-                options={facets.clearances.map((v) => ({
-                  value: v,
-                  label: clearanceLabel(v, lang),
-                }))}
-              />
-              <FilterSelect
-                label={c.filterValidity}
-                allLabel={c.allLabel}
-                value={validity}
-                onChange={setValidity}
-                options={facets.validities.map((v) => ({
-                  value: v,
-                  label: validityLabel(v, lang),
-                }))}
-              />
-              <FilterSelect
-                label={c.filterSource}
-                allLabel={c.allLabel}
-                value={connector}
-                onChange={setConnector}
-                options={facets.connectors.map((v) => ({ value: v, label: v }))}
-              />
-            </Inline>
-          </Stack>
-        </div>
+            <FilterChip
+              label={c.filterCountry}
+              allLabel={c.allLabel}
+              value={country}
+              onChange={setCountry}
+              options={facets.countries.map((v) => ({ value: v, label: v }))}
+            />
+            <FilterChip
+              label={c.filterBrand}
+              allLabel={c.allLabel}
+              value={brand}
+              onChange={setBrand}
+              options={facets.brands.map((v) => ({ value: v, label: v }))}
+            />
+            <FilterChip
+              label={c.filterClearance}
+              allLabel={c.allLabel}
+              value={clearance}
+              onChange={setClearance}
+              options={facets.clearances.map((v) => ({
+                value: v,
+                label: clearanceLabel(v, lang),
+              }))}
+            />
+            <FilterChip
+              label={c.filterValidity}
+              allLabel={c.allLabel}
+              value={validity}
+              onChange={setValidity}
+              options={facets.validities.map((v) => ({
+                value: v,
+                label: validityLabel(v, lang),
+              }))}
+            />
+            <FilterChip
+              label={c.filterSource}
+              allLabel={c.allLabel}
+              value={connector}
+              onChange={setConnector}
+              options={facets.connectors.map((v) => ({ value: v, label: v }))}
+            />
+            {anyFilterActive && (
+              <Chip onClose={clearFilters}>{c.clearFilters}</Chip>
+            )}
+          </Inline>
+          <Menu
+            position="right"
+            renderTarget={({ ref, onPress, isMenuOpen }) => (
+              <div ref={ref} style={{ display: "inline-flex", flexShrink: 0 }}>
+                <Chip active={isMenuOpen} onPress={onPress}>
+                  {`${c.sortLabel}: ${sortLabels[sort]}`}
+                </Chip>
+              </div>
+            )}
+            renderMenu={({ ref, className, close }) => (
+              <div ref={ref} className={className}>
+                {(Object.keys(sortLabels) as SortKey[]).map((key) => (
+                  <MenuItem
+                    key={key}
+                    label={sortLabels[key]}
+                    controlType="checkbox"
+                    checked={sort === key}
+                    onPress={() => {
+                      setSort(key);
+                      close();
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          />
+        </Inline>
 
         <Text1 regular color={skinVars.colors.textSecondary}>
           {c.matchCount(filteredDocuments.length, (documents ?? []).length)}
@@ -446,7 +557,7 @@ export default function CorpusArea() {
           </Boxed>
         ) : (
           <BoxedRowList>
-            {filteredDocuments.map((doc) => (
+            {sortedDocuments.map((doc) => (
               <BoxedRow
                 key={doc.id}
                 title={doc.title}
@@ -787,6 +898,8 @@ export default function CorpusArea() {
           )}
         </Drawer>
       )}
+
+      {uploadOpen && <UploadDrawer onClose={() => setUploadOpen(false)} />}
     </Stack>
   );
 }

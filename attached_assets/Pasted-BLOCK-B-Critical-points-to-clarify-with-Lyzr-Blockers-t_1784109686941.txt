@@ -1,0 +1,161 @@
+BLOCK B · Critical points to clarify with Lyzr
+Blockers (tender clauses)
+ID Critical point Ref. (Block A) Lyzr response
+CP-01 Closed-circuit deployment — Can Lyzr be deployed within
+Telefónica’s Azure tenant (BYOC / VPC / private / on-prem),
+or is it multi-tenant SaaS? (Clause 4 + 6.1.3). Without self-
+hosting inside the client’s perimeter, sovereignty and the
+closed circuit are at risk.
+
+A1, A5, M6
+
+CP-02 No-train — Is there a contractual guarantee that Lyzr does
+NOT train/feed models with Telefónica’s data or with the
+contract information? (6.1.3).
+
+A5
+CP-03 Data residency — Processing and storage in the EU? Where
+do the LLMs it orchestrates physically run?
+
+A6 (extends)
+
+CP-04 IP of results — Does Lyzr claim any rights over the generated
+outputs? Telefónica requires exclusive IP over the “AI
+Results” (6.3). Separate: platform (Lyzr licence) vs outputs
+(Telefónica’s).
+
+M5
+
+CP-05 AI liability — Does Lyzr take on part of the
+liability/indemnification (6.2)?
+
+M6
+
+Fit with the evaluation grid
+ID Critical point Ref. (Block A) Lyzr response
+CP-06 Open architecture / multi-LLM (10%) — Does it integrate
+Azure OpenAI + Anthropic + others? Task-based routing?
+Models interchangeable through configuration? (to defend
+“no single-vendor”).
+
+A2, A3
+
+CP-07 Vendor dependency / lock-in (5%) — Exportability of data,
+embeddings, metadata and configurations? Exit strategy if
+Telefónica leaves Lyzr?
+
+N6
+CP-08 Client self-sufficiency — Does the backend let Telefónica
+manage sources, taxonomy, permissions and the Brand Room
+without depending on Lyzr/Accenture?
+
+N5
+CP-09 UX (10%) — Does Lyzr’s UI serve as the final look &amp; feel, or
+must an experience layer be built on top?
+Customisable/white-label?
+
+— new
+
+Functional capabilities to confirm
+ID Critical point Ref. (Block A) Lyzr response
+CP-10 Grounding/citation — Mandatory citation at paragraph/cell
+level with traceability? Confidence score? “I have no
+evidence” response?
+
+B3, B4
+CP-11 Hybrid RAG — Keyword + semantic + re-ranking? On Azure AI
+Search or a proprietary engine?
+
+B2
+CP-12 Connectors/ingestion — Native connectors for SharePoint,
+Teams, Asana, Dynamics, SAP, social listening (Talkwalker),
+external APIs? Structured extraction from Excel tables?
+Word/PPT/PDF?
+
+J1–J4
+
+CP-13 AI metadata + human-in-the-loop — Native? Document
+versioning?
+
+F2
+CP-14 Permissions and confidentiality — Granular RBAC per profile B5, I3, I4
+
+Accenture Song · Confidential · Telefónica — Single Source of Truth (RFP) · July 2026
+
++ public/private/confidential levels? Integration with Entra ID
++ Microsoft sensitivity labels?
+CP-15 Multi-language — Native ES/EN/DE/PT in ingestion and
+generation?
+
+A7
+
+CP-16 On-brand, multi-format document generation —
+Word/PPT/PDF rendering with corporate templates + brand
+guardrails, or must it be built on top?
+
+C2, C3
+
+CP-17 Evaluation/observability — Native answer-accuracy,
+citation-correctness and hallucination-rate metrics? Eval
+dashboard + feedback loop?
+
+L1
+
+Commercial &amp; maturity
+ID Critical point Ref. (Block A) Lyzr response
+CP-18 Pricing — Model (per user / token / platform)? Cost at
+50/100/150/200 users? (for the requested sizing).
+
+O4, O5
+CP-19 Certifications — SOC2, ISO 27001, GDPR? IP indemnification? M1 · SOC2/ISO
+new
+CP-20 SLA — Does Lyzr support 24x7 + resolution in &lt;24h, or does
+Accenture cover it as a managed-service layer?
+
+P1, P3
+
+CP-21 References — Enterprise cases of the same size (telco /
+regulated sector)? A mature enterprise version?
+
+— new
+
+Features to validate (from PC2 &amp; PC4)
+ID Critical point Ref. (Block A) Lyzr response
+CP-22 ⭐ Re-labelling without re-embeddings (PC2) — Are the
+tags/metadata independent of the embedding vectors?
+Config-driven, on-demand batch re-classification with no
+redeploy? (the question that decides the viability of
+taxonomy-as-configuration).
+
+K2, K3
+
+CP-23 Canvas-style editing — Editor with native conversational
+refinement + inline editing? Customisable / white-label as the
+final look &amp; feel?
+
+— new
+CP-24 Chart generation from data — within the documents. C2
+CP-25 Scheduler for recurring documents + review folder — before
+publishing.
+
+C5, G3
+CP-26 Embedded conversational window per module — scoped to
+the module’s data, in addition to the cross-cutting chat.
+
+B1 (extends)
+
+CP-27 Predictive &amp; forecasting capability — (a) forecast/projection
+over historical KPI series; (b) planning conflicts and the
+cascading effect of a change on the plan.
+
+C7, D3, E3
+
+CP-28 Calendar integration — (Asana/Excel) + two-way
+synchronisation with the source.
+
+E1, E2
+
+CP-29 Versioned saving with tags — for each output in the
+repository.
+
+K5, I5
