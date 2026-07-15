@@ -42,3 +42,9 @@ id = "ShbEM1DmttpRcfy4hs8M5"
 uri = "file://docs/GOVERNED_RAG_SOLUTION.md"
 type = "text"
 title = "Governed RAG — architecture & live verification"
+
+[[outputs]]
+id = "PXQYv2FtwlOfs2uH4_97_"
+uri = "file://reports/rfp-compliance-report.md"
+type = "text"
+title = "RFP Compliance Report — Hub SSoT (A–L + CP-01–29)"
