@@ -26,6 +26,19 @@ export interface DataSource {
 
 export const DATA_SOURCES: DataSource[] = [
   {
+    id: "src-powerbi",
+    name: "Power BI",
+    type: "Business intelligence",
+    status: "live",
+    cadence: "Continuous sync",
+    docCount: 64,
+    lastSync: "8m ago",
+    externalFilter: false,
+    filterNote: null,
+    description:
+      "Governed KPI datasets and published reports. Figures inherit their workspace sensitivity label, which becomes the confidentiality tier used for governance.",
+  },
+  {
     id: "src-sharepoint",
     name: "SharePoint",
     type: "Document repository",

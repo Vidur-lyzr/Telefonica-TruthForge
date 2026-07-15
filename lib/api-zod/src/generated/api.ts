@@ -1072,6 +1072,36 @@ export const ApplyRetagResponse = zod.object({
 
 
 /**
+ * Superadmin-only. Adds a new strategic axis to the taxonomy catalogue. The server assigns a stable axis id and an unused palette colour, then records it as a new persisted taxonomy version (metadata only — no re-embedding, no redeploy) with an audit entry.
+ * @summary Create a new strategic axis as a new taxonomy version
+ */
+export const createAxisBodyNameMin = 2;
+export const createAxisBodyNameMax = 60;
+
+export const createAxisBodyDescriptionMax = 280;
+
+
+
+export const CreateAxisBody = zod.object({
+  "roleId": zod.string().describe('Persona asserting the action — must resolve to Superadmin clearance.'),
+  "actor": zod.string().describe('Human-readable actor label recorded in the audit trail.'),
+  "name": zod.string().min(createAxisBodyNameMin).max(createAxisBodyNameMax).describe('Display name of the new strategic axis.'),
+  "description": zod.string().max(createAxisBodyDescriptionMax).optional().describe('Optional short description of what the axis covers.')
+})
+
+export const CreateAxisResponse = zod.object({
+  "axis": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "color": zod.string(),
+  "description": zod.string(),
+  "retired": zod.boolean().optional().describe('A retired axis is never deleted — old taxonomy versions and audit entries keep referencing it — but it is hidden from active listings.\n')
+}),
+  "version": zod.number().describe('The new taxonomy version created by adding the axis.')
+})
+
+
+/**
  * Scrolls the Qdrant payload index for chunks tagged with the axis and aggregates them per document (titles joined from the governed corpus), so the mapping table is derived from the live index, not a static list. The in-memory corpus count is returned alongside for a cross-check. Falls back to the in-memory corpus when no vector index is configured.
  * @summary Live mapping table — documents carrying an axis, read from the vector index
  */

@@ -172,6 +172,44 @@ export function ConfluenceLogo({ size = 24 }: { size?: number }) {
   );
 }
 
+export function PowerBILogo({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 256 256" aria-hidden="true">
+      <defs>
+        <linearGradient id="hubPbi" x1="50%" x2="50%" y1="0%" y2="100%">
+          <stop offset="0" stopColor="#EBBB14" />
+          <stop offset="1" stopColor="#B25400" />
+        </linearGradient>
+      </defs>
+      <path
+        fill="url(#hubPbi)"
+        d="M160 24c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v208c0 6.627-5.373 12-12 12h-40c-6.627 0-12-5.373-12-12z"
+      />
+      <path
+        fill="#C77F02"
+        d="M100 92c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v140c0 6.627-5.373 12-12 12h-40c-6.627 0-12-5.373-12-12z"
+      />
+      <path
+        fill="#F2C811"
+        d="M40 160c0-6.627 5.373-12 12-12h40c6.627 0 12 5.373 12 12v72c0 6.627-5.373 12-12 12H52c-6.627 0-12-5.373-12-12z"
+      />
+    </svg>
+  );
+}
+
+export function TalkwalkerLogo({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 256 256" aria-hidden="true">
+      <rect width="256" height="256" rx="56" fill="#1A1F4B" />
+      <path
+        fill="#00C2B2"
+        d="M64 96h128v28h-50v76h-28v-76H64z"
+      />
+      <circle cx="182" cy="176" r="20" fill="#FF5C5C" />
+    </svg>
+  );
+}
+
 export const SOURCE_LOGOS: Record<string, React.ComponentType<{ size?: number }>> = {
   "src-sharepoint": SharePointLogo,
   "src-asana": AsanaLogo,
@@ -179,4 +217,6 @@ export const SOURCE_LOGOS: Record<string, React.ComponentType<{ size?: number }>
   "src-gcal": GoogleCalendarLogo,
   "src-jira": JiraLogo,
   "src-confluence": ConfluenceLogo,
+  "src-powerbi": PowerBILogo,
+  "src-talkwalker": TalkwalkerLogo,
 };

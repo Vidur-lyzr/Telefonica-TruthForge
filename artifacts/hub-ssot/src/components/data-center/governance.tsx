@@ -7,6 +7,7 @@ import {
   useProposeRetag,
   useApplyRetag,
   useRollbackTaxonomy,
+  useCreateAxis,
   useListAxisAffectedDocuments,
   getListAxisAffectedDocumentsQueryKey,
   RetagProposeResult,
@@ -68,7 +69,15 @@ export default function GovernanceArea() {
   const proposeMutation = useProposeRetag();
   const applyMutation = useApplyRetag();
   const rollbackMutation = useRollbackTaxonomy();
+  const createAxisMutation = useCreateAxis();
   const { runReclassification } = useDataCenter();
+
+  const [addAxisOpen, setAddAxisOpen] = React.useState(false);
+  const [newAxisName, setNewAxisName] = React.useState("");
+  const [newAxisDesc, setNewAxisDesc] = React.useState("");
+  const [creatingAxis, setCreatingAxis] = React.useState(false);
+  const [createAxisError, setCreateAxisError] = React.useState<string | null>(null);
+  const [lastCreatedAxis, setLastCreatedAxis] = React.useState<{ name: string; version: number } | null>(null);
 
   const [wizardOpen, setWizardOpen] = React.useState(false);
   const [step, setStep] = React.useState<Step>(0);
@@ -295,6 +304,33 @@ export default function GovernanceArea() {
     }
   }
 
+  function resetAddAxis() {
+    setNewAxisName("");
+    setNewAxisDesc("");
+    setCreateAxisError(null);
+  }
+
+  async function confirmCreateAxis() {
+    const name = newAxisName.trim();
+    if (name.length < 2) return;
+    setCreatingAxis(true);
+    setCreateAxisError(null);
+    try {
+      const result = await createAxisMutation.mutateAsync({
+        data: { roleId, actor: W.actor, name, description: newAxisDesc.trim() || undefined },
+      });
+      setLastCreatedAxis({ name: result.axis.name, version: result.version });
+      runReclassification(G.addAxis.created(result.axis.name, result.version));
+      await Promise.all([refetchAxes(), refetchTaxonomy()]);
+      setAddAxisOpen(false);
+      resetAddAxis();
+    } catch {
+      setCreateAxisError(G.addAxis.error);
+    } finally {
+      setCreatingAxis(false);
+    }
+  }
+
   const stepLabels = W.steps;
   const proposing = proposeMutation.isPending;
 
@@ -395,6 +431,15 @@ export default function GovernanceArea() {
                 <ButtonSecondary
                   small
                   onPress={() => {
+                    resetAddAxis();
+                    setAddAxisOpen(true);
+                  }}
+                >
+                  {G.addAxis.open}
+                </ButtonSecondary>
+                <ButtonSecondary
+                  small
+                  onPress={() => {
                     resetWizard();
                     setWizardOpen(true);
                   }}
@@ -423,6 +468,14 @@ export default function GovernanceArea() {
           asset={<IconRefreshRegular color={skinVars.colors.success} />}
           title={G.liveTitle(lastRevert.newVersion)}
           description={G.revertedDetail(lastRevert.toVersion, lastRevert.newVersion, lastRevert.docs)}
+        />
+      )}
+
+      {lastCreatedAxis && (
+        <Callout
+          asset={<IconShieldRegular color={skinVars.colors.success} />}
+          title={G.liveTitle(lastCreatedAxis.version)}
+          description={G.addAxis.created(lastCreatedAxis.name, lastCreatedAxis.version)}
         />
       )}
 
@@ -606,6 +659,51 @@ export default function GovernanceArea() {
             setLastApplied(result);
           }}
         />
+      )}
+
+      {addAxisOpen && (
+        <Drawer
+          title={G.addAxis.title}
+          description={G.addAxis.desc}
+          onClose={() => setAddAxisOpen(false)}
+          onDismiss={() => setAddAxisOpen(false)}
+        >
+          <Stack space={24}>
+            <TextField
+              name="new-axis-name"
+              label={G.addAxis.nameLabel}
+              value={newAxisName}
+              onChangeValue={setNewAxisName}
+              maxLength={60}
+            />
+            <TextField
+              name="new-axis-desc"
+              label={G.addAxis.descriptionLabel}
+              value={newAxisDesc}
+              onChangeValue={setNewAxisDesc}
+              maxLength={280}
+            />
+            {createAxisError && (
+              <Callout
+                asset={<IconAlertRegular color={skinVars.colors.error} />}
+                title={G.addAxis.error}
+                description={createAxisError}
+              />
+            )}
+            <Inline space={12}>
+              <ButtonPrimary
+                small
+                onPress={() => void confirmCreateAxis()}
+                disabled={creatingAxis || newAxisName.trim().length < 2}
+              >
+                {creatingAxis ? G.addAxis.creating : G.addAxis.create}
+              </ButtonPrimary>
+              <ButtonSecondary small onPress={() => setAddAxisOpen(false)} disabled={creatingAxis}>
+                {G.addAxis.cancel}
+              </ButtonSecondary>
+            </Inline>
+          </Stack>
+        </Drawer>
       )}
 
       {wizardOpen && (

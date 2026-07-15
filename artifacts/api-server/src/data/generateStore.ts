@@ -13,6 +13,7 @@ import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from "
 import { dirname, join } from "node:path";
 import { logger } from "../lib/logger";
 import type { GeneratedDraft, GenerationStage } from "../agent/generateAgent";
+import { GENERATE_STORE_SEED } from "./seed/generateSeed";
 
 export interface SavedVersion {
   id: string;
@@ -218,9 +219,42 @@ let publications: PublicationRecord[] = [];
 let scheduledDraftIndex = new Map<string, string>();
 let idCounter = 0;
 
+function applyState(raw: Partial<PersistedState>): void {
+  savedVersions = Array.isArray(raw.savedVersions) ? raw.savedVersions : [];
+  schedules = Array.isArray(raw.schedules) ? raw.schedules : [];
+  reviewInbox = Array.isArray(raw.reviewInbox) ? raw.reviewInbox : [];
+  scheduledDraftIndex = new Map(Object.entries(raw.scheduledDraftIndex ?? {}));
+  editorialReviews = Array.isArray(raw.editorialReviews) ? raw.editorialReviews : [];
+  notifications = Array.isArray(raw.notifications) ? raw.notifications : [];
+  deliveries = Array.isArray(raw.deliveries) ? raw.deliveries : [];
+  publications = Array.isArray(raw.publications) ? raw.publications : [];
+  for (const s of schedules) {
+    if (typeof s.timeOfDay !== "string") s.timeOfDay = null;
+    if (!s.nextRunAt) {
+      s.nextRunAt = computeNextRunAt(s.frequency, s.lastRunAt ?? s.createdAt, s.timeOfDay);
+    }
+  }
+  idCounter = typeof raw.idCounter === "number" ? raw.idCounter : 0;
+}
+
 function load(): void {
+  // Fresh deployment: `.data` is gitignored and absent, so seed the store from
+  // the committed demo snapshot and persist it so the Generate module (Review
+  // inbox, Scheduled, Versions) is populated out of the box instead of empty.
+  if (!existsSync(STORE_PATH)) {
+    applyState(GENERATE_STORE_SEED as unknown as Partial<PersistedState>);
+    logger.info(
+      {
+        versions: savedVersions.length,
+        schedules: schedules.length,
+        reviewItems: reviewInbox.length,
+      },
+      "generate store seeded from committed demo snapshot",
+    );
+    persist();
+    return;
+  }
   try {
-    if (!existsSync(STORE_PATH)) return;
     const raw = JSON.parse(readFileSync(STORE_PATH, "utf8")) as Partial<PersistedState>;
     savedVersions = Array.isArray(raw.savedVersions) ? raw.savedVersions : [];
     schedules = Array.isArray(raw.schedules) ? raw.schedules : [];

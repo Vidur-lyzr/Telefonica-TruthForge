@@ -89,6 +89,8 @@ export * from './corpusDocumentCategory';
 export * from './corpusDocumentDetail';
 export * from './corpusStats';
 export * from './countBucket';
+export * from './createAxisInput';
+export * from './createAxisResult';
 export * from './createScheduleInput';
 export * from './dataSource';
 export * from './delayRisk';

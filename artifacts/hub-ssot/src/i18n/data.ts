@@ -258,6 +258,18 @@ export interface DataStrings {
     revertConfirmDesc: string;
     revertConfirm: string;
     revertCancel: string;
+    addAxis: {
+      open: string;
+      title: string;
+      desc: string;
+      nameLabel: string;
+      descriptionLabel: string;
+      create: string;
+      creating: string;
+      cancel: string;
+      error: string;
+      created: (name: string, version: number) => string;
+    };
     seedNote: string;
     seedActor: string;
     revertError: string;
@@ -682,6 +694,18 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         "Documents return to the tags they carried at that version and the axis catalogue is restored — applied as a NEW version, so the audit trail keeps every step. The vector index is updated in place; nothing is re-embedded. Runtime-ingested documents are not touched.",
       revertConfirm: "Roll back",
       revertCancel: "Cancel",
+      addAxis: {
+        open: "Add axis",
+        title: "Create a strategic axis",
+        desc: "Add a new axis to the taxonomy. The Hub assigns an id and colour and records it as a new taxonomy version — metadata only, no re-embedding.",
+        nameLabel: "Axis name",
+        descriptionLabel: "Description (optional)",
+        create: "Create axis",
+        creating: "Creating…",
+        cancel: "Cancel",
+        error: "The Hub could not create the axis.",
+        created: (name: string, version: number) => `Axis "${name}" created in taxonomy v${version}.`,
+      },
       seedNote: "Seed corpus classification",
       seedActor: "System",
       revertError: "The rollback could not be applied. Nothing has been changed.",
@@ -1134,6 +1158,18 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         "Los documentos recuperan las etiquetas que tenían en esa versión y se restaura el catálogo de ejes — se aplica como una versión NUEVA, así que el registro de auditoría conserva cada paso. El índice vectorial se actualiza in situ; no se regenera ningún embedding. Los documentos ingeridos en tiempo de ejecución no se tocan.",
       revertConfirm: "Revertir",
       revertCancel: "Cancelar",
+      addAxis: {
+        open: "Añadir eje",
+        title: "Crear un eje estratégico",
+        desc: "Añade un nuevo eje a la taxonomía. El Hub asigna un id y un color y lo registra como una nueva versión de taxonomía — solo metadatos, sin reindexar.",
+        nameLabel: "Nombre del eje",
+        descriptionLabel: "Descripción (opcional)",
+        create: "Crear eje",
+        creating: "Creando…",
+        cancel: "Cancelar",
+        error: "El Hub no pudo crear el eje.",
+        created: (name: string, version: number) => `Eje "${name}" creado en la taxonomía v${version}.`,
+      },
       seedNote: "Clasificación del corpus semilla",
       seedActor: "Sistema",
       revertError: "No se pudo aplicar la reversión. No se ha cambiado nada.",
@@ -1583,6 +1619,18 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         "Dokumente erhalten die Tags zurück, die sie in dieser Version trugen, und der Achsenkatalog wird wiederhergestellt — angewendet als NEUE Version, sodass der Prüfpfad jeden Schritt behält. Der Vektorindex wird direkt aktualisiert; nichts wird neu eingebettet. Zur Laufzeit aufgenommene Dokumente bleiben unberührt.",
       revertConfirm: "Zurücksetzen",
       revertCancel: "Abbrechen",
+      addAxis: {
+        open: "Achse hinzufügen",
+        title: "Strategische Achse erstellen",
+        desc: "Fügt der Taxonomie eine neue Achse hinzu. Der Hub vergibt eine id und eine Farbe und erfasst sie als neue Taxonomieversion — nur Metadaten, kein erneutes Einbetten.",
+        nameLabel: "Achsenname",
+        descriptionLabel: "Beschreibung (optional)",
+        create: "Achse erstellen",
+        creating: "Wird erstellt…",
+        cancel: "Abbrechen",
+        error: "Der Hub konnte die Achse nicht erstellen.",
+        created: (name: string, version: number) => `Achse "${name}" in Taxonomie v${version} erstellt.`,
+      },
       seedNote: "Klassifikation des Ausgangskorpus",
       seedActor: "System",
       revertError: "Das Rollback konnte nicht angewendet werden. Es wurde nichts geändert.",
@@ -2034,6 +2082,18 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         "Os documentos voltam às etiquetas que carregavam naquela versão e o catálogo de eixos é restaurado — aplicado como uma versão NOVA, então a trilha de auditoria mantém cada passo. O índice vetorial é atualizado no local; nada é reembutido. Documentos ingeridos em tempo de execução não são tocados.",
       revertConfirm: "Reverter",
       revertCancel: "Cancelar",
+      addAxis: {
+        open: "Adicionar eixo",
+        title: "Criar um eixo estratégico",
+        desc: "Adiciona um novo eixo à taxonomia. O Hub atribui um id e uma cor e regista-o como uma nova versão de taxonomia — apenas metadados, sem reindexação.",
+        nameLabel: "Nome do eixo",
+        descriptionLabel: "Descrição (opcional)",
+        create: "Criar eixo",
+        creating: "A criar…",
+        cancel: "Cancelar",
+        error: "O Hub não conseguiu criar o eixo.",
+        created: (name: string, version: number) => `Eixo "${name}" criado na taxonomia v${version}.`,
+      },
       seedNote: "Classificação do corpus semente",
       seedActor: "Sistema",
       revertError: "Não foi possível aplicar a reversão. Nada foi alterado.",

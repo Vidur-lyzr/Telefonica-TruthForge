@@ -48,3 +48,4 @@
 - [Structured upload chunking](structured-upload-chunking.md) — slide/spreadsheet extraction must emit `##` markers + structured flag; the prose heading heuristic eats every terse line and yields zero chunks.
 - [Production cwd & disk assets](prod-cwd-disk-assets.md) — api-server prod runs from workspace root (cwd/agent absent); copy disk files into dist + resolve via module dir; seed dev-only .data demo data.
 - [Generate templateId & tone wiring](generate-template-and-tone.md) — UI uses /generate/jobs (not /generate); thread new GenerateInput fields into BOTH; tone must read getTonePrinciples() live.
+- [Gitignored .data on deploy](gitignored-data-on-deploy.md) — file-backed stores under .data start empty on fresh deploy (gitignored); ship a committed code seed loaded when the file is absent.

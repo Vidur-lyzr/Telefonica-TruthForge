@@ -62,13 +62,15 @@ export default function SourcesArea() {
 
   const [dialogOpen, setDialogOpen] = React.useState(false);
 
-  const sessionUploadCount = uploads.length;
-
   const sourcesWithSession = React.useMemo(() => {
-    return (sources ?? []).map((s) =>
-      s.id === "src-manual" ? { ...s, docCount: s.docCount + sessionUploadCount } : s,
-    );
-  }, [sources, sessionUploadCount]);
+    // Show only the connected integrations, in a fixed presentation order.
+    // Other DataSource entries (manual upload, media, regulator feeds) stay in
+    // the corpus for document attribution but are not surfaced as integrations.
+    const order = ["src-powerbi", "src-talkwalker", "src-asana", "src-sharepoint", "src-sic"];
+    return (sources ?? [])
+      .filter((s) => order.includes(s.id))
+      .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  }, [sources]);
 
   return (
     <Stack space={24}>

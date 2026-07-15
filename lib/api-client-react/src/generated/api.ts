@@ -50,6 +50,8 @@ import type {
   CorpusDocument,
   CorpusDocumentDetail,
   CorpusStats,
+  CreateAxisInput,
+  CreateAxisResult,
   CreateScheduleInput,
   DataSource,
   DeliveryRecord,
@@ -2609,6 +2611,77 @@ export const useApplyRetag = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getApplyRetagMutationOptions(options));
+    }
+
+export const getCreateAxisUrl = () => {
+
+
+
+
+  return `/api/governance/axes`
+}
+
+/**
+ * Superadmin-only. Adds a new strategic axis to the taxonomy catalogue. The server assigns a stable axis id and an unused palette colour, then records it as a new persisted taxonomy version (metadata only — no re-embedding, no redeploy) with an audit entry.
+ * @summary Create a new strategic axis as a new taxonomy version
+ */
+export const createAxis = async (createAxisInput: CreateAxisInput, options?: RequestInit): Promise<CreateAxisResult> => {
+
+  return customFetch<CreateAxisResult>(getCreateAxisUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createAxisInput)
+  }
+);}
+
+
+
+
+export const getCreateAxisMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAxis>>, TError,{data: BodyType<CreateAxisInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAxis>>, TError,{data: BodyType<CreateAxisInput>}, TContext> => {
+
+const mutationKey = ['createAxis'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAxis>>, {data: BodyType<CreateAxisInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAxis(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAxisMutationResult = NonNullable<Awaited<ReturnType<typeof createAxis>>>
+    export type CreateAxisMutationBody = BodyType<CreateAxisInput>
+    export type CreateAxisMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a new strategic axis as a new taxonomy version
+ */
+export const useCreateAxis = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAxis>>, TError,{data: BodyType<CreateAxisInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAxis>>,
+        TError,
+        {data: BodyType<CreateAxisInput>},
+        TContext
+      > => {
+      return useMutation(getCreateAxisMutationOptions(options));
     }
 
 export const getListAxisAffectedDocumentsUrl = (axisId: string,) => {

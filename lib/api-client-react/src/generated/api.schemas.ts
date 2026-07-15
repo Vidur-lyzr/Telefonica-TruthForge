@@ -3396,6 +3396,30 @@ export interface RetagApplyResult {
   proof?: RetagProof | null;
 }
 
+export interface CreateAxisInput {
+  /** Persona asserting the action — must resolve to Superadmin clearance. */
+  roleId: string;
+  /** Human-readable actor label recorded in the audit trail. */
+  actor: string;
+  /**
+     * Display name of the new strategic axis.
+     * @minLength 2
+     * @maxLength 60
+     */
+  name: string;
+  /**
+     * Optional short description of what the axis covers.
+     * @maxLength 280
+     */
+  description?: string;
+}
+
+export interface CreateAxisResult {
+  axis: StrategicAxis;
+  /** The new taxonomy version created by adding the axis. */
+  version: number;
+}
+
 export interface AxisAffectedDocument {
   docId: string;
   title: string;

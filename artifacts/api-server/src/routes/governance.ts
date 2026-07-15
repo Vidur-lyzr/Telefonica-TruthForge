@@ -12,6 +12,8 @@ import {
   ListAxisAffectedDocumentsResponse,
   RollbackTaxonomyBody,
   RollbackTaxonomyResponse,
+  CreateAxisBody,
+  CreateAxisResponse,
 } from "@workspace/api-zod";
 import { AXES, getDoc } from "../data/corpus";
 import {
@@ -21,6 +23,8 @@ import {
   retagCandidatesForAxis,
   planRollback,
   commitRollback,
+  makeAxisId,
+  pickAxisColor,
   type AxisOp,
   type TaxonomyVersionKind,
 } from "../data/governance";
@@ -60,6 +64,49 @@ router.get("/governance/taxonomy", (_req, res) => {
       })),
     }),
   );
+});
+
+// Create a new strategic axis. Superadmin-only (a structural taxonomy change).
+// The server assigns the id and an unused palette colour, then records it as a
+// new persisted taxonomy version via the SAME axisOps apply path used by
+// rename/split/merge — metadata only, no re-embedding.
+router.post("/governance/axes", (req, res) => {
+  const parsed = CreateAxisBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const grant = requireCapability(req, res, "manage_data_center", "full", parsed.data.roleId);
+  if (!grant) return;
+
+  const name = parsed.data.name.trim();
+  if (name.length < 2) {
+    res.status(400).json({ error: "An axis name of at least 2 characters is required." });
+    return;
+  }
+  const duplicate = AXES.some(
+    (a) => !a.retired && a.name.trim().toLowerCase() === name.toLowerCase(),
+  );
+  if (duplicate) {
+    res.status(400).json({ error: `An active axis named "${name}" already exists.` });
+    return;
+  }
+
+  const axis = {
+    id: makeAxisId(name),
+    name,
+    color: pickAxisColor(),
+    description: parsed.data.description?.trim() ?? "",
+  };
+  const result = applyRetag({
+    actor: parsed.data.actor,
+    note: `New strategic axis "${name}" created.`,
+    axisEdit: null,
+    decisions: [],
+    kind: "manual",
+    axisOps: [{ op: "create", axis }],
+  });
+  res.json(CreateAxisResponse.parse({ axis: { ...axis, retired: false }, version: result.version }));
 });
 
 // Live mapping table: the documents shown in the wizard come from a Qdrant
