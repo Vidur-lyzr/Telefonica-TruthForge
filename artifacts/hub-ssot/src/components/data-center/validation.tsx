@@ -25,12 +25,8 @@ import {
   skinVars,
   IconShieldRegular,
   IconCheckedRegular,
-  IconLayersRegular,
   IconAiRegular,
-  IconWorldDeviceRegular,
   IconTimeRegular,
-  IconEditPencilRegular,
-  IconCloseRegular,
   IconArchiveRegular,
 } from "@telefonica/mistica";
 import { useDataCenter } from "./state";
@@ -43,68 +39,6 @@ import {
 } from "./helpers";
 import { useApp } from "../app-provider";
 import { DATA_I18N } from "../../i18n/data";
-
-function Dot({ color }: { color: string }) {
-  return (
-    <div
-      aria-hidden
-      style={{ width: 8, height: 8, borderRadius: skinVars.borderRadii.avatar, backgroundColor: color, flexShrink: 0 }}
-    />
-  );
-}
-
-function ConfidenceLegend() {
-  const { lang } = useApp();
-  const legend = DATA_I18N[lang].validation.legend;
-  return (
-    <Inline space={24} alignItems="center" wrap>
-      <Inline space={8} alignItems="center">
-        <Dot color={skinVars.colors.success} />
-        <Text1 regular color={skinVars.colors.textSecondary}>
-          {legend.high}
-        </Text1>
-      </Inline>
-      <Inline space={8} alignItems="center">
-        <Dot color={skinVars.colors.warning} />
-        <Text1 regular color={skinVars.colors.textSecondary}>
-          {legend.medium}
-        </Text1>
-      </Inline>
-      <Inline space={8} alignItems="center">
-        <Dot color={skinVars.colors.error} />
-        <Text1 regular color={skinVars.colors.textSecondary}>
-          {legend.low}
-        </Text1>
-      </Inline>
-    </Inline>
-  );
-}
-
-function LayerCard({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: React.ComponentType<{ size?: number; color?: string }>;
-  title: string;
-  description: string;
-}) {
-  return (
-    <Inline space={12} alignItems="center">
-      <Circle size={36} backgroundColor={skinVars.colors.brandLow}>
-        <Icon size={16} color={skinVars.colors.brand} />
-      </Circle>
-      <Stack space={2}>
-        <Text2 medium color={skinVars.colors.textPrimary}>
-          {title}
-        </Text2>
-        <Text1 regular color={skinVars.colors.textSecondary}>
-          {description}
-        </Text1>
-      </Stack>
-    </Inline>
-  );
-}
 
 export default function ValidationArea() {
   const { lang } = useApp();
@@ -180,38 +114,6 @@ export default function ValidationArea() {
           </Inline>
         </Box>
       </div>
-
-      <Boxed>
-        <Box padding={24}>
-          <Stack space={16}>
-            <Grid columns={3} gap={16}>
-              <GridItem>
-                <LayerCard
-                  icon={IconLayersRegular}
-                  title={t.layers.deterministic.title}
-                  description={t.layers.deterministic.desc}
-                />
-              </GridItem>
-              <GridItem>
-                <LayerCard
-                  icon={IconAiRegular}
-                  title={t.layers.semantic.title}
-                  description={t.layers.semantic.desc}
-                />
-              </GridItem>
-              <GridItem>
-                <LayerCard
-                  icon={IconWorldDeviceRegular}
-                  title={t.layers.strategic.title}
-                  description={t.layers.strategic.desc}
-                />
-              </GridItem>
-            </Grid>
-            <Divider />
-            <ConfidenceLegend />
-          </Stack>
-        </Box>
-      </Boxed>
 
       <Stack space={16}>
         <Inline space={8} alignItems="center">
@@ -371,89 +273,14 @@ export default function ValidationArea() {
                       </Boxed>
                     ) : (
                       <Stack space={12}>
-                        <Grid columns={3} gap={12}>
-                          <GridItem>
-                            <Boxed>
-                              <Box padding={12}>
-                                <Stack space={4}>
-                                  <Text1
-                                    medium
-                                    color={skinVars.colors.textSecondary}
-                                    transform="uppercase"
-                                  >
-                                    {t.deterministicLabel}
-                                  </Text1>
-                                  <Text2 medium color={skinVars.colors.textPrimary}>
-                                    {it.classification.deterministic}
-                                  </Text2>
-                                </Stack>
-                              </Box>
-                            </Boxed>
-                          </GridItem>
-                          <GridItem>
-                            <Boxed>
-                              <Box padding={12}>
-                                <Stack space={4}>
-                                  <Text1
-                                    medium
-                                    color={skinVars.colors.textSecondary}
-                                    transform="uppercase"
-                                  >
-                                    {t.semanticLabel}
-                                  </Text1>
-                                  <Inline space={4} wrap>
-                                    {it.classification.semantic.map((s) => (
-                                      <Tag key={s} type="promo">
-                                        {s}
-                                      </Tag>
-                                    ))}
-                                  </Inline>
-                                </Stack>
-                              </Box>
-                            </Boxed>
-                          </GridItem>
-                          <GridItem>
-                            <Boxed>
-                              <Box padding={12}>
-                                <Stack space={4}>
-                                  <Text1
-                                    medium
-                                    color={skinVars.colors.textSecondary}
-                                    transform="uppercase"
-                                  >
-                                    {t.strategicAxisLabel}
-                                  </Text1>
-                                  <Text2 medium color={skinVars.colors.textPrimary}>
-                                    {axisName(it.classification.strategicAxisId)}
-                                  </Text2>
-                                </Stack>
-                              </Box>
-                            </Boxed>
-                          </GridItem>
-                        </Grid>
-
                         <Inline space={8} alignItems="center" wrap>
-                          <Text1 regular color={skinVars.colors.textSecondary}>
-                            {t.proposedMetadata}
-                          </Text1>
+                          <Tag type="promo">{it.classification.deterministic}</Tag>
                           <Tag type={clearanceTagType(it.metadata.confidentiality)}>
                             {clearanceLabel(it.metadata.confidentiality, lang)}
                           </Tag>
-                          <Text2 medium color={skinVars.colors.textPrimary}>
-                            {it.metadata.owner}
-                          </Text2>
                           <Text1 regular color={skinVars.colors.textSecondary}>
-                            ·
+                            {axisName(it.classification.strategicAxisId)}
                           </Text1>
-                          <Text2 medium color={skinVars.colors.textPrimary}>
-                            {it.metadata.country}
-                          </Text2>
-                          <Text1 regular color={skinVars.colors.textSecondary}>
-                            ·
-                          </Text1>
-                          <Text2 medium color={skinVars.colors.textPrimary}>
-                            {it.metadata.brand}
-                          </Text2>
                         </Inline>
 
                         <Inline space={8} wrap>

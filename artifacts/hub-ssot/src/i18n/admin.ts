@@ -1,4 +1,4 @@
-// UI strings for the Administration page and its sections (cost model, source
+// UI strings for the Administration page and its sections (source
 // sync, retrieval log). Server-provided content (user names, emails, KPI names,
 // document titles, audit-entry detail text, connector names, source ids) stays
 // as-is; this dictionary covers the static chrome so the page follows the
@@ -35,7 +35,6 @@ const ADMIN_EN = {
     access: "Users & access",
     scheduled: "Scheduled documents",
     kpis: "KPI definitions",
-    costs: "Cost model",
     operations: "Operations",
     audit: "Audit trail",
     agent: "Agent",
@@ -276,59 +275,6 @@ const ADMIN_EN = {
   fieldReviewFolder: "Review folder",
   createSchedule: "Create schedule",
 
-  cost: {
-    title: "Cost model",
-    intro:
-      "Three blocks — one-time implementation, platform licence and usage — driven by the seat bracket and editable assumptions. All prices are illustrative: the RFP marks real figures as pending. The usage block is grounded in this platform's own metered agent calls.",
-    liveEstimatorInput: (
-      calls: number,
-      callsStr: string,
-      tokensStr: string,
-      since: string,
-      avgStr: string,
-    ) =>
-      `Live estimator input: ${callsStr} metered agent call${calls === 1 ? "" : "s"} totalling ${tokensStr} tokens since ${since} — an average of ${avgStr} tokens per interaction.`,
-    noCalls:
-      "No agent calls metered yet — the estimator uses a stated default of 1,500 tokens per interaction until real usage accumulates.",
-    seats: "Seats",
-    volumeDiscountTag: (pct: number) => `volume discount ${pct}%`,
-    block1Label: "Block 1 · Set-up",
-    block2Label: "Block 2 · Platform",
-    block3Label: "Block 3 · Usage",
-    cadenceOneTime: "one-time",
-    cadenceAnnual: "annual",
-    cadenceAmortised: (years: number) => `amortised / ${years} yr`,
-    perYear: (amount: string) => `${amount} / yr`,
-    block1DetailAmort: (setup: string, years: number) =>
-      `Run-only packaging: the ${setup} implementation is folded into the annual fee across ${years} year${years === 1 ? "" : "s"}.`,
-    block1Detail:
-      "Implementation, ingestion of the governed corpus, connectors and go-live. Paid once.",
-    block2Detail: (seats: number, seatAmount: string, discountPct: number) =>
-      `${seats} seats at ${seatAmount}/seat/month${discountPct > 0 ? `, less ${discountPct}% volume discount` : ""}.`,
-    block3Detail: (
-      seats: number,
-      interactions: number,
-      avgStr: string,
-      tokensM: string,
-      millionAmount: string,
-    ) =>
-      `${seats} seats making ${interactions} interactions/month at about ${avgStr} tokens each — roughly ${tokensM}M tokens/year at ${millionAmount} per million.`,
-    totalRunOnlyTitle: "Annual fee (run-only)",
-    totalFirstYearTitle: "First year total",
-    totalRunOnlySub:
-      "No upfront payment — set-up amortised into the annual fee.",
-    totalFirstYearSub: (fromYearTwo: string) =>
-      `Set-up plus first annual platform and usage. From year two: ${fromYearTwo} / yr.`,
-    assumptions: "Assumptions (editable, illustrative)",
-    runOnlyCheckbox: "Run-only packaging (no upfront set-up)",
-    fieldSetupFee: "Set-up fee (EUR, one-time)",
-    fieldPerSeat: "Licence per seat (EUR/month)",
-    fieldTokenPrice: "Price per 1M tokens (EUR)",
-    fieldInteractions: "Interactions per user / month",
-    fieldAmortYears: "Amortisation period (years)",
-    assumptionsNote:
-      "Volume discounts by bracket are fixed for the illustration: 50 seats 0%, 100 seats 5%, 150 seats 10%, 200 seats 15%. Tokens per interaction come from the live meter above, never from a manual entry. Where the provider does not report exact token counts, the meter records a conservative estimate, so treat the usage figure as indicative rather than invoice-precise.",
-  },
 
   sync: {
     title: "Source-system sync",
@@ -545,7 +491,6 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
       access: "Usuarios y acceso",
       scheduled: "Documentos programados",
       kpis: "Definiciones de KPI",
-      costs: "Modelo de costes",
       operations: "Operaciones",
       audit: "Registro de auditoría",
       agent: "Agente",
@@ -779,47 +724,6 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     fieldReviewFolder: "Carpeta de revisión",
     createSchedule: "Crear programación",
 
-    cost: {
-      title: "Modelo de costes",
-      intro:
-        "Tres bloques — implementación única, licencia de plataforma y uso — impulsados por el tramo de licencias y supuestos editables. Todos los precios son ilustrativos: el RFP marca las cifras reales como pendientes. El bloque de uso se basa en las llamadas al agente medidas de esta plataforma.",
-      liveEstimatorInput: (calls, callsStr, tokensStr, since, avgStr) =>
-        `Entrada del estimador en vivo: ${callsStr} llamada${calls === 1 ? "" : "s"} al agente medida${calls === 1 ? "" : "s"} que suman ${tokensStr} tokens desde el ${since} — una media de ${avgStr} tokens por interacción.`,
-      noCalls:
-        "Aún no se han medido llamadas al agente — el estimador usa un valor por defecto declarado de 1.500 tokens por interacción hasta que se acumule uso real.",
-      seats: "Licencias",
-      volumeDiscountTag: (pct) => `descuento por volumen del ${pct}%`,
-      block1Label: "Bloque 1 · Implementación",
-      block2Label: "Bloque 2 · Plataforma",
-      block3Label: "Bloque 3 · Uso",
-      cadenceOneTime: "único",
-      cadenceAnnual: "anual",
-      cadenceAmortised: (years) => `amortizado / ${years} años`,
-      perYear: (amount) => `${amount} / año`,
-      block1DetailAmort: (setup, years) =>
-        `Paquete solo de operación: la implementación de ${setup} se reparte en la cuota anual a lo largo de ${years} año${years === 1 ? "" : "s"}.`,
-      block1Detail:
-        "Implementación, ingesta del corpus gobernado, conectores y puesta en marcha. Pago único.",
-      block2Detail: (seats, seatAmount, discountPct) =>
-        `${seats} licencias a ${seatAmount}/licencia/mes${discountPct > 0 ? `, menos un ${discountPct}% de descuento por volumen` : ""}.`,
-      block3Detail: (seats, interactions, avgStr, tokensM, millionAmount) =>
-        `${seats} licencias con ${interactions} interacciones/mes de unos ${avgStr} tokens cada una — aproximadamente ${tokensM}M tokens/año a ${millionAmount} por millón.`,
-      totalRunOnlyTitle: "Cuota anual (solo operación)",
-      totalFirstYearTitle: "Total del primer año",
-      totalRunOnlySub:
-        "Sin pago inicial — implementación amortizada en la cuota anual.",
-      totalFirstYearSub: (fromYearTwo) =>
-        `Implementación más la primera anualidad de plataforma y uso. A partir del segundo año: ${fromYearTwo} / año.`,
-      assumptions: "Supuestos (editables, ilustrativos)",
-      runOnlyCheckbox: "Paquete solo de operación (sin implementación inicial)",
-      fieldSetupFee: "Cuota de implementación (EUR, única)",
-      fieldPerSeat: "Licencia por puesto (EUR/mes)",
-      fieldTokenPrice: "Precio por 1M de tokens (EUR)",
-      fieldInteractions: "Interacciones por usuario / mes",
-      fieldAmortYears: "Periodo de amortización (años)",
-      assumptionsNote:
-        "Los descuentos por volumen por tramo son fijos en la ilustración: 50 licencias 0%, 100 licencias 5%, 150 licencias 10%, 200 licencias 15%. Los tokens por interacción provienen del medidor en vivo de arriba, nunca de una entrada manual. Cuando el proveedor no informa recuentos exactos de tokens, el medidor registra una estimación conservadora, así que trata la cifra de uso como indicativa y no como precisa a nivel de factura.",
-    },
 
     sync: {
       title: "Sincronización con el sistema de origen",
@@ -1021,7 +925,6 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
       access: "Nutzer & Zugriff",
       scheduled: "Geplante Dokumente",
       kpis: "KPI-Definitionen",
-      costs: "Kostenmodell",
       operations: "Betrieb",
       audit: "Prüfprotokoll",
       agent: "Agent",
@@ -1256,47 +1159,6 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     fieldReviewFolder: "Prüfordner",
     createSchedule: "Planung erstellen",
 
-    cost: {
-      title: "Kostenmodell",
-      intro:
-        "Drei Blöcke — einmalige Implementierung, Plattformlizenz und Nutzung — gesteuert durch das Lizenzsegment und editierbare Annahmen. Alle Preise sind illustrativ: Das RFP kennzeichnet die realen Zahlen als ausstehend. Der Nutzungsblock beruht auf den eigenen gemessenen Agentenaufrufen dieser Plattform.",
-      liveEstimatorInput: (calls, callsStr, tokensStr, since, avgStr) =>
-        `Live-Eingabe des Schätzers: ${callsStr} gemessene${calls === 1 ? "r" : ""} Agentenaufruf${calls === 1 ? "" : "e"} mit insgesamt ${tokensStr} Tokens seit ${since} — durchschnittlich ${avgStr} Tokens pro Interaktion.`,
-      noCalls:
-        "Noch keine Agentenaufrufe gemessen — der Schätzer verwendet einen angegebenen Standardwert von 1.500 Tokens pro Interaktion, bis reale Nutzung anfällt.",
-      seats: "Lizenzen",
-      volumeDiscountTag: (pct) => `Mengenrabatt ${pct}%`,
-      block1Label: "Block 1 · Einrichtung",
-      block2Label: "Block 2 · Plattform",
-      block3Label: "Block 3 · Nutzung",
-      cadenceOneTime: "einmalig",
-      cadenceAnnual: "jährlich",
-      cadenceAmortised: (years) => `amortisiert / ${years} J.`,
-      perYear: (amount) => `${amount} / Jahr`,
-      block1DetailAmort: (setup, years) =>
-        `Run-only-Paket: Die Implementierung von ${setup} wird über ${years} Jahr${years === 1 ? "" : "e"} in die Jahresgebühr eingerechnet.`,
-      block1Detail:
-        "Implementierung, Einlesen des kontrollierten Korpus, Konnektoren und Go-live. Einmalig zu zahlen.",
-      block2Detail: (seats, seatAmount, discountPct) =>
-        `${seats} Lizenzen zu ${seatAmount}/Lizenz/Monat${discountPct > 0 ? `, abzüglich ${discountPct}% Mengenrabatt` : ""}.`,
-      block3Detail: (seats, interactions, avgStr, tokensM, millionAmount) =>
-        `${seats} Lizenzen mit ${interactions} Interaktionen/Monat zu je etwa ${avgStr} Tokens — rund ${tokensM}M Tokens/Jahr zu ${millionAmount} pro Million.`,
-      totalRunOnlyTitle: "Jahresgebühr (Run-only)",
-      totalFirstYearTitle: "Gesamtsumme erstes Jahr",
-      totalRunOnlySub:
-        "Keine Vorauszahlung — Einrichtung in die Jahresgebühr amortisiert.",
-      totalFirstYearSub: (fromYearTwo) =>
-        `Einrichtung plus erste Jahresgebühr für Plattform und Nutzung. Ab dem zweiten Jahr: ${fromYearTwo} / Jahr.`,
-      assumptions: "Annahmen (editierbar, illustrativ)",
-      runOnlyCheckbox: "Run-only-Paket (keine Vorabeinrichtung)",
-      fieldSetupFee: "Einrichtungsgebühr (EUR, einmalig)",
-      fieldPerSeat: "Lizenz pro Platz (EUR/Monat)",
-      fieldTokenPrice: "Preis pro 1M Tokens (EUR)",
-      fieldInteractions: "Interaktionen pro Nutzer / Monat",
-      fieldAmortYears: "Amortisationszeitraum (Jahre)",
-      assumptionsNote:
-        "Mengenrabatte je Segment sind für die Illustration fest: 50 Lizenzen 0%, 100 Lizenzen 5%, 150 Lizenzen 10%, 200 Lizenzen 15%. Tokens pro Interaktion stammen aus dem Live-Zähler oben, nie aus einer manuellen Eingabe. Wo der Anbieter keine exakten Token-Zahlen meldet, erfasst der Zähler eine konservative Schätzung; behandeln Sie die Nutzungszahl daher als Richtwert und nicht als rechnungsgenau.",
-    },
 
     sync: {
       title: "Quellsystem-Synchronisierung",
@@ -1498,7 +1360,6 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
       access: "Usuários e acesso",
       scheduled: "Documentos programados",
       kpis: "Definições de KPI",
-      costs: "Modelo de custos",
       operations: "Operações",
       audit: "Trilha de auditoria",
       agent: "Agente",
@@ -1732,47 +1593,6 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     fieldReviewFolder: "Pasta de revisão",
     createSchedule: "Criar agendamento",
 
-    cost: {
-      title: "Modelo de custos",
-      intro:
-        "Três blocos — implementação única, licença da plataforma e uso — orientados pela faixa de licenças e por premissas editáveis. Todos os preços são ilustrativos: o RFP marca os valores reais como pendentes. O bloco de uso baseia-se nas próprias chamadas de agente medidas desta plataforma.",
-      liveEstimatorInput: (calls, callsStr, tokensStr, since, avgStr) =>
-        `Entrada do estimador ao vivo: ${callsStr} chamada${calls === 1 ? "" : "s"} de agente medida${calls === 1 ? "" : "s"} totalizando ${tokensStr} tokens desde ${since} — média de ${avgStr} tokens por interação.`,
-      noCalls:
-        "Nenhuma chamada de agente medida ainda — o estimador usa um valor padrão declarado de 1.500 tokens por interação até que haja uso real acumulado.",
-      seats: "Licenças",
-      volumeDiscountTag: (pct) => `desconto por volume de ${pct}%`,
-      block1Label: "Bloco 1 · Implementação",
-      block2Label: "Bloco 2 · Plataforma",
-      block3Label: "Bloco 3 · Uso",
-      cadenceOneTime: "único",
-      cadenceAnnual: "anual",
-      cadenceAmortised: (years) => `amortizado / ${years} anos`,
-      perYear: (amount) => `${amount} / ano`,
-      block1DetailAmort: (setup, years) =>
-        `Pacote somente de operação: a implementação de ${setup} é diluída na taxa anual ao longo de ${years} ano${years === 1 ? "" : "s"}.`,
-      block1Detail:
-        "Implementação, ingestão do corpus governado, conectores e go-live. Pago uma vez.",
-      block2Detail: (seats, seatAmount, discountPct) =>
-        `${seats} licenças a ${seatAmount}/licença/mês${discountPct > 0 ? `, menos ${discountPct}% de desconto por volume` : ""}.`,
-      block3Detail: (seats, interactions, avgStr, tokensM, millionAmount) =>
-        `${seats} licenças fazendo ${interactions} interações/mês de cerca de ${avgStr} tokens cada — aproximadamente ${tokensM}M tokens/ano a ${millionAmount} por milhão.`,
-      totalRunOnlyTitle: "Taxa anual (somente operação)",
-      totalFirstYearTitle: "Total do primeiro ano",
-      totalRunOnlySub:
-        "Sem pagamento inicial — implementação amortizada na taxa anual.",
-      totalFirstYearSub: (fromYearTwo) =>
-        `Implementação mais a primeira anuidade de plataforma e uso. A partir do segundo ano: ${fromYearTwo} / ano.`,
-      assumptions: "Premissas (editáveis, ilustrativas)",
-      runOnlyCheckbox: "Pacote somente de operação (sem implementação inicial)",
-      fieldSetupFee: "Taxa de implementação (EUR, única)",
-      fieldPerSeat: "Licença por assento (EUR/mês)",
-      fieldTokenPrice: "Preço por 1M de tokens (EUR)",
-      fieldInteractions: "Interações por usuário / mês",
-      fieldAmortYears: "Período de amortização (anos)",
-      assumptionsNote:
-        "Os descontos por volume por faixa são fixos na ilustração: 50 licenças 0%, 100 licenças 5%, 150 licenças 10%, 200 licenças 15%. Os tokens por interação vêm do medidor ao vivo acima, nunca de uma entrada manual. Quando o provedor não informa contagens exatas de tokens, o medidor registra uma estimativa conservadora, então trate o valor de uso como indicativo, e não como preciso a nível de fatura.",
-    },
 
     sync: {
       title: "Sincronização com o sistema de origem",

@@ -17,7 +17,6 @@ import {
 } from "@workspace/api-client-react";
 import { useApp, type Lang } from "@/components/app-provider";
 import { ADMIN_I18N, localeFor } from "@/i18n/admin";
-import CostModelSection from "@/components/admin/cost-model";
 import SourceSyncSection from "@/components/admin/source-sync";
 import RetrievalLogSection from "@/components/admin/retrieval-log";
 import AgentSection from "@/components/admin/agent";
@@ -599,7 +598,6 @@ export default function AdminPage() {
               { text: t.tabs.access },
               { text: t.tabs.scheduled },
               { text: t.tabs.kpis },
-              { text: t.tabs.costs },
               { text: t.tabs.operations },
               { text: t.tabs.audit },
               { text: t.tabs.agent },
@@ -939,18 +937,15 @@ export default function AdminPage() {
           </>
         )}
 
-        {/* Cost model */}
-        {adminTab === 3 && <CostModelSection />}
-
         {/* Source-system sync (D5) + retrieval audit log (F3) */}
-        {adminTab === 4 && (
+        {adminTab === 3 && (
           <>
             <SourceSyncSection />
             <RetrievalLogSection />
           </>
         )}
 
-        {adminTab === 5 && (
+        {adminTab === 4 && (
           <>
         {/* Audit trail */}
         <Stack space={16}>
@@ -987,9 +982,9 @@ export default function AdminPage() {
           </>
         )}
 
-        {adminTab === 6 && <AgentSection />}
+        {adminTab === 5 && <AgentSection />}
 
-        {adminTab === 7 && <QualitySection />}
+        {adminTab === 6 && <QualitySection />}
       </Stack>
 
       {/* Register / Edit user dialog */}
