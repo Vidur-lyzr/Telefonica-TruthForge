@@ -10,15 +10,35 @@
 // the registry is a shared in-process singleton, so gitagent's own loader
 // picks up the patched model.
 
+import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { query, tool, type GCToolDefinition } from "@open-gitagent/gitagent";
 
 export { tool };
 export type { GCToolDefinition };
 
-export const AGENT_DIR =
-  process.env.HUBSSOT_AGENT_DIR ?? path.resolve(process.cwd(), "agent");
+// Resolve the agent repo across dev and production. In dev the server runs
+// with cwd = artifacts/api-server, so ./agent is present. In production the
+// bundled server is started as `node artifacts/api-server/dist/index.mjs`
+// from the workspace root, so cwd/agent does not exist — the build copies the
+// repo to dist/agent, which we find relative to this compiled module.
+function resolveAgentDir(): string {
+  if (process.env.HUBSSOT_AGENT_DIR) return process.env.HUBSSOT_AGENT_DIR;
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.resolve(moduleDir, "agent"), // dist/agent (production, copied by build)
+    path.resolve(process.cwd(), "agent"), // dev (cwd = artifacts/api-server)
+    path.resolve(process.cwd(), "artifacts/api-server/agent"), // prod fallback
+  ];
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, "agent.yaml"))) return dir;
+  }
+  return candidates[0];
+}
+
+export const AGENT_DIR = resolveAgentDir();
 
 // The answering agent must never shell out or mutate its own repo mid-answer.
 // Single source of truth: runAgent enforces this list and the admin Agent page

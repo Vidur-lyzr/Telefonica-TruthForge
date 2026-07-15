@@ -298,6 +298,122 @@ function seedRun(id: string, startedAt: Date, failures: Record<string, "status" 
   };
 }
 
+interface FeedbackSeed {
+  verdict: FeedbackVerdict;
+  note: string | null;
+  question: string;
+  answerPreview: string;
+  answerStatus: string;
+  citedDocIds: string[];
+  roleId: string;
+  lang: string;
+  ageMs: number;
+  triage: {
+    state: TriageState;
+    errorClass: TriageErrorClass | null;
+    correctiveAction: string | null;
+    classifiedByRoleId: string | null;
+    resolved: boolean;
+  };
+}
+
+const FEEDBACK_SEED: FeedbackSeed[] = [
+  {
+    verdict: "incorrect",
+    note: "Answer refused although the crisis playbook should be readable for my role.",
+    question: "What does the crisis playbook say about escalation?",
+    answerPreview: "Refused: permission blocked.",
+    answerStatus: "permission_blocked",
+    citedDocIds: [],
+    roleId: "role-press",
+    lang: "en",
+    ageMs: 3 * 24 * 60 * 60 * 1000,
+    triage: {
+      state: "open",
+      errorClass: null,
+      correctiveAction: null,
+      classifiedByRoleId: null,
+      resolved: false,
+    },
+  },
+  {
+    verdict: "partial",
+    note: "Missed the newer fibre rollout figures from the 5G plan.",
+    question: "What is the latest 5G & fibre deployment status?",
+    answerPreview:
+      "Telefónica continues its fibre and 5G rollout across core markets, prioritising urban coverage...",
+    answerStatus: "answered",
+    citedDocIds: ["doc-5g-deployment"],
+    roleId: "role-analyst",
+    lang: "en",
+    ageMs: 6 * 24 * 60 * 60 * 1000,
+    triage: {
+      state: "classified",
+      errorClass: "stale_source",
+      correctiveAction:
+        "Source document is past its review SLA — flagged for a refresh with Network Strategy.",
+      classifiedByRoleId: "role-superuser",
+      resolved: false,
+    },
+  },
+  {
+    verdict: "incorrect",
+    note: "Cited a document that does not actually mention the town hall date.",
+    question: "When is the spring employee town hall?",
+    answerPreview:
+      "The Spring 2026 Employee Town Hall is scheduled for the first week of April...",
+    answerStatus: "answered",
+    citedDocIds: ["doc-townhall-2026"],
+    roleId: "role-editor",
+    lang: "en",
+    ageMs: 9 * 24 * 60 * 60 * 1000,
+    triage: {
+      state: "resolved",
+      errorClass: "bad_citation",
+      correctiveAction:
+        "Re-embedded the town hall document and re-ran the golden set; citation now grounded.",
+      classifiedByRoleId: "role-superuser",
+      resolved: true,
+    },
+  },
+];
+
+function seedFeedback(now: number): FeedbackEntry[] {
+  return FEEDBACK_SEED.map((s) => {
+    const createdAt = new Date(now - s.ageMs);
+    const classifiedAt =
+      s.triage.state === "open"
+        ? null
+        : new Date(createdAt.getTime() + 60 * 60 * 1000).toISOString();
+    const resolvedAt = s.triage.resolved
+      ? new Date(createdAt.getTime() + 2 * 60 * 60 * 1000).toISOString()
+      : null;
+    return {
+      id: nextId("fb"),
+      createdAt: createdAt.toISOString(),
+      verdict: s.verdict,
+      note: s.note,
+      question: s.question,
+      answerPreview: s.answerPreview,
+      answerStatus: s.answerStatus,
+      citedDocIds: s.citedDocIds,
+      roleId: s.roleId,
+      lang: s.lang,
+      auditId: null,
+      retrievalTrace: null,
+      triage: {
+        state: s.triage.state,
+        errorClass: s.triage.errorClass,
+        correctiveAction: s.triage.correctiveAction,
+        classifiedByRoleId: s.triage.classifiedByRoleId,
+        classifiedAt,
+        reevalRunId: null,
+        resolvedAt,
+      },
+    };
+  });
+}
+
 function seedIfEmpty(): void {
   if (seeded) return;
   const now = Date.now();
@@ -317,6 +433,7 @@ function seedIfEmpty(): void {
     "gq-conflict-q2-tp": "status",
   });
   runs = [runA, runB, ...runs];
+  feedback = [...seedFeedback(now), ...feedback];
   if (!nextEvalAt) nextEvalAt = nextMondayMorning(new Date(now));
   seeded = true;
   persist();

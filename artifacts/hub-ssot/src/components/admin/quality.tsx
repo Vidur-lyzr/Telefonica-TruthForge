@@ -627,9 +627,7 @@ export default function QualitySection() {
                   <Table
                     heading={[
                       t.colGolden,
-                      t.colPersona,
-                      t.colExpected,
-                      t.colActual,
+                      `${t.colExpected} \u2192 ${t.colActual}`,
                       t.colCitations,
                       t.colOutcomeHdr,
                     ]}
@@ -641,22 +639,24 @@ export default function QualitySection() {
                         <Text1 regular color={skinVars.colors.textSecondary}>
                           {row.question}
                         </Text1>
-                      </Stack>,
-                      <Text1 regular color={skinVars.colors.textSecondary} key={`${row.goldenId}-p`}>
-                        {row.roleId} · {row.lang.toUpperCase()}
-                      </Text1>,
-                      <Tag type={answerStatusTagType(row.expectedStatus)} key={`${row.goldenId}-e`}>
-                        {tLog.statusLabels[row.expectedStatus] ?? row.expectedStatus}
-                      </Tag>,
-                      row.actualStatus ? (
-                        <Tag type={answerStatusTagType(row.actualStatus)} key={`${row.goldenId}-a`}>
-                          {tLog.statusLabels[row.actualStatus] ?? row.actualStatus}
-                        </Tag>
-                      ) : (
-                        <Text1 regular color={skinVars.colors.textSecondary} key={`${row.goldenId}-a`}>
-                          {row.error ?? t.notMeasured}
+                        <Text1 regular color={skinVars.colors.textSecondary}>
+                          {row.roleId} · {row.lang.toUpperCase()}
                         </Text1>
-                      ),
+                      </Stack>,
+                      <Stack space={4} key={`${row.goldenId}-ea`}>
+                        <Tag type={answerStatusTagType(row.expectedStatus)}>
+                          {tLog.statusLabels[row.expectedStatus] ?? row.expectedStatus}
+                        </Tag>
+                        {row.actualStatus ? (
+                          <Tag type={answerStatusTagType(row.actualStatus)}>
+                            {tLog.statusLabels[row.actualStatus] ?? row.actualStatus}
+                          </Tag>
+                        ) : (
+                          <Text1 regular color={skinVars.colors.textSecondary}>
+                            {row.error ?? t.notMeasured}
+                          </Text1>
+                        )}
+                      </Stack>,
                       <Text1 regular color={skinVars.colors.textSecondary} key={`${row.goldenId}-c`}>
                         {row.citationsTotal > 0
                           ? t.groundedOf(row.citationsGrounded, row.citationsTotal)

@@ -46,3 +46,4 @@
 - [Section-body sanitiser](section-body-sanitiser.md) — LLM bodies need prompt + server sanitiser + client pre-pass; pipe-row grouping has pitfalls.
 - [Sentinel intent routing](sentinel-intent-routing.md) — in-view chat agents: no lexical gates; model judges intent via suppressed sentinel tokens; governance stays pre-model.
 - [Structured upload chunking](structured-upload-chunking.md) — slide/spreadsheet extraction must emit `##` markers + structured flag; the prose heading heuristic eats every terse line and yields zero chunks.
+- [Production cwd & disk assets](prod-cwd-disk-assets.md) — api-server prod runs from workspace root (cwd/agent absent); copy disk files into dist + resolve via module dir; seed dev-only .data demo data.
