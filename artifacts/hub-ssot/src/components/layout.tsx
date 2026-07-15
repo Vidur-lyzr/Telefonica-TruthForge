@@ -36,33 +36,64 @@ type NavItemDef = {
   icon: React.ComponentType<{ size?: number; color?: string }>;
 };
 
+type Capabilities = import("@workspace/api-client-react").CapabilitySet;
+type CapabilityId = keyof Capabilities;
+
 // Nav labels come from the chrome dictionary so the product-level language
-// switcher visibly changes the shell, not just the answers.
-function buildNavGroups(t: ChromeStrings): { label: string; items: NavItemDef[] }[] {
-  return [
+// switcher visibly changes the shell, not just the answers. Items are gated by
+// the active persona's capability row (served with /roles from the same matrix
+// the server enforces): a persona without a capability never sees the entry.
+// While roles are still loading (caps undefined) everything renders, so the
+// default persona does not flash a truncated menu.
+function buildNavGroups(
+  t: ChromeStrings,
+  caps: Capabilities | undefined,
+): { label: string; items: NavItemDef[] }[] {
+  const has = (capability: CapabilityId) => !caps || caps[capability] !== "none";
+  const anyOf = (...capabilities: CapabilityId[]) => capabilities.some(has);
+  const groups = [
     {
       label: t.navGroups.workspace,
       items: [
         { name: t.nav.home, path: "/", icon: IconHomeRegular },
-        { name: t.nav.ask, path: "/ask", icon: IconChatRegular },
-        { name: t.nav.generate, path: "/generate", icon: IconAiChatRegular },
-        { name: t.nav.kpis, path: "/kpis", icon: IconBarChartRegular },
-        { name: t.nav.planning, path: "/planning", icon: IconCalendarRegular },
+        ...(has("use_modules")
+          ? [
+              { name: t.nav.ask, path: "/ask", icon: IconChatRegular },
+              { name: t.nav.generate, path: "/generate", icon: IconAiChatRegular },
+              { name: t.nav.kpis, path: "/kpis", icon: IconBarChartRegular },
+              { name: t.nav.planning, path: "/planning", icon: IconCalendarRegular },
+            ]
+          : []),
       ],
     },
     {
       label: t.navGroups.knowledge,
-      items: [{ name: t.nav.wiki, path: "/wiki", icon: IconBookRegular }],
+      items: has("use_modules")
+        ? [{ name: t.nav.wiki, path: "/wiki", icon: IconBookRegular }]
+        : [],
     },
     {
       label: t.navGroups.backend,
       items: [
-        { name: t.nav.data, path: "/data", icon: IconDatabaseRegular },
-        { name: t.nav.admin, path: "/admin", icon: IconSettingsRegular },
-        { name: t.nav.brand, path: "/brand", icon: IconShieldCheckedOkRegular },
+        ...(has("manage_data_center")
+          ? [{ name: t.nav.data, path: "/data", icon: IconDatabaseRegular }]
+          : []),
+        ...(anyOf(
+          "configure_backend",
+          "manage_data_center",
+          "manage_access_control",
+          "manage_users_roles",
+          "view_audit",
+        )
+          ? [{ name: t.nav.admin, path: "/admin", icon: IconSettingsRegular }]
+          : []),
+        ...(has("manage_brand_room")
+          ? [{ name: t.nav.brand, path: "/brand", icon: IconShieldCheckedOkRegular }]
+          : []),
       ],
     },
   ];
+  return groups.filter((g) => g.items.length > 0);
 }
 
 function NavItem({ item, collapsed }: { item: NavItemDef; collapsed: boolean }) {
@@ -109,8 +140,13 @@ function Sidebar({
   onToggle: () => void;
 }) {
   const [, navigate] = useLocation();
-  const { lang } = useApp();
-  const navGroups = React.useMemo(() => buildNavGroups(UI[lang]), [lang]);
+  const { lang, roleId } = useApp();
+  const { data: roles } = useListRoles();
+  const activeCaps = roles?.find((r) => r.id === roleId)?.capabilities;
+  const navGroups = React.useMemo(
+    () => buildNavGroups(UI[lang], activeCaps),
+    [lang, activeCaps],
+  );
 
   return (
     <nav
@@ -288,7 +324,9 @@ function PersonaCard({ collapsed }: { collapsed: boolean }) {
                       }}
                     >
                       <Text1 regular color={skinVars.colors.textSecondary}>
-                        {active ? `${active.label} (${active.clearance})` : ""}
+                        {active
+                          ? `${active.profileLabel} · ${active.label} (${active.clearance})`
+                          : ""}
                       </Text1>
                     </div>
                   </div>
@@ -306,7 +344,7 @@ function PersonaCard({ collapsed }: { collapsed: boolean }) {
             {(roles ?? []).map((r) => (
               <MenuItem
                 key={r.id}
-                label={`${r.name} — ${r.label}`}
+                label={`${r.name} — ${r.profileLabel} · ${r.label}`}
                 controlType="checkbox"
                 checked={r.id === roleId}
                 onPress={() => {

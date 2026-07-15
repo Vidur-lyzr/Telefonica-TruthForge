@@ -7,6 +7,8 @@
  */
 
 export interface RetagProposeInput {
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
   axisId: string;
   /** New name for the edited axis (rename and split). Ignored for merge — the source axis keeps its name until it is retired. */
   newName: string;

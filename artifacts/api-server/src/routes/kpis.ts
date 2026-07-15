@@ -16,6 +16,7 @@ import {
   AcknowledgeKpiAlertResponse,
 } from "@workspace/api-zod";
 import { listKpis, getKpiDetail, computeAndListAlerts } from "../adapters/kpi";
+import { requireCapability } from "../data/accessControl";
 import { runKpiAgent, type KpiStreamEvent } from "../agent/kpiAgent";
 import {
   ROLES,
@@ -63,6 +64,7 @@ router.post("/kpis/query", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   const range = resolveRange(parsed.data.rangeFrom, parsed.data.rangeTo);
   if (range === null) {
     res.status(400).json({ error: "Invalid custom range: both dates are required and from must not be after to.", code: "invalid_range" });
@@ -97,6 +99,7 @@ router.post("/kpis/detail", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   const range = resolveRange(parsed.data.rangeFrom, parsed.data.rangeTo);
   if (range === null) {
     res.status(400).json({ error: "Invalid custom range: both dates are required and from must not be after to.", code: "invalid_range" });
@@ -129,6 +132,7 @@ router.post("/kpis/ask", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   try {
     const result = await runKpiAgent(parsed.data, req.log);
     res.json(AskKpisResponse.parse(result));
@@ -149,6 +153,8 @@ router.post("/kpis/ask/stream", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  // Guard BEFORE the stream opens so a blocked persona gets a clean 403.
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -233,6 +239,11 @@ router.post("/kpis/definitions", async (req, res) => {
     res.status(400).json({ error: "Invalid request", code: "invalid_request", details: parsed.error.issues });
     return;
   }
+  // KPI definitions are configuration-as-data for the administration backend:
+  // gated as manage_data_center (superadmin full, admin partial).
+  if (!requireCapability(req, res, "manage_data_center", "partial", parsed.data.roleId)) {
+    return;
+  }
   const d = parsed.data;
   if (!OBJECTIVES.some((o) => o.id === d.objectiveId)) {
     res.status(400).json({ error: "Unknown objective.", code: "unknown_objective" });
@@ -311,6 +322,7 @@ router.post("/kpis/alerts", async (req, res) => {
     res.status(400).json({ error: "Invalid request", code: "invalid_request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   try {
     const { clearance } = clearanceForRole(parsed.data.roleId);
     const alerts = computeAndListAlerts(clearance, parsed.data.area as Area);
@@ -329,6 +341,7 @@ router.post("/kpis/alerts/ack", async (req, res) => {
     res.status(400).json({ error: "Invalid request", code: "invalid_request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   try {
     const { clearance } = clearanceForRole(parsed.data.roleId);
     const role = ROLES.find((r) => r.id === parsed.data.roleId) ?? ROLES[0];

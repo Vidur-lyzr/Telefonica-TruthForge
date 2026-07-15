@@ -9,6 +9,8 @@ import type { KpiSourceConfig } from './kpiSourceConfig';
 import type { KpiThresholds } from './kpiThresholds';
 
 export interface KpiDefinitionInput {
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
   /**
      * Existing KPI id to append a new version; null creates a new KPI
      * @nullable

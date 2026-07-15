@@ -41,11 +41,35 @@ import {
   updateBrandSkill,
   resetBrandSkill,
 } from "../data/brandSkillStore";
+import { requireCapability, type CapabilityGrant } from "../data/accessControl";
+import type { Request, Response } from "express";
+import { ResetBrandSkillBody } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
 function roleIdParam(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+// manage_brand_room guard. Partial (admin) is bounded to the Brand domain:
+// only the admin whose area is Marca may mutate the Brand Room.
+function requireBrandRoom(
+  req: Request,
+  res: Response,
+  roleId: string,
+): CapabilityGrant | null {
+  const grant = requireCapability(req, res, "manage_brand_room", "partial", roleId);
+  if (!grant) return null;
+  if (grant.level === "partial" && grant.role.area !== "Marca") {
+    res.status(403).json({
+      error: "Only the Brand-area (Marca) admin can manage the Brand Room.",
+      code: "capability_blocked",
+      capability: "manage_brand_room",
+      profile: grant.role.profileId,
+    });
+    return null;
+  }
+  return grant;
 }
 
 router.get("/brand/templates", (req, res) => {
@@ -122,6 +146,7 @@ router.post("/brand/export-template-override", (req, res) => {
     });
     return;
   }
+  if (!requireBrandRoom(req, res, parsed.data.roleId)) return;
   const { templateId, reset, edit } = parsed.data;
   if (!getExportTemplate(templateId)) {
     res.status(404).json({ error: "Unknown export template", code: "unknown_template" });
@@ -192,12 +217,19 @@ router.put("/brand/skill", (req, res) => {
     res.status(400).json({ error: "Invalid skill content" });
     return;
   }
+  if (!requireBrandRoom(req, res, parsed.data.roleId)) return;
   const skill = updateBrandSkill(parsed.data.content);
   req.log.info({ version: skill.version }, "brand guardian skill updated");
   res.json(UpdateBrandSkillResponse.parse(skill));
 });
 
 router.post("/brand/skill/reset", (req, res) => {
+  const parsed = ResetBrandSkillBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  if (!requireBrandRoom(req, res, parsed.data.roleId)) return;
   const skill = resetBrandSkill();
   req.log.info({ version: skill.version }, "brand guardian skill reset to default");
   res.json(ResetBrandSkillResponse.parse(skill));

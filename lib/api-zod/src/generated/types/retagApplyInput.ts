@@ -10,6 +10,8 @@ import type { TaxonomyAxisEdit } from './taxonomyAxisEdit';
 import type { TaxonomyAxisOp } from './taxonomyAxisOp';
 
 export interface RetagApplyInput {
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
   actor: string;
   note: string;
   axisEdit: TaxonomyAxisEdit | null;

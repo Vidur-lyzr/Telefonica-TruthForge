@@ -7,6 +7,10 @@
  */
 
 export type ListRetrievalLogParams = {
+/**
+ * Acting persona — must hold the view_audit capability
+ */
+viewerRoleId: string;
 docId?: string;
 roleId?: string;
 limit?: number;

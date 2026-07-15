@@ -9,4 +9,6 @@ import type { LiveIngestFilterInput } from './liveIngestFilterInput';
 
 export interface LiveIngestSearchInput {
   filter: LiveIngestFilterInput;
+  /** Acting persona — must hold the ingest_documents capability */
+  roleId: string;
 }

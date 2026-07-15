@@ -9,4 +9,6 @@
 export interface BrandSkillUpdate {
   /** @minLength 1 */
   content: string;
+  /** Acting persona — must hold the manage_brand_room capability */
+  roleId: string;
 }

@@ -55,7 +55,7 @@ type Step = 0 | 1 | 2 | 3;
 type RetagKind = "rename" | "split" | "merge";
 
 export default function GovernanceArea() {
-  const { lang } = useApp();
+  const { lang, roleId } = useApp();
   const t = DATA_I18N[lang];
   const G = t.governance;
   const W = G.wizard;
@@ -155,6 +155,7 @@ export default function GovernanceArea() {
     try {
       const result = await proposeMutation.mutateAsync({
         data: {
+          roleId,
           axisId: effectiveAxisId,
           kind,
           newName: kind === "merge" ? (selectedAxis?.name ?? "") : renameTo.trim(),
@@ -217,6 +218,7 @@ export default function GovernanceArea() {
             : W.applyNote(proposal.fromName, proposal.toName);
       const result = await applyMutation.mutateAsync({
         data: {
+          roleId,
           actor: W.actor,
           note,
           kind: pKind,
@@ -270,7 +272,7 @@ export default function GovernanceArea() {
     setRevertError(null);
     try {
       const result = await rollbackMutation.mutateAsync({
-        data: { toVersion: revertTarget, actor: W.actor },
+        data: { toVersion: revertTarget, actor: W.actor, roleId },
       });
       setLastApplied(null);
       setLastRevert({

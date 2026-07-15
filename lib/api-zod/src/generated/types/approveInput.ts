@@ -9,4 +9,6 @@ import type { GeneratedDraft } from './generatedDraft';
 
 export interface ApproveInput {
   draft: GeneratedDraft;
+  /** Acting persona — must hold the approve_sensitive capability */
+  roleId: string;
 }

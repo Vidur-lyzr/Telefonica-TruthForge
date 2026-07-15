@@ -11,6 +11,7 @@ import {
   GetDocumentResponse,
 } from "@workspace/api-zod";
 import { AXES, ROLES, DOCS, SUGGESTIONS, getDoc, type Area } from "../data/corpus";
+import { capabilitiesOf, PROFILE_LABELS } from "../data/accessControl";
 import { corpusStatsFor, homeSummaryFor, radarFor } from "../adapters/home";
 
 const router: IRouter = Router();
@@ -42,7 +43,15 @@ router.get("/axes", (_req, res) => {
 });
 
 router.get("/roles", (_req, res) => {
-  res.json(ListRolesResponse.parse(ROLES));
+  // Enrich each persona with its platform profile and the full capability row
+  // from the access matrix so the client can gate navigation and actions
+  // without hardcoding the matrix.
+  const items = ROLES.map((r) => ({
+    ...r,
+    profileLabel: PROFILE_LABELS[r.profileId],
+    capabilities: capabilitiesOf(r.profileId),
+  }));
+  res.json(ListRolesResponse.parse(items));
 });
 
 router.get("/documents", (_req, res) => {

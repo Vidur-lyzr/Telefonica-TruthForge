@@ -128,6 +128,8 @@ export interface BrandSkill {
 export interface BrandSkillUpdate {
   /** @minLength 1 */
   content: string;
+  /** Acting persona — must hold the manage_brand_room capability */
+  roleId: string;
 }
 
 export interface DraftExclusion {
@@ -585,12 +587,145 @@ export interface UsageMeter {
   totals: UsageMeterTotals;
 }
 
+/**
+ * Configure backend — sources, agents, models
+ */
+export type CapabilitySetConfigureBackend = typeof CapabilitySetConfigureBackend[keyof typeof CapabilitySetConfigureBackend];
+
+
+export const CapabilitySetConfigureBackend = {
+  full: 'full',
+  partial: 'partial',
+  none: 'none',
+} as const;
+
+/**
+ * Manage Data Center — connections and taxonomy schema
+ */
+export type CapabilitySetManageDataCenter = typeof CapabilitySetManageDataCenter[keyof typeof CapabilitySetManageDataCenter];
+
+
+export const CapabilitySetManageDataCenter = {
+  full: 'full',
+  partial: 'partial',
+  none: 'none',
+} as const;
+
+/**
+ * Ingest documents and assign/edit metadata
+ */
+export type CapabilitySetIngestDocuments = typeof CapabilitySetIngestDocuments[keyof typeof CapabilitySetIngestDocuments];
+
+
+export const CapabilitySetIngestDocuments = {
+  full: 'full',
+  partial: 'partial',
+  none: 'none',
+} as const;
+
+/**
+ * Manage the Brand Room
+ */
+export type CapabilitySetManageBrandRoom = typeof CapabilitySetManageBrandRoom[keyof typeof CapabilitySetManageBrandRoom];
+
+
+export const CapabilitySetManageBrandRoom = {
+  full: 'full',
+  partial: 'partial',
+  none: 'none',
+} as const;
+
+/**
+ * Manage access control
+ */
+export type CapabilitySetManageAccessControl = typeof CapabilitySetManageAccessControl[keyof typeof CapabilitySetManageAccessControl];
+
+
+export const CapabilitySetManageAccessControl = {
+  full: 'full',
+  partial: 'partial',
+  none: 'none',
+} as const;
+
+/**
+ * Manage users and roles
+ */
+export type CapabilitySetManageUsersRoles = typeof CapabilitySetManageUsersRoles[keyof typeof CapabilitySetManageUsersRoles];
+
+
+export const CapabilitySetManageUsersRoles = {
+  full: 'full',
+  partial: 'partial',
+  none: 'none',
+} as const;
+
+/**
+ * Use / generate in the four workspace modules
+ */
+export type CapabilitySetUseModules = typeof CapabilitySetUseModules[keyof typeof CapabilitySetUseModules];
+
+
+export const CapabilitySetUseModules = {
+  full: 'full',
+  partial: 'partial',
+  none: 'none',
+} as const;
+
+/**
+ * Approve / publish sensitive outputs
+ */
+export type CapabilitySetApproveSensitive = typeof CapabilitySetApproveSensitive[keyof typeof CapabilitySetApproveSensitive];
+
+
+export const CapabilitySetApproveSensitive = {
+  full: 'full',
+  partial: 'partial',
+  none: 'none',
+} as const;
+
+/**
+ * View audit — logs and traceability
+ */
+export type CapabilitySetViewAudit = typeof CapabilitySetViewAudit[keyof typeof CapabilitySetViewAudit];
+
+
+export const CapabilitySetViewAudit = {
+  full: 'full',
+  partial: 'partial',
+  none: 'none',
+} as const;
+
+/**
+ * Capability levels for one profile, cell by cell from the source-of-truth access matrix (5 profiles x 9 capabilities). full | partial | none — partial is bounded by the persona's own sub-profile (their area and clearance).
+ */
+export interface CapabilitySet {
+  /** Configure backend — sources, agents, models */
+  configure_backend: CapabilitySetConfigureBackend;
+  /** Manage Data Center — connections and taxonomy schema */
+  manage_data_center: CapabilitySetManageDataCenter;
+  /** Ingest documents and assign/edit metadata */
+  ingest_documents: CapabilitySetIngestDocuments;
+  /** Manage the Brand Room */
+  manage_brand_room: CapabilitySetManageBrandRoom;
+  /** Manage access control */
+  manage_access_control: CapabilitySetManageAccessControl;
+  /** Manage users and roles */
+  manage_users_roles: CapabilitySetManageUsersRoles;
+  /** Use / generate in the four workspace modules */
+  use_modules: CapabilitySetUseModules;
+  /** Approve / publish sensitive outputs */
+  approve_sensitive: CapabilitySetApproveSensitive;
+  /** View audit — logs and traceability */
+  view_audit: CapabilitySetViewAudit;
+}
+
 export interface AdminProfile {
-  /** superadmin | admin | editor | audit */
+  /** superadmin | admin | editor | user | auditor */
   id: string;
   label: string;
   scope: string;
   detail: string;
+  capabilities: CapabilitySet;
 }
 
 export interface PlatformUser {
@@ -599,7 +734,7 @@ export interface PlatformUser {
   email: string;
   /** Comunicación | Marca | Gabinete */
   area: string;
-  /** superadmin | admin | editor | audit */
+  /** superadmin | admin | editor | user | auditor */
   profileId: string;
   /** public | private | confidential | off_the_record */
   clearance: string;
@@ -724,6 +859,16 @@ export interface SetSourceLabelInput {
   /** public | internal | private | confidential | off_the_record */
   confidentiality: string;
   actor?: string;
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
+}
+
+/**
+ * Body for gated actions whose only input is the acting persona.
+ */
+export interface ActingRoleInput {
+  /** Acting persona, checked against the capability matrix */
+  roleId: string;
 }
 
 export interface PublishReviewItemResult {
@@ -763,6 +908,11 @@ export interface Role {
      * @nullable
      */
   area: string | null;
+  /** superadmin | admin | editor | user | auditor — platform profile per the access matrix; orthogonal to clearance */
+  profileId: string;
+  /** Display label for the profile, e.g. Editor/Reviewer */
+  profileLabel: string;
+  capabilities: CapabilitySet;
   description: string;
 }
 
@@ -930,6 +1080,8 @@ export interface LiveIngestFilterInput {
 
 export interface LiveIngestSearchInput {
   filter: LiveIngestFilterInput;
+  /** Acting persona — must hold the ingest_documents capability */
+  roleId: string;
 }
 
 export type LiveIngestCandidateSentiment = typeof LiveIngestCandidateSentiment[keyof typeof LiveIngestCandidateSentiment];
@@ -969,6 +1121,8 @@ export interface LiveIngestSearchResult {
  * Accepts by server-issued candidate id only — the content and the filter provenance are taken from the server's own search results, never from the client, so arbitrary text cannot be injected past the pre-ingest gate.
  */
 export interface LiveIngestAcceptInput {
+  /** Acting persona — must hold the ingest_documents capability */
+  roleId: string;
   /** @minItems 1 */
   acceptedIds: string[];
   filter?: LiveIngestFilterInput;
@@ -1002,6 +1156,8 @@ export const ManualUploadFormConfidentiality = {
 
 export interface ManualUploadForm {
   file: Blob;
+  /** Acting persona — must hold the ingest_documents capability */
+  roleId: string;
   title: string;
   owner: string;
   country?: string;
@@ -1322,6 +1478,8 @@ export interface KpiDefinitionRecord {
 }
 
 export interface KpiDefinitionInput {
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
   /**
      * Existing KPI id to append a new version; null creates a new KPI
      * @nullable
@@ -2423,6 +2581,8 @@ export interface CanvasEditAuditList {
 
 export interface ApproveInput {
   draft: GeneratedDraft;
+  /** Acting persona — must hold the approve_sensitive capability */
+  roleId: string;
 }
 
 export interface SaveVersionInput {
@@ -2878,6 +3038,8 @@ export interface ExportTemplateRenditionResponse {
 
 export interface ExportTemplateOverrideRequest {
   templateId: string;
+  /** Acting persona — must hold the manage_brand_room capability */
+  roleId: string;
   /** When true, discards the saved edit and restores the corporate standard. */
   reset?: boolean;
   edit?: ExportTemplateEdit;
@@ -3016,6 +3178,8 @@ export interface TaxonomyState {
 }
 
 export interface RetagProposeInput {
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
   axisId: string;
   /** New name for the edited axis (rename and split). Ignored for merge — the source axis keeps its name until it is retired. */
   newName: string;
@@ -3081,6 +3245,8 @@ export interface RetagDecision {
 }
 
 export interface RetagApplyInput {
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
   actor: string;
   note: string;
   axisEdit: TaxonomyAxisEdit | null;
@@ -3188,6 +3354,8 @@ export interface AxisAffectedDocuments {
 export interface TaxonomyRollbackInput {
   toVersion: number;
   actor: string;
+  /** Acting persona — must hold the manage_data_center capability at full level */
+  roleId: string;
 }
 
 export interface TaxonomyRollbackResult {
@@ -3229,15 +3397,59 @@ roleId?: string;
 area?: string;
 };
 
+export type ListPlatformUsersParams = {
+roleId: string;
+};
+
+export type ListScheduledDocumentsParams = {
+roleId: string;
+};
+
+export type ListAuditEntriesParams = {
+roleId: string;
+};
+
 export type ListRetrievalLogParams = {
+/**
+ * Acting persona — must hold the view_audit capability
+ */
+viewerRoleId: string;
 docId?: string;
 roleId?: string;
 limit?: number;
 offset?: number;
 };
 
+export type GetSourceSyncStateParams = {
+roleId: string;
+};
+
+export type GetUserVisibilityMatrixParams = {
+userId: string;
+/**
+ * Acting persona — must hold the manage_access_control capability
+ */
+roleId: string;
+};
+
+export type GetUsageMeterParams = {
+roleId: string;
+};
+
+export type GetAgentOverviewParams = {
+roleId: string;
+};
+
+export type GetAgentToolsParams = {
+roleId: string;
+};
+
 export type GetAgentTools200 = {
   tools: AgentTool[];
+};
+
+export type ListAgentFilesParams = {
+roleId: string;
 };
 
 export type ListAgentFiles200 = {

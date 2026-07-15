@@ -3229,7 +3229,7 @@ export default function Generate() {
   const handleApproveFromCanvas = () => {
     if (!draft || !draft.reviewItemId) return;
     approve.mutate(
-      { id: draft.reviewItemId, data: { draft } },
+      { id: draft.reviewItemId, data: { draft, roleId } },
       {
         onSuccess: (item) => {
           setDraft(item.draft);
@@ -3727,7 +3727,7 @@ export default function Generate() {
           onCreate={(data, cb) => createSchedule.mutate({ data }, { onSuccess: () => { schedulesQ.refetch(); cb(); } })}
           onRun={(id) =>
             runSchedule.mutate(
-              { id },
+              { id, data: { roleId } },
               {
                 onSuccess: () => {
                   schedulesQ.refetch();
@@ -3747,13 +3747,13 @@ export default function Generate() {
           items={inboxQ.data}
           onApprove={(item) =>
             approve.mutate(
-              { id: item.id, data: { draft: item.draft } },
+              { id: item.id, data: { draft: item.draft, roleId } },
               { onSuccess: () => inboxQ.refetch() },
             )
           }
           onPublish={(item) =>
             publish.mutate(
-              { id: item.id },
+              { id: item.id, data: { roleId } },
               {
                 onSuccess: (r) => {
                   setPublishNotices((prev) => ({

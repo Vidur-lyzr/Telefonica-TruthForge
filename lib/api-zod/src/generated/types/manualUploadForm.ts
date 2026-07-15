@@ -9,6 +9,8 @@ import type { ManualUploadFormConfidentiality } from './manualUploadFormConfiden
 
 export interface ManualUploadForm {
   file: Blob;
+  /** Acting persona — must hold the ingest_documents capability */
+  roleId: string;
   title: string;
   owner: string;
   country?: string;

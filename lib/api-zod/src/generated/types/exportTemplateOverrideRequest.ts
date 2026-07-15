@@ -9,6 +9,8 @@ import type { ExportTemplateEdit } from './exportTemplateEdit';
 
 export interface ExportTemplateOverrideRequest {
   templateId: string;
+  /** Acting persona — must hold the manage_brand_room capability */
+  roleId: string;
   /** When true, discards the saved edit and restores the corporate standard. */
   reset?: boolean;
   edit?: ExportTemplateEdit;

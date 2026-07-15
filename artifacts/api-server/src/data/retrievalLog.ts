@@ -142,6 +142,12 @@ export interface RetrievalLogQuery {
   roleId?: string | null;
   limit?: number;
   offset?: number;
+  /**
+   * Governance bound applied BEFORE pagination: when set, only entries whose
+   * acting persona is in this set are visible (partial view_audit — an area
+   * admin sees only retrievals made by personas of their own area).
+   */
+  allowedRoleIds?: string[];
 }
 
 export function queryRetrievalLog(q: RetrievalLogQuery): {
@@ -149,6 +155,11 @@ export function queryRetrievalLog(q: RetrievalLogQuery): {
   items: RetrievalLogEntry[];
 } {
   let filtered = [...entries].reverse(); // newest first
+  if (q.allowedRoleIds) {
+    const allowed = new Set(q.allowedRoleIds);
+    // Fail closed: entries with no acting persona are hidden from a bounded view.
+    filtered = filtered.filter((e) => e.roleId !== null && allowed.has(e.roleId));
+  }
   if (q.docId) {
     filtered = filtered.filter((e) =>
       e.events.some((ev) => ev.hits.some((h) => h.docId === q.docId)),

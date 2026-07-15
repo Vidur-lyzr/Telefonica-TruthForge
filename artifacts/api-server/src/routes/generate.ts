@@ -40,6 +40,8 @@ import {
   CanvasEditBlockBody,
   CanvasEditBlockResponse,
   ListCanvasEditsResponse,
+  RunScheduleBody,
+  PublishReviewItemBody,
 } from "@workspace/api-zod";
 import { publishApprovedDraft, PublishRefusedError } from "../data/publishBack";
 import {
@@ -65,7 +67,8 @@ import {
   BlockLockedError,
 } from "../agent/canvasAgent";
 import { runBrandGuardian } from "../agent/brandGuardian";
-import { ROLES } from "../data/corpus";
+import { ROLES, CLEARANCE_RANK, getDoc, type Clearance, type Role } from "../data/corpus";
+import { requireCapability } from "../data/accessControl";
 import {
   TEMPLATES,
   APPROVED_CLAIMS,
@@ -106,12 +109,38 @@ function roleLabel(roleId: string): string {
   return ROLES.find((r) => r.id === roleId)?.label ?? roleId;
 }
 
+// Partial approve_sensitive (editor) bound: every source the draft cites must
+// sit at or below the approver's own clearance. Re-derived from the SERVER
+// corpus per docId — the client-supplied confidentiality labels on the draft
+// are never trusted. A citation whose doc is unknown fails closed.
+function citationsWithinClearance(
+  citations: { docId: string }[] | undefined,
+  role: Role,
+): boolean {
+  const cap = CLEARANCE_RANK[role.clearance];
+  return (citations ?? []).every((c) => {
+    const doc = getDoc(c.docId);
+    if (!doc) return false;
+    return CLEARANCE_RANK[doc.confidentiality as Clearance] <= cap;
+  });
+}
+
+function refuseAboveClearance(res: Parameters<typeof requireCapability>[1], role: Role): void {
+  res.status(403).json({
+    error: `This draft cites sources above your clearance ("${role.clearance}"). An editor may only approve or publish outputs bounded by their own clearance.`,
+    code: "capability_blocked",
+    capability: "approve_sensitive",
+    profile: role.profileId,
+  });
+}
+
 router.post("/generate", async (req, res) => {
   const parsed = GenerateBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   try {
     const result = await runGenerateAgent(
       {
@@ -144,6 +173,7 @@ router.post("/generate/refine", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   try {
     const result = await refineDraft(
       {
@@ -254,6 +284,7 @@ router.post("/generate/canvas/edit", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   const draft = parsed.data.draft as unknown as GeneratedDraft;
   try {
     // Deterministic disclaimer insertion — no model, no retrieval.
@@ -302,6 +333,25 @@ router.post("/generate/schedules", async (req, res) => {
     return;
   }
   const d = parsed.data;
+  // Creating a recurring run that lands in the review inbox is a sensitive-
+  // output action. Partial (editor): the schedule's confidentiality tier must
+  // sit at or below the editor's own clearance.
+  const grant = requireCapability(req, res, "approve_sensitive", "partial", d.ownerRoleId);
+  if (!grant) return;
+  const tier = (d.confidentiality ?? "private") as Clearance;
+  if (
+    grant.level === "partial" &&
+    (CLEARANCE_RANK[tier] ?? CLEARANCE_RANK.off_the_record) >
+      CLEARANCE_RANK[grant.role.clearance]
+  ) {
+    res.status(403).json({
+      error: `An editor may only schedule outputs at or below their own clearance ("${grant.role.clearance}").`,
+      code: "capability_blocked",
+      capability: "approve_sensitive",
+      profile: grant.role.profileId,
+    });
+    return;
+  }
   const schedule = createSchedule({
     name: d.name,
     shape: d.shape,
@@ -321,6 +371,14 @@ router.post("/generate/schedules", async (req, res) => {
 });
 
 router.post("/generate/schedules/:id/run", async (req, res) => {
+  const parsedRun = RunScheduleBody.safeParse(req.body);
+  if (!parsedRun.success) {
+    res.status(400).json({ error: "Invalid request", details: parsedRun.error.issues });
+    return;
+  }
+  if (!requireCapability(req, res, "approve_sensitive", "partial", parsedRun.data.roleId)) {
+    return;
+  }
   const schedule = getSchedule(req.params.id);
   if (!schedule) {
     res.status(404).json({ error: "Schedule not found." });
@@ -351,12 +409,27 @@ router.post("/generate/inbox/:id/approve", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  const approveGrant = requireCapability(
+    req,
+    res,
+    "approve_sensitive",
+    "partial",
+    parsed.data.roleId,
+  );
+  if (!approveGrant) return;
   const item = getReviewItem(req.params.id);
   if (!item) {
     res.status(404).json({ error: "Review item not found." });
     return;
   }
   const draft = parsed.data.draft as unknown as GeneratedDraft;
+  if (
+    approveGrant.level === "partial" &&
+    !citationsWithinClearance(draft.citations, approveGrant.role)
+  ) {
+    refuseAboveClearance(res, approveGrant.role);
+    return;
+  }
   const guardian = runBrandGuardian(draft);
   if (guardian.status !== "pass") {
     res
@@ -396,9 +469,30 @@ router.post("/generate/inbox/:id/approve", async (req, res) => {
 const publishInFlight = new Set<string>();
 
 router.post("/generate/inbox/:id/publish", async (req, res) => {
+  const parsedPublish = PublishReviewItemBody.safeParse(req.body);
+  if (!parsedPublish.success) {
+    res.status(400).json({ error: "Invalid request", details: parsedPublish.error.issues });
+    return;
+  }
+  const publishGrant = requireCapability(
+    req,
+    res,
+    "approve_sensitive",
+    "partial",
+    parsedPublish.data.roleId,
+  );
+  if (!publishGrant) return;
   const item = getReviewItem(req.params.id);
   if (!item) {
     res.status(404).json({ error: "Review item not found.", code: "not_found" });
+    return;
+  }
+  // Partial bound is checked against the SERVER-stored draft, not the request.
+  if (
+    publishGrant.level === "partial" &&
+    !citationsWithinClearance(item.draft.citations, publishGrant.role)
+  ) {
+    refuseAboveClearance(res, publishGrant.role);
     return;
   }
   // Concurrent double-fire guard: the already_published check below reads the
@@ -739,6 +833,7 @@ router.post("/generate/jobs", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   const job = createJob("generate");
   const input = {
     shape: parsed.data.shape as "messaging" | "press" | "multiformat",
@@ -774,6 +869,7 @@ router.post("/generate/refine/jobs", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   const job = createJob("refine");
   const input = {
     draft: parsed.data.draft as unknown as GeneratedDraft,

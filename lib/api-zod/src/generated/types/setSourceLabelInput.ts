@@ -11,4 +11,6 @@ export interface SetSourceLabelInput {
   /** public | internal | private | confidential | off_the_record */
   confidentiality: string;
   actor?: string;
+  /** Acting persona — must hold the manage_data_center capability */
+  roleId: string;
 }

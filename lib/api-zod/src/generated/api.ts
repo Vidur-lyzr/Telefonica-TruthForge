@@ -178,6 +178,19 @@ export const ListRolesResponseItem = zod.object({
   "label": zod.string(),
   "clearance": zod.string().describe('public | private | confidential | off_the_record'),
   "area": zod.string().nullable().describe('Organisational area; null = cross-area (the super user persona sees every area)'),
+  "profileId": zod.string().describe('superadmin | admin | editor | user | auditor — platform profile per the access matrix; orthogonal to clearance'),
+  "profileLabel": zod.string().describe('Display label for the profile, e.g. Editor\/Reviewer'),
+  "capabilities": zod.object({
+  "configure_backend": zod.enum(['full', 'partial', 'none']).describe('Configure backend — sources, agents, models'),
+  "manage_data_center": zod.enum(['full', 'partial', 'none']).describe('Manage Data Center — connections and taxonomy schema'),
+  "ingest_documents": zod.enum(['full', 'partial', 'none']).describe('Ingest documents and assign\/edit metadata'),
+  "manage_brand_room": zod.enum(['full', 'partial', 'none']).describe('Manage the Brand Room'),
+  "manage_access_control": zod.enum(['full', 'partial', 'none']).describe('Manage access control'),
+  "manage_users_roles": zod.enum(['full', 'partial', 'none']).describe('Manage users and roles'),
+  "use_modules": zod.enum(['full', 'partial', 'none']).describe('Use \/ generate in the four workspace modules'),
+  "approve_sensitive": zod.enum(['full', 'partial', 'none']).describe('Approve \/ publish sensitive outputs'),
+  "view_audit": zod.enum(['full', 'partial', 'none']).describe('View audit — logs and traceability')
+}).describe('Capability levels for one profile, cell by cell from the source-of-truth access matrix (5 profiles x 9 capabilities). full | partial | none — partial is bounded by the persona\'s own sub-profile (their area and clearance).\n'),
   "description": zod.string()
 })
 export const ListRolesResponse = zod.array(ListRolesResponseItem)
@@ -379,34 +392,55 @@ export const GetDocumentResponse = zod.object({
 
 
 /**
- * @summary The four platform access profiles and their scopes
+ * @summary The five platform access profiles with their capability-matrix rows
  */
 export const ListAdminProfilesResponseItem = zod.object({
-  "id": zod.string().describe('superadmin | admin | editor | audit'),
+  "id": zod.string().describe('superadmin | admin | editor | user | auditor'),
   "label": zod.string(),
   "scope": zod.string(),
-  "detail": zod.string()
+  "detail": zod.string(),
+  "capabilities": zod.object({
+  "configure_backend": zod.enum(['full', 'partial', 'none']).describe('Configure backend — sources, agents, models'),
+  "manage_data_center": zod.enum(['full', 'partial', 'none']).describe('Manage Data Center — connections and taxonomy schema'),
+  "ingest_documents": zod.enum(['full', 'partial', 'none']).describe('Ingest documents and assign\/edit metadata'),
+  "manage_brand_room": zod.enum(['full', 'partial', 'none']).describe('Manage the Brand Room'),
+  "manage_access_control": zod.enum(['full', 'partial', 'none']).describe('Manage access control'),
+  "manage_users_roles": zod.enum(['full', 'partial', 'none']).describe('Manage users and roles'),
+  "use_modules": zod.enum(['full', 'partial', 'none']).describe('Use \/ generate in the four workspace modules'),
+  "approve_sensitive": zod.enum(['full', 'partial', 'none']).describe('Approve \/ publish sensitive outputs'),
+  "view_audit": zod.enum(['full', 'partial', 'none']).describe('View audit — logs and traceability')
+}).describe('Capability levels for one profile, cell by cell from the source-of-truth access matrix (5 profiles x 9 capabilities). full | partial | none — partial is bounded by the persona\'s own sub-profile (their area and clearance).\n')
 })
 export const ListAdminProfilesResponse = zod.array(ListAdminProfilesResponseItem)
 
 
 /**
+ * Requires the manage_users_roles capability. Admins (partial) see only the users of their own area; the Superadmin sees everyone.
  * @summary Registered platform users with area, profile and confidentiality tier
  */
+export const ListPlatformUsersQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
 export const ListPlatformUsersResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "email": zod.string(),
   "area": zod.string().describe('Comunicación | Marca | Gabinete'),
-  "profileId": zod.string().describe('superadmin | admin | editor | audit'),
+  "profileId": zod.string().describe('superadmin | admin | editor | user | auditor'),
   "clearance": zod.string().describe('public | private | confidential | off_the_record')
 })
 export const ListPlatformUsersResponse = zod.array(ListPlatformUsersResponseItem)
 
 
 /**
+ * Requires the ingest_documents capability.
  * @summary Recurring document schedules (source-resolved status)
  */
+export const ListScheduledDocumentsQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
 export const ListScheduledDocumentsResponseItem = zod.object({
   "id": zod.string(),
   "template": zod.string(),
@@ -422,8 +456,13 @@ export const ListScheduledDocumentsResponse = zod.array(ListScheduledDocumentsRe
 
 
 /**
+ * Requires the view_audit capability. Superadmin and Auditor see the full trail; Admins (partial) see entries related to their own area.
  * @summary Read-only audit trail of permission changes and scheduled runs
  */
+export const ListAuditEntriesQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
 export const ListAuditEntriesResponseItem = zod.object({
   "id": zod.string(),
   "actor": zod.string(),
@@ -437,10 +476,11 @@ export const ListAuditEntriesResponse = zod.array(ListAuditEntriesResponseItem)
 
 
 /**
- * Every governed retrieval — Ask and Generate — appends an entry recording the persona, the effective governance filter, and the chunk ids and scores returned. Never chunk text. Filterable by document (who accessed doc X) and by persona.
+ * Every governed retrieval — Ask and Generate — appends an entry recording the persona, the effective governance filter, and the chunk ids and scores returned. Never chunk text. Filterable by document (who accessed doc X) and by persona. Requires the view_audit capability — the acting persona is viewerRoleId; Admins (partial) see only retrievals made by personas of their own area.
  * @summary Per-query retrieval audit log (who retrieved what, under which filter)
  */
 export const ListRetrievalLogQueryParams = zod.object({
+  "viewerRoleId": zod.coerce.string().describe('Acting persona — must hold the view_audit capability'),
   "docId": zod.coerce.string().optional(),
   "roleId": zod.coerce.string().optional(),
   "limit": zod.coerce.number().optional(),
@@ -474,8 +514,13 @@ export const ListRetrievalLogResponse = zod.object({
 
 
 /**
+ * Requires the manage_data_center capability.
  * @summary Simulated source-system sync state (labels, pending deltas, run history)
  */
+export const GetSourceSyncStateQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
 export const GetSourceSyncStateResponse = zod.object({
   "connector": zod.string(),
   "docs": zod.array(zod.object({
@@ -527,7 +572,8 @@ export const GetSourceSyncStateResponse = zod.object({
 export const SetSourceLabelBody = zod.object({
   "docId": zod.string(),
   "confidentiality": zod.string().describe('public | internal | private | confidential | off_the_record'),
-  "actor": zod.string().optional()
+  "actor": zod.string().optional(),
+  "roleId": zod.string().describe('Acting persona — must hold the manage_data_center capability')
 })
 
 export const SetSourceLabelResponse = zod.object({
@@ -575,8 +621,13 @@ export const SetSourceLabelResponse = zod.object({
 
 
 /**
+ * Requires the manage_data_center capability at FULL level — batch sync applies label downgrades platform-wide, so it is Superadmin-only.
  * @summary Run a batch sync, applying all pending downgrade deltas
  */
+export const RunSourceSyncBody = zod.object({
+  "roleId": zod.string().describe('Acting persona, checked against the capability matrix')
+}).describe('Body for gated actions whose only input is the acting persona.')
+
 export const RunSourceSyncResponse = zod.object({
   "connector": zod.string(),
   "docs": zod.array(zod.object({
@@ -622,11 +673,12 @@ export const RunSourceSyncResponse = zod.object({
 
 
 /**
- * Resolves, for every governed document, whether the given user can see it and — when blocked — which axis blocks it (clearance or area). Access is the intersection of area and confidentiality, resolved by the same engine every retrieval path uses.
+ * Resolves, for every governed document, whether the given user can see it and — when blocked — which axis blocks it (clearance or area). Access is the intersection of area and confidentiality, resolved by the same engine every retrieval path uses. Requires the manage_access_control capability; Admins (partial) may only inspect users of their own area.
  * @summary Per-document visibility matrix for a platform user
  */
-export const GetUserVisibilityMatrixParams = zod.object({
-  "userId": zod.coerce.string()
+export const GetUserVisibilityMatrixQueryParams = zod.object({
+  "userId": zod.coerce.string(),
+  "roleId": zod.coerce.string().describe('Acting persona — must hold the manage_access_control capability')
 })
 
 export const GetUserVisibilityMatrixResponse = zod.object({
@@ -635,7 +687,7 @@ export const GetUserVisibilityMatrixResponse = zod.object({
   "name": zod.string(),
   "email": zod.string(),
   "area": zod.string().describe('Comunicación | Marca | Gabinete'),
-  "profileId": zod.string().describe('superadmin | admin | editor | audit'),
+  "profileId": zod.string().describe('superadmin | admin | editor | user | auditor'),
   "clearance": zod.string().describe('public | private | confidential | off_the_record')
 }),
   "visibleCount": zod.number(),
@@ -654,8 +706,13 @@ export const GetUserVisibilityMatrixResponse = zod.object({
 
 
 /**
+ * Requires the view_audit capability (usage is traceability).
  * @summary Per-module counters of the platform's own agent calls and tokens
  */
+export const GetUsageMeterQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
 export const GetUsageMeterResponse = zod.object({
   "since": zod.string().describe('When metering started (first boot of the counter store)'),
   "modules": zod.array(zod.object({
@@ -674,9 +731,13 @@ export const GetUsageMeterResponse = zod.object({
 
 
 /**
- * Reads agent.yaml, the skill catalog and the .gitagent session state from the agent repo directory at request time. Nothing is hardcoded; this is the same brain the Ask chat runs on.
+ * Reads agent.yaml, the skill catalog and the .gitagent session state from the agent repo directory at request time. Nothing is hardcoded; this is the same brain the Ask chat runs on. Requires the configure_backend capability (Superadmin only).
  * @summary The live GitAgent identity, parsed from the real agent repo on disk
  */
+export const GetAgentOverviewQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
 export const GetAgentOverviewResponse = zod.object({
   "name": zod.string(),
   "version": zod.string(),
@@ -710,9 +771,13 @@ export const GetAgentOverviewResponse = zod.object({
 
 
 /**
- * Serialised from the same GCToolDefinition objects the ask pipeline injects per run (name, description, input schema), plus the tools declared in agent.yaml — not a parallel hand-written list.
+ * Serialised from the same GCToolDefinition objects the ask pipeline injects per run (name, description, input schema), plus the tools declared in agent.yaml — not a parallel hand-written list. Requires the configure_backend capability (Superadmin only).
  * @summary The real tool catalog the runtime binds into the agent
  */
+export const GetAgentToolsQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
 export const GetAgentToolsResponse = zod.object({
   "tools": zod.array(zod.object({
   "name": zod.string(),
@@ -724,8 +789,13 @@ export const GetAgentToolsResponse = zod.object({
 
 
 /**
+ * Requires the configure_backend capability (Superadmin only).
  * @summary Flat file listing of the GitAgent repo (tree is built client-side)
  */
+export const ListAgentFilesQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
 export const ListAgentFilesResponse = zod.object({
   "rootLabel": zod.string().describe('Display label for the repo root, e.g. agent\/'),
   "files": zod.array(zod.object({
@@ -799,6 +869,7 @@ export const GetTaxonomyStateResponse = zod.object({
  * @summary Step 1-3 of the governed re-tagging pipeline
  */
 export const ProposeRetagBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the manage_data_center capability'),
   "axisId": zod.string(),
   "newName": zod.string().describe('New name for the edited axis (rename and split). Ignored for merge — the source axis keeps its name until it is retired.\n'),
   "newDescription": zod.string().nullish(),
@@ -843,6 +914,7 @@ export const ProposeRetagResponse = zod.object({
  * @summary Step 4 — apply human-validated re-tagging as a new taxonomy version
  */
 export const ApplyRetagBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the manage_data_center capability'),
   "actor": zod.string(),
   "note": zod.string(),
   "axisEdit": zod.union([zod.object({
@@ -938,7 +1010,8 @@ export const ListAxisAffectedDocumentsResponse = zod.object({
  */
 export const RollbackTaxonomyBody = zod.object({
   "toVersion": zod.number(),
-  "actor": zod.string()
+  "actor": zod.string(),
+  "roleId": zod.string().describe('Acting persona — must hold the manage_data_center capability at full level')
 })
 
 export const RollbackTaxonomyResponse = zod.object({
@@ -1358,6 +1431,7 @@ export const ListKpiDefinitionsResponse = zod.array(ListKpiDefinitionsResponseIt
 
 
 export const UpsertKpiDefinitionBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the manage_data_center capability'),
   "id": zod.string().nullish().describe('Existing KPI id to append a new version; null creates a new KPI'),
   "name": zod.string().min(1),
   "description": zod.string(),
@@ -4024,11 +4098,16 @@ export const CreateScheduleResponse = zod.object({
 
 
 /**
+ * Requires the approve_sensitive capability (schedule runs feed the review inbox).
  * @summary Run a schedule now and place the result in the review inbox
  */
 export const RunScheduleParams = zod.object({
   "id": zod.coerce.string()
 })
+
+export const RunScheduleBody = zod.object({
+  "roleId": zod.string().describe('Acting persona, checked against the capability matrix')
+}).describe('Body for gated actions whose only input is the acting persona.')
 
 export const RunScheduleResponse = zod.object({
   "id": zod.string(),
@@ -4445,7 +4524,8 @@ export const ApproveReviewItemBody = zod.object({
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
 })]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
-})
+}),
+  "roleId": zod.string().describe('Acting persona — must hold the approve_sensitive capability')
 })
 
 export const ApproveReviewItemResponse = zod.object({
@@ -4594,6 +4674,10 @@ export const ApproveReviewItemResponse = zod.object({
 export const PublishReviewItemParams = zod.object({
   "id": zod.coerce.string()
 })
+
+export const PublishReviewItemBody = zod.object({
+  "roleId": zod.string().describe('Acting persona, checked against the capability matrix')
+}).describe('Body for gated actions whose only input is the acting persona.')
 
 export const PublishReviewItemResponse = zod.object({
   "docId": zod.string(),
@@ -6741,7 +6825,8 @@ export const LiveIngestSearchBody = zod.object({
   "competitors": zod.array(zod.string()),
   "executives": zod.array(zod.string()),
   "topics": zod.array(zod.string())
-}).describe('The editor-defined pre-ingest filter for a live capture run')
+}).describe('The editor-defined pre-ingest filter for a live capture run'),
+  "roleId": zod.string().describe('Acting persona — must hold the ingest_documents capability')
 })
 
 export const LiveIngestSearchResponse = zod.object({
@@ -6773,6 +6858,7 @@ export const LiveIngestSearchResponse = zod.object({
 
 
 export const LiveIngestAcceptBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the ingest_documents capability'),
   "acceptedIds": zod.array(zod.string()).min(1),
   "filter": zod.object({
   "keywords": zod.array(zod.string()),
@@ -6809,6 +6895,7 @@ export const LiveIngestAcceptResponse = zod.object({
  */
 export const ManualUploadBody = zod.object({
   "file": zod.instanceof(File),
+  "roleId": zod.string().describe('Acting persona — must hold the ingest_documents capability'),
   "title": zod.string(),
   "owner": zod.string(),
   "country": zod.string().optional(),
@@ -7100,6 +7187,7 @@ export const saveExportTemplateOverrideBodyEditDescriptionMax = 300;
 
 export const SaveExportTemplateOverrideBody = zod.object({
   "templateId": zod.string(),
+  "roleId": zod.string().describe('Acting persona — must hold the manage_brand_room capability'),
   "reset": zod.boolean().optional().describe('When true, discards the saved edit and restores the corporate standard.'),
   "edit": zod.object({
   "name": zod.string().min(1).max(saveExportTemplateOverrideBodyEditNameMax).optional(),
@@ -7171,7 +7259,8 @@ export const GetBrandSkillResponse = zod.object({
 
 
 export const UpdateBrandSkillBody = zod.object({
-  "content": zod.string().min(1)
+  "content": zod.string().min(1),
+  "roleId": zod.string().describe('Acting persona — must hold the manage_brand_room capability')
 })
 
 export const UpdateBrandSkillResponse = zod.object({
@@ -7183,8 +7272,13 @@ export const UpdateBrandSkillResponse = zod.object({
 
 
 /**
+ * Requires the manage_brand_room capability.
  * @summary Reset the Brand Guardian skill to the governed default
  */
+export const ResetBrandSkillBody = zod.object({
+  "roleId": zod.string().describe('Acting persona, checked against the capability matrix')
+}).describe('Body for gated actions whose only input is the acting persona.')
+
 export const ResetBrandSkillResponse = zod.object({
   "content": zod.string().describe('The full skill document (Markdown)'),
   "version": zod.number(),

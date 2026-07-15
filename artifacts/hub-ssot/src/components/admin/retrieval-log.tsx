@@ -53,7 +53,7 @@ function formatTimestamp(ts: string, locale: string): string {
 }
 
 export default function RetrievalLogSection() {
-  const { lang } = useApp();
+  const { lang, roleId: viewerRoleId } = useApp();
   const t = ADMIN_I18N[lang].log;
   const locale = localeFor(lang);
   const [docInput, setDocInput] = React.useState("");
@@ -61,7 +61,15 @@ export default function RetrievalLogSection() {
   const [applied, setApplied] = React.useState<{ docId?: string; roleId?: string }>({});
   const [detail, setDetail] = React.useState<RetrievalLogEntry | null>(null);
 
-  const logQ = useListRetrievalLog({ ...applied, limit: 30 });
+  const logQ = useListRetrievalLog(
+    { ...applied, viewerRoleId, limit: 30 },
+    {
+      query: {
+        enabled: viewerRoleId.length > 0,
+        queryKey: ["retrieval-log", viewerRoleId, applied.docId, applied.roleId],
+      },
+    },
+  );
   const entries = logQ.data?.items ?? [];
 
   function applyFilters() {

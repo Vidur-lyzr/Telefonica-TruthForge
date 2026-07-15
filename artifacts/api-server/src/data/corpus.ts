@@ -41,6 +41,10 @@ export interface Role {
   // null = cross-area super user: not area-scoped, sees every area at their
   // clearance. resolveDocAccess treats a null subject area as "no area gate".
   area: Area | null;
+  // Platform profile per the source-of-truth capability matrix. Profile
+  // (capabilities) is orthogonal to clearance (data visibility): a persona
+  // can read everything yet manage nothing.
+  profileId: ProfileId;
   description: string;
 }
 
@@ -125,7 +129,7 @@ export interface NumericFact {
   keywords: string[];
 }
 
-export type ProfileId = "superadmin" | "admin" | "editor" | "audit";
+export type ProfileId = "superadmin" | "admin" | "editor" | "user" | "auditor";
 
 export interface AdminProfile {
   id: ProfileId;
@@ -329,6 +333,8 @@ export const AXES: StrategicAxis[] = [
 ];
 
 // Persona names are fictional, like the rest of the corpus.
+// profileId (capabilities) is deliberately orthogonal to clearance (data
+// visibility): Álvaro reads board-restricted material yet manages nothing.
 export const ROLES: Role[] = [
   {
     id: "role-press",
@@ -336,6 +342,7 @@ export const ROLES: Role[] = [
     label: "External / Press",
     clearance: "public",
     area: "Comunicación",
+    profileId: "user",
     description: "Journalists and external stakeholders. Public material only.",
   },
   {
@@ -344,6 +351,7 @@ export const ROLES: Role[] = [
     label: "Communications Analyst",
     clearance: "private",
     area: "Comunicación",
+    profileId: "editor",
     description: "Prepares briefings from public and internal material.",
   },
   {
@@ -352,6 +360,7 @@ export const ROLES: Role[] = [
     label: "Brand Manager",
     clearance: "private",
     area: "Marca",
+    profileId: "admin",
     description: "Owns brand governance and campaign consistency.",
   },
   {
@@ -360,6 +369,7 @@ export const ROLES: Role[] = [
     label: "Communications Director",
     clearance: "confidential",
     area: "Comunicación",
+    profileId: "admin",
     description: "Access to confidential strategy and crisis material.",
   },
   {
@@ -368,6 +378,7 @@ export const ROLES: Role[] = [
     label: "Chief of Staff · Gabinete",
     clearance: "off_the_record",
     area: "Gabinete",
+    profileId: "user",
     description: "Full clearance, including board-restricted material.",
   },
   {
@@ -376,14 +387,28 @@ export const ROLES: Role[] = [
     label: "Platform Owner · Super User",
     clearance: "off_the_record",
     area: null,
+    profileId: "superadmin",
     description:
       "Cross-area super user: every area at full clearance, plus exclusive access to the agent's own repository files.",
+  },
+  {
+    id: "role-auditor",
+    name: "Tomás Neu",
+    label: "Compliance Auditor",
+    clearance: "confidential",
+    area: "Gabinete",
+    profileId: "auditor",
+    description:
+      "Read-only compliance access: audit trail and traceability only. Cannot use the workspace modules or change anything.",
   },
 ];
 
 // Personas allowed to read the GitAgent repo file CONTENTS in the Admin →
-// Agent tab. Server-enforced; everyone else sees the tree but not the bytes.
-export const AGENT_REPO_ROLE_IDS: ReadonlySet<string> = new Set(["role-superuser"]);
+// Agent tab. Derived from the capability matrix: configure_backend is a
+// Superadmin-only capability. Server-enforced.
+export const AGENT_REPO_ROLE_IDS: ReadonlySet<string> = new Set(
+  ROLES.filter((r) => r.profileId === "superadmin").map((r) => r.id),
+);
 
 const BASE_DOCS: CorpusDoc[] = [
   {
@@ -2487,34 +2512,43 @@ export const SUGGESTIONS = [
   { id: "sug-uk-revenue", text: "What was UK market revenue in Q3 2025?", kind: "historic" },
 ];
 
+// The five platform profiles, exactly as in the source-of-truth capability
+// matrix. Capability levels per profile live in data/accessControl.ts.
 export const ADMIN_PROFILES: AdminProfile[] = [
   {
     id: "superadmin",
     label: "Superadmin",
-    scope: "Full backend + workspace",
+    scope: "Full backend",
     detail:
-      "Complete control of the platform: users, profiles, permissions, scheduled documents, corpus governance and the full workspace.",
+      "Full control of every capability: backend configuration (sources, agents, models), Data Center, ingestion, Brand Room, access control, users and roles, all four workspace modules, sensitive approvals and the audit trail.",
   },
   {
     id: "admin",
     label: "Admin",
-    scope: "Metadata, Brand Room, access-control",
+    scope: "Per domain",
     detail:
-      "Manages document metadata, the Brand Room and access control (users, areas and profiles). Cannot alter platform-level configuration.",
+      "Domain-scoped administrator: full ingestion/metadata and module use, partial (own-domain) Data Center, Brand Room, access control, users and audit visibility. No backend configuration.",
   },
   {
     id: "editor",
-    label: "Editor",
-    scope: "Workspace: Documentation + agent, KPIs, Planning",
+    label: "Editor/Reviewer",
+    scope: "Edits / approves / publishes",
     detail:
-      "Works in the governed workspace — Documentation and the agent, KPIs and Planning. No access to backend access-control.",
+      "Works in the governed workspace: uploads and edits metadata for documents in their own area, uses the modules within their sub-profile, and approves/publishes outputs bounded by their own clearance and area.",
   },
   {
-    id: "audit",
-    label: "Audit",
-    scope: "Read-only trail",
+    id: "user",
+    label: "User",
+    scope: "Uses the SSoT",
     detail:
-      "Read-only view of the audit trail: permission changes and scheduled runs. Cannot change any configuration or content.",
+      "Uses the four workspace modules within their sub-profile (area and clearance). No management capabilities of any kind — regardless of how high their reading clearance is.",
+  },
+  {
+    id: "auditor",
+    label: "Auditor",
+    scope: "Read-only",
+    detail:
+      "Sees the full audit trail and traceability (logs, retrieval log, usage) and nothing else: no module use, no ingestion, no configuration.",
   },
 ];
 
@@ -2556,7 +2590,7 @@ export const PLATFORM_USERS: PlatformUser[] = [
     name: "Lucía Fernández",
     email: "lucia.fernandez@telefonica.com",
     area: "Marca",
-    profileId: "editor",
+    profileId: "user",
     clearance: "public",
   },
   {
@@ -2564,7 +2598,7 @@ export const PLATFORM_USERS: PlatformUser[] = [
     name: "Tomás Neu",
     email: "tomas.neu@telefonica.com",
     area: "Gabinete",
-    profileId: "audit",
+    profileId: "auditor",
     clearance: "confidential",
   },
 ];

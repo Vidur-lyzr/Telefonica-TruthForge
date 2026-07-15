@@ -12,7 +12,7 @@ export interface PlatformUser {
   email: string;
   /** Comunicación | Marca | Gabinete */
   area: string;
-  /** superadmin | admin | editor | audit */
+  /** superadmin | admin | editor | user | auditor */
   profileId: string;
   /** public | private | confidential | off_the_record */
   clearance: string;

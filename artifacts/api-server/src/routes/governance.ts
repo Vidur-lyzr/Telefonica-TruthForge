@@ -21,6 +21,7 @@ import {
   type TaxonomyVersionKind,
 } from "../data/governance";
 import { proposeRetag, RetagInputError } from "../agent/retagAgent";
+import { requireCapability } from "../data/accessControl";
 import {
   isQdrantConfigured,
   setDocPayloads,
@@ -133,6 +134,11 @@ router.post("/governance/retag/propose", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  // Propose is a dry run — it mutates nothing — so partial manage_data_center
+  // (admin) may preview. The structural bound is enforced at APPLY time.
+  if (!requireCapability(req, res, "manage_data_center", "partial", parsed.data.roleId)) {
+    return;
+  }
   try {
     const result = await proposeRetag(
       {
@@ -178,6 +184,20 @@ router.post("/governance/retag/apply", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  // Structural taxonomy changes (axis rename/split/merge, axis ops) are
+  // Superadmin-only; a doc-only re-tag (no axis edit) is allowed at partial.
+  const structural =
+    parsed.data.axisEdit != null ||
+    (parsed.data.axisOps ?? []).length > 0 ||
+    parsed.data.kind != null;
+  const grant = requireCapability(
+    req,
+    res,
+    "manage_data_center",
+    structural ? "full" : "partial",
+    parsed.data.roleId,
+  );
+  if (!grant) return;
   try {
     // Mirror the accepted overrides into Qdrant FIRST, as payload-only
     // updates (set_payload mutates chunk METADATA in place: vectors are never
@@ -360,6 +380,10 @@ router.post("/governance/rollback", async (req, res) => {
   const parsed = RollbackTaxonomyBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  // Rollback rewrites platform-wide taxonomy state — Superadmin only.
+  if (!requireCapability(req, res, "manage_data_center", "full", parsed.data.roleId)) {
     return;
   }
   try {

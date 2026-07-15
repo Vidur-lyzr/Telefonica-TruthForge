@@ -87,7 +87,27 @@ const ADMIN_EN = {
 
   accessProfiles: "Access profiles",
   profilesNote:
-    "Profiles can be added or unified as the organisation evolves — the four above are the RFP baseline, not a fixed ceiling.",
+    "Profiles can be added or unified as the organisation evolves — the five above are the RFP baseline, not a fixed ceiling.",
+  capabilityMatrixTitle: "Capability matrix",
+  capabilityMatrixNote:
+    "Enforced server-side on every request — the same matrix gates the navigation and actions for the active persona. Partial is bounded by the person's own sub-profile (their area and clearance).",
+  colCapability: "Capability",
+  capabilityLabels: {
+    configure_backend: "Configure backend (sources, agents, models)",
+    manage_data_center: "Manage Data Center (connections, taxonomy)",
+    ingest_documents: "Ingest documents / edit metadata",
+    manage_brand_room: "Manage the Brand Room",
+    manage_access_control: "Manage access control",
+    manage_users_roles: "Manage users and roles",
+    use_modules: "Use / generate in the workspace modules",
+    approve_sensitive: "Approve / publish sensitive outputs",
+    view_audit: "View audit (logs and traceability)",
+  } as Record<string, string>,
+  levelLabels: {
+    full: "Full",
+    partial: "Partial",
+    none: "No",
+  } as Record<string, string>,
 
   platformUsers: "Platform users",
   registerUser: "Register user",
@@ -471,7 +491,27 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
 
     accessProfiles: "Perfiles de acceso",
     profilesNote:
-      "Los perfiles pueden añadirse o unificarse a medida que evoluciona la organización — los cuatro anteriores son la base del RFP, no un techo fijo.",
+      "Los perfiles pueden añadirse o unificarse a medida que evoluciona la organización — los cinco anteriores son la base del RFP, no un techo fijo.",
+    capabilityMatrixTitle: "Matriz de capacidades",
+    capabilityMatrixNote:
+      "Se aplica en el servidor en cada petición — la misma matriz controla la navegación y las acciones de la persona activa. Parcial está limitado por el subperfil de la persona (su área y su nivel de confidencialidad).",
+    colCapability: "Capacidad",
+    capabilityLabels: {
+      configure_backend: "Configurar el backend (fuentes, agentes, modelos)",
+      manage_data_center: "Gestionar el Data Center (conexiones, taxonomía)",
+      ingest_documents: "Ingerir documentos / editar metadatos",
+      manage_brand_room: "Gestionar el Brand Room",
+      manage_access_control: "Gestionar el control de acceso",
+      manage_users_roles: "Gestionar usuarios y roles",
+      use_modules: "Usar / generar en los módulos del workspace",
+      approve_sensitive: "Aprobar / publicar salidas sensibles",
+      view_audit: "Ver auditoría (registros y trazabilidad)",
+    } as Record<string, string>,
+    levelLabels: {
+      full: "Total",
+      partial: "Parcial",
+      none: "No",
+    } as Record<string, string>,
 
     platformUsers: "Usuarios de la plataforma",
     registerUser: "Registrar usuario",
@@ -819,7 +859,27 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
 
     accessProfiles: "Zugriffsprofile",
     profilesNote:
-      "Profile können hinzugefügt oder zusammengeführt werden, während sich die Organisation weiterentwickelt — die vier oben sind die RFP-Basis, keine feste Obergrenze.",
+      "Profile können hinzugefügt oder zusammengeführt werden, während sich die Organisation weiterentwickelt — die fünf oben sind die RFP-Basis, keine feste Obergrenze.",
+    capabilityMatrixTitle: "Berechtigungsmatrix",
+    capabilityMatrixNote:
+      "Wird serverseitig bei jeder Anfrage durchgesetzt — dieselbe Matrix steuert Navigation und Aktionen der aktiven Persona. Teilweise ist durch das eigene Unterprofil begrenzt (Bereich und Vertraulichkeitsstufe).",
+    colCapability: "Berechtigung",
+    capabilityLabels: {
+      configure_backend: "Backend konfigurieren (Quellen, Agenten, Modelle)",
+      manage_data_center: "Data Center verwalten (Verbindungen, Taxonomie)",
+      ingest_documents: "Dokumente aufnehmen / Metadaten bearbeiten",
+      manage_brand_room: "Brand Room verwalten",
+      manage_access_control: "Zugriffskontrolle verwalten",
+      manage_users_roles: "Nutzer und Rollen verwalten",
+      use_modules: "Module nutzen / Inhalte generieren",
+      approve_sensitive: "Sensible Ausgaben freigeben / veröffentlichen",
+      view_audit: "Audit einsehen (Protokolle und Nachvollziehbarkeit)",
+    } as Record<string, string>,
+    levelLabels: {
+      full: "Voll",
+      partial: "Teilweise",
+      none: "Nein",
+    } as Record<string, string>,
 
     platformUsers: "Plattformnutzer",
     registerUser: "Nutzer registrieren",
@@ -1168,7 +1228,27 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
 
     accessProfiles: "Perfis de acesso",
     profilesNote:
-      "Os perfis podem ser adicionados ou unificados à medida que a organização evolui — os quatro acima são a base do RFP, não um teto fixo.",
+      "Os perfis podem ser adicionados ou unificados à medida que a organização evolui — os cinco acima são a base do RFP, não um teto fixo.",
+    capabilityMatrixTitle: "Matriz de capacidades",
+    capabilityMatrixNote:
+      "Aplicada no servidor em cada requisição — a mesma matriz controla a navegação e as ações da persona ativa. Parcial é limitado pelo subperfil da própria pessoa (sua área e seu nível de confidencialidade).",
+    colCapability: "Capacidade",
+    capabilityLabels: {
+      configure_backend: "Configurar o backend (fontes, agentes, modelos)",
+      manage_data_center: "Gerenciar o Data Center (conexões, taxonomia)",
+      ingest_documents: "Ingerir documentos / editar metadados",
+      manage_brand_room: "Gerenciar o Brand Room",
+      manage_access_control: "Gerenciar o controle de acesso",
+      manage_users_roles: "Gerenciar usuários e papéis",
+      use_modules: "Usar / gerar nos módulos do workspace",
+      approve_sensitive: "Aprovar / publicar saídas sensíveis",
+      view_audit: "Ver auditoria (registros e rastreabilidade)",
+    } as Record<string, string>,
+    levelLabels: {
+      full: "Total",
+      partial: "Parcial",
+      none: "Não",
+    } as Record<string, string>,
 
     platformUsers: "Usuários da plataforma",
     registerUser: "Registrar usuário",

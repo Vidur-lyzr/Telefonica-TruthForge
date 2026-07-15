@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ActingRoleInput,
   AdminProfile,
   AgentFileContent,
   AgentOverview,
@@ -71,7 +72,9 @@ import type {
   GeneratedDraft,
   GenerationJob,
   GetAgentFileParams,
+  GetAgentOverviewParams,
   GetAgentTools200,
+  GetAgentToolsParams,
   GetBrandResourcesParams,
   GetBrandTemplate404,
   GetBrandTemplateParams,
@@ -82,6 +85,9 @@ import type {
   GetPlanningEventParams,
   GetPlanningInsightsParams,
   GetPlanningOverviewParams,
+  GetSourceSyncStateParams,
+  GetUsageMeterParams,
+  GetUserVisibilityMatrixParams,
   GetWikiGraphParams,
   GetWikiPageParams,
   GuardianResult,
@@ -100,12 +106,16 @@ import type {
   KpiQueryInput,
   KpiQueryResult,
   ListAgentFiles200,
+  ListAgentFilesParams,
+  ListAuditEntriesParams,
   ListPlanningAlertsParams,
   ListPlanningEventsParams,
   ListPlanningForecastSchedulesParams,
   ListPlanningSyncParams,
+  ListPlatformUsersParams,
   ListRadarParams,
   ListRetrievalLogParams,
+  ListScheduledDocumentsParams,
   ListVersionsParams,
   ListWikiLineageParams,
   ListWikiPagesParams,
@@ -1000,7 +1010,7 @@ export const getListAdminProfilesUrl = () => {
 }
 
 /**
- * @summary The four platform access profiles and their scopes
+ * @summary The five platform access profiles with their capability-matrix rows
  */
 export const listAdminProfiles = async ( options?: RequestInit): Promise<AdminProfile[]> => {
 
@@ -1047,7 +1057,7 @@ export type ListAdminProfilesQueryError = ErrorType<unknown>
 
 
 /**
- * @summary The four platform access profiles and their scopes
+ * @summary The five platform access profiles with their capability-matrix rows
  */
 
 export function useListAdminProfiles<TData = Awaited<ReturnType<typeof listAdminProfiles>>, TError = ErrorType<unknown>>(
@@ -1068,20 +1078,28 @@ export function useListAdminProfiles<TData = Awaited<ReturnType<typeof listAdmin
 
 
 
-export const getListPlatformUsersUrl = () => {
+export const getListPlatformUsersUrl = (params: ListPlatformUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/users`
+  return stringifiedParams.length > 0 ? `/api/admin/users?${stringifiedParams}` : `/api/admin/users`
 }
 
 /**
+ * Requires the manage_users_roles capability. Admins (partial) see only the users of their own area; the Superadmin sees everyone.
  * @summary Registered platform users with area, profile and confidentiality tier
  */
-export const listPlatformUsers = async ( options?: RequestInit): Promise<PlatformUser[]> => {
+export const listPlatformUsers = async (params: ListPlatformUsersParams, options?: RequestInit): Promise<PlatformUser[]> => {
 
-  return customFetch<PlatformUser[]>(getListPlatformUsersUrl(),
+  return customFetch<PlatformUser[]>(getListPlatformUsersUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1094,23 +1112,23 @@ export const listPlatformUsers = async ( options?: RequestInit): Promise<Platfor
 
 
 
-export const getListPlatformUsersQueryKey = () => {
+export const getListPlatformUsersQueryKey = (params?: ListPlatformUsersParams,) => {
     return [
-    `/api/admin/users`
+    `/api/admin/users`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListPlatformUsersQueryOptions = <TData = Awaited<ReturnType<typeof listPlatformUsers>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListPlatformUsersQueryOptions = <TData = Awaited<ReturnType<typeof listPlatformUsers>>, TError = ErrorType<ErrorResponse>>(params: ListPlatformUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListPlatformUsersQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListPlatformUsersQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlatformUsers>>> = ({ signal }) => listPlatformUsers({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPlatformUsers>>> = ({ signal }) => listPlatformUsers(params, { signal, ...requestOptions });
 
 
 
@@ -1120,19 +1138,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListPlatformUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listPlatformUsers>>>
-export type ListPlatformUsersQueryError = ErrorType<unknown>
+export type ListPlatformUsersQueryError = ErrorType<ErrorResponse>
 
 
 /**
  * @summary Registered platform users with area, profile and confidentiality tier
  */
 
-export function useListPlatformUsers<TData = Awaited<ReturnType<typeof listPlatformUsers>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListPlatformUsers<TData = Awaited<ReturnType<typeof listPlatformUsers>>, TError = ErrorType<ErrorResponse>>(
+ params: ListPlatformUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPlatformUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListPlatformUsersQueryOptions(options)
+  const queryOptions = getListPlatformUsersQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1145,20 +1163,28 @@ export function useListPlatformUsers<TData = Awaited<ReturnType<typeof listPlatf
 
 
 
-export const getListScheduledDocumentsUrl = () => {
+export const getListScheduledDocumentsUrl = (params: ListScheduledDocumentsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/schedules`
+  return stringifiedParams.length > 0 ? `/api/admin/schedules?${stringifiedParams}` : `/api/admin/schedules`
 }
 
 /**
+ * Requires the ingest_documents capability.
  * @summary Recurring document schedules (source-resolved status)
  */
-export const listScheduledDocuments = async ( options?: RequestInit): Promise<ScheduledDocument[]> => {
+export const listScheduledDocuments = async (params: ListScheduledDocumentsParams, options?: RequestInit): Promise<ScheduledDocument[]> => {
 
-  return customFetch<ScheduledDocument[]>(getListScheduledDocumentsUrl(),
+  return customFetch<ScheduledDocument[]>(getListScheduledDocumentsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1171,23 +1197,23 @@ export const listScheduledDocuments = async ( options?: RequestInit): Promise<Sc
 
 
 
-export const getListScheduledDocumentsQueryKey = () => {
+export const getListScheduledDocumentsQueryKey = (params?: ListScheduledDocumentsParams,) => {
     return [
-    `/api/admin/schedules`
+    `/api/admin/schedules`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListScheduledDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof listScheduledDocuments>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScheduledDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListScheduledDocumentsQueryOptions = <TData = Awaited<ReturnType<typeof listScheduledDocuments>>, TError = ErrorType<ErrorResponse>>(params: ListScheduledDocumentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScheduledDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListScheduledDocumentsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListScheduledDocumentsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listScheduledDocuments>>> = ({ signal }) => listScheduledDocuments({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listScheduledDocuments>>> = ({ signal }) => listScheduledDocuments(params, { signal, ...requestOptions });
 
 
 
@@ -1197,19 +1223,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListScheduledDocumentsQueryResult = NonNullable<Awaited<ReturnType<typeof listScheduledDocuments>>>
-export type ListScheduledDocumentsQueryError = ErrorType<unknown>
+export type ListScheduledDocumentsQueryError = ErrorType<ErrorResponse>
 
 
 /**
  * @summary Recurring document schedules (source-resolved status)
  */
 
-export function useListScheduledDocuments<TData = Awaited<ReturnType<typeof listScheduledDocuments>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScheduledDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListScheduledDocuments<TData = Awaited<ReturnType<typeof listScheduledDocuments>>, TError = ErrorType<ErrorResponse>>(
+ params: ListScheduledDocumentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listScheduledDocuments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListScheduledDocumentsQueryOptions(options)
+  const queryOptions = getListScheduledDocumentsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1222,20 +1248,28 @@ export function useListScheduledDocuments<TData = Awaited<ReturnType<typeof list
 
 
 
-export const getListAuditEntriesUrl = () => {
+export const getListAuditEntriesUrl = (params: ListAuditEntriesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/audit`
+  return stringifiedParams.length > 0 ? `/api/admin/audit?${stringifiedParams}` : `/api/admin/audit`
 }
 
 /**
+ * Requires the view_audit capability. Superadmin and Auditor see the full trail; Admins (partial) see entries related to their own area.
  * @summary Read-only audit trail of permission changes and scheduled runs
  */
-export const listAuditEntries = async ( options?: RequestInit): Promise<AuditEntry[]> => {
+export const listAuditEntries = async (params: ListAuditEntriesParams, options?: RequestInit): Promise<AuditEntry[]> => {
 
-  return customFetch<AuditEntry[]>(getListAuditEntriesUrl(),
+  return customFetch<AuditEntry[]>(getListAuditEntriesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1248,23 +1282,23 @@ export const listAuditEntries = async ( options?: RequestInit): Promise<AuditEnt
 
 
 
-export const getListAuditEntriesQueryKey = () => {
+export const getListAuditEntriesQueryKey = (params?: ListAuditEntriesParams,) => {
     return [
-    `/api/admin/audit`
+    `/api/admin/audit`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAuditEntriesQueryOptions = <TData = Awaited<ReturnType<typeof listAuditEntries>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAuditEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAuditEntriesQueryOptions = <TData = Awaited<ReturnType<typeof listAuditEntries>>, TError = ErrorType<ErrorResponse>>(params: ListAuditEntriesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAuditEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAuditEntriesQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAuditEntriesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAuditEntries>>> = ({ signal }) => listAuditEntries({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAuditEntries>>> = ({ signal }) => listAuditEntries(params, { signal, ...requestOptions });
 
 
 
@@ -1274,19 +1308,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListAuditEntriesQueryResult = NonNullable<Awaited<ReturnType<typeof listAuditEntries>>>
-export type ListAuditEntriesQueryError = ErrorType<unknown>
+export type ListAuditEntriesQueryError = ErrorType<ErrorResponse>
 
 
 /**
  * @summary Read-only audit trail of permission changes and scheduled runs
  */
 
-export function useListAuditEntries<TData = Awaited<ReturnType<typeof listAuditEntries>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAuditEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListAuditEntries<TData = Awaited<ReturnType<typeof listAuditEntries>>, TError = ErrorType<ErrorResponse>>(
+ params: ListAuditEntriesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAuditEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAuditEntriesQueryOptions(options)
+  const queryOptions = getListAuditEntriesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1299,7 +1333,7 @@ export function useListAuditEntries<TData = Awaited<ReturnType<typeof listAuditE
 
 
 
-export const getListRetrievalLogUrl = (params?: ListRetrievalLogParams,) => {
+export const getListRetrievalLogUrl = (params: ListRetrievalLogParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
@@ -1315,10 +1349,10 @@ export const getListRetrievalLogUrl = (params?: ListRetrievalLogParams,) => {
 }
 
 /**
- * Every governed retrieval — Ask and Generate — appends an entry recording the persona, the effective governance filter, and the chunk ids and scores returned. Never chunk text. Filterable by document (who accessed doc X) and by persona.
+ * Every governed retrieval — Ask and Generate — appends an entry recording the persona, the effective governance filter, and the chunk ids and scores returned. Never chunk text. Filterable by document (who accessed doc X) and by persona. Requires the view_audit capability — the acting persona is viewerRoleId; Admins (partial) see only retrievals made by personas of their own area.
  * @summary Per-query retrieval audit log (who retrieved what, under which filter)
  */
-export const listRetrievalLog = async (params?: ListRetrievalLogParams, options?: RequestInit): Promise<RetrievalLogPage> => {
+export const listRetrievalLog = async (params: ListRetrievalLogParams, options?: RequestInit): Promise<RetrievalLogPage> => {
 
   return customFetch<RetrievalLogPage>(getListRetrievalLogUrl(params),
   {
@@ -1340,7 +1374,7 @@ export const getListRetrievalLogQueryKey = (params?: ListRetrievalLogParams,) =>
     }
 
 
-export const getListRetrievalLogQueryOptions = <TData = Awaited<ReturnType<typeof listRetrievalLog>>, TError = ErrorType<unknown>>(params?: ListRetrievalLogParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRetrievalLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListRetrievalLogQueryOptions = <TData = Awaited<ReturnType<typeof listRetrievalLog>>, TError = ErrorType<ErrorResponse>>(params: ListRetrievalLogParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRetrievalLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -1359,15 +1393,15 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListRetrievalLogQueryResult = NonNullable<Awaited<ReturnType<typeof listRetrievalLog>>>
-export type ListRetrievalLogQueryError = ErrorType<unknown>
+export type ListRetrievalLogQueryError = ErrorType<ErrorResponse>
 
 
 /**
  * @summary Per-query retrieval audit log (who retrieved what, under which filter)
  */
 
-export function useListRetrievalLog<TData = Awaited<ReturnType<typeof listRetrievalLog>>, TError = ErrorType<unknown>>(
- params?: ListRetrievalLogParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRetrievalLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListRetrievalLog<TData = Awaited<ReturnType<typeof listRetrievalLog>>, TError = ErrorType<ErrorResponse>>(
+ params: ListRetrievalLogParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRetrievalLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
@@ -1384,20 +1418,28 @@ export function useListRetrievalLog<TData = Awaited<ReturnType<typeof listRetrie
 
 
 
-export const getGetSourceSyncStateUrl = () => {
+export const getGetSourceSyncStateUrl = (params: GetSourceSyncStateParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/source-sync`
+  return stringifiedParams.length > 0 ? `/api/admin/source-sync?${stringifiedParams}` : `/api/admin/source-sync`
 }
 
 /**
+ * Requires the manage_data_center capability.
  * @summary Simulated source-system sync state (labels, pending deltas, run history)
  */
-export const getSourceSyncState = async ( options?: RequestInit): Promise<SourceSyncState> => {
+export const getSourceSyncState = async (params: GetSourceSyncStateParams, options?: RequestInit): Promise<SourceSyncState> => {
 
-  return customFetch<SourceSyncState>(getGetSourceSyncStateUrl(),
+  return customFetch<SourceSyncState>(getGetSourceSyncStateUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1410,23 +1452,23 @@ export const getSourceSyncState = async ( options?: RequestInit): Promise<Source
 
 
 
-export const getGetSourceSyncStateQueryKey = () => {
+export const getGetSourceSyncStateQueryKey = (params?: GetSourceSyncStateParams,) => {
     return [
-    `/api/admin/source-sync`
+    `/api/admin/source-sync`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetSourceSyncStateQueryOptions = <TData = Awaited<ReturnType<typeof getSourceSyncState>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSourceSyncState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetSourceSyncStateQueryOptions = <TData = Awaited<ReturnType<typeof getSourceSyncState>>, TError = ErrorType<ErrorResponse>>(params: GetSourceSyncStateParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSourceSyncState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetSourceSyncStateQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetSourceSyncStateQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSourceSyncState>>> = ({ signal }) => getSourceSyncState({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSourceSyncState>>> = ({ signal }) => getSourceSyncState(params, { signal, ...requestOptions });
 
 
 
@@ -1436,19 +1478,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetSourceSyncStateQueryResult = NonNullable<Awaited<ReturnType<typeof getSourceSyncState>>>
-export type GetSourceSyncStateQueryError = ErrorType<unknown>
+export type GetSourceSyncStateQueryError = ErrorType<ErrorResponse>
 
 
 /**
  * @summary Simulated source-system sync state (labels, pending deltas, run history)
  */
 
-export function useGetSourceSyncState<TData = Awaited<ReturnType<typeof getSourceSyncState>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSourceSyncState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetSourceSyncState<TData = Awaited<ReturnType<typeof getSourceSyncState>>, TError = ErrorType<ErrorResponse>>(
+ params: GetSourceSyncStateParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSourceSyncState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetSourceSyncStateQueryOptions(options)
+  const queryOptions = getGetSourceSyncStateQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1541,25 +1583,26 @@ export const getRunSourceSyncUrl = () => {
 }
 
 /**
+ * Requires the manage_data_center capability at FULL level — batch sync applies label downgrades platform-wide, so it is Superadmin-only.
  * @summary Run a batch sync, applying all pending downgrade deltas
  */
-export const runSourceSync = async ( options?: RequestInit): Promise<SourceSyncState> => {
+export const runSourceSync = async (actingRoleInput: ActingRoleInput, options?: RequestInit): Promise<SourceSyncState> => {
 
   return customFetch<SourceSyncState>(getRunSourceSyncUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(actingRoleInput)
   }
 );}
 
 
 
 
-export const getRunSourceSyncMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSourceSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof runSourceSync>>, TError,void, TContext> => {
+export const getRunSourceSyncMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSourceSync>>, TError,{data: BodyType<ActingRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runSourceSync>>, TError,{data: BodyType<ActingRoleInput>}, TContext> => {
 
 const mutationKey = ['runSourceSync'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1571,10 +1614,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runSourceSync>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runSourceSync>>, {data: BodyType<ActingRoleInput>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  runSourceSync(requestOptions)
+          return  runSourceSync(data,requestOptions)
         }
 
 
@@ -1585,38 +1628,45 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RunSourceSyncMutationResult = NonNullable<Awaited<ReturnType<typeof runSourceSync>>>
-
-    export type RunSourceSyncMutationError = ErrorType<unknown>
+    export type RunSourceSyncMutationBody = BodyType<ActingRoleInput>
+    export type RunSourceSyncMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Run a batch sync, applying all pending downgrade deltas
  */
-export const useRunSourceSync = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSourceSync>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useRunSourceSync = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSourceSync>>, TError,{data: BodyType<ActingRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof runSourceSync>>,
         TError,
-        void,
+        {data: BodyType<ActingRoleInput>},
         TContext
       > => {
       return useMutation(getRunSourceSyncMutationOptions(options));
     }
 
-export const getGetUserVisibilityMatrixUrl = (userId: string,) => {
+export const getGetUserVisibilityMatrixUrl = (params: GetUserVisibilityMatrixParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/visibility/${userId}`
+  return stringifiedParams.length > 0 ? `/api/admin/visibility?${stringifiedParams}` : `/api/admin/visibility`
 }
 
 /**
- * Resolves, for every governed document, whether the given user can see it and — when blocked — which axis blocks it (clearance or area). Access is the intersection of area and confidentiality, resolved by the same engine every retrieval path uses.
+ * Resolves, for every governed document, whether the given user can see it and — when blocked — which axis blocks it (clearance or area). Access is the intersection of area and confidentiality, resolved by the same engine every retrieval path uses. Requires the manage_access_control capability; Admins (partial) may only inspect users of their own area.
  * @summary Per-document visibility matrix for a platform user
  */
-export const getUserVisibilityMatrix = async (userId: string, options?: RequestInit): Promise<VisibilityMatrix> => {
+export const getUserVisibilityMatrix = async (params: GetUserVisibilityMatrixParams, options?: RequestInit): Promise<VisibilityMatrix> => {
 
-  return customFetch<VisibilityMatrix>(getGetUserVisibilityMatrixUrl(userId),
+  return customFetch<VisibilityMatrix>(getGetUserVisibilityMatrixUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1629,29 +1679,29 @@ export const getUserVisibilityMatrix = async (userId: string, options?: RequestI
 
 
 
-export const getGetUserVisibilityMatrixQueryKey = (userId: string,) => {
+export const getGetUserVisibilityMatrixQueryKey = (params?: GetUserVisibilityMatrixParams,) => {
     return [
-    `/api/admin/visibility/${userId}`
+    `/api/admin/visibility`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetUserVisibilityMatrixQueryOptions = <TData = Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError = ErrorType<ErrorResponse>>(userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetUserVisibilityMatrixQueryOptions = <TData = Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError = ErrorType<ErrorResponse>>(params: GetUserVisibilityMatrixParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetUserVisibilityMatrixQueryKey(userId);
+  const queryKey =  queryOptions?.queryKey ?? getGetUserVisibilityMatrixQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserVisibilityMatrix>>> = ({ signal }) => getUserVisibilityMatrix(userId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserVisibilityMatrix>>> = ({ signal }) => getUserVisibilityMatrix(params, { signal, ...requestOptions });
 
 
 
 
 
-   return  { queryKey, queryFn, enabled: userId !== null && userId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError, TData> & { queryKey: QueryKey }
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError, TData> & { queryKey: QueryKey }
 }
 
 export type GetUserVisibilityMatrixQueryResult = NonNullable<Awaited<ReturnType<typeof getUserVisibilityMatrix>>>
@@ -1663,11 +1713,11 @@ export type GetUserVisibilityMatrixQueryError = ErrorType<ErrorResponse>
  */
 
 export function useGetUserVisibilityMatrix<TData = Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError = ErrorType<ErrorResponse>>(
- userId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ params: GetUserVisibilityMatrixParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserVisibilityMatrix>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetUserVisibilityMatrixQueryOptions(userId,options)
+  const queryOptions = getGetUserVisibilityMatrixQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1680,20 +1730,28 @@ export function useGetUserVisibilityMatrix<TData = Awaited<ReturnType<typeof get
 
 
 
-export const getGetUsageMeterUrl = () => {
+export const getGetUsageMeterUrl = (params: GetUsageMeterParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/usage`
+  return stringifiedParams.length > 0 ? `/api/admin/usage?${stringifiedParams}` : `/api/admin/usage`
 }
 
 /**
+ * Requires the view_audit capability (usage is traceability).
  * @summary Per-module counters of the platform's own agent calls and tokens
  */
-export const getUsageMeter = async ( options?: RequestInit): Promise<UsageMeter> => {
+export const getUsageMeter = async (params: GetUsageMeterParams, options?: RequestInit): Promise<UsageMeter> => {
 
-  return customFetch<UsageMeter>(getGetUsageMeterUrl(),
+  return customFetch<UsageMeter>(getGetUsageMeterUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1706,23 +1764,23 @@ export const getUsageMeter = async ( options?: RequestInit): Promise<UsageMeter>
 
 
 
-export const getGetUsageMeterQueryKey = () => {
+export const getGetUsageMeterQueryKey = (params?: GetUsageMeterParams,) => {
     return [
-    `/api/admin/usage`
+    `/api/admin/usage`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetUsageMeterQueryOptions = <TData = Awaited<ReturnType<typeof getUsageMeter>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUsageMeter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetUsageMeterQueryOptions = <TData = Awaited<ReturnType<typeof getUsageMeter>>, TError = ErrorType<ErrorResponse>>(params: GetUsageMeterParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUsageMeter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetUsageMeterQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetUsageMeterQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsageMeter>>> = ({ signal }) => getUsageMeter({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUsageMeter>>> = ({ signal }) => getUsageMeter(params, { signal, ...requestOptions });
 
 
 
@@ -1732,19 +1790,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetUsageMeterQueryResult = NonNullable<Awaited<ReturnType<typeof getUsageMeter>>>
-export type GetUsageMeterQueryError = ErrorType<unknown>
+export type GetUsageMeterQueryError = ErrorType<ErrorResponse>
 
 
 /**
  * @summary Per-module counters of the platform's own agent calls and tokens
  */
 
-export function useGetUsageMeter<TData = Awaited<ReturnType<typeof getUsageMeter>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUsageMeter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetUsageMeter<TData = Awaited<ReturnType<typeof getUsageMeter>>, TError = ErrorType<ErrorResponse>>(
+ params: GetUsageMeterParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUsageMeter>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetUsageMeterQueryOptions(options)
+  const queryOptions = getGetUsageMeterQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1757,21 +1815,28 @@ export function useGetUsageMeter<TData = Awaited<ReturnType<typeof getUsageMeter
 
 
 
-export const getGetAgentOverviewUrl = () => {
+export const getGetAgentOverviewUrl = (params: GetAgentOverviewParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/agent/overview`
+  return stringifiedParams.length > 0 ? `/api/admin/agent/overview?${stringifiedParams}` : `/api/admin/agent/overview`
 }
 
 /**
- * Reads agent.yaml, the skill catalog and the .gitagent session state from the agent repo directory at request time. Nothing is hardcoded; this is the same brain the Ask chat runs on.
+ * Reads agent.yaml, the skill catalog and the .gitagent session state from the agent repo directory at request time. Nothing is hardcoded; this is the same brain the Ask chat runs on. Requires the configure_backend capability (Superadmin only).
  * @summary The live GitAgent identity, parsed from the real agent repo on disk
  */
-export const getAgentOverview = async ( options?: RequestInit): Promise<AgentOverview> => {
+export const getAgentOverview = async (params: GetAgentOverviewParams, options?: RequestInit): Promise<AgentOverview> => {
 
-  return customFetch<AgentOverview>(getGetAgentOverviewUrl(),
+  return customFetch<AgentOverview>(getGetAgentOverviewUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1784,23 +1849,23 @@ export const getAgentOverview = async ( options?: RequestInit): Promise<AgentOve
 
 
 
-export const getGetAgentOverviewQueryKey = () => {
+export const getGetAgentOverviewQueryKey = (params?: GetAgentOverviewParams,) => {
     return [
-    `/api/admin/agent/overview`
+    `/api/admin/agent/overview`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetAgentOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAgentOverview>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAgentOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getAgentOverview>>, TError = ErrorType<ErrorResponse>>(params: GetAgentOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAgentOverviewQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentOverviewQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentOverview>>> = ({ signal }) => getAgentOverview({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentOverview>>> = ({ signal }) => getAgentOverview(params, { signal, ...requestOptions });
 
 
 
@@ -1810,19 +1875,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetAgentOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentOverview>>>
-export type GetAgentOverviewQueryError = ErrorType<unknown>
+export type GetAgentOverviewQueryError = ErrorType<ErrorResponse>
 
 
 /**
  * @summary The live GitAgent identity, parsed from the real agent repo on disk
  */
 
-export function useGetAgentOverview<TData = Awaited<ReturnType<typeof getAgentOverview>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetAgentOverview<TData = Awaited<ReturnType<typeof getAgentOverview>>, TError = ErrorType<ErrorResponse>>(
+ params: GetAgentOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetAgentOverviewQueryOptions(options)
+  const queryOptions = getGetAgentOverviewQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1835,21 +1900,28 @@ export function useGetAgentOverview<TData = Awaited<ReturnType<typeof getAgentOv
 
 
 
-export const getGetAgentToolsUrl = () => {
+export const getGetAgentToolsUrl = (params: GetAgentToolsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/agent/tools`
+  return stringifiedParams.length > 0 ? `/api/admin/agent/tools?${stringifiedParams}` : `/api/admin/agent/tools`
 }
 
 /**
- * Serialised from the same GCToolDefinition objects the ask pipeline injects per run (name, description, input schema), plus the tools declared in agent.yaml — not a parallel hand-written list.
+ * Serialised from the same GCToolDefinition objects the ask pipeline injects per run (name, description, input schema), plus the tools declared in agent.yaml — not a parallel hand-written list. Requires the configure_backend capability (Superadmin only).
  * @summary The real tool catalog the runtime binds into the agent
  */
-export const getAgentTools = async ( options?: RequestInit): Promise<GetAgentTools200> => {
+export const getAgentTools = async (params: GetAgentToolsParams, options?: RequestInit): Promise<GetAgentTools200> => {
 
-  return customFetch<GetAgentTools200>(getGetAgentToolsUrl(),
+  return customFetch<GetAgentTools200>(getGetAgentToolsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1862,23 +1934,23 @@ export const getAgentTools = async ( options?: RequestInit): Promise<GetAgentToo
 
 
 
-export const getGetAgentToolsQueryKey = () => {
+export const getGetAgentToolsQueryKey = (params?: GetAgentToolsParams,) => {
     return [
-    `/api/admin/agent/tools`
+    `/api/admin/agent/tools`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetAgentToolsQueryOptions = <TData = Awaited<ReturnType<typeof getAgentTools>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentTools>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetAgentToolsQueryOptions = <TData = Awaited<ReturnType<typeof getAgentTools>>, TError = ErrorType<ErrorResponse>>(params: GetAgentToolsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentTools>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetAgentToolsQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getGetAgentToolsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentTools>>> = ({ signal }) => getAgentTools({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAgentTools>>> = ({ signal }) => getAgentTools(params, { signal, ...requestOptions });
 
 
 
@@ -1888,19 +1960,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type GetAgentToolsQueryResult = NonNullable<Awaited<ReturnType<typeof getAgentTools>>>
-export type GetAgentToolsQueryError = ErrorType<unknown>
+export type GetAgentToolsQueryError = ErrorType<ErrorResponse>
 
 
 /**
  * @summary The real tool catalog the runtime binds into the agent
  */
 
-export function useGetAgentTools<TData = Awaited<ReturnType<typeof getAgentTools>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentTools>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useGetAgentTools<TData = Awaited<ReturnType<typeof getAgentTools>>, TError = ErrorType<ErrorResponse>>(
+ params: GetAgentToolsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAgentTools>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetAgentToolsQueryOptions(options)
+  const queryOptions = getGetAgentToolsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1913,20 +1985,28 @@ export function useGetAgentTools<TData = Awaited<ReturnType<typeof getAgentTools
 
 
 
-export const getListAgentFilesUrl = () => {
+export const getListAgentFilesUrl = (params: ListAgentFilesParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/admin/agent/files`
+  return stringifiedParams.length > 0 ? `/api/admin/agent/files?${stringifiedParams}` : `/api/admin/agent/files`
 }
 
 /**
+ * Requires the configure_backend capability (Superadmin only).
  * @summary Flat file listing of the GitAgent repo (tree is built client-side)
  */
-export const listAgentFiles = async ( options?: RequestInit): Promise<ListAgentFiles200> => {
+export const listAgentFiles = async (params: ListAgentFilesParams, options?: RequestInit): Promise<ListAgentFiles200> => {
 
-  return customFetch<ListAgentFiles200>(getListAgentFilesUrl(),
+  return customFetch<ListAgentFiles200>(getListAgentFilesUrl(params),
   {
     ...options,
     method: 'GET'
@@ -1939,23 +2019,23 @@ export const listAgentFiles = async ( options?: RequestInit): Promise<ListAgentF
 
 
 
-export const getListAgentFilesQueryKey = () => {
+export const getListAgentFilesQueryKey = (params?: ListAgentFilesParams,) => {
     return [
-    `/api/admin/agent/files`
+    `/api/admin/agent/files`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getListAgentFilesQueryOptions = <TData = Awaited<ReturnType<typeof listAgentFiles>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListAgentFilesQueryOptions = <TData = Awaited<ReturnType<typeof listAgentFiles>>, TError = ErrorType<ErrorResponse>>(params: ListAgentFilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListAgentFilesQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListAgentFilesQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentFiles>>> = ({ signal }) => listAgentFiles({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAgentFiles>>> = ({ signal }) => listAgentFiles(params, { signal, ...requestOptions });
 
 
 
@@ -1965,19 +2045,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListAgentFilesQueryResult = NonNullable<Awaited<ReturnType<typeof listAgentFiles>>>
-export type ListAgentFilesQueryError = ErrorType<unknown>
+export type ListAgentFilesQueryError = ErrorType<ErrorResponse>
 
 
 /**
  * @summary Flat file listing of the GitAgent repo (tree is built client-side)
  */
 
-export function useListAgentFiles<TData = Awaited<ReturnType<typeof listAgentFiles>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListAgentFiles<TData = Awaited<ReturnType<typeof listAgentFiles>>, TError = ErrorType<ErrorResponse>>(
+ params: ListAgentFilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAgentFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListAgentFilesQueryOptions(options)
+  const queryOptions = getListAgentFilesQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -5058,16 +5138,18 @@ export const getRunScheduleUrl = (id: string,) => {
 }
 
 /**
+ * Requires the approve_sensitive capability (schedule runs feed the review inbox).
  * @summary Run a schedule now and place the result in the review inbox
  */
-export const runSchedule = async (id: string, options?: RequestInit): Promise<ReviewItem> => {
+export const runSchedule = async (id: string,
+    actingRoleInput: ActingRoleInput, options?: RequestInit): Promise<ReviewItem> => {
 
   return customFetch<ReviewItem>(getRunScheduleUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(actingRoleInput)
   }
 );}
 
@@ -5075,8 +5157,8 @@ export const runSchedule = async (id: string, options?: RequestInit): Promise<Re
 
 
 export const getRunScheduleMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSchedule>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof runSchedule>>, TError,{id: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSchedule>>, TError,{id: string;data: BodyType<ActingRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof runSchedule>>, TError,{id: string;data: BodyType<ActingRoleInput>}, TContext> => {
 
 const mutationKey = ['runSchedule'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -5088,10 +5170,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runSchedule>>, {id: string}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof runSchedule>>, {id: string;data: BodyType<ActingRoleInput>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  runSchedule(id,requestOptions)
+          return  runSchedule(id,data,requestOptions)
         }
 
 
@@ -5102,18 +5184,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RunScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof runSchedule>>>
-
+    export type RunScheduleMutationBody = BodyType<ActingRoleInput>
     export type RunScheduleMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Run a schedule now and place the result in the review inbox
  */
 export const useRunSchedule = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSchedule>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof runSchedule>>, TError,{id: string;data: BodyType<ActingRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof runSchedule>>,
         TError,
-        {id: string},
+        {id: string;data: BodyType<ActingRoleInput>},
         TContext
       > => {
       return useMutation(getRunScheduleMutationOptions(options));
@@ -5279,14 +5361,15 @@ export const getPublishReviewItemUrl = (id: string,) => {
  * Server-authoritative write-back. Requires the item to be approved and its content hash to still match the approved hash. Creates a versioned category-E corpus document (v1, or vN+1 superseding the previous publication of the same schedule), chunks it per section, upserts it to the vector index with durable payloads, and makes it immediately retrievable and citable in Ask.
  * @summary Publish an approved review item into the governed corpus as an E document
  */
-export const publishReviewItem = async (id: string, options?: RequestInit): Promise<PublishReviewItemResult> => {
+export const publishReviewItem = async (id: string,
+    actingRoleInput: ActingRoleInput, options?: RequestInit): Promise<PublishReviewItemResult> => {
 
   return customFetch<PublishReviewItemResult>(getPublishReviewItemUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(actingRoleInput)
   }
 );}
 
@@ -5294,8 +5377,8 @@ export const publishReviewItem = async (id: string, options?: RequestInit): Prom
 
 
 export const getPublishReviewItemMutationOptions = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishReviewItem>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof publishReviewItem>>, TError,{id: string}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishReviewItem>>, TError,{id: string;data: BodyType<ActingRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof publishReviewItem>>, TError,{id: string;data: BodyType<ActingRoleInput>}, TContext> => {
 
 const mutationKey = ['publishReviewItem'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -5307,10 +5390,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishReviewItem>>, {id: string}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof publishReviewItem>>, {id: string;data: BodyType<ActingRoleInput>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  publishReviewItem(id,requestOptions)
+          return  publishReviewItem(id,data,requestOptions)
         }
 
 
@@ -5321,18 +5404,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type PublishReviewItemMutationResult = NonNullable<Awaited<ReturnType<typeof publishReviewItem>>>
-
+    export type PublishReviewItemMutationBody = BodyType<ActingRoleInput>
     export type PublishReviewItemMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Publish an approved review item into the governed corpus as an E document
  */
 export const usePublishReviewItem = <TError = ErrorType<ErrorResponse>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishReviewItem>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof publishReviewItem>>, TError,{id: string;data: BodyType<ActingRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof publishReviewItem>>,
         TError,
-        {id: string},
+        {id: string;data: BodyType<ActingRoleInput>},
         TContext
       > => {
       return useMutation(getPublishReviewItemMutationOptions(options));
@@ -7453,6 +7536,7 @@ export const getManualUploadUrl = () => {
 export const manualUpload = async (manualUploadForm: ManualUploadForm, options?: RequestInit): Promise<ManualUploadResult> => {
     const formData = new FormData();
 formData.append(`file`, manualUploadForm.file);
+formData.append(`roleId`, manualUploadForm.roleId);
 formData.append(`title`, manualUploadForm.title);
 formData.append(`owner`, manualUploadForm.owner);
 if(manualUploadForm.country !== undefined) {
@@ -8483,25 +8567,26 @@ export const getResetBrandSkillUrl = () => {
 }
 
 /**
+ * Requires the manage_brand_room capability.
  * @summary Reset the Brand Guardian skill to the governed default
  */
-export const resetBrandSkill = async ( options?: RequestInit): Promise<BrandSkill> => {
+export const resetBrandSkill = async (actingRoleInput: ActingRoleInput, options?: RequestInit): Promise<BrandSkill> => {
 
   return customFetch<BrandSkill>(getResetBrandSkillUrl(),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(actingRoleInput)
   }
 );}
 
 
 
 
-export const getResetBrandSkillMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetBrandSkill>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof resetBrandSkill>>, TError,void, TContext> => {
+export const getResetBrandSkillMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetBrandSkill>>, TError,{data: BodyType<ActingRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetBrandSkill>>, TError,{data: BodyType<ActingRoleInput>}, TContext> => {
 
 const mutationKey = ['resetBrandSkill'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -8513,10 +8598,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetBrandSkill>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetBrandSkill>>, {data: BodyType<ActingRoleInput>}> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  resetBrandSkill(requestOptions)
+          return  resetBrandSkill(data,requestOptions)
         }
 
 
@@ -8527,18 +8612,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type ResetBrandSkillMutationResult = NonNullable<Awaited<ReturnType<typeof resetBrandSkill>>>
-
-    export type ResetBrandSkillMutationError = ErrorType<unknown>
+    export type ResetBrandSkillMutationBody = BodyType<ActingRoleInput>
+    export type ResetBrandSkillMutationError = ErrorType<ErrorResponse>
 
     /**
  * @summary Reset the Brand Guardian skill to the governed default
  */
-export const useResetBrandSkill = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetBrandSkill>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useResetBrandSkill = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetBrandSkill>>, TError,{data: BodyType<ActingRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof resetBrandSkill>>,
         TError,
-        void,
+        {data: BodyType<ActingRoleInput>},
         TContext
       > => {
       return useMutation(getResetBrandSkillMutationOptions(options));

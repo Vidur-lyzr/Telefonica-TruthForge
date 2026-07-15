@@ -28,15 +28,18 @@ import {
 } from "../data/governance";
 import { buildWikiGraph } from "../adapters/kg";
 import { runWikiSearch } from "../agent/wikiSearchAgent";
+import { requireCapability } from "../data/accessControl";
+import type { Request, Response } from "express";
 
 const router: IRouter = Router();
 
-// Every knowledge-graph endpoint gates through the shared area × clearance
-// resolver. Unknown roles fail closed with a 400 — never a default persona.
-function requireSubject(
-  roleId: string,
-  res: { status: (code: number) => { json: (body: unknown) => void } },
-): AccessSubject | null {
+// Every knowledge-graph endpoint gates through the capability matrix first
+// (the wiki is a workspace module, so use_modules is required — auditors get
+// a 403 capability_blocked like every other module), then through the shared
+// area × clearance resolver. Unknown roles fail closed — never a default
+// persona.
+function requireSubject(req: Request, res: Response, roleId: string): AccessSubject | null {
+  if (!requireCapability(req, res, "use_modules", "partial", roleId)) return null;
   const subject = subjectForRole(ROLES, roleId);
   if (!subject) {
     res.status(400).json({ error: "Unknown role" });
@@ -50,7 +53,7 @@ router.get("/wiki/graph", (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const subject = requireSubject(params.data.roleId, res);
+  const subject = requireSubject(req, res, params.data.roleId);
   if (!subject) return;
   res.json(GetWikiGraphResponse.parse(buildWikiGraph(subject)));
 });
@@ -61,7 +64,7 @@ router.get("/wiki/pages", (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const subject = requireSubject(params.data.roleId, res);
+  const subject = requireSubject(req, res, params.data.roleId);
   if (!subject) return;
 
   const items = COMPILED_PAGES.map((p) => {
@@ -93,7 +96,7 @@ router.get("/wiki/page", (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const subject = requireSubject(params.data.roleId, res);
+  const subject = requireSubject(req, res, params.data.roleId);
   if (!subject) return;
   const page = COMPILED_PAGES.find((p) => p.id === params.data.id);
   if (!page) {
@@ -194,7 +197,7 @@ router.get("/wiki/lineage", (req, res) => {
     res.status(400).json({ error: "Invalid request" });
     return;
   }
-  const subject = requireSubject(params.data.roleId, res);
+  const subject = requireSubject(req, res, params.data.roleId);
   if (!subject) return;
   const lineageByDoc = new Map(DOC_LINEAGE.map((l) => [l.docId, l]));
 
@@ -245,7 +248,7 @@ router.post("/wiki/search", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
-  const subject = requireSubject(parsed.data.roleId, res);
+  const subject = requireSubject(req, res, parsed.data.roleId);
   if (!subject) return;
   try {
     const result = await runWikiSearch(parsed.data, subject, req.log);

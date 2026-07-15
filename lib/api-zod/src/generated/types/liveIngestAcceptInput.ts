@@ -12,6 +12,8 @@ import type { LiveIngestFilterInput } from './liveIngestFilterInput';
  * Accepts by server-issued candidate id only — the content and the filter provenance are taken from the server's own search results, never from the client, so arbitrary text cannot be injected past the pre-ingest gate.
  */
 export interface LiveIngestAcceptInput {
+  /** Acting persona — must hold the ingest_documents capability */
+  roleId: string;
   /** @minItems 1 */
   acceptedIds: string[];
   filter?: LiveIngestFilterInput;

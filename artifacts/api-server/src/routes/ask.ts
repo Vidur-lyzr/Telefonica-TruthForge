@@ -18,6 +18,7 @@ import {
   effectiveTemplate as getExportTemplate,
   effectiveDefaultTemplateForShape as defaultTemplateForShape,
 } from "../data/templateOverrides";
+import { requireCapability } from "../data/accessControl";
 
 const router: IRouter = Router();
 
@@ -27,6 +28,7 @@ router.post("/ask", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
 
   try {
     const result = await runAskAgent(parsed.data, req.log);
@@ -49,6 +51,9 @@ router.post("/ask/stream", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  // Guard BEFORE the stream opens so a blocked persona gets a clean 403 JSON
+  // refusal instead of an SSE channel.
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");

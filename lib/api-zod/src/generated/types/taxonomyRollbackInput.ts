@@ -9,4 +9,6 @@
 export interface TaxonomyRollbackInput {
   toVersion: number;
   actor: string;
+  /** Acting persona — must hold the manage_data_center capability at full level */
+  roleId: string;
 }

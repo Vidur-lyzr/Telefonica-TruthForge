@@ -53,11 +53,14 @@ function formatTimestamp(ts: string, locale: string): string {
 }
 
 export default function SourceSyncSection() {
-  const { lang } = useApp();
+  const { lang, roleId } = useApp();
   const full = ADMIN_I18N[lang];
   const t = full.sync;
   const locale = localeFor(lang);
-  const syncQ = useGetSourceSyncState();
+  const syncQ = useGetSourceSyncState(
+    { roleId },
+    { query: { enabled: roleId.length > 0, queryKey: ["source-sync-state", roleId] } },
+  );
   const label = useSetSourceLabel();
   const run = useRunSourceSync();
   const [error, setError] = React.useState<string | null>(null);
@@ -70,7 +73,7 @@ export default function SourceSyncSection() {
   function changeLabel(docId: string, confidentiality: string) {
     setError(null);
     label.mutate(
-      { data: { docId, confidentiality } },
+      { data: { docId, confidentiality, roleId } },
       {
         onSuccess: () => syncQ.refetch(),
         onError: (err) => {
@@ -83,7 +86,7 @@ export default function SourceSyncSection() {
 
   function runSync() {
     setError(null);
-    run.mutate(undefined, {
+    run.mutate({ data: { roleId } }, {
       onSuccess: () => syncQ.refetch(),
       onError: (err) => {
         const data = (err as { data?: { error?: string } | null }).data;

@@ -32,6 +32,7 @@ import {
   CancelPlanningForecastScheduleResponse,
 } from "@workspace/api-zod";
 import { ROLES, type Clearance, type Area } from "../data/corpus";
+import { requireCapability } from "../data/accessControl";
 import { PLANNING_SOURCES, PLANNING_TODAY } from "../data/planning";
 import {
   listEvents,
@@ -86,6 +87,7 @@ router.get("/planning/overview", (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   const data = GetPlanningOverviewResponse.parse({
     today: PLANNING_TODAY,
     sources: PLANNING_SOURCES,
@@ -100,6 +102,7 @@ router.get("/planning/events", (req, res) => {
     return;
   }
   const { roleId, from, to, area, market, brand, axis, type } = parsed.data;
+  if (!requireCapability(req, res, "use_modules", "partial", roleId)) return;
   const filters: EventFilters = { from, to, area, market, brand, axis, type };
   const data = ListPlanningEventsResponse.parse(listEvents(scopeFor(roleId), filters));
   res.json(data);
@@ -111,6 +114,7 @@ router.get("/planning/event", (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   const detail = getEventDetail(parsed.data.id, scopeFor(parsed.data.roleId));
   if (!detail) {
     res.status(404).json({ error: "Event not found" });
@@ -126,6 +130,7 @@ router.get("/planning/insights", (req, res) => {
     return;
   }
   const { roleId, from, to, area, market, brand, axis, type } = parsed.data;
+  if (!requireCapability(req, res, "use_modules", "partial", roleId)) return;
   const filters: EventFilters = { from, to, area, market, brand, axis, type };
   const data = GetPlanningInsightsResponse.parse(analyze(scopeFor(roleId), filters));
   res.json(data);
@@ -137,6 +142,7 @@ router.post("/planning/ask", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   try {
     const result = await runPlanningAsk(parsed.data, req.log);
     res.json(PlanningAskResponse.parse(result));
@@ -155,6 +161,8 @@ router.post("/planning/ask/stream", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  // Guard BEFORE the stream opens so a blocked persona gets a clean 403.
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -204,6 +212,8 @@ router.post("/planning/forecast/stream", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  // Guard BEFORE the stream opens so a blocked persona gets a clean 403.
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -258,6 +268,7 @@ router.post("/planning/events/create", (req, res) => {
     return;
   }
   const { roleId, ...input } = parsed.data;
+  if (!requireCapability(req, res, "use_modules", "partial", roleId)) return;
   const scope = scopeFor(roleId);
   if (
     !canActOn(scope, {
@@ -305,6 +316,7 @@ router.post("/planning/events/update", (req, res) => {
     return;
   }
   const { roleId, id, ...patch } = parsed.data;
+  if (!requireCapability(req, res, "use_modules", "partial", roleId)) return;
   const scope = scopeFor(roleId);
   const current = findPlanningEvent(id);
   if (!current) {
@@ -360,6 +372,7 @@ router.get("/planning/sync", (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   const scope = scopeFor(parsed.data.roleId);
   // Only reveal sync records for events the persona is cleared to see.
   const records = listSyncRecords(parsed.data.eventId).filter((r) =>
@@ -375,6 +388,7 @@ router.post("/planning/simulate", (req, res) => {
     return;
   }
   const { roleId, eventId, toStart } = parsed.data;
+  if (!requireCapability(req, res, "use_modules", "partial", roleId)) return;
   const sim = simulateMove(scopeFor(roleId), eventId, toStart);
   if (!sim) {
     res.status(404).json({
@@ -391,6 +405,7 @@ router.get("/planning/alerts", (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   res.json(ListPlanningAlertsResponse.parse(buildAlerts(scopeFor(parsed.data.roleId))));
 });
 
@@ -433,6 +448,11 @@ router.post("/planning/forecast/schedule", async (req, res) => {
   const parsed = SchedulePlanningForecastBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  // Landing a draft in the review inbox is a sensitive-output action, exactly
+  // like Generate's schedule runs.
+  if (!requireCapability(req, res, "approve_sensitive", "partial", parsed.data.roleId)) {
     return;
   }
   try {
@@ -486,6 +506,9 @@ router.get("/planning/forecast/schedules", async (req, res) => {
     return;
   }
   const { roleId } = parsed.data;
+  // Read-only listing of the persona's OWN schedules (lazy catch-up only runs
+  // schedules this persona owns) — module access is enough.
+  if (!requireCapability(req, res, "use_modules", "partial", roleId)) return;
   try {
     for (const s of planningSchedulesFor(roleId)) {
       if (!isDue(s)) continue;
@@ -514,6 +537,7 @@ router.post("/planning/forecast/schedules/create", async (req, res) => {
     return;
   }
   const { area, roleId, frequency } = parsed.data;
+  if (!requireCapability(req, res, "approve_sensitive", "partial", roleId)) return;
   if (frequency !== "daily" && frequency !== "weekly" && frequency !== "monthly") {
     res.status(400).json({ error: "Frequency must be daily, weekly or monthly." });
     return;
@@ -581,6 +605,7 @@ router.post("/planning/forecast/schedules/cancel", (req, res) => {
     return;
   }
   const { roleId, scheduleId } = parsed.data;
+  if (!requireCapability(req, res, "approve_sensitive", "partial", roleId)) return;
   const role = ROLES.find((r) => r.id === roleId);
   if (!role) {
     res.status(400).json({ error: "Unknown persona.", code: "unknown_role" });
@@ -605,6 +630,7 @@ router.post("/planning/forecast", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   try {
     const result = await runPlanningForecast(parsed.data, req.log);
     // Attach the server-built governed draft so "Open in editor" edits exactly

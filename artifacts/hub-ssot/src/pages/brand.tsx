@@ -415,7 +415,7 @@ const RENDITION_FORMATS = ["pdf", "docx", "pptx"] as const;
 type RenditionFormat = (typeof RENDITION_FORMATS)[number];
 
 function ExportTemplateEditor({ tpl, onBack }: { tpl: ExportTemplate; onBack: () => void }) {
-  const { lang } = useApp();
+  const { lang, roleId } = useApp();
   const t = BRAND_I18N[lang];
   const queryClient = useQueryClient();
   const [name, setName] = React.useState(tpl.name);
@@ -482,7 +482,7 @@ function ExportTemplateEditor({ tpl, onBack }: { tpl: ExportTemplate; onBack: ()
     setSaving(true);
     setSaveState("idle");
     try {
-      const res = await saveExportTemplateOverride({ templateId: tpl.id, ...payload });
+      const res = await saveExportTemplateOverride({ templateId: tpl.id, roleId, ...payload });
       if ("reset" in payload) applyTemplate(res.template);
       await queryClient.invalidateQueries({ queryKey: getGetExportTemplatesQueryKey() });
       setSaveState("saved");
@@ -1254,6 +1254,7 @@ function GuardianActivity({ steps, t }: { steps: GuardianStep[]; t: BrandStrings
 // Editor for the agent's instruction document. Saves through the server so
 // the very next check runs on the edited skill.
 function SkillSheet({ onClose, t }: { onClose: () => void; t: BrandStrings }) {
+  const { roleId } = useApp();
   const queryClient = useQueryClient();
   const skillQuery = useGetBrandSkill();
   const update = useUpdateBrandSkill();
@@ -1306,7 +1307,7 @@ function SkillSheet({ onClose, t }: { onClose: () => void; t: BrandStrings }) {
                   <ButtonPrimary
                     onPress={() => {
                       update.mutate(
-                        { data: { content: value } },
+                        { data: { content: value, roleId } },
                         { onSuccess: applySkill },
                       );
                     }}
@@ -1317,7 +1318,7 @@ function SkillSheet({ onClose, t }: { onClose: () => void; t: BrandStrings }) {
                   </ButtonPrimary>
                   <ButtonSecondary
                     onPress={() => {
-                      reset.mutate(undefined, { onSuccess: applySkill });
+                      reset.mutate({ data: { roleId } }, { onSuccess: applySkill });
                     }}
                     disabled={busy}
                     showSpinner={reset.isPending}

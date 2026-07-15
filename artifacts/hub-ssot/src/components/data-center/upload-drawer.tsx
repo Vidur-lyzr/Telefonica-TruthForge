@@ -157,6 +157,7 @@ export function UploadDrawer({ onClose }: { onClose: () => void }) {
     try {
       const form = new FormData();
       form.append("file", file);
+      form.append("roleId", roleId);
       form.append("title", draft.title.trim());
       form.append("owner", draft.owner.trim());
       form.append("country", draft.country.trim());

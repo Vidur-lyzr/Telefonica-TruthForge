@@ -55,9 +55,18 @@ export default function AgentSection(): React.JSX.Element {
   const t = ADMIN_I18N[lang].agent;
   const locale = localeFor(lang);
 
-  const overviewQuery = useGetAgentOverview();
-  const toolsQuery = useGetAgentTools();
-  const filesQuery = useListAgentFiles();
+  const overviewQuery = useGetAgentOverview(
+    { roleId },
+    { query: { enabled: roleId.length > 0, queryKey: ["agent-overview", roleId] } },
+  );
+  const toolsQuery = useGetAgentTools(
+    { roleId },
+    { query: { enabled: roleId.length > 0, queryKey: ["agent-tools", roleId] } },
+  );
+  const filesQuery = useListAgentFiles(
+    { roleId },
+    { query: { enabled: roleId.length > 0, queryKey: ["agent-files", roleId] } },
+  );
 
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 

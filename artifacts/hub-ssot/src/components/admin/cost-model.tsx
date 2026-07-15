@@ -94,12 +94,13 @@ function CostBlock({
 }
 
 export default function CostModelSection() {
-  const { lang } = useApp();
+  const { lang, roleId } = useApp();
   const t = ADMIN_I18N[lang].cost;
   const locale = localeFor(lang);
-  const { data: usage } = useGetUsageMeter({
-    query: { queryKey: ["usage-meter"] },
-  });
+  const { data: usage } = useGetUsageMeter(
+    { roleId },
+    { query: { enabled: roleId.length > 0, queryKey: ["usage-meter", roleId] } },
+  );
 
   const [seats, setSeats] = React.useState<number>(100);
   const [a, setA] = React.useState({ ...DEFAULT_ASSUMPTIONS });

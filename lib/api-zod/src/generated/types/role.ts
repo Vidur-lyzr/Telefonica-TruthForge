@@ -5,6 +5,7 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { CapabilitySet } from './capabilitySet';
 
 export interface Role {
   id: string;
@@ -18,5 +19,10 @@ export interface Role {
      * @nullable
      */
   area: string | null;
+  /** superadmin | admin | editor | user | auditor — platform profile per the access matrix; orthogonal to clearance */
+  profileId: string;
+  /** Display label for the profile, e.g. Editor/Reviewer */
+  profileLabel: string;
+  capabilities: CapabilitySet;
   description: string;
 }

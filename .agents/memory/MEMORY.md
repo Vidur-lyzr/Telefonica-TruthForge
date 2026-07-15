@@ -24,9 +24,10 @@
 - [Lazy schedule runs](lazy-schedule-runs.md) — no-daemon recurring runs: mark-run-before-compose on lazy reads, compose-before-persist on create, 400 on unknown roleId (never fallback).
 - [Q&A internal notes keying](qa-notes-keying.md) — notes keyed by normalized question (survive refine), excluded from content hash, stripped server-side for external exports.
 - [Corpus parallel authoring](corpus-parallel-authoring.md) — unique id prefixes + shared brief let parallel authors scale the corpus collision-free; .gitagent state self-mutates.
+- [Raw fetch contract drift](raw-fetch-contract-drift.md) — required-param additions miss raw fetch()/FormData call sites (typecheck can't see them); grep fetch( and curl-verify.
 - [Live upload persistence](live-upload-persistence.md) — uploads rehydrate from Qdrant payloads on restart; clean test uploads by deleting points by docId filter, then restart.
 - [Manual upload ingestion](manual-upload-ingest.md) — runtime-ingested docs need the doc-live- id prefix to survive restart; their terms are absent from boot-built sparse df (dense covers).
-- [Qdrant seed parity](qdrant-seed-parity.md) — index staleness after corpus growth is silent (queries still work over a subset); verify points_count == chunk count, and agents must only use retrieveGoverned.
+- [Qdrant seed parity](qdrant-seed-parity.md) — index staleness after corpus growth is silent; verify points_count == chunk count; agents only use retrieveGoverned.
 - [DOCX fixed table widths](docx-fixed-table-widths.md) — percentage-only docx tables collapse in non-Word viewers; always FIXED layout + DXA widths on grid and every cell.
 - [Guardian template disclaimers](guardian-template-disclaimers.md) — every GeneratedDraft compose path must attach template-required disclaimers or drafts are permanently unapprovable.
 - [Q&A body parsing](qa-body-parsing.md) — model output often omits "A:" prefixes; intolerant parsers silently drop provenance/notes. Marker renumbering must cover headings, not just bodies.
@@ -40,4 +41,4 @@
 - [Stale codegen after merges](post-merge-stale-codegen.md) — a merged task changing openapi.yaml can leave generated hooks stale; missing-export typecheck errors mean re-run api-spec codegen.
 - [PDF export tooling](pdf-export-tooling.md) — no headless browser; use pdfkit via createRequire; keep pdfkit margins.bottom tiny when paginating manually or footers spawn blank pages.
 - [Section-body sanitiser](section-body-sanitiser.md) — LLM bodies need prompt + server sanitiser + client pre-pass; pipe-row grouping has pitfalls.
-- [Sentinel intent routing](sentinel-intent-routing.md) — chat agents over in-view governed data: no lexical gates; model judges intent via suppressed sentinel tokens, governance gate stays pre-model.
+- [Sentinel intent routing](sentinel-intent-routing.md) — in-view chat agents: no lexical gates; model judges intent via suppressed sentinel tokens; governance stays pre-model.

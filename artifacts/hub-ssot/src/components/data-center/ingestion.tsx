@@ -80,7 +80,7 @@ function parseTerms(raw: string): string[] {
 }
 
 function LiveCaptureSection() {
-  const { lang } = useApp();
+  const { lang, roleId } = useApp();
   const t = DATA_I18N[lang];
   const L = t.ingestion.live;
   const [keywords, setKeywords] = React.useState("Telefónica, Movistar");
@@ -116,7 +116,7 @@ function LiveCaptureSection() {
     setAcceptError(null);
     setLastIngest(null);
     try {
-      const result = await searchMutation.mutateAsync({ data: { filter } });
+      const result = await searchMutation.mutateAsync({ data: { filter, roleId } });
       setCandidates(result.items);
       setLastFilter(result.filter);
       const seed: Record<string, boolean> = {};
@@ -136,7 +136,7 @@ function LiveCaptureSection() {
     setAcceptError(null);
     try {
       const result = await acceptMutation.mutateAsync({
-        data: { acceptedIds: accepted.map((c) => c.id) },
+        data: { acceptedIds: accepted.map((c) => c.id), roleId },
       });
       setLastIngest(result);
       setCandidates(null);

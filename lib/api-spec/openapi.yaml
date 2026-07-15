@@ -238,7 +238,7 @@ paths:
     get:
       operationId: listAdminProfiles
       tags: [admin]
-      summary: The four platform access profiles and their scopes
+      summary: The five platform access profiles with their capability-matrix rows
       responses:
         "200":
           description: Access profiles
@@ -254,6 +254,15 @@ paths:
       operationId: listPlatformUsers
       tags: [admin]
       summary: Registered platform users with area, profile and confidentiality tier
+      description: >
+        Requires the manage_users_roles capability. Admins (partial) see only
+        the users of their own area; the Superadmin sees everyone.
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Platform users
@@ -263,12 +272,25 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PlatformUser"
+        "403":
+          description: Persona lacks the manage_users_roles capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/schedules:
     get:
       operationId: listScheduledDocuments
       tags: [admin]
       summary: Recurring document schedules (source-resolved status)
+      description: Requires the ingest_documents capability.
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Scheduled documents
@@ -278,12 +300,27 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ScheduledDocument"
+        "403":
+          description: Persona lacks the ingest_documents capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/audit:
     get:
       operationId: listAuditEntries
       tags: [admin]
       summary: Read-only audit trail of permission changes and scheduled runs
+      description: >
+        Requires the view_audit capability. Superadmin and Auditor see the full
+        trail; Admins (partial) see entries related to their own area.
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Audit entries
@@ -293,6 +330,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AuditEntry"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/retrieval-log:
     get:
@@ -303,8 +346,16 @@ paths:
         Every governed retrieval — Ask and Generate — appends an entry recording
         the persona, the effective governance filter, and the chunk ids and
         scores returned. Never chunk text. Filterable by document (who accessed
-        doc X) and by persona.
+        doc X) and by persona. Requires the view_audit capability — the acting
+        persona is viewerRoleId; Admins (partial) see only retrievals made by
+        personas of their own area.
       parameters:
+        - name: viewerRoleId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Acting persona — must hold the view_audit capability
         - name: docId
           in: query
           required: false
@@ -332,12 +383,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RetrievalLogPage"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/source-sync:
     get:
       operationId: getSourceSyncState
       tags: [admin]
       summary: Simulated source-system sync state (labels, pending deltas, run history)
+      description: Requires the manage_data_center capability.
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Source sync state
@@ -345,6 +409,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SourceSyncState"
+        "403":
+          description: Persona lacks the manage_data_center capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/source-sync/label:
     post:
@@ -386,6 +456,15 @@ paths:
       operationId: runSourceSync
       tags: [admin]
       summary: Run a batch sync, applying all pending downgrade deltas
+      description: >
+        Requires the manage_data_center capability at FULL level — batch sync
+        applies label downgrades platform-wide, so it is Superadmin-only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActingRoleInput"
       responses:
         "200":
           description: Updated source sync state after the run
@@ -393,8 +472,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SourceSyncState"
+        "403":
+          description: Persona lacks full manage_data_center (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
-  /admin/visibility/{userId}:
+  /admin/visibility:
     get:
       operationId: getUserVisibilityMatrix
       tags: [admin]
@@ -403,13 +488,21 @@ paths:
         Resolves, for every governed document, whether the given user can see
         it and — when blocked — which axis blocks it (clearance or area).
         Access is the intersection of area and confidentiality, resolved by
-        the same engine every retrieval path uses.
+        the same engine every retrieval path uses. Requires the
+        manage_access_control capability; Admins (partial) may only inspect
+        users of their own area.
       parameters:
         - name: userId
-          in: path
+          in: query
           required: true
           schema:
             type: string
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Acting persona — must hold the manage_access_control capability
       responses:
         "200":
           description: Visibility matrix
@@ -417,6 +510,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VisibilityMatrix"
+        "403":
+          description: Persona lacks the manage_access_control capability, or the target user is outside their area (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Unknown user
           content:
@@ -429,6 +528,13 @@ paths:
       operationId: getUsageMeter
       tags: [admin]
       summary: Per-module counters of the platform's own agent calls and tokens
+      description: Requires the view_audit capability (usage is traceability).
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Usage counters
@@ -436,6 +542,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/UsageMeter"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/agent/overview:
     get:
@@ -445,7 +557,14 @@ paths:
       description: >
         Reads agent.yaml, the skill catalog and the .gitagent session state from
         the agent repo directory at request time. Nothing is hardcoded; this is
-        the same brain the Ask chat runs on.
+        the same brain the Ask chat runs on. Requires the configure_backend
+        capability (Superadmin only).
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: Agent overview
@@ -453,6 +572,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AgentOverview"
+        "403":
+          description: Persona lacks the configure_backend capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /admin/agent/tools:
     get:
@@ -462,8 +587,21 @@ paths:
       description: >
         Serialised from the same GCToolDefinition objects the ask pipeline
         injects per run (name, description, input schema), plus the tools
-        declared in agent.yaml — not a parallel hand-written list.
+        declared in agent.yaml — not a parallel hand-written list. Requires
+        the configure_backend capability (Superadmin only).
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
+        "403":
+          description: Persona lacks the configure_backend capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "200":
           description: Tool catalog
           content:
@@ -482,7 +620,20 @@ paths:
       operationId: listAgentFiles
       tags: [admin]
       summary: Flat file listing of the GitAgent repo (tree is built client-side)
+      description: Requires the configure_backend capability (Superadmin only).
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
       responses:
+        "403":
+          description: Persona lacks the configure_backend capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "200":
           description: File listing
           content:
@@ -1532,12 +1683,19 @@ paths:
       operationId: runSchedule
       tags: [generate]
       summary: Run a schedule now and place the result in the review inbox
+      description: Requires the approve_sensitive capability (schedule runs feed the review inbox).
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActingRoleInput"
       responses:
         "200":
           description: The review item created
@@ -1545,6 +1703,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReviewItem"
+        "403":
+          description: Persona lacks the approve_sensitive capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Not found
           content:
@@ -1622,6 +1786,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActingRoleInput"
       responses:
         "200":
           description: Publication result
@@ -1629,6 +1799,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PublishReviewItemResult"
+        "403":
+          description: Persona lacks the approve_sensitive capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "404":
           description: Not found
           content:
@@ -2655,6 +2831,13 @@ paths:
       operationId: resetBrandSkill
       tags: [brand-room]
       summary: Reset the Brand Guardian skill to the governed default
+      description: Requires the manage_brand_room capability.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActingRoleInput"
       responses:
         "200":
           description: Skill document restored to the governed default
@@ -2662,6 +2845,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BrandSkill"
+        "403":
+          description: Persona lacks the manage_brand_room capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /brand/check:
     post:
@@ -2920,11 +3109,14 @@ components:
           description: True when the content matches the governed default
     BrandSkillUpdate:
       type: object
-      required: [content]
+      required: [content, roleId]
       properties:
         content:
           type: string
           minLength: 1
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_brand_room capability
     GenerationJob:
       type: object
       required: [id, mode, stage, status, createdAt]
@@ -3378,19 +3570,78 @@ components:
             outputTokens:
               type: integer
 
+    CapabilitySet:
+      type: object
+      description: >
+        Capability levels for one profile, cell by cell from the
+        source-of-truth access matrix (5 profiles x 9 capabilities).
+        full | partial | none — partial is bounded by the persona's own
+        sub-profile (their area and clearance).
+      required:
+        [
+          configure_backend,
+          manage_data_center,
+          ingest_documents,
+          manage_brand_room,
+          manage_access_control,
+          manage_users_roles,
+          use_modules,
+          approve_sensitive,
+          view_audit,
+        ]
+      properties:
+        configure_backend:
+          type: string
+          enum: [full, partial, none]
+          description: Configure backend — sources, agents, models
+        manage_data_center:
+          type: string
+          enum: [full, partial, none]
+          description: Manage Data Center — connections and taxonomy schema
+        ingest_documents:
+          type: string
+          enum: [full, partial, none]
+          description: Ingest documents and assign/edit metadata
+        manage_brand_room:
+          type: string
+          enum: [full, partial, none]
+          description: Manage the Brand Room
+        manage_access_control:
+          type: string
+          enum: [full, partial, none]
+          description: Manage access control
+        manage_users_roles:
+          type: string
+          enum: [full, partial, none]
+          description: Manage users and roles
+        use_modules:
+          type: string
+          enum: [full, partial, none]
+          description: Use / generate in the four workspace modules
+        approve_sensitive:
+          type: string
+          enum: [full, partial, none]
+          description: Approve / publish sensitive outputs
+        view_audit:
+          type: string
+          enum: [full, partial, none]
+          description: View audit — logs and traceability
+
     AdminProfile:
       type: object
-      required: [id, label, scope, detail]
+      required: [id, label, scope, detail, capabilities]
       properties:
         id:
           type: string
-          description: superadmin | admin | editor | audit
+          description: superadmin | admin | editor | user | auditor
         label:
           type: string
         scope:
           type: string
         detail:
           type: string
+        capabilities:
+          $ref: "#/components/schemas/CapabilitySet"
 
     PlatformUser:
       type: object
@@ -3407,7 +3658,7 @@ components:
           description: Comunicación | Marca | Gabinete
         profileId:
           type: string
-          description: superadmin | admin | editor | audit
+          description: superadmin | admin | editor | user | auditor
         clearance:
           type: string
           description: public | private | confidential | off_the_record
@@ -3615,7 +3866,7 @@ components:
 
     SetSourceLabelInput:
       type: object
-      required: [docId, confidentiality]
+      required: [docId, confidentiality, roleId]
       properties:
         docId:
           type: string
@@ -3624,6 +3875,18 @@ components:
           description: public | internal | private | confidential | off_the_record
         actor:
           type: string
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_data_center capability
+
+    ActingRoleInput:
+      type: object
+      description: Body for gated actions whose only input is the acting persona.
+      required: [roleId]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona, checked against the capability matrix
 
     PublishReviewItemResult:
       type: object
@@ -3686,7 +3949,7 @@ components:
 
     Role:
       type: object
-      required: [id, name, label, clearance, area, description]
+      required: [id, name, label, clearance, area, profileId, profileLabel, capabilities, description]
       properties:
         id:
           type: string
@@ -3701,6 +3964,14 @@ components:
         area:
           type: ["string", "null"]
           description: Organisational area; null = cross-area (the super user persona sees every area)
+        profileId:
+          type: string
+          description: superadmin | admin | editor | user | auditor — platform profile per the access matrix; orthogonal to clearance
+        profileLabel:
+          type: string
+          description: Display label for the profile, e.g. Editor/Reviewer
+        capabilities:
+          $ref: "#/components/schemas/CapabilitySet"
         description:
           type: string
 
@@ -3916,10 +4187,13 @@ components:
 
     LiveIngestSearchInput:
       type: object
-      required: [filter]
+      required: [filter, roleId]
       properties:
         filter:
           $ref: "#/components/schemas/LiveIngestFilterInput"
+        roleId:
+          type: string
+          description: Acting persona — must hold the ingest_documents capability
 
     LiveIngestCandidate:
       type: object
@@ -3966,8 +4240,11 @@ components:
         filter provenance are taken from the server's own search results,
         never from the client, so arbitrary text cannot be injected past the
         pre-ingest gate.
-      required: [acceptedIds]
+      required: [acceptedIds, roleId]
       properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the ingest_documents capability
         acceptedIds:
           type: array
           minItems: 1
@@ -4006,11 +4283,14 @@ components:
 
     ManualUploadForm:
       type: object
-      required: [file, title, owner, confidentiality]
+      required: [file, title, owner, confidentiality, roleId]
       properties:
         file:
           type: string
           format: binary
+        roleId:
+          type: string
+          description: Acting persona — must hold the ingest_documents capability
         title:
           type: string
         owner:
@@ -4642,8 +4922,11 @@ components:
     KpiDefinitionInput:
       type: object
       required:
-        [name, description, unit, objectiveId, axisId, market, brand, initiativeType, confidentiality, areas, direction, target, thresholds, owner, sources, editedBy, changeNote]
+        [roleId, name, description, unit, objectiveId, axisId, market, brand, initiativeType, confidentiality, areas, direction, target, thresholds, owner, sources, editedBy, changeNote]
       properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_data_center capability
         id:
           type: ["string", "null"]
           description: Existing KPI id to append a new version; null creates a new KPI
@@ -6840,10 +7123,13 @@ components:
 
     ApproveInput:
       type: object
-      required: [draft]
+      required: [draft, roleId]
       properties:
         draft:
           $ref: "#/components/schemas/GeneratedDraft"
+        roleId:
+          type: string
+          description: Acting persona — must hold the approve_sensitive capability
 
     SaveVersionInput:
       type: object
@@ -7415,10 +7701,13 @@ components:
 
     ExportTemplateOverrideRequest:
       type: object
-      required: [templateId]
+      required: [templateId, roleId]
       properties:
         templateId:
           type: string
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_brand_room capability
         reset:
           type: boolean
           description: When true, discards the saved edit and restores the corporate standard.
@@ -7640,8 +7929,11 @@ components:
 
     RetagProposeInput:
       type: object
-      required: [axisId, newName]
+      required: [axisId, newName, roleId]
       properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_data_center capability
         axisId:
           type: string
         newName:
@@ -7746,8 +8038,11 @@ components:
 
     RetagApplyInput:
       type: object
-      required: [actor, note, axisEdit, decisions]
+      required: [actor, note, axisEdit, decisions, roleId]
       properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_data_center capability
         actor:
           type: string
         note:
@@ -7918,12 +8213,15 @@ components:
 
     TaxonomyRollbackInput:
       type: object
-      required: [toVersion, actor]
+      required: [toVersion, actor, roleId]
       properties:
         toVersion:
           type: integer
         actor:
           type: string
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_data_center capability at full level
 
     TaxonomyRollbackResult:
       type: object

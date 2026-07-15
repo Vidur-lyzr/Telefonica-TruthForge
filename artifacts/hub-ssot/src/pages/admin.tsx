@@ -65,7 +65,7 @@ import {
 type IconType = (props: { size?: number; color?: string }) => React.ReactElement;
 type Area = "Comunicación" | "Marca" | "Gabinete";
 type Clearance = "public" | "private" | "confidential" | "off_the_record";
-type ProfileId = "superadmin" | "admin" | "editor" | "audit";
+type ProfileId = "superadmin" | "admin" | "editor" | "user" | "auditor";
 
 type TagType = "promo" | "info" | "active" | "inactive" | "success" | "warning" | "error";
 
@@ -88,8 +88,33 @@ const PROFILE_ICON: Record<ProfileId, IconType> = {
   superadmin: IconTrophyRegular,
   admin: IconSettingsRegular,
   editor: IconEditPencilRegular,
-  audit: IconEyeRegular,
+  user: IconUserAccountRegular,
+  auditor: IconEyeRegular,
 };
+
+// Order and ids mirror the source-of-truth access matrix (9 capabilities).
+const CAPABILITY_ORDER = [
+  "configure_backend",
+  "manage_data_center",
+  "ingest_documents",
+  "manage_brand_room",
+  "manage_access_control",
+  "manage_users_roles",
+  "use_modules",
+  "approve_sensitive",
+  "view_audit",
+] as const;
+
+function levelTagType(level: string): TagType {
+  switch (level) {
+    case "full":
+      return "success";
+    case "partial":
+      return "warning";
+    default:
+      return "inactive";
+  }
+}
 
 function clearanceTagType(c: string): TagType {
   switch (c) {
@@ -158,12 +183,21 @@ const emptyUserDraft = {
 };
 
 export default function AdminPage() {
-  const { lang } = useApp();
+  const { lang, roleId } = useApp();
   const t = ADMIN_I18N[lang];
   const { data: profiles } = useListAdminProfiles();
-  const { data: seedUsers } = useListPlatformUsers();
-  const { data: seedSchedules } = useListScheduledDocuments();
-  const { data: seedAudit } = useListAuditEntries();
+  const { data: seedUsers } = useListPlatformUsers(
+    { roleId },
+    { query: { enabled: roleId.length > 0, queryKey: ["platform-users", roleId] } },
+  );
+  const { data: seedSchedules } = useListScheduledDocuments(
+    { roleId },
+    { query: { enabled: roleId.length > 0, queryKey: ["scheduled-documents", roleId] } },
+  );
+  const { data: seedAudit } = useListAuditEntries(
+    { roleId },
+    { query: { enabled: roleId.length > 0, queryKey: ["audit-entries", roleId] } },
+  );
 
   // Session-only overlays layered on the seeded data (no database).
   const [sessionUsers, setSessionUsers] = React.useState<SessionUser[]>([]);
@@ -333,11 +367,11 @@ export default function AdminPage() {
   const effectiveVisibilityUserId =
     visibilityUserId || (seedUsers && seedUsers.length > 0 ? seedUsers[0].id : "");
   const { data: visibility, isLoading: visibilityLoading } = useGetUserVisibilityMatrix(
-    effectiveVisibilityUserId,
+    { userId: effectiveVisibilityUserId, roleId },
     {
       query: {
-        enabled: effectiveVisibilityUserId.length > 0,
-        queryKey: ["visibility-matrix", effectiveVisibilityUserId],
+        enabled: effectiveVisibilityUserId.length > 0 && roleId.length > 0,
+        queryKey: ["visibility-matrix", effectiveVisibilityUserId, roleId],
       },
     },
   );
@@ -497,6 +531,7 @@ export default function AdminPage() {
     upsertKpi.mutate(
       {
         data: {
+          roleId,
           id: kpiCreateMode ? null : kpiEditRecord!.id,
           name: kpiDraft.name.trim(),
           description: kpiDraft.description.trim(),
@@ -610,6 +645,32 @@ export default function AdminPage() {
           <Text2 regular color={skinVars.colors.textSecondary}>
             {t.profilesNote}
           </Text2>
+
+          {/* Capability matrix — the same 5x9 matrix the server enforces on
+              every request, rendered from the API so it can never drift from
+              the enforcement layer. */}
+          <Stack space={8}>
+            <Title3>{t.capabilityMatrixTitle}</Title3>
+            <Table
+              heading={[t.colCapability, ...(profiles ?? []).map((p) => p.label)]}
+              content={CAPABILITY_ORDER.map((cap) => [
+                <Text2 medium color={skinVars.colors.textPrimary} key={`${cap}-label`}>
+                  {t.capabilityLabels[cap] ?? cap}
+                </Text2>,
+                ...(profiles ?? []).map((p) => {
+                  const level = p.capabilities[cap];
+                  return (
+                    <Tag type={levelTagType(level)} key={`${cap}-${p.id}`}>
+                      {t.levelLabels[level] ?? level}
+                    </Tag>
+                  );
+                }),
+              ])}
+            />
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {t.capabilityMatrixNote}
+            </Text2>
+          </Stack>
         </Stack>
 
         {/* Users */}

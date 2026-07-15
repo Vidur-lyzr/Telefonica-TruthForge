@@ -40,6 +40,7 @@ import {
   type UpsertChunk,
 } from "../adapters/qdrant";
 import { currentTaxonomyVersion } from "../data/governance";
+import { requireCapability } from "../data/accessControl";
 
 const router: IRouter = Router();
 
@@ -89,6 +90,9 @@ router.post("/data/ingest/search", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  if (!requireCapability(req, res, "ingest_documents", "partial", parsed.data.roleId)) {
+    return;
+  }
   if (!isPerplexityConfigured()) {
     res.status(503).json({
       error: "Live capture is not configured.",
@@ -124,6 +128,12 @@ router.post("/data/ingest/accept", async (req, res) => {
   const parsed = LiveIngestAcceptBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  // Partial (editor) may accept: live-captured mentions are public external
+  // material, not area-scoped internal documents. The editor's area bound is
+  // enforced where area is author-chosen — the manual upload path.
+  if (!requireCapability(req, res, "ingest_documents", "partial", parsed.data.roleId)) {
     return;
   }
   const now = Date.now();
@@ -260,6 +270,20 @@ router.post(
     const confidentiality = str("confidentiality") as Clearance;
     const areaRaw = str("area");
     const language = str("language") || "en";
+
+    const grant = requireCapability(req, res, "ingest_documents", "partial", str("roleId"));
+    if (!grant) return;
+    // Partial (editor): uploads must be scoped to the editor's own area —
+    // neither cross-area (blank) nor another domain's shelf.
+    if (grant.level === "partial" && grant.role.area && areaRaw !== grant.role.area) {
+      res.status(403).json({
+        error: `As an editor for ${grant.role.area}, you can only ingest documents scoped to ${grant.role.area}.`,
+        code: "capability_blocked",
+        capability: "ingest_documents",
+        profile: grant.role.profileId,
+      });
+      return;
+    }
 
     if (!title || !owner) {
       res.status(400).json({
