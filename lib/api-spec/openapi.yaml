@@ -6245,6 +6245,26 @@ components:
           items:
             $ref: "#/components/schemas/BriefChatTurn"
 
+    BriefChatQuestion:
+      type: object
+      required: [text, field, kind, optionValues, skippable]
+      properties:
+        text:
+          type: string
+        field:
+          type: string
+          description: shape | topic | audience | confidentiality | language | axisIds | spokesperson | other
+        kind:
+          type: string
+          description: choice | multichoice | text
+        optionValues:
+          type: array
+          description: Machine values for choice/multichoice questions; the client renders localized labels.
+          items:
+            type: string
+        skippable:
+          type: boolean
+
     BriefChatResult:
       type: object
       required: [fields, nextQuestion, complete]
@@ -6252,7 +6272,9 @@ components:
         fields:
           $ref: "#/components/schemas/SuggestedBrief"
         nextQuestion:
-          type: ["string", "null"]
+          oneOf:
+            - $ref: "#/components/schemas/BriefChatQuestion"
+            - type: "null"
         complete:
           type: boolean
 

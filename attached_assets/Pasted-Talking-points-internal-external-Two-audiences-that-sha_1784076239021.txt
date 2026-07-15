@@ -1,0 +1,32 @@
+Talking points (internal / external)
+Two audiences that share the same engine but change tone and confidentiality: internal communication (senior
+management/committee/internal spokesperson) and external communication (public talk or Telefónica event).
+① User flow
+7. On the HOME, the user selects the “Document generation” app (Block 1) → type 1: Talking points.
+8. Selects audience: internal or external communication.
+9. Fills in (via chat or predefined UX form) the parameters: topic · Plan axis(es) · audience · language ·
+destination confidentiality. *(The “topic” absorbs product/campaign/etc.)*
+10. The agent retrieves evidence from the SSoT (hybrid RAG) filtered by user permissions and by destination
+confidentiality (external: only public/approved; never off-the-record or confidential).
+11. Composes a high-quality draft: key messages by axis, each claim cited to a source
+(document·version·date·owner), tone according to audience, on-brand (Brand Room), automatic
+disclaimers.
+12. Canvas-style editing: the draft appears in an on-screen editor with (a) conversational chat to request
+specific changes and (b) direct inline editing over the text.
+13. Exports in multiple formats (.docx · .pptx · .pdf) with Telefónica corporate templates already
+implemented.
+14. Saves the version in the SSoT with all associated tags (deterministic + derived metadata) → managed,
+versioned, traceable. *(Editorial/documentalist review before publishing sensitive outputs.)*
+② Platform functionalities: HOME with 4 apps + Block 1 navigation → Talking-points type → internal/external ·
+parameter capture via chat or form · hybrid RAG with mandatory citation + dual filter (permissions + destination
+confidentiality) · on-brand multi-language generation (Brand Room templates + tone) · ⭐ Canvas-style editing
+(editor + chat + inline) · guardrails (only approved claims, disclaimers, no fabrication, blocking of confidential
+content in external outputs) · multi-format export with Telefónica templates · versioned saving with tags.
+③ Data IN: Internal: Results, Communication talking points, New USP, Research and positioning, KPIs, Brand
+guidelines/templates (internal use may use private/confidential according to permissions; external only
+public/approved). External (context according to topic): media, competition, sector. Metadata: axis, confidentiality,
+validity, owner.
+Accenture Song · Confidencial · Telefónica — Single Source of Truth (RFP) · Julio 2026
+④ Output: internal = talking points/executive deck with key messages by axis, cited figures (source/version/date)
+and notes for the spokesperson; external = on-brand talking-points script, approved claims, disclaimers, public tone,
+public information only. Formats: .docx/.pptx/.pdf with Telefónica templates. Versioned + tags.

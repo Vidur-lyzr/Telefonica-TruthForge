@@ -31,6 +31,7 @@ import {
   type DraftExclusion,
   type TemplateSuggestion,
   type BriefChatTurn,
+  type BriefChatQuestion,
   type SuggestedBrief,
   type NotificationRecord,
   type DraftSection,
@@ -74,6 +75,9 @@ import {
   Spinner,
   Touchable,
   Drawer,
+  RadioGroup,
+  RadioButton,
+  Checkbox,
   skinVars,
   applyAlpha,
   IconRobotRegular,
@@ -1390,7 +1394,7 @@ function BriefForm({
 
   const briefIsThin = topic.trim().split(/\s+/).filter(Boolean).length < 6;
 
-  const buildValues = (finalTopic: string): BriefValues => ({
+  const buildValues = (finalTopic: string, overrides: Partial<BriefValues> = {}): BriefValues => ({
     shape,
     topic: finalTopic,
     audience,
@@ -1411,6 +1415,7 @@ function BriefForm({
         }
       : null,
     attachments: buildAttachments(),
+    ...overrides,
   });
 
   const buildAttachments = (): BriefAttachments | null => {
@@ -1439,9 +1444,38 @@ function BriefForm({
     onGenerate(buildValues(finalTopic));
   };
 
-  const handleChatComplete = (fields: SuggestedBrief) => {
+  // Chat completion: the guided chat shows a "Generate" CTA once the brief is
+  // captured. Values are built directly from the captured fields (state set by
+  // applySuggested is async and would not be visible yet in this render).
+  const handleChatGenerate = (fields: SuggestedBrief) => {
     applySuggested(fields);
+    const chatShape: Shape =
+      fields.shape && fields.shape in SHAPE_META ? (fields.shape as Shape) : shape;
+    const chatAudience: Audience = fields.audience === "external" ? "external" : "internal";
+    const chatConfidentiality =
+      chatAudience === "external"
+        ? "public"
+        : fields.confidentiality &&
+            CONFIDENTIALITY_OPTIONS.some((o) => o.value === fields.confidentiality)
+          ? fields.confidentiality
+          : "private";
+    const chatLanguage =
+      fields.language && LANGUAGE_OPTIONS.some((l) => l.value === fields.language)
+        ? fields.language
+        : language;
     setMode("form");
+    onGenerate(
+      buildValues(fields.topic?.trim() || topic, {
+        shape: chatShape,
+        audience: chatAudience,
+        language: chatLanguage,
+        confidentiality: chatConfidentiality,
+        axisIds: fields.axisIds.length > 0 ? fields.axisIds : axisIds,
+        format: FORMAT_OPTIONS[chatShape][0].value,
+        spokesperson: fields.spokesperson?.trim() || null,
+        eventDate: fields.eventDate?.trim() || null,
+      }),
+    );
   };
 
   // Brief attachments panel — shared between the structured form and the
@@ -1530,7 +1564,7 @@ function BriefForm({
 
         {mode === "chat" ? (
           <Stack space={24}>
-            <GuidedChat onComplete={handleChatComplete} />
+            <GuidedChat onGenerate={handleChatGenerate} isGenerating={isPending} />
             {attachmentsPanel}
           </Stack>
         ) : (
@@ -1945,34 +1979,114 @@ function ExclusionsPanel({ exclusions }: { exclusions: DraftExclusion[] }) {
 }
 
 // ---- Guided-chat brief capture -------------------------------------------------
-function GuidedChat({ onComplete }: { onComplete: (fields: SuggestedBrief) => void }) {
+// Ask-like chat: a fixed-height scrollable transcript, structured answer
+// controls driven by the server's question metadata (radio buttons for single
+// choice, checkboxes for multi-choice, a text field with Enter-to-send), and a
+// final summary card with a "Generate the document" CTA once the brief is
+// complete — no lingering free-text input.
+function GuidedChat({
+  onGenerate,
+  isGenerating,
+}: {
+  onGenerate: (fields: SuggestedBrief) => void;
+  isGenerating: boolean;
+}) {
   const { lang: globalLang } = useApp();
-  const t = GENERATE_I18N[globalLang].chat;
+  const all = GENERATE_I18N[globalLang];
+  const t = all.chat;
+  const tf = all.form;
   const briefChat = useBriefChat();
+  const { data: axes } = useListAxes();
   const [turns, setTurns] = React.useState<BriefChatTurn[]>([]);
   const [input, setInput] = React.useState("");
-  const [pendingQuestion, setPendingQuestion] = React.useState<string>(t.initialQuestion);
+  const [question, setQuestion] = React.useState<BriefChatQuestion | null>(null);
+  const [multiSelection, setMultiSelection] = React.useState<string[]>([]);
+  const [completed, setCompleted] = React.useState<SuggestedBrief | null>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
 
-  const send = () => {
-    const content = input.trim();
-    if (!content || briefChat.isPending) return;
-    const nextTurns: BriefChatTurn[] = [...turns, { role: "user", content }];
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [turns, briefChat.isPending, completed]);
+
+  // Option VALUES from the server are machine codes; labels are resolved
+  // client-side so they follow the UI language.
+  const labelFor = (field: string, value: string): string => {
+    switch (field) {
+      case "shape":
+        return tf.shapes[value as Shape]?.name ?? value;
+      case "audience":
+        return value === "internal" ? tf.audienceInternal : tf.audienceExternal;
+      case "confidentiality":
+        return tf.confidentialityOptions[value] ?? value;
+      case "language":
+        return tf.languageOptions[value] ?? value;
+      case "axisIds":
+        return axes?.find((a) => a.id === value)?.name ?? value;
+      default:
+        return value;
+    }
+  };
+
+  const send = (content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed || briefChat.isPending || completed) return;
+    const current = question;
+    const nextTurns: BriefChatTurn[] = [...turns, { role: "user", content: trimmed }];
     setTurns(nextTurns);
     setInput("");
+    setMultiSelection([]);
+    setQuestion(null);
     briefChat.mutate(
       { data: { turns: nextTurns } },
       {
         onSuccess: (r) => {
-          if (r.complete) {
-            onComplete(r.fields);
-          } else if (r.nextQuestion) {
-            setTurns([...nextTurns, { role: "assistant", content: r.nextQuestion }]);
-            setPendingQuestion(r.nextQuestion);
+          if (r.complete || !r.nextQuestion) {
+            setCompleted(r.fields);
+          } else {
+            setTurns([...nextTurns, { role: "assistant", content: r.nextQuestion.text }]);
+            setQuestion(r.nextQuestion);
           }
         },
+        // Keep the current question (and its controls) if the round trip fails.
+        onError: () => setQuestion(current),
       },
     );
   };
+
+  const sendMultiSelection = () => {
+    if (!question || multiSelection.length === 0) return;
+    send(multiSelection.map((v) => labelFor(question.field, v)).join(", "));
+  };
+
+  const kind = question?.kind ?? "text";
+  const summaryRows: { label: string; value: string }[] = completed
+    ? [
+        completed.shape ? { label: tf.formatLabel, value: labelFor("shape", completed.shape) } : null,
+        completed.topic ? { label: tf.briefLabel, value: completed.topic } : null,
+        completed.audience
+          ? { label: tf.audienceLabel, value: labelFor("audience", completed.audience) }
+          : null,
+        completed.confidentiality
+          ? {
+              label: tf.confidentialityLabel,
+              value: labelFor("confidentiality", completed.confidentiality),
+            }
+          : null,
+        completed.language
+          ? { label: tf.languageLabel, value: labelFor("language", completed.language) }
+          : null,
+        completed.axisIds.length > 0
+          ? {
+              label: tf.axesLabel,
+              value: completed.axisIds.map((a) => labelFor("axisIds", a)).join(", "),
+            }
+          : null,
+        completed.spokesperson
+          ? { label: tf.spokespersonField, value: completed.spokesperson }
+          : null,
+      ].filter((r): r is { label: string; value: string } => r !== null)
+    : [];
 
   return (
     <div
@@ -1994,7 +2108,72 @@ function GuidedChat({ onComplete }: { onComplete: (fields: SuggestedBrief) => vo
             </Text1>
           </Inline>
 
-          {turns.length === 0 && (
+          {/* Fixed-height scrollable transcript — the panel never grows with the conversation. */}
+          <div
+            ref={scrollRef}
+            style={{
+              height: 380,
+              overflowY: "auto",
+              borderRadius: skinVars.borderRadii.container,
+              border: `1px solid ${c.divider}`,
+              padding: 16,
+            }}
+          >
+            <Stack space={12}>
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <div
+                  style={{
+                    maxWidth: "80%",
+                    borderRadius: skinVars.borderRadii.container,
+                    backgroundColor: c.brandLow,
+                    padding: "12px 16px",
+                  }}
+                >
+                  <Text2 regular color={c.textPrimary}>
+                    {t.initialQuestion}
+                  </Text2>
+                </div>
+              </div>
+
+              {turns.map((turn, i) => (
+                <div
+                  key={i}
+                  style={{
+                    display: "flex",
+                    justifyContent: turn.role === "user" ? "flex-end" : "flex-start",
+                  }}
+                >
+                  <div
+                    style={{
+                      maxWidth: "80%",
+                      borderRadius: skinVars.borderRadii.container,
+                      backgroundColor: turn.role === "user" ? c.brand : c.brandLow,
+                      padding: "12px 16px",
+                    }}
+                  >
+                    <Text2
+                      regular
+                      color={turn.role === "user" ? c.textPrimaryInverse : c.textPrimary}
+                    >
+                      {turn.content}
+                    </Text2>
+                  </div>
+                </div>
+              ))}
+
+              {briefChat.isPending && (
+                <Inline space={8} alignItems="center">
+                  <Spinner size={16} />
+                  <Text1 regular color={c.textSecondary}>
+                    {t.thinking}
+                  </Text1>
+                </Inline>
+              )}
+            </Stack>
+          </div>
+
+          {/* Answer area: summary + CTA once complete, otherwise the control for the current question. */}
+          {completed ? (
             <div
               style={{
                 borderRadius: skinVars.borderRadii.container,
@@ -2002,62 +2181,118 @@ function GuidedChat({ onComplete }: { onComplete: (fields: SuggestedBrief) => vo
                 padding: 16,
               }}
             >
-              <Text2 regular color={c.textPrimary}>
-                {pendingQuestion}
-              </Text2>
+              <Stack space={12}>
+                <Text2 medium color={c.textPrimary}>
+                  {t.summaryTitle}
+                </Text2>
+                <Text1 regular color={c.textSecondary}>
+                  {t.summaryHelper}
+                </Text1>
+                <Stack space={4}>
+                  {summaryRows.map((row) => (
+                    <Inline space={8} key={row.label} alignItems="center">
+                      <Text1 medium color={c.textSecondary}>
+                        {row.label}
+                      </Text1>
+                      <Text1 regular color={c.textPrimary}>
+                        {row.value}
+                      </Text1>
+                    </Inline>
+                  ))}
+                </Stack>
+                <ButtonPrimary
+                  onPress={() => onGenerate(completed)}
+                  disabled={isGenerating}
+                  StartIcon={IconRobotRegular}
+                >
+                  {t.generateCta}
+                </ButtonPrimary>
+              </Stack>
             </div>
-          )}
-
-          {turns.map((t, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                justifyContent: t.role === "user" ? "flex-end" : "flex-start",
+          ) : briefChat.isPending ? null : kind === "choice" && question ? (
+            <Stack space={8}>
+              <RadioGroup name="chat-choice" aria-label={t.answerLabel} onChange={(v) => send(labelFor(question.field, v))}>
+                <Stack space={8}>
+                  {question.optionValues.map((v) => (
+                    <RadioButton key={v} value={v}>
+                      <Text2 regular color={c.textPrimary}>
+                        {labelFor(question.field, v)}
+                      </Text2>
+                    </RadioButton>
+                  ))}
+                </Stack>
+              </RadioGroup>
+              {question.skippable && (
+                <ButtonLink small onPress={() => send(t.skipMessage)}>
+                  {t.skip}
+                </ButtonLink>
+              )}
+            </Stack>
+          ) : kind === "multichoice" && question ? (
+            <Stack space={12}>
+              <Stack space={8}>
+                {question.optionValues.map((v) => (
+                  <Checkbox
+                    key={v}
+                    name={`chat-multi-${v}`}
+                    checked={multiSelection.includes(v)}
+                    onChange={(checked) =>
+                      setMultiSelection((prev) =>
+                        checked ? [...prev, v] : prev.filter((x) => x !== v),
+                      )
+                    }
+                  >
+                    <Text2 regular color={c.textPrimary}>
+                      {labelFor(question.field, v)}
+                    </Text2>
+                  </Checkbox>
+                ))}
+              </Stack>
+              <Inline space={8} alignItems="center">
+                <ButtonPrimary small onPress={sendMultiSelection} disabled={multiSelection.length === 0}>
+                  {t.confirmSelection}
+                </ButtonPrimary>
+                {question.skippable && (
+                  <ButtonLink small onPress={() => send(t.skipMessage)}>
+                    {t.skip}
+                  </ButtonLink>
+                )}
+              </Inline>
+            </Stack>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                send(input);
               }}
             >
-              <div
-                style={{
-                  maxWidth: "80%",
-                  borderRadius: skinVars.borderRadii.container,
-                  backgroundColor: t.role === "user" ? c.brand : c.brandLow,
-                  padding: "12px 16px",
-                }}
-              >
-                <Text2 regular color={t.role === "user" ? c.textPrimaryInverse : c.textPrimary}>
-                  {t.content}
-                </Text2>
-              </div>
-            </div>
-          ))}
-
-          {briefChat.isPending && (
-            <Inline space={8} alignItems="center">
-              <Spinner size={16} />
-              <Text1 regular color={c.textSecondary}>
-                {t.thinking}
-              </Text1>
-            </Inline>
+              <Stack space={8}>
+                <Inline space={8} alignItems="center" fullWidth>
+                  <div style={{ flex: 1 }}>
+                    <TextField
+                      name="chatInput"
+                      label={t.answerLabel}
+                      placeholder={t.answerPlaceholder}
+                      value={input}
+                      onChangeValue={setInput}
+                      fullWidth
+                    />
+                  </div>
+                  <IconButton
+                    aria-label={t.sendAnswer}
+                    onPress={() => send(input)}
+                    disabled={!input.trim() || briefChat.isPending}
+                    Icon={IconSendRegular}
+                  />
+                </Inline>
+                {question?.skippable && (
+                  <ButtonLink small onPress={() => send(t.skipMessage)}>
+                    {t.skip}
+                  </ButtonLink>
+                )}
+              </Stack>
+            </form>
           )}
-
-          <Inline space={8} alignItems="center" fullWidth>
-            <div style={{ flex: 1 }}>
-              <TextField
-                name="chatInput"
-                label={t.answerLabel}
-                placeholder={t.answerPlaceholder}
-                value={input}
-                onChangeValue={setInput}
-                fullWidth
-              />
-            </div>
-            <IconButton
-              aria-label={t.sendAnswer}
-              onPress={send}
-              disabled={!input.trim() || briefChat.isPending}
-              Icon={IconSendRegular}
-            />
-          </Inline>
         </Stack>
       </div>
     </div>

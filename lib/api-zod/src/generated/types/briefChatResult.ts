@@ -5,11 +5,11 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+import type { BriefChatQuestion } from './briefChatQuestion';
 import type { SuggestedBrief } from './suggestedBrief';
 
 export interface BriefChatResult {
   fields: SuggestedBrief;
-  /** @nullable */
-  nextQuestion: string | null;
+  nextQuestion: BriefChatQuestion | null;
   complete: boolean;
 }

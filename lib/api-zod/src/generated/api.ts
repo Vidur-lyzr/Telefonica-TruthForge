@@ -5117,7 +5117,13 @@ export const BriefChatResponse = zod.object({
   "spokesperson": zod.string().nullable(),
   "eventDate": zod.string().nullable()
 }),
-  "nextQuestion": zod.string().nullable(),
+  "nextQuestion": zod.union([zod.object({
+  "text": zod.string(),
+  "field": zod.string().describe('shape | topic | audience | confidentiality | language | axisIds | spokesperson | other'),
+  "kind": zod.string().describe('choice | multichoice | text'),
+  "optionValues": zod.array(zod.string()).describe('Machine values for choice\/multichoice questions; the client renders localized labels.'),
+  "skippable": zod.boolean()
+}),zod.null()]),
   "complete": zod.boolean()
 })
 

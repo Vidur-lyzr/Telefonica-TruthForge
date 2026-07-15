@@ -95,6 +95,12 @@ export interface GenerateStrings {
     answerLabel: string;
     answerPlaceholder: string;
     sendAnswer: string;
+    confirmSelection: string;
+    skip: string;
+    skipMessage: string;
+    summaryTitle: string;
+    summaryHelper: string;
+    generateCta: string;
   };
 
   editor: {
@@ -452,6 +458,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       answerLabel: "Your answer",
       answerPlaceholder: "Type your answer",
       sendAnswer: "Send answer",
+      confirmSelection: "Confirm selection",
+      skip: "Skip",
+      skipMessage: "Skip — no preference.",
+      summaryTitle: "Brief captured",
+      summaryHelper: "Review what was captured, then generate the document.",
+      generateCta: "Generate the document",
     },
 
     editor: {
@@ -821,6 +833,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       answerLabel: "Tu respuesta",
       answerPlaceholder: "Escribe tu respuesta",
       sendAnswer: "Enviar respuesta",
+      confirmSelection: "Confirmar selección",
+      skip: "Omitir",
+      skipMessage: "Omitir — sin preferencia.",
+      summaryTitle: "Brief capturado",
+      summaryHelper: "Revisa lo capturado y genera el documento.",
+      generateCta: "Generar el documento",
     },
 
     editor: {
@@ -1196,6 +1214,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       answerLabel: "Ihre Antwort",
       answerPlaceholder: "Geben Sie Ihre Antwort ein",
       sendAnswer: "Antwort senden",
+      confirmSelection: "Auswahl bestätigen",
+      skip: "Überspringen",
+      skipMessage: "Überspringen — keine Präferenz.",
+      summaryTitle: "Briefing erfasst",
+      summaryHelper: "Prüfen Sie die erfassten Angaben und erstellen Sie dann das Dokument.",
+      generateCta: "Dokument erstellen",
     },
 
     editor: {
@@ -1570,6 +1594,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       answerLabel: "Sua resposta",
       answerPlaceholder: "Digite sua resposta",
       sendAnswer: "Enviar resposta",
+      confirmSelection: "Confirmar seleção",
+      skip: "Pular",
+      skipMessage: "Pular — sem preferência.",
+      summaryTitle: "Brief capturado",
+      summaryHelper: "Revise o que foi capturado e gere o documento.",
+      generateCta: "Gerar o documento",
     },
 
     editor: {

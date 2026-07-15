@@ -2197,10 +2197,20 @@ export interface BriefChatInput {
   turns: BriefChatTurn[];
 }
 
+export interface BriefChatQuestion {
+  text: string;
+  /** shape | topic | audience | confidentiality | language | axisIds | spokesperson | other */
+  field: string;
+  /** choice | multichoice | text */
+  kind: string;
+  /** Machine values for choice/multichoice questions; the client renders localized labels. */
+  optionValues: string[];
+  skippable: boolean;
+}
+
 export interface BriefChatResult {
   fields: SuggestedBrief;
-  /** @nullable */
-  nextQuestion: string | null;
+  nextQuestion: BriefChatQuestion | null;
   complete: boolean;
 }
 

@@ -145,24 +145,148 @@ export interface BriefChatTurn {
   content: string;
 }
 
+// Structured question: the client renders real controls (radio buttons for
+// `choice`, checkboxes for `multichoice`, a text field for `text`) from the
+// field/kind metadata. Option VALUES are machine codes; the client localizes
+// the labels. The question TEXT comes from the model (or the deterministic
+// fallback) in the conversation's language.
+export type BriefQuestionField =
+  | "shape"
+  | "topic"
+  | "audience"
+  | "confidentiality"
+  | "language"
+  | "axisIds"
+  | "spokesperson"
+  | "other";
+
+export interface BriefChatQuestion {
+  text: string;
+  field: BriefQuestionField;
+  kind: "choice" | "multichoice" | "text";
+  optionValues: string[];
+  skippable: boolean;
+}
+
 export interface BriefChatResult {
   fields: BriefFields;
-  nextQuestion: string | null;
+  nextQuestion: BriefChatQuestion | null;
   complete: boolean;
 }
 
-function deterministicNextQuestion(f: BriefFields): string | null {
+// The input control each field maps to. The server owns this mapping so the
+// model can never invent options outside the governed value sets.
+const QUESTION_META: Record<
+  Exclude<BriefQuestionField, "other">,
+  { kind: BriefChatQuestion["kind"]; optionValues: string[]; skippable: boolean }
+> = {
+  shape: { kind: "choice", optionValues: ["messaging", "press", "multiformat"], skippable: false },
+  topic: { kind: "text", optionValues: [], skippable: false },
+  audience: { kind: "choice", optionValues: ["internal", "external"], skippable: false },
+  confidentiality: {
+    kind: "choice",
+    optionValues: ["private", "confidential", "off_the_record"],
+    skippable: false,
+  },
+  language: { kind: "choice", optionValues: ["en", "es", "de", "pt"], skippable: false },
+  axisIds: { kind: "multichoice", optionValues: AXES.map((a) => a.id), skippable: true },
+  spokesperson: { kind: "text", optionValues: [], skippable: true },
+};
+
+function buildQuestion(field: BriefQuestionField, text: string): BriefChatQuestion {
+  if (field === "other") {
+    return { text, field, kind: "text", optionValues: [], skippable: false };
+  }
+  const meta = QUESTION_META[field];
+  return { text, field, kind: meta.kind, optionValues: meta.optionValues, skippable: meta.skippable };
+}
+
+// A field counts as "already asked" when any assistant turn touched it — used
+// so skippable questions (axes, spokesperson) are never re-asked after a skip,
+// even on the deterministic fallback path. Matches the deterministic texts and
+// the vocabulary the model reliably uses for these fields in all four
+// supported languages.
+const ASKED_PATTERNS: Partial<Record<BriefQuestionField, RegExp>> = {
+  axisIds: /\bax[ei]s\b|\bejes?\b|\bachsen?\b|\beixos?\b/i,
+  spokesperson: /spokes|portavoz|sprecher|porta-voz/i,
+};
+
+function alreadyAsked(field: BriefQuestionField, turns: BriefChatTurn[]): boolean {
+  const pattern = ASKED_PATTERNS[field];
+  if (!pattern) return false;
+  return turns.some((t) => t.role === "assistant" && pattern.test(t.content));
+}
+
+// Guard against the model proposing a question for a field the conversation
+// has already filled (e.g. asking confidentiality when an external audience
+// already forced it to public) — fall back to the deterministic next gap.
+function fieldAlreadyFilled(field: BriefQuestionField, f: BriefFields): boolean {
+  switch (field) {
+    case "shape":
+      return Boolean(f.shape);
+    case "topic":
+      return Boolean(f.topic);
+    case "audience":
+      return Boolean(f.audience);
+    case "confidentiality":
+      return Boolean(f.confidentiality);
+    case "language":
+      return Boolean(f.language);
+    case "axisIds":
+      return f.axisIds.length > 0;
+    case "spokesperson":
+      return Boolean(f.spokesperson);
+    default:
+      return false;
+  }
+}
+
+function deterministicNextQuestion(
+  f: BriefFields,
+  turns: BriefChatTurn[],
+): BriefChatQuestion | null {
   if (!f.shape)
-    return "What kind of document do you need — talking points, a press release with Q&A, or a general multi-format document?";
-  if (!f.topic) return "What is the document about — the topic or the news, in one or two lines?";
-  if (!f.audience) return "Is this for an internal audience or an external one?";
+    return buildQuestion(
+      "shape",
+      "What kind of document do you need — talking points, a press release with Q&A, or a general multi-format document?",
+    );
+  if (!f.topic)
+    return buildQuestion(
+      "topic",
+      "What is the document about — the topic or the news, in one or two lines?",
+    );
+  if (!f.audience)
+    return buildQuestion("audience", "Is this for an internal audience or an external one?");
   if (!f.confidentiality && f.audience === "internal")
-    return "How confidential is the destination — internal, confidential or public?";
-  if (!f.language) return "Which language — English, Spanish, German or Portuguese?";
-  if (f.shape === "press" && !f.spokesperson)
-    return "Who is the spokesperson for the quote, if any? Say 'none' to skip.";
+    return buildQuestion(
+      "confidentiality",
+      "How confidential is the destination — private, confidential or off the record?",
+    );
+  if (!f.language)
+    return buildQuestion("language", "Which language — English, Spanish, German or Portuguese?");
+  if (f.axisIds.length === 0 && !alreadyAsked("axisIds", turns))
+    return buildQuestion(
+      "axisIds",
+      "Which strategic axes should the document lean on? Pick any that apply, or skip.",
+    );
+  if (f.shape === "press" && !f.spokesperson && !alreadyAsked("spokesperson", turns))
+    return buildQuestion(
+      "spokesperson",
+      "Who is the spokesperson for the quote, if any? You can skip this.",
+    );
   return null;
 }
+
+const QUESTION_FIELDS = new Set<BriefQuestionField>([
+  "shape",
+  "topic",
+  "audience",
+  "confidentiality",
+  "language",
+  "axisIds",
+  "spokesperson",
+  "other",
+]);
 
 export async function captureBrief(
   turns: BriefChatTurn[],
@@ -176,13 +300,14 @@ export async function captureBrief(
 
 Strategic axes (ids): ${axisList}
 Shapes: messaging (talking points), press (press release + Q&A), multiformat (general document).
-If the user says the spokesperson is 'none' or skips it, set spokesperson to null and do not ask again.
+If the user skips a question or says 'none'/'no preference', leave that field as it is and NEVER ask about it again.
+Ask the question in the same language the user is writing in.
 
 Conversation so far:
 ${conversation}
 
 Return ONLY JSON:
-{"shape":"messaging"|"press"|"multiformat"|null,"topic":string|null,"audience":"internal"|"external"|null,"language":"en"|"es"|"de"|"pt"|null,"confidentiality":"public"|"internal"|"confidential"|null,"axisIds":string[],"spokesperson":string|null,"eventDate":string|null,"nextQuestion":string|null}`;
+{"shape":"messaging"|"press"|"multiformat"|null,"topic":string|null,"audience":"internal"|"external"|null,"language":"en"|"es"|"de"|"pt"|null,"confidentiality":"public"|"private"|"confidential"|"off_the_record"|null,"axisIds":string[],"spokesperson":string|null,"eventDate":string|null,"nextField":"shape"|"topic"|"audience"|"confidentiality"|"language"|"axisIds"|"spokesperson"|"other"|null,"nextQuestion":string|null}`;
 
   let parsed: Record<string, unknown> | null = null;
   try {
@@ -198,11 +323,24 @@ Return ONLY JSON:
   }
 
   const fields = sanitiseFields(parsed);
-  const modelQuestion =
+  const modelText =
     typeof parsed?.nextQuestion === "string" && parsed.nextQuestion.trim()
       ? parsed.nextQuestion.trim()
       : null;
-  const nextQuestion = modelQuestion ?? deterministicNextQuestion(fields);
+  const modelField = QUESTION_FIELDS.has(parsed?.nextField as BriefQuestionField)
+    ? (parsed?.nextField as BriefQuestionField)
+    : "other";
+  let nextQuestion: BriefChatQuestion | null = null;
+  if (modelText) {
+    // Never re-ask a field that is already filled, or a skippable field the
+    // assistant already asked about.
+    nextQuestion =
+      alreadyAsked(modelField, turns) || fieldAlreadyFilled(modelField, fields)
+        ? deterministicNextQuestion(fields, turns)
+        : buildQuestion(modelField, modelText);
+  } else {
+    nextQuestion = deterministicNextQuestion(fields, turns);
+  }
   const complete = Boolean(fields.shape && fields.topic && fields.audience) && !nextQuestion;
   return { fields, nextQuestion: complete ? null : nextQuestion, complete };
 }

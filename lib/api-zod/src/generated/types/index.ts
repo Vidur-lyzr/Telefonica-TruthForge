@@ -55,6 +55,7 @@ export * from './brandTemplatesView';
 export * from './brandToneView';
 export * from './briefAttachments';
 export * from './briefChatInput';
+export * from './briefChatQuestion';
 export * from './briefChatResult';
 export * from './briefChatTurn';
 export * from './canvasEditAuditEntry';

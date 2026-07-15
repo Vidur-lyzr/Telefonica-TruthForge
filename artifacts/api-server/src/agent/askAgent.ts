@@ -54,6 +54,7 @@ import {
   registerAskDocument,
   type AskDocumentSummary,
 } from "../data/askDocuments";
+import { saveVersion } from "../data/generateStore";
 import {
   getExportTemplate,
   defaultTemplateForShape,
@@ -1646,12 +1647,40 @@ function buildGovernedTools(
             createdAt: record.createdAt,
           };
           docgen.onDocument(summary);
+          // Guardian-passed documents are also archived as a saved version in
+          // the Generate area, so the user can reopen and edit them later. Same
+          // governance composition and pass-gate as POST /generate/versions;
+          // blocked drafts are deliberately NOT versioned.
+          let versionLine = "";
+          if (draft.guardian.status === "pass") {
+            try {
+              const owner = ROLES.find((r) => r.id === docgen.roleId);
+              saveVersion({
+                title: draft.title,
+                shape: draft.shape,
+                language: draft.language,
+                audience: draft.audience,
+                confidentiality: draft.confidentiality,
+                savedBy: owner?.label ?? docgen.roleId,
+                governance: {
+                  confidentiality: draft.confidentiality,
+                  validity: "approved",
+                  owner: owner?.label ?? docgen.roleId,
+                },
+                draft,
+              });
+              versionLine =
+                " It is also saved under Generate > Versions, where the user can reopen and edit it later.";
+            } catch (err) {
+              docgen.log.error({ err }, "ask: saving generated document as version failed");
+            }
+          }
           const guardianLine =
             draft.guardian.status === "pass"
               ? "Brand Guardian: pass."
               : `Brand Guardian: BLOCKED (${draft.guardian.summary}) — downloads stay locked until the findings are fixed in the Generate area.`;
           return {
-            text: `Document ready: "${draft.title}" — ${template.name}, ${draft.language}, ${draft.audience}, ${draft.confidentiality}, ${draft.citations.length} governed citation${draft.citations.length === 1 ? "" : "s"}. ${guardianLine} Downloadable formats: ${template.formats.join(", ")}. The document opens automatically in the workspace panel beside the chat, with download buttons. Tell the user in one or two sentences that the document is ready (or blocked by the Guardian) and what it covers. Do NOT paste the document content into the chat.`,
+            text: `Document ready: "${draft.title}" — ${template.name}, ${draft.language}, ${draft.audience}, ${draft.confidentiality}, ${draft.citations.length} governed citation${draft.citations.length === 1 ? "" : "s"}. ${guardianLine} Downloadable formats: ${template.formats.join(", ")}.${versionLine} The document opens automatically in the workspace panel beside the chat, with download buttons. Tell the user in one or two sentences that the document is ready (or blocked by the Guardian) and what it covers${versionLine ? ", and mention it is saved in Generate > Versions" : ""}. Do NOT paste the document content into the chat.`,
             details: { documentId: record.id },
           };
         } catch (err) {

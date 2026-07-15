@@ -1,9 +1,9 @@
 ---
 name: generate-document
 description: User asks to write/draft/make a talking-points doc, press release, Q&A, deck, or report. Resolves parameters and hands off to the doc-gen Superflow via invoke_superflow — never composes the final document itself.
-confidence: 0.79
-usage_count: 9
-success_count: 7
+confidence: 0.81
+usage_count: 10
+success_count: 8
 failure_count: 2
 negative_examples:
   - 'Superflow refused with no_evidence: no approved, permitted source in the governed corpus covers Q3 2026 brand strategy specifically. Sources provided are historic, adjacent, or off-topic relative to that brief.'
