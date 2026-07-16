@@ -5,6 +5,34 @@
  * Hub SSoT — governed, agentic Single Source of Truth for Telefónica
  * OpenAPI spec version: 0.1.0
  */
+export interface LoginInput {
+  /**
+     * @minLength 3
+     * @maxLength 254
+     */
+  email: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  password: string;
+}
+
+export interface AuthSession {
+  email: string;
+  /** telefonica | accenture | lyzr */
+  team: string;
+}
+
+export interface AuthError {
+  error: string;
+  code: string;
+}
+
+export interface LogoutResult {
+  ok: boolean;
+}
+
 export interface BrandTemplateSection {
   key: string;
   label: string;

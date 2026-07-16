@@ -4,6 +4,7 @@ import { ThemeContextProvider, getTelefonicaSkin, skinVars } from "@telefonica/m
 import type { ThemeConfig } from "@telefonica/mistica";
 import NotFound from "@/pages/not-found";
 import { AppProvider } from "@/components/app-provider";
+import { AuthGate } from "@/components/auth-gate";
 import { AppLayout } from "@/components/layout";
 import Home from "@/pages/home";
 import Ask from "@/pages/ask";
@@ -68,11 +69,13 @@ function App() {
     <ThemeContextProvider theme={misticaTheme}>
       <GlobalStyles />
       <QueryClientProvider client={queryClient}>
-        <AppProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <Router />
-          </WouterRouter>
-        </AppProvider>
+        <AuthGate>
+          <AppProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <Router />
+            </WouterRouter>
+          </AppProvider>
+        </AuthGate>
       </QueryClientProvider>
     </ThemeContextProvider>
   );

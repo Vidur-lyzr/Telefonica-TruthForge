@@ -18,6 +18,47 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * Validates credentials against the access allowlist and sets an httpOnly session cookie. Invalid attempts are rate limited.
+ * @summary Sign in with email and password
+ */
+export const loginBodyEmailMin = 3;
+export const loginBodyEmailMax = 254;
+
+export const loginBodyPasswordMax = 128;
+
+
+
+export const LoginBody = zod.object({
+  "email": zod.string().min(loginBodyEmailMin).max(loginBodyEmailMax),
+  "password": zod.string().min(1).max(loginBodyPasswordMax)
+})
+
+export const LoginResponse = zod.object({
+  "email": zod.string(),
+  "team": zod.string().describe('telefonica | accenture | lyzr')
+})
+
+
+/**
+ * Clears the session cookie.
+ * @summary Sign out
+ */
+export const LogoutResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * Returns the authenticated session, or 401 when not signed in.
+ * @summary Current session
+ */
+export const GetAuthMeResponse = zod.object({
+  "email": zod.string(),
+  "team": zod.string().describe('telefonica | accenture | lyzr')
+})
+
+
+/**
  * Runs the Hub SSoT agent. Resolves the user's permission scope, retrieves permission-filtered evidence, and composes a cited answer — or returns an honest "no evidence" or "permission blocked" result. The model never sees a chunk the user cannot access.
  * @summary Ask a question over the governed knowledge core
  */

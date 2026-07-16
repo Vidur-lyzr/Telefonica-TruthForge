@@ -2,7 +2,7 @@ import React from "react";
 import { useLocation } from "wouter";
 import { useApp, type Lang } from "./app-provider";
 import { UI, type ChromeStrings } from "../i18n";
-import { useListRoles } from "@workspace/api-client-react";
+import { useListRoles, useLogout } from "@workspace/api-client-react";
 import {
   Logo,
   Touchable,
@@ -234,10 +234,18 @@ function Sidebar({
 
 // Persona switcher pinned to the bottom-left of the sidebar: fictional person
 // name + role, avatar with initials, and an upward Menu to switch personas.
+const SIGN_OUT_LABEL: Record<string, string> = {
+  en: "Sign out",
+  es: "Cerrar sesión",
+  de: "Abmelden",
+  pt: "Terminar sessão",
+};
+
 function PersonaCard({ collapsed }: { collapsed: boolean }) {
   const { roleId, setRoleId, lang } = useApp();
   const t = UI[lang];
   const { data: roles } = useListRoles();
+  const logout = useLogout();
 
   React.useEffect(() => {
     if (roles && roles.length > 0 && !roleId) {
@@ -353,6 +361,16 @@ function PersonaCard({ collapsed }: { collapsed: boolean }) {
                 }}
               />
             ))}
+            <MenuItem
+              label={SIGN_OUT_LABEL[lang] ?? SIGN_OUT_LABEL.en}
+              destructive
+              onPress={() => {
+                close();
+                void logout.mutateAsync().finally(() => {
+                  window.location.reload();
+                });
+              }}
+            />
           </div>
         )}
       />

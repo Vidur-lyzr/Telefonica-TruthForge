@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Access control — login, logout, current session
   - name: ask
     description: Cited agentic question answering
   - name: knowledge
@@ -40,6 +42,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in with email and password
+      description: >
+        Validates credentials against the access allowlist and sets an
+        httpOnly session cookie. Invalid attempts are rate limited.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthError"
+        "429":
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthError"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Sign out
+      description: Clears the session cookie.
+      responses:
+        "200":
+          description: Signed out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogoutResult"
+
+  /auth/me:
+    get:
+      operationId: getAuthMe
+      tags: [auth]
+      summary: Current session
+      description: Returns the authenticated session, or 401 when not signed in.
+      responses:
+        "200":
+          description: Authenticated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthError"
 
   /ask:
     post:
@@ -3462,6 +3532,41 @@ paths:
 
 components:
   schemas:
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          minLength: 3
+          maxLength: 254
+        password:
+          type: string
+          minLength: 1
+          maxLength: 128
+    AuthSession:
+      type: object
+      required: [email, team]
+      properties:
+        email:
+          type: string
+        team:
+          type: string
+          description: telefonica | accenture | lyzr
+    AuthError:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+    LogoutResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
     BrandTemplateSection:
       type: object
       required: [key, label, kind, perAxis]

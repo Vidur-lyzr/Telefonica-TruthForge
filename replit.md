@@ -41,6 +41,7 @@ A governed, agentic Single Source of Truth for Telefónica's Communication & Bra
 - Citation markers are parsed with a regex that handles composite markers (`[S1, S2]`) and strips stray/hallucinated markers, then renumbered contiguously so text markers and citation chips never desync.
 - The backend is native (local retrieval + Claude) behind Lyzr-named adapter interfaces so a real Lyzr backend can be swapped in later without touching the agent or routes.
 - Persona/clearance is client-asserted (demo-tier persona filter), not a real auth boundary.
+- Platform access is gated by a native email+password login: allowlisted users (scrypt hashes in `data/authUsers.ts`, no plaintext), shared password for exact lyzr.ai/lyzr.com domains, HMAC-signed httpOnly session cookie (SESSION_SECRET, 24h TTL, TOKEN_VERSION bump = global revocation), login rate limiting, dummy scrypt on unknown emails to prevent timing enumeration. All /api routes except /healthz and /auth/* require a session. Frontend gate: `components/auth-gate.tsx`.
 
 ## Product
 
