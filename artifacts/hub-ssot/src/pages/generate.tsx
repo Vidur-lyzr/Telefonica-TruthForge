@@ -1342,9 +1342,9 @@ function DocumentCanvas({
   const te = GENERATE_I18N[lang].editor;
   const tp = te.preview;
   const tde = DOCUMENT_EDITOR_I18N[lang];
-  // Reading view by default; the Edit toggle switches the whole document
-  // into full editing format (toolbar, live editors, table inputs).
-  const [editMode, setEditMode] = React.useState(false);
+  // Editing on by default; the toggle switches between the full editing
+  // format (toolbar, live editors, table inputs) and the reading view.
+  const [editMode, setEditMode] = React.useState(true);
   // WYSIWYG rendition tabs: the Editor tab is the live document; the PDF,
   // DOCX and PPTX tabs show a server-rendered preview of the actual export.
   const viewModes = ["editor", "pdf", "docx", "pptx"] as const;
@@ -1368,7 +1368,7 @@ function DocumentCanvas({
           onChange={(idx) => {
             const next = viewModes[idx];
             setViewMode(next);
-            if (next !== "editor") setEditMode(false);
+            setEditMode(next === "editor");
           }}
           tabs={[
             { text: tp.tabEditor },
