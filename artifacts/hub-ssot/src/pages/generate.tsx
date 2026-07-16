@@ -1298,7 +1298,7 @@ function ExportRenditionPreview({
         }}
       >
         <iframe
-          src={state.url}
+          src={format === "pdf" ? `${state.url}#navpanes=0` : state.url}
           title={tp.frameTitle(format.toUpperCase())}
           style={{
             display: "block",
