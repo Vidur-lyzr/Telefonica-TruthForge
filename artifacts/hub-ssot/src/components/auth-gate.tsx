@@ -9,7 +9,7 @@ import {
   PasswordField,
   ButtonPrimary,
   Callout,
-  IconShieldRegular,
+  Logo,
   IconLockClosedRegular,
   Spinner,
 } from "@telefonica/mistica";
@@ -58,10 +58,8 @@ function LoginPage() {
       <div style={{ width: "100%", maxWidth: 420 }}>
         <Stack space={24}>
           <Stack space={8}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <IconShieldRegular size={28} color={skinVars.colors.brand} />
-              <Text5 color={skinVars.colors.textPrimary}>Hub SSoT</Text5>
-            </div>
+            <Logo type="imagotype" size={48} />
+            <Text5 color={skinVars.colors.textPrimary}>Hub SSoT</Text5>
             <Text2 regular color={skinVars.colors.textSecondary}>
               Governed Single Source of Truth. Access is restricted to
               authorized Telefónica, Accenture and Lyzr team members.
@@ -115,10 +113,6 @@ function LoginPage() {
               </form>
             </Box>
           </div>
-          <Text2 regular color={skinVars.colors.textSecondary}>
-            Access credentials are distributed individually. Contact the
-            platform owner if you need access.
-          </Text2>
         </Stack>
       </div>
     </div>
