@@ -192,7 +192,7 @@ const ADMIN_EN = {
   humanGate:
     "Human gate: every generated document lands in the owner's review folder and never auto-publishes. A person always reviews before anything is released.",
   orphanWarning: (n: number) =>
-    `${n} schedule${n > 1 ? "s are" : " is"} orphaned — the source document is missing. These are flagged rather than run silently, so no output is generated from a broken source.`,
+    `${n} schedule${n > 1 ? "s are" : " is"} missing ${n > 1 ? "their" : "its"} source document. These are flagged rather than run silently, so no output is generated from a broken source.`,
   colTemplate: "Template",
   colFrequency: "Frequency",
   colLanguages: "Language(s)",
@@ -205,7 +205,7 @@ const ADMIN_EN = {
   scheduleStatusLabels: {
     active: "active",
     paused: "paused",
-    orphaned: "orphaned",
+    orphaned: "source missing",
   } as Record<string, string>,
   frequencyOptions: {
     Daily: "Daily",
@@ -696,7 +696,7 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     humanGate:
       "Control humano: cada documento generado llega a la carpeta de revisión del responsable y nunca se publica automáticamente. Una persona siempre revisa antes de publicar nada.",
     orphanWarning: (n) =>
-      `${n} ${n > 1 ? "programaciones están" : "programación está"} huérfana${n > 1 ? "s" : ""} — falta el documento de origen. Se marcan en lugar de ejecutarse en silencio, por lo que no se genera ninguna salida desde un origen roto.`,
+      `A ${n > 1 ? `${n} programaciones les` : `1 programación le`} falta el documento de origen. Se marcan en lugar de ejecutarse en silencio, por lo que no se genera ninguna salida desde un origen roto.`,
     colTemplate: "Plantilla",
     colFrequency: "Frecuencia",
     colLanguages: "Idioma(s)",
@@ -709,7 +709,7 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     scheduleStatusLabels: {
       active: "activo",
       paused: "en pausa",
-      orphaned: "huérfano",
+      orphaned: "falta el origen",
     },
     frequencyOptions: {
       Daily: "Diario",
@@ -1178,7 +1178,7 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     humanGate:
       "Menschliche Kontrolle: Jedes generierte Dokument landet im Prüfordner des Verantwortlichen und wird nie automatisch veröffentlicht. Eine Person prüft immer, bevor etwas freigegeben wird.",
     orphanWarning: (n) =>
-      `${n} ${n > 1 ? "Planungen sind" : "Planung ist"} verwaist — das Quelldokument fehlt. Diese werden markiert statt stillschweigend ausgeführt, sodass aus einer defekten Quelle keine Ausgabe erzeugt wird.`,
+      `Bei ${n} ${n > 1 ? "Planungen" : "Planung"} fehlt das Quelldokument. Diese werden markiert statt stillschweigend ausgeführt, sodass aus einer defekten Quelle keine Ausgabe erzeugt wird.`,
     colTemplate: "Vorlage",
     colFrequency: "Häufigkeit",
     colLanguages: "Sprache(n)",
@@ -1191,7 +1191,7 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     scheduleStatusLabels: {
       active: "aktiv",
       paused: "pausiert",
-      orphaned: "verwaist",
+      orphaned: "Quelle fehlt",
     },
     frequencyOptions: {
       Daily: "Täglich",
@@ -1661,7 +1661,7 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     humanGate:
       "Controle humano: cada documento gerado chega à pasta de revisão do responsável e nunca é publicado automaticamente. Uma pessoa sempre revisa antes de qualquer publicação.",
     orphanWarning: (n) =>
-      `${n} ${n > 1 ? "agendamentos estão" : "agendamento está"} órfão${n > 1 ? "s" : ""} — o documento de origem está ausente. Eles são sinalizados em vez de executados silenciosamente, de modo que nenhuma saída é gerada a partir de uma origem quebrada.`,
+      `${n} ${n > 1 ? "agendamentos estão" : "agendamento está"} sem o documento de origem. Eles são sinalizados em vez de executados silenciosamente, de modo que nenhuma saída é gerada a partir de uma origem quebrada.`,
     colTemplate: "Modelo",
     colFrequency: "Frequência",
     colLanguages: "Idioma(s)",
@@ -1674,7 +1674,7 @@ export const ADMIN_I18N: Record<Lang, AdminStrings> = {
     scheduleStatusLabels: {
       active: "ativo",
       paused: "pausado",
-      orphaned: "órfão",
+      orphaned: "origem ausente",
     },
     frequencyOptions: {
       Daily: "Diário",
