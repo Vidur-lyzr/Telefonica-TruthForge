@@ -47,6 +47,7 @@ A governed, agentic Single Source of Truth for Telefónica's Communication & Bra
 
 - Ask: natural-language questions answered over the governed corpus with real citations, numeric facts, and honest no-evidence / permission-blocked / historic states.
 - Data: browse the corpus (docs, chunks, axes) that backs answers.
+- Observatory: Lyzr-team-only audit panel (`/observatory`) tracking every user's logins, page visits and time-on-page (sid in session token, 90s activity-window attribution to the previous page), ask turns (question + exact response + persona + governance status + citations), generations and exports. Server-gated by `requireLyzr` (403 code:"forbidden"); nav item is cosmetic. Store: `data/observatoryStore.ts`, persisted to `.data/observatory.json` (instance-local — audit history does not survive redeploys).
 - Other Workspace/Knowledge/Backend pages are elegant "in development" stubs.
 
 ## User preferences

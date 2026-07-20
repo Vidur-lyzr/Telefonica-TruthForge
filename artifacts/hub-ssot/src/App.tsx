@@ -1,4 +1,6 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import React from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { trackActivity } from "@workspace/api-client-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeContextProvider, getTelefonicaSkin, skinVars } from "@telefonica/mistica";
 import type { ThemeConfig } from "@telefonica/mistica";
@@ -15,6 +17,7 @@ import Planning from "@/pages/planning";
 import Generate from "@/pages/generate";
 import Wiki from "@/pages/wiki";
 import BrandPage from "@/pages/brand";
+import ObservatoryPage from "@/pages/observatory";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,9 +48,34 @@ function GlobalStyles() {
   );
 }
 
+// Presence beacon: reports route changes immediately and, while the tab is
+// visible, a heartbeat every 60s so the server can attribute time-on-page.
+// Fire-and-forget — tracking must never disturb the user.
+function ActivityBeacon() {
+  const [location] = useLocation();
+  const locationRef = React.useRef(location);
+  locationRef.current = location;
+
+  React.useEffect(() => {
+    trackActivity({ kind: "page_view", page: location }).catch(() => {});
+  }, [location]);
+
+  React.useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        trackActivity({ kind: "heartbeat", page: locationRef.current }).catch(() => {});
+      }
+    }, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  return null;
+}
+
 function Router() {
   return (
     <AppLayout>
+      <ActivityBeacon />
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/ask" component={Ask} />
@@ -58,6 +86,7 @@ function Router() {
         <Route path="/wiki" component={Wiki} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/brand" component={BrandPage} />
+        <Route path="/observatory" component={ObservatoryPage} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>

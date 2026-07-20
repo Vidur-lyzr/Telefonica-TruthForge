@@ -3720,6 +3720,122 @@ export interface QualityReevalBody {
   feedbackId: string;
 }
 
+export type TrackInputKind = typeof TrackInputKind[keyof typeof TrackInputKind];
+
+
+export const TrackInputKind = {
+  page_view: 'page_view',
+  heartbeat: 'heartbeat',
+} as const;
+
+export interface TrackInput {
+  kind: TrackInputKind;
+  /**
+     * Route path the user is on (e.g. /ask).
+     * @maxLength 200
+     */
+  page?: string;
+}
+
+export interface TrackResult {
+  ok: boolean;
+}
+
+/**
+ * @nullable
+ */
+export type ObservatoryEventDetail = {[key: string]: string} | null;
+
+export interface ObservatoryEvent {
+  id: string;
+  ts: string;
+  sid: string;
+  email: string;
+  team: string;
+  /** login | logout | page_view | ask | generate | export | download */
+  kind: string;
+  /** @nullable */
+  page?: string | null;
+  /**
+     * Persona in force for governed actions.
+     * @nullable
+     */
+  roleId?: string | null;
+  /** @nullable */
+  roleLabel?: string | null;
+  /**
+     * Question / prompt / document title (truncated at 500 chars).
+     * @nullable
+     */
+  summary?: string | null;
+  /**
+     * Response text shown to the user (truncated at 1500 chars).
+     * @nullable
+     */
+  response?: string | null;
+  /**
+     * answered | no_evidence | permission_blocked | conflict | cancelled | draft status
+     * @nullable
+     */
+  status?: string | null;
+  docIds: string[];
+  /**
+     * Link into the F3 retrieval log for the full trace.
+     * @nullable
+     */
+  retrievalAuditId?: string | null;
+  /** @nullable */
+  detail?: ObservatoryEventDetail;
+}
+
+export type ObservatorySessionSecondsByPage = {[key: string]: number};
+
+export interface ObservatorySession {
+  sid: string;
+  email: string;
+  team: string;
+  firstSeenTs: string;
+  lastSeenTs: string;
+  secondsByPage: ObservatorySessionSecondsByPage;
+  pagesVisited: string[];
+  /** @nullable */
+  endedTs?: string | null;
+}
+
+export type ObservatoryUserSummaryTopPagesItem = {
+  page: string;
+  seconds: number;
+};
+
+export interface ObservatoryUserSummary {
+  email: string;
+  team: string;
+  sessionCount: number;
+  totalSeconds: number;
+  /** @nullable */
+  lastSeenTs?: string | null;
+  askCount: number;
+  generateCount: number;
+  exportCount: number;
+  pageViewCount: number;
+  /** Actions that ended permission_blocked. */
+  blockedCount: number;
+  topPages: ObservatoryUserSummaryTopPagesItem[];
+}
+
+export interface ObservatoryOverview {
+  users: ObservatoryUserSummary[];
+}
+
+export interface ObservatorySessionsResult {
+  sessions: ObservatorySession[];
+}
+
+export interface ObservatoryEventsPage {
+  total: number;
+  items: ObservatoryEvent[];
+}
+
 export type GetCorpusStatsParams = {
 /**
  * Optional persona id to scope stats by clearance
@@ -3955,4 +4071,33 @@ export type GetQualityRunParams = {
 viewerRoleId: string;
 runId: string;
 };
+
+export type GetObservatoryOverviewParams = {
+includeLyzr?: boolean;
+};
+
+export type ListObservatorySessionsParams = {
+email: string;
+};
+
+export type ListObservatoryEventsParams = {
+email?: string;
+sid?: string;
+kind?: ListObservatoryEventsKind;
+limit?: number;
+offset?: number;
+};
+
+export type ListObservatoryEventsKind = typeof ListObservatoryEventsKind[keyof typeof ListObservatoryEventsKind];
+
+
+export const ListObservatoryEventsKind = {
+  login: 'login',
+  logout: 'logout',
+  page_view: 'page_view',
+  ask: 'ask',
+  generate: 'generate',
+  export: 'export',
+  download: 'download',
+} as const;
 

@@ -89,6 +89,7 @@ import type {
   GetCorpusStatsParams,
   GetExportTemplatePreviewParams,
   GetHomeSummaryParams,
+  GetObservatoryOverviewParams,
   GetPlanningEventParams,
   GetPlanningInsightsParams,
   GetPlanningOverviewParams,
@@ -117,6 +118,8 @@ import type {
   ListAgentFiles200,
   ListAgentFilesParams,
   ListAuditEntriesParams,
+  ListObservatoryEventsParams,
+  ListObservatorySessionsParams,
   ListPlanningAlertsParams,
   ListPlanningEventsParams,
   ListPlanningForecastSchedulesParams,
@@ -140,6 +143,9 @@ import type {
   ManualUploadForm,
   ManualUploadResult,
   NotificationRecord,
+  ObservatoryEventsPage,
+  ObservatoryOverview,
+  ObservatorySessionsResult,
   PlanningAlert,
   PlanningAskInput,
   PlanningAskResult,
@@ -202,6 +208,8 @@ import type {
   TaxonomyState,
   TemplateSuggestion,
   ToneStateView,
+  TrackInput,
+  TrackResult,
   UpdateToneBody,
   UsageMeter,
   ValidationItem,
@@ -10294,4 +10302,329 @@ export const useStartQualityReeval = <TError = ErrorType<ErrorResponse>,
       > => {
       return useMutation(getStartQualityReevalMutationOptions(options));
     }
+
+export const getTrackActivityUrl = () => {
+
+
+
+
+  return `/api/track`
+}
+
+/**
+ * Records the authenticated user's presence. page_view marks a route change (stored as an event); heartbeat only refreshes the session's activity clock for time-on-page attribution. Identity always comes from the session cookie — never from the body.
+ * @summary Client activity beacon (page views and heartbeats)
+ */
+export const trackActivity = async (trackInput: TrackInput, options?: RequestInit): Promise<TrackResult> => {
+
+  return customFetch<TrackResult>(getTrackActivityUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(trackInput)
+  }
+);}
+
+
+
+
+export const getTrackActivityMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trackActivity>>, TError,{data: BodyType<TrackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof trackActivity>>, TError,{data: BodyType<TrackInput>}, TContext> => {
+
+const mutationKey = ['trackActivity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof trackActivity>>, {data: BodyType<TrackInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  trackActivity(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TrackActivityMutationResult = NonNullable<Awaited<ReturnType<typeof trackActivity>>>
+    export type TrackActivityMutationBody = BodyType<TrackInput>
+    export type TrackActivityMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Client activity beacon (page views and heartbeats)
+ */
+export const useTrackActivity = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof trackActivity>>, TError,{data: BodyType<TrackInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof trackActivity>>,
+        TError,
+        {data: BodyType<TrackInput>},
+        TContext
+      > => {
+      return useMutation(getTrackActivityMutationOptions(options));
+    }
+
+export const getGetObservatoryOverviewUrl = (params?: GetObservatoryOverviewParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/observatory/overview?${stringifiedParams}` : `/api/observatory/overview`
+}
+
+/**
+ * One row per tracked user - sessions, total active time, asks, generations, exports, page views, governance blocks and top pages. Lyzr team members are excluded unless includeLyzr is set. Requires a lyzr-team session; everyone else gets 403 (code forbidden).
+ * @summary Per-user activity rollup across the whole platform (Lyzr only)
+ */
+export const getObservatoryOverview = async (params?: GetObservatoryOverviewParams, options?: RequestInit): Promise<ObservatoryOverview> => {
+
+  return customFetch<ObservatoryOverview>(getGetObservatoryOverviewUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetObservatoryOverviewQueryKey = (params?: GetObservatoryOverviewParams,) => {
+    return [
+    `/api/observatory/overview`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetObservatoryOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getObservatoryOverview>>, TError = ErrorType<ErrorResponse>>(params?: GetObservatoryOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getObservatoryOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetObservatoryOverviewQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getObservatoryOverview>>> = ({ signal }) => getObservatoryOverview(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getObservatoryOverview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetObservatoryOverviewQueryResult = NonNullable<Awaited<ReturnType<typeof getObservatoryOverview>>>
+export type GetObservatoryOverviewQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Per-user activity rollup across the whole platform (Lyzr only)
+ */
+
+export function useGetObservatoryOverview<TData = Awaited<ReturnType<typeof getObservatoryOverview>>, TError = ErrorType<ErrorResponse>>(
+ params?: GetObservatoryOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getObservatoryOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetObservatoryOverviewQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListObservatorySessionsUrl = (params: ListObservatorySessionsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/observatory/sessions?${stringifiedParams}` : `/api/observatory/sessions`
+}
+
+/**
+ * @summary Session timeline for one user (Lyzr only)
+ */
+export const listObservatorySessions = async (params: ListObservatorySessionsParams, options?: RequestInit): Promise<ObservatorySessionsResult> => {
+
+  return customFetch<ObservatorySessionsResult>(getListObservatorySessionsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListObservatorySessionsQueryKey = (params?: ListObservatorySessionsParams,) => {
+    return [
+    `/api/observatory/sessions`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListObservatorySessionsQueryOptions = <TData = Awaited<ReturnType<typeof listObservatorySessions>>, TError = ErrorType<ErrorResponse>>(params: ListObservatorySessionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listObservatorySessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListObservatorySessionsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listObservatorySessions>>> = ({ signal }) => listObservatorySessions(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listObservatorySessions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListObservatorySessionsQueryResult = NonNullable<Awaited<ReturnType<typeof listObservatorySessions>>>
+export type ListObservatorySessionsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Session timeline for one user (Lyzr only)
+ */
+
+export function useListObservatorySessions<TData = Awaited<ReturnType<typeof listObservatorySessions>>, TError = ErrorType<ErrorResponse>>(
+ params: ListObservatorySessionsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listObservatorySessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListObservatorySessionsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListObservatoryEventsUrl = (params?: ListObservatoryEventsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/observatory/events?${stringifiedParams}` : `/api/observatory/events`
+}
+
+/**
+ * Newest first. Filter by user email, session id and event kind. Ask events carry the question, the exact response shown, the persona, the governance status, cited doc ids and the retrieval-audit id.
+ * @summary Filterable audit event feed (Lyzr only)
+ */
+export const listObservatoryEvents = async (params?: ListObservatoryEventsParams, options?: RequestInit): Promise<ObservatoryEventsPage> => {
+
+  return customFetch<ObservatoryEventsPage>(getListObservatoryEventsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListObservatoryEventsQueryKey = (params?: ListObservatoryEventsParams,) => {
+    return [
+    `/api/observatory/events`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListObservatoryEventsQueryOptions = <TData = Awaited<ReturnType<typeof listObservatoryEvents>>, TError = ErrorType<ErrorResponse>>(params?: ListObservatoryEventsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listObservatoryEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListObservatoryEventsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listObservatoryEvents>>> = ({ signal }) => listObservatoryEvents(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listObservatoryEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListObservatoryEventsQueryResult = NonNullable<Awaited<ReturnType<typeof listObservatoryEvents>>>
+export type ListObservatoryEventsQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Filterable audit event feed (Lyzr only)
+ */
+
+export function useListObservatoryEvents<TData = Awaited<ReturnType<typeof listObservatoryEvents>>, TError = ErrorType<ErrorResponse>>(
+ params?: ListObservatoryEventsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listObservatoryEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListObservatoryEventsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

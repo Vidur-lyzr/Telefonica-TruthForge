@@ -13,6 +13,7 @@ import dataRouter from "./data";
 import brandRouter from "./brand";
 import governanceRouter from "./governance";
 import qualityRouter from "./quality";
+import observatoryRouter from "./observatory";
 
 const router: IRouter = Router();
 
@@ -31,5 +32,6 @@ router.use(dataRouter);
 router.use(brandRouter);
 router.use(governanceRouter);
 router.use(qualityRouter);
+router.use(observatoryRouter);
 
 export default router;

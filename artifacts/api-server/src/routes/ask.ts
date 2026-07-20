@@ -19,8 +19,28 @@ import {
   effectiveDefaultTemplateForShape as defaultTemplateForShape,
 } from "../data/templateOverrides";
 import { requireCapability } from "../data/accessControl";
+import { observe } from "../lib/observe";
+import type { AskAgentResult } from "../agent/askAgent";
 
 const router: IRouter = Router();
+
+function observeAskTurn(
+  req: Parameters<typeof observe>[0],
+  question: string,
+  roleId: string,
+  result: AskAgentResult,
+): void {
+  observe(req, {
+    kind: "ask",
+    page: "/ask",
+    roleId,
+    summary: question,
+    response: result.answer,
+    status: result.status,
+    docIds: [...new Set(result.citations.map((c) => c.docId))],
+    retrievalAuditId: result.auditId ?? null,
+  });
+}
 
 router.post("/ask", async (req, res) => {
   const parsed = AskBody.safeParse(req.body);
@@ -32,6 +52,7 @@ router.post("/ask", async (req, res) => {
 
   try {
     const result = await runAskAgent(parsed.data, req.log);
+    observeAskTurn(req, parsed.data.question, parsed.data.roleId, result);
     const data = AskResponse.parse(result);
     res.json(data);
     return;
@@ -83,10 +104,18 @@ router.post("/ask/stream", async (req, res) => {
 
   try {
     const result = await runAskAgent(parsed.data, req.log, emit, abort.signal);
+    observeAskTurn(req, parsed.data.question, parsed.data.roleId, result);
     send("result", AskResponse.parse(result));
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       req.log.info("ask stream cancelled: client disconnected");
+      observe(req, {
+        kind: "ask",
+        page: "/ask",
+        roleId: parsed.data.roleId,
+        summary: parsed.data.question,
+        status: "cancelled",
+      });
     } else {
       req.log.error({ err }, "ask stream failed");
       send("error", { error: "The Hub could not complete this request." });
@@ -161,6 +190,13 @@ router.post("/ask/documents/export", async (req, res) => {
       { documentId: record.id, format, destination, bytes: result.buffer.length },
       "ask document exported",
     );
+    observe(req, {
+      kind: "export",
+      page: "/ask",
+      summary: record.draft.title,
+      docIds: [record.id],
+      detail: { format, destination, source: "ask_document" },
+    });
     res.setHeader("Content-Type", result.contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
     res.send(result.buffer);
@@ -198,6 +234,13 @@ router.post("/ask/documents/export-pack", async (req, res) => {
       { documentId: record.id, formats, destination, bytes: result.buffer.length },
       "ask document pack exported",
     );
+    observe(req, {
+      kind: "export",
+      page: "/ask",
+      summary: record.draft.title,
+      docIds: [record.id],
+      detail: { format: formats.join(","), destination, source: "ask_document_pack" },
+    });
     res.setHeader("Content-Type", result.contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
     res.send(result.buffer);

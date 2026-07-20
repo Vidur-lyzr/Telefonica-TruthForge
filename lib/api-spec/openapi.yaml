@@ -3530,6 +3530,141 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /track:
+    post:
+      operationId: trackActivity
+      tags: [observatory]
+      summary: Client activity beacon (page views and heartbeats)
+      description: >
+        Records the authenticated user's presence. page_view marks a route
+        change (stored as an event); heartbeat only refreshes the session's
+        activity clock for time-on-page attribution. Identity always comes
+        from the session cookie — never from the body.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackInput"
+      responses:
+        "200":
+          description: Recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackResult"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /observatory/overview:
+    get:
+      operationId: getObservatoryOverview
+      tags: [observatory]
+      summary: Per-user activity rollup across the whole platform (Lyzr only)
+      description: >
+        One row per tracked user - sessions, total active time, asks,
+        generations, exports, page views, governance blocks and top pages.
+        Lyzr team members are excluded unless includeLyzr is set. Requires a
+        lyzr-team session; everyone else gets 403 (code forbidden).
+      parameters:
+        - name: includeLyzr
+          in: query
+          required: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Activity overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservatoryOverview"
+        "403":
+          description: Session is not on the lyzr team (code forbidden)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /observatory/sessions:
+    get:
+      operationId: listObservatorySessions
+      tags: [observatory]
+      summary: Session timeline for one user (Lyzr only)
+      parameters:
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Sessions, newest first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservatorySessionsResult"
+        "403":
+          description: Session is not on the lyzr team (code forbidden)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /observatory/events:
+    get:
+      operationId: listObservatoryEvents
+      tags: [observatory]
+      summary: Filterable audit event feed (Lyzr only)
+      description: >
+        Newest first. Filter by user email, session id and event kind. Ask
+        events carry the question, the exact response shown, the persona,
+        the governance status, cited doc ids and the retrieval-audit id.
+      parameters:
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: sid
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: kind
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [login, logout, page_view, ask, generate, export, download]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Event page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObservatoryEventsPage"
+        "403":
+          description: Session is not on the lyzr team (code forbidden)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     LoginInput:
@@ -9468,3 +9603,169 @@ components:
           description: Acting persona — must hold the approve_sensitive capability at full level.
         feedbackId:
           type: string
+
+    TrackInput:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+          enum: [page_view, heartbeat]
+        page:
+          type: string
+          maxLength: 200
+          description: Route path the user is on (e.g. /ask).
+
+    TrackResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+
+    ObservatoryEvent:
+      type: object
+      required: [id, ts, sid, email, team, kind, docIds]
+      properties:
+        id:
+          type: string
+        ts:
+          type: string
+        sid:
+          type: string
+        email:
+          type: string
+        team:
+          type: string
+        kind:
+          type: string
+          description: login | logout | page_view | ask | generate | export | download
+        page:
+          type: [string, "null"]
+        roleId:
+          type: [string, "null"]
+          description: Persona in force for governed actions.
+        roleLabel:
+          type: [string, "null"]
+        summary:
+          type: [string, "null"]
+          description: Question / prompt / document title (truncated at 500 chars).
+        response:
+          type: [string, "null"]
+          description: Response text shown to the user (truncated at 1500 chars).
+        status:
+          type: [string, "null"]
+          description: answered | no_evidence | permission_blocked | conflict | cancelled | draft status
+        docIds:
+          type: array
+          items:
+            type: string
+        retrievalAuditId:
+          type: [string, "null"]
+          description: Link into the F3 retrieval log for the full trace.
+        detail:
+          type: [object, "null"]
+          additionalProperties:
+            type: string
+
+    ObservatorySession:
+      type: object
+      required: [sid, email, team, firstSeenTs, lastSeenTs, secondsByPage, pagesVisited]
+      properties:
+        sid:
+          type: string
+        email:
+          type: string
+        team:
+          type: string
+        firstSeenTs:
+          type: string
+        lastSeenTs:
+          type: string
+        secondsByPage:
+          type: object
+          additionalProperties:
+            type: integer
+        pagesVisited:
+          type: array
+          items:
+            type: string
+        endedTs:
+          type: [string, "null"]
+
+    ObservatoryUserSummary:
+      type: object
+      required:
+        [
+          email,
+          team,
+          sessionCount,
+          totalSeconds,
+          askCount,
+          generateCount,
+          exportCount,
+          pageViewCount,
+          blockedCount,
+          topPages,
+        ]
+      properties:
+        email:
+          type: string
+        team:
+          type: string
+        sessionCount:
+          type: integer
+        totalSeconds:
+          type: integer
+        lastSeenTs:
+          type: [string, "null"]
+        askCount:
+          type: integer
+        generateCount:
+          type: integer
+        exportCount:
+          type: integer
+        pageViewCount:
+          type: integer
+        blockedCount:
+          type: integer
+          description: Actions that ended permission_blocked.
+        topPages:
+          type: array
+          items:
+            type: object
+            required: [page, seconds]
+            properties:
+              page:
+                type: string
+              seconds:
+                type: integer
+
+    ObservatoryOverview:
+      type: object
+      required: [users]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/ObservatoryUserSummary"
+
+    ObservatorySessionsResult:
+      type: object
+      required: [sessions]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ObservatorySession"
+
+    ObservatoryEventsPage:
+      type: object
+      required: [total, items]
+      properties:
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ObservatoryEvent"

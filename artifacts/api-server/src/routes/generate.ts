@@ -69,6 +69,7 @@ import {
 import { runBrandGuardian } from "../agent/brandGuardian";
 import { ROLES, CLEARANCE_RANK, getDoc, type Clearance, type Role } from "../data/corpus";
 import { requireCapability } from "../data/accessControl";
+import { observe } from "../lib/observe";
 import {
   TEMPLATES,
   APPROVED_CLAIMS,
@@ -161,6 +162,20 @@ router.post("/generate", async (req, res) => {
       },
       req.log,
     );
+    observe(req, {
+      kind: "generate",
+      page: "/generate",
+      roleId: parsed.data.roleId,
+      summary: `${result.title} — ${parsed.data.topic}`,
+      status: result.status,
+      docIds: [...new Set(result.citations.map((c) => c.docId))],
+      detail: {
+        shape: parsed.data.shape,
+        audience: parsed.data.audience,
+        language: result.language,
+        guardian: result.guardian.status,
+      },
+    });
     res.json(GenerateResponse.parse(result));
   } catch (err) {
     req.log.error({ err }, "generate route failed");
@@ -654,6 +669,13 @@ router.post("/generate/export", async (req, res) => {
       },
       "document exported",
     );
+    observe(req, {
+      kind: "export",
+      page: "/generate",
+      summary: draft.title,
+      docIds: [draft.id],
+      detail: { format, destination, source: "generate" },
+    });
     res.setHeader("Content-Type", result.contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
     res.send(result.buffer);
@@ -685,6 +707,13 @@ router.post("/generate/export/pack", async (req, res) => {
       { formats, destination, templateId: result.templateId, bytes: result.buffer.length },
       "document pack exported",
     );
+    observe(req, {
+      kind: "export",
+      page: "/generate",
+      summary: draft.title,
+      docIds: [draft.id],
+      detail: { format: formats.join(","), destination, source: "generate_pack" },
+    });
     res.setHeader("Content-Type", result.contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
     res.send(result.buffer);

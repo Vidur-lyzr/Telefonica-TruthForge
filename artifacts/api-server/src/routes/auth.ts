@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { LoginBody, LoginResponse, LogoutResponse } from "@workspace/api-zod";
 import { findAuthUser, isLyzrEmail, LYZR_PASSWORD_HASH } from "../data/authUsers";
+import { recordObservatoryEvent } from "../data/observatoryStore";
 import {
   createSessionToken,
   readSessionCookie,
@@ -89,10 +90,24 @@ router.post("/auth/login", (req, res) => {
   const token = createSessionToken(email, team);
   res.cookie(SESSION_COOKIE_NAME, token, sessionCookieOptions());
   req.log.info({ email, team }, "login succeeded");
+  const minted = verifySessionToken(token);
+  if (minted) {
+    recordObservatoryEvent({
+      identity: { sid: minted.sid, email, team },
+      kind: "login",
+    });
+  }
   res.json(LoginResponse.parse({ email, team }));
 });
 
 router.post("/auth/logout", (req, res) => {
+  const session = verifySessionToken(readSessionCookie(req.headers.cookie));
+  if (session) {
+    recordObservatoryEvent({
+      identity: { sid: session.sid, email: session.email, team: session.team },
+      kind: "logout",
+    });
+  }
   res.clearCookie(SESSION_COOKIE_NAME, { ...sessionCookieOptions(), maxAge: undefined });
   res.json(LogoutResponse.parse({ ok: true }));
 });

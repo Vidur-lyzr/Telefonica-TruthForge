@@ -7930,3 +7930,104 @@ export const StartQualityReevalResponse = zod.object({
 })
 
 
+/**
+ * Records the authenticated user's presence. page_view marks a route change (stored as an event); heartbeat only refreshes the session's activity clock for time-on-page attribution. Identity always comes from the session cookie — never from the body.
+ * @summary Client activity beacon (page views and heartbeats)
+ */
+export const trackActivityBodyPageMax = 200;
+
+
+
+export const TrackActivityBody = zod.object({
+  "kind": zod.enum(['page_view', 'heartbeat']),
+  "page": zod.string().max(trackActivityBodyPageMax).optional().describe('Route path the user is on (e.g. \/ask).')
+})
+
+export const TrackActivityResponse = zod.object({
+  "ok": zod.boolean()
+})
+
+
+/**
+ * One row per tracked user - sessions, total active time, asks, generations, exports, page views, governance blocks and top pages. Lyzr team members are excluded unless includeLyzr is set. Requires a lyzr-team session; everyone else gets 403 (code forbidden).
+ * @summary Per-user activity rollup across the whole platform (Lyzr only)
+ */
+export const GetObservatoryOverviewQueryParams = zod.object({
+  "includeLyzr": zod.coerce.boolean().optional()
+})
+
+export const GetObservatoryOverviewResponse = zod.object({
+  "users": zod.array(zod.object({
+  "email": zod.string(),
+  "team": zod.string(),
+  "sessionCount": zod.number(),
+  "totalSeconds": zod.number(),
+  "lastSeenTs": zod.string().nullish(),
+  "askCount": zod.number(),
+  "generateCount": zod.number(),
+  "exportCount": zod.number(),
+  "pageViewCount": zod.number(),
+  "blockedCount": zod.number().describe('Actions that ended permission_blocked.'),
+  "topPages": zod.array(zod.object({
+  "page": zod.string(),
+  "seconds": zod.number()
+}))
+}))
+})
+
+
+/**
+ * @summary Session timeline for one user (Lyzr only)
+ */
+export const ListObservatorySessionsQueryParams = zod.object({
+  "email": zod.coerce.string()
+})
+
+export const ListObservatorySessionsResponse = zod.object({
+  "sessions": zod.array(zod.object({
+  "sid": zod.string(),
+  "email": zod.string(),
+  "team": zod.string(),
+  "firstSeenTs": zod.string(),
+  "lastSeenTs": zod.string(),
+  "secondsByPage": zod.record(zod.string(), zod.number()),
+  "pagesVisited": zod.array(zod.string()),
+  "endedTs": zod.string().nullish()
+}))
+})
+
+
+/**
+ * Newest first. Filter by user email, session id and event kind. Ask events carry the question, the exact response shown, the persona, the governance status, cited doc ids and the retrieval-audit id.
+ * @summary Filterable audit event feed (Lyzr only)
+ */
+export const ListObservatoryEventsQueryParams = zod.object({
+  "email": zod.coerce.string().optional(),
+  "sid": zod.coerce.string().optional(),
+  "kind": zod.enum(['login', 'logout', 'page_view', 'ask', 'generate', 'export', 'download']).optional(),
+  "limit": zod.coerce.number().optional(),
+  "offset": zod.coerce.number().optional()
+})
+
+export const ListObservatoryEventsResponse = zod.object({
+  "total": zod.number(),
+  "items": zod.array(zod.object({
+  "id": zod.string(),
+  "ts": zod.string(),
+  "sid": zod.string(),
+  "email": zod.string(),
+  "team": zod.string(),
+  "kind": zod.string().describe('login | logout | page_view | ask | generate | export | download'),
+  "page": zod.string().nullish(),
+  "roleId": zod.string().nullish().describe('Persona in force for governed actions.'),
+  "roleLabel": zod.string().nullish(),
+  "summary": zod.string().nullish().describe('Question \/ prompt \/ document title (truncated at 500 chars).'),
+  "response": zod.string().nullish().describe('Response text shown to the user (truncated at 1500 chars).'),
+  "status": zod.string().nullish().describe('answered | no_evidence | permission_blocked | conflict | cancelled | draft status'),
+  "docIds": zod.array(zod.string()),
+  "retrievalAuditId": zod.string().nullish().describe('Link into the F3 retrieval log for the full trace.'),
+  "detail": zod.record(zod.string(), zod.string()).nullish()
+}))
+})
+
+

@@ -2,7 +2,7 @@ import React from "react";
 import { useLocation } from "wouter";
 import { useApp, type Lang } from "./app-provider";
 import { UI, type ChromeStrings } from "../i18n";
-import { useListRoles, useLogout } from "@workspace/api-client-react";
+import { useListRoles, useLogout, useGetAuthMe } from "@workspace/api-client-react";
 import {
   Logo,
   Touchable,
@@ -25,6 +25,7 @@ import {
   IconShieldCheckedOkRegular,
   IconChevronLeftDoubleRegular,
   IconChevronRightDoubleRegular,
+  IconEyeRegular,
 } from "@telefonica/mistica";
 
 const SIDEBAR_EXPANDED = 272;
@@ -48,6 +49,7 @@ type CapabilityId = keyof Capabilities;
 function buildNavGroups(
   t: ChromeStrings,
   caps: Capabilities | undefined,
+  isLyzr: boolean,
 ): { label: string; items: NavItemDef[] }[] {
   const has = (capability: CapabilityId) => !caps || caps[capability] !== "none";
   const anyOf = (...capabilities: CapabilityId[]) => capabilities.some(has);
@@ -92,6 +94,16 @@ function buildNavGroups(
           : []),
       ],
     },
+    // Lyzr-only audit panel. The nav entry is cosmetic — the API itself is
+    // gated server-side on the session team, so hiding it is not the boundary.
+    ...(isLyzr
+      ? [
+          {
+            label: "Lyzr",
+            items: [{ name: "Observatory", path: "/observatory", icon: IconEyeRegular }],
+          },
+        ]
+      : []),
   ];
   return groups.filter((g) => g.items.length > 0);
 }
@@ -142,10 +154,12 @@ function Sidebar({
   const [, navigate] = useLocation();
   const { lang, roleId } = useApp();
   const { data: roles } = useListRoles();
+  const { data: me } = useGetAuthMe();
   const activeCaps = roles?.find((r) => r.id === roleId)?.capabilities;
+  const isLyzr = me?.team === "lyzr";
   const navGroups = React.useMemo(
-    () => buildNavGroups(UI[lang], activeCaps),
-    [lang, activeCaps],
+    () => buildNavGroups(UI[lang], activeCaps, isLyzr),
+    [lang, activeCaps, isLyzr],
   );
 
   return (
