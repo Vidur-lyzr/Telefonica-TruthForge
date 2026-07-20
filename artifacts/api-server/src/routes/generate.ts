@@ -110,6 +110,14 @@ function roleLabel(roleId: string): string {
   return ROLES.find((r) => r.id === roleId)?.label ?? roleId;
 }
 
+// Flattens the generated draft into the text the user actually sees, so the
+// Observatory records the real artefact — not just its title.
+function draftBodyText(draft: GeneratedDraft): string {
+  return draft.sections
+    .map((s) => (s.heading ? `${s.heading}\n${s.body}` : s.body))
+    .join("\n\n");
+}
+
 // Partial approve_sensitive (editor) bound: every source the draft cites must
 // sit at or below the approver's own clearance. Re-derived from the SERVER
 // corpus per docId — the client-supplied confidentiality labels on the draft
@@ -167,9 +175,11 @@ router.post("/generate", async (req, res) => {
       page: "/generate",
       roleId: parsed.data.roleId,
       summary: `${result.title} — ${parsed.data.topic}`,
+      response: draftBodyText(result),
       status: result.status,
       docIds: [...new Set(result.citations.map((c) => c.docId))],
       detail: {
+        draftId: result.id,
         shape: parsed.data.shape,
         audience: parsed.data.audience,
         language: result.language,
@@ -200,6 +210,21 @@ router.post("/generate/refine", async (req, res) => {
       },
       req.log,
     );
+    observe(req, {
+      kind: "generate",
+      page: "/generate",
+      roleId: parsed.data.roleId,
+      summary: `${result.title} — refine: ${parsed.data.instruction}`,
+      response: draftBodyText(result),
+      status: result.status,
+      docIds: [...new Set(result.citations.map((c) => c.docId))],
+      detail: {
+        draftId: result.id,
+        action: "refine",
+        language: result.language,
+        guardian: result.guardian.status,
+      },
+    });
     res.json(RefineDocumentResponse.parse(result));
   } catch (err) {
     req.log.error({ err }, "refine route failed");
@@ -886,6 +911,22 @@ router.post("/generate/jobs", async (req, res) => {
     try {
       const draft = await runGenerateAgent(input, log, (stage) => setJobStage(job.id, stage));
       completeJob(job.id, draft);
+      observe(req, {
+        kind: "generate",
+        page: "/generate",
+        roleId: input.roleId,
+        summary: `${draft.title} — ${input.topic}`,
+        response: draftBodyText(draft),
+        status: draft.status,
+        docIds: [...new Set(draft.citations.map((c) => c.docId))],
+        detail: {
+          draftId: draft.id,
+          shape: input.shape,
+          audience: input.audience,
+          language: draft.language,
+          guardian: draft.guardian.status,
+        },
+      });
     } catch (err) {
       log.error({ err }, "generate job failed");
       failJob(job.id, "The Hub could not generate this document.");
@@ -913,6 +954,21 @@ router.post("/generate/refine/jobs", async (req, res) => {
     try {
       const draft = await refineDraft(input, log, (stage) => setJobStage(job.id, stage));
       completeJob(job.id, draft);
+      observe(req, {
+        kind: "generate",
+        page: "/generate",
+        roleId: input.roleId,
+        summary: `${draft.title} — refine: ${input.instruction}`,
+        response: draftBodyText(draft),
+        status: draft.status,
+        docIds: [...new Set(draft.citations.map((c) => c.docId))],
+        detail: {
+          draftId: draft.id,
+          action: "refine",
+          language: draft.language,
+          guardian: draft.guardian.status,
+        },
+      });
     } catch (err) {
       log.error({ err }, "refine job failed");
       failJob(job.id, "The Hub could not refine this document.");

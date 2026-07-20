@@ -3752,7 +3752,7 @@ export interface ObservatoryEvent {
   sid: string;
   email: string;
   team: string;
-  /** login | logout | page_view | ask | generate | export | download */
+  /** login | logout | page_view | ask | generate | export | download | ingest | config_change. Ingest covers live-capture searches, accepted mentions and manual uploads; config_change covers admin panel mutations (users, source labels) and governance rule changes (axes, re-tagging, rollbacks). */
   kind: string;
   /** @nullable */
   page?: string | null;
@@ -3769,7 +3769,7 @@ export interface ObservatoryEvent {
      */
   summary?: string | null;
   /**
-     * Response text shown to the user (truncated at 1500 chars).
+     * Response text shown to the user (truncated at 4000 chars). For ask this is the exact rendered answer; for generate it is the actual generated document body.
      * @nullable
      */
   response?: string | null;
@@ -3817,6 +3817,10 @@ export interface ObservatoryUserSummary {
   askCount: number;
   generateCount: number;
   exportCount: number;
+  /** Data ingested — live captures accepted and manual uploads. */
+  ingestCount: number;
+  /** Admin panel and governance rule changes. */
+  changeCount: number;
   pageViewCount: number;
   /** Actions that ended permission_blocked. */
   blockedCount: number;
@@ -4099,5 +4103,7 @@ export const ListObservatoryEventsKind = {
   generate: 'generate',
   export: 'export',
   download: 'download',
+  ingest: 'ingest',
+  config_change: 'config_change',
 } as const;
 

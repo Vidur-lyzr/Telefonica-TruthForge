@@ -60,6 +60,8 @@ const EVENT_KINDS: ObservatoryEventKind[] = [
   "generate",
   "export",
   "download",
+  "ingest",
+  "config_change",
 ];
 
 router.get("/observatory/events", requireLyzr, (req, res) => {

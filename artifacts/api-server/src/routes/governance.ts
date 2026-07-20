@@ -30,6 +30,7 @@ import {
 } from "../data/governance";
 import { proposeRetag, suggestDocTags, RetagInputError } from "../agent/retagAgent";
 import { requireCapability } from "../data/accessControl";
+import { observe } from "../lib/observe";
 import {
   isQdrantConfigured,
   setDocPayloads,
@@ -105,6 +106,15 @@ router.post("/governance/axes", (req, res) => {
     decisions: [],
     kind: "manual",
     axisOps: [{ op: "create", axis }],
+  });
+  observe(req, {
+    kind: "config_change",
+    page: "/data",
+    roleId: grant.role.id,
+    roleLabel: grant.role.name,
+    summary: `New strategic axis "${name}" created`,
+    status: "applied",
+    detail: { change: "axis_created", axisId: axis.id, version: `v${result.version}` },
   });
   res.json(CreateAxisResponse.parse({ axis: { ...axis, retired: false }, version: result.version }));
 });
@@ -449,6 +459,23 @@ router.post("/governance/retag/apply", async (req, res) => {
       },
       req.log,
     );
+    const acceptedDocs = parsed.data.decisions.filter((d) => d.accept).map((d) => d.docId);
+    observe(req, {
+      kind: "config_change",
+      page: "/data",
+      roleId: grant.role.id,
+      roleLabel: grant.role.name,
+      summary: parsed.data.note?.trim()
+        ? `Taxonomy change — ${parsed.data.note.trim()}`
+        : "Taxonomy re-tag applied",
+      status: "applied",
+      docIds: acceptedDocs,
+      detail: {
+        change: structural ? "taxonomy_structural" : "taxonomy_retag",
+        version: `v${payload.version}`,
+        retaggedDocs: String(acceptedDocs.length),
+      },
+    });
     res.json(ApplyRetagResponse.parse(payload));
   } catch (err) {
     req.log.error({ err }, "governance: apply retag failed");
@@ -515,6 +542,21 @@ router.post("/governance/documents/retag", async (req, res) => {
       },
       req.log,
     );
+    observe(req, {
+      kind: "config_change",
+      page: "/data",
+      roleId: parsed.data.roleId ?? null,
+      summary: `Document tags edited — ${parsed.data.docs
+        .map((d) => getDoc(d.docId)?.title ?? d.docId)
+        .join("; ")}`,
+      status: "applied",
+      docIds: parsed.data.docs.map((d) => d.docId),
+      detail: {
+        change: "document_retag",
+        version: `v${payload.version}`,
+        docs: String(parsed.data.docs.length),
+      },
+    });
     res.json(RetagDocumentsResponse.parse(payload));
   } catch (err) {
     req.log.error({ err }, "governance: document retag failed");
@@ -587,6 +629,19 @@ router.post("/governance/rollback", async (req, res) => {
     }
     const result = commitRollback(plan, parsed.data.actor);
     req.log.info({ ...result, qdrant }, "governance: taxonomy rollback applied");
+    observe(req, {
+      kind: "config_change",
+      page: "/data",
+      roleId: parsed.data.roleId ?? null,
+      summary: `Taxonomy rollback to v${parsed.data.toVersion}`,
+      status: "applied",
+      docIds: plan.overrides.map((o) => o.docId),
+      detail: {
+        change: "taxonomy_rollback",
+        toVersion: `v${parsed.data.toVersion}`,
+        revertedDocs: String(plan.overrides.length),
+      },
+    });
     res.json(RollbackTaxonomyResponse.parse({ ...result, qdrant }));
   } catch (err) {
     req.log.error({ err }, "governance: rollback failed");

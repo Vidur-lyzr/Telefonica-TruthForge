@@ -33,6 +33,7 @@ import {
 } from "../data/manualUpload";
 import { DOCS, AXES, type Area, type Clearance } from "../data/corpus";
 import { registerDocInIndex } from "../adapters/kb";
+import { observe } from "../lib/observe";
 import {
   isQdrantConfigured,
   upsertChunks,
@@ -117,6 +118,23 @@ router.post("/data/ingest/search", async (req, res) => {
     const items = await perplexitySearch(filter);
     cacheCandidates(items, filter);
     req.log.info({ termCount, found: items.length }, "live ingest: search completed");
+    observe(req, {
+      kind: "ingest",
+      page: "/data",
+      roleId: parsed.data.roleId,
+      summary: `Live capture search — ${[
+        ...filter.keywords,
+        ...filter.competitors,
+        ...filter.executives,
+        ...filter.topics,
+      ].join(", ")}`,
+      status: "searched",
+      detail: {
+        action: "live_capture_search",
+        terms: String(termCount),
+        found: String(items.length),
+      },
+    });
     res.json(LiveIngestSearchResponse.parse({ items, filter }));
   } catch (err) {
     req.log.error({ err }, "live ingest: search failed");
@@ -200,6 +218,21 @@ router.post("/data/ingest/accept", async (req, res) => {
       { createdDocs: created.length, upserted },
       "live ingest: accepted mentions ingested as B documents",
     );
+    observe(req, {
+      kind: "ingest",
+      page: "/data",
+      roleId: parsed.data.roleId,
+      summary: `Live capture ingest — ${created.map(({ doc }) => doc.title).join("; ")}`,
+      status: "ingested",
+      docIds: created.map(({ doc }) => doc.id),
+      detail: {
+        action: "live_capture_accept",
+        docs: String(created.length),
+        upsertedChunks: String(upserted),
+        pointsBefore: String(before?.pointsCount ?? 0),
+        pointsAfter: String(after?.pointsCount ?? 0),
+      },
+    });
     res.json(
       LiveIngestAcceptResponse.parse({
         createdDocs: created.map(({ doc }) => ({ docId: doc.id, title: doc.title })),
@@ -414,6 +447,23 @@ router.post(
         },
         "manual upload: document ingested",
       );
+      observe(req, {
+        kind: "ingest",
+        page: "/data",
+        roleId: str("roleId") || null,
+        summary: `Manual upload — ${doc.title} (${file.originalname})`,
+        status: "ingested",
+        docIds: [doc.id],
+        detail: {
+          action: "manual_upload",
+          format: sourceFormat,
+          confidentiality,
+          area: areaRaw || "cross-area",
+          chunks: String(chunks.length),
+          upsertedChunks: String(upserted),
+          extractedChars: String(text.length),
+        },
+      });
       res.json(
         ManualUploadResponse.parse({
           docId: doc.id,

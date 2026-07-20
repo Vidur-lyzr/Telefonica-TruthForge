@@ -17,6 +17,10 @@ export interface ObservatoryUserSummary {
   askCount: number;
   generateCount: number;
   exportCount: number;
+  /** Data ingested — live captures accepted and manual uploads. */
+  ingestCount: number;
+  /** Admin panel and governance rule changes. */
+  changeCount: number;
   pageViewCount: number;
   /** Actions that ended permission_blocked. */
   blockedCount: number;

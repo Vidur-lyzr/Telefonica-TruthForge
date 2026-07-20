@@ -7966,6 +7966,8 @@ export const GetObservatoryOverviewResponse = zod.object({
   "askCount": zod.number(),
   "generateCount": zod.number(),
   "exportCount": zod.number(),
+  "ingestCount": zod.number().describe('Data ingested — live captures accepted and manual uploads.'),
+  "changeCount": zod.number().describe('Admin panel and governance rule changes.'),
   "pageViewCount": zod.number(),
   "blockedCount": zod.number().describe('Actions that ended permission_blocked.'),
   "topPages": zod.array(zod.object({
@@ -8004,7 +8006,7 @@ export const ListObservatorySessionsResponse = zod.object({
 export const ListObservatoryEventsQueryParams = zod.object({
   "email": zod.coerce.string().optional(),
   "sid": zod.coerce.string().optional(),
-  "kind": zod.enum(['login', 'logout', 'page_view', 'ask', 'generate', 'export', 'download']).optional(),
+  "kind": zod.enum(['login', 'logout', 'page_view', 'ask', 'generate', 'export', 'download', 'ingest', 'config_change']).optional(),
   "limit": zod.coerce.number().optional(),
   "offset": zod.coerce.number().optional()
 })
@@ -8017,12 +8019,12 @@ export const ListObservatoryEventsResponse = zod.object({
   "sid": zod.string(),
   "email": zod.string(),
   "team": zod.string(),
-  "kind": zod.string().describe('login | logout | page_view | ask | generate | export | download'),
+  "kind": zod.string().describe('login | logout | page_view | ask | generate | export | download | ingest | config_change. Ingest covers live-capture searches, accepted mentions and manual uploads; config_change covers admin panel mutations (users, source labels) and governance rule changes (axes, re-tagging, rollbacks).\n'),
   "page": zod.string().nullish(),
   "roleId": zod.string().nullish().describe('Persona in force for governed actions.'),
   "roleLabel": zod.string().nullish(),
   "summary": zod.string().nullish().describe('Question \/ prompt \/ document title (truncated at 500 chars).'),
-  "response": zod.string().nullish().describe('Response text shown to the user (truncated at 1500 chars).'),
+  "response": zod.string().nullish().describe('Response text shown to the user (truncated at 4000 chars). For ask this is the exact rendered answer; for generate it is the actual generated document body.\n'),
   "status": zod.string().nullish().describe('answered | no_evidence | permission_blocked | conflict | cancelled | draft status'),
   "docIds": zod.array(zod.string()),
   "retrievalAuditId": zod.string().nullish().describe('Link into the F3 retrieval log for the full trace.'),

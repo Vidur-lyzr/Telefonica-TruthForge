@@ -33,9 +33,20 @@ const KIND_LABELS: Record<string, string> = {
   generate: "Generate",
   export: "Export",
   download: "Download",
+  ingest: "Ingest",
+  config_change: "Change",
 };
 
-const KIND_FILTERS = ["all", "ask", "generate", "export", "page_view", "login"] as const;
+const KIND_FILTERS = [
+  "all",
+  "ask",
+  "generate",
+  "export",
+  "ingest",
+  "config_change",
+  "page_view",
+  "login",
+] as const;
 
 function kindTagType(kind: string): "success" | "warning" | "error" | "info" | "inactive" | "active" {
   switch (kind) {
@@ -46,6 +57,10 @@ function kindTagType(kind: string): "success" | "warning" | "error" | "info" | "
     case "export":
     case "download":
       return "warning";
+    case "ingest":
+      return "success";
+    case "config_change":
+      return "active";
     case "login":
       return "success";
     case "logout":
@@ -315,7 +330,7 @@ function UserDetail({ email, onBack }: { email: string; onBack: () => void }) {
 }
 
 const OVERVIEW_COLUMNS =
-  "minmax(220px, 2fr) 90px 80px 110px 70px 90px 80px 80px 150px";
+  "minmax(220px, 2fr) 90px 80px 100px 70px 80px 80px 90px 70px 80px 150px";
 
 export default function ObservatoryPage() {
   const me = useGetAuthMe();
@@ -393,7 +408,7 @@ export default function ObservatoryPage() {
                   minWidth: 980,
                 }}
               >
-                {["User", "Sessions", "Time", "Questions", "Docs", "Exports", "Pages", "Blocked", "Last seen"].map(
+                {["User", "Sessions", "Time", "Questions", "Docs", "Exports", "Ingests", "Changes", "Pages", "Blocked", "Last seen"].map(
                   (h) => (
                     <Text1 key={h} medium color={skinVars.colors.textSecondary}>
                       {h}
@@ -446,6 +461,12 @@ export default function ObservatoryPage() {
                       </Text2>
                       <Text2 regular color={skinVars.colors.textPrimary}>
                         {String(u.exportCount)}
+                      </Text2>
+                      <Text2 regular color={skinVars.colors.textPrimary}>
+                        {String(u.ingestCount)}
+                      </Text2>
+                      <Text2 regular color={skinVars.colors.textPrimary}>
+                        {String(u.changeCount)}
                       </Text2>
                       <Text2 regular color={skinVars.colors.textPrimary}>
                         {String(u.pageViewCount)}

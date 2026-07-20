@@ -27,7 +27,9 @@ export type ObservatoryEventKind =
   | "ask"
   | "generate"
   | "export"
-  | "download";
+  | "download"
+  | "ingest"
+  | "config_change";
 
 export interface ObservatoryEventRecord {
   id: string;
@@ -73,7 +75,7 @@ export interface ObservatorySessionRecord {
 const MAX_EVENTS = 10000;
 const MAX_SESSIONS = 2000;
 const MAX_SUMMARY_CHARS = 500;
-const MAX_RESPONSE_CHARS = 1500;
+const MAX_RESPONSE_CHARS = 4000;
 /** A heartbeat/page event within this window counts as continuous activity. */
 const ACTIVITY_WINDOW_MS = 90 * 1000;
 /** Cap on distinct page keys per session — page is a client-sent string, so
@@ -242,6 +244,8 @@ export interface ObservatoryUserSummary {
   askCount: number;
   generateCount: number;
   exportCount: number;
+  ingestCount: number;
+  changeCount: number;
   pageViewCount: number;
   blockedCount: number;
   topPages: { page: string; seconds: number }[];
@@ -261,6 +265,8 @@ export function getObservatoryOverview(includeLyzr: boolean): ObservatoryUserSum
         askCount: 0,
         generateCount: 0,
         exportCount: 0,
+        ingestCount: 0,
+        changeCount: 0,
         pageViewCount: 0,
         blockedCount: 0,
         topPages: [],
@@ -291,6 +297,8 @@ export function getObservatoryOverview(includeLyzr: boolean): ObservatoryUserSum
     if (e.kind === "ask") u.askCount += 1;
     else if (e.kind === "generate") u.generateCount += 1;
     else if (e.kind === "export" || e.kind === "download") u.exportCount += 1;
+    else if (e.kind === "ingest") u.ingestCount += 1;
+    else if (e.kind === "config_change") u.changeCount += 1;
     else if (e.kind === "page_view") u.pageViewCount += 1;
     if (e.status === "permission_blocked") u.blockedCount += 1;
     if (!u.lastSeenTs || e.ts > u.lastSeenTs) u.lastSeenTs = e.ts;

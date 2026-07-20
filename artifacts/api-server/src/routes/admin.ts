@@ -58,6 +58,7 @@ import {
 } from "../agent/gitagentRuntime";
 import { describeGovernedTools } from "../agent/askAgent";
 import { resolveDocAccess, recordAudit } from "../data/governance";
+import { observe } from "../lib/observe";
 import { queryRetrievalLog } from "../data/retrievalLog";
 import {
   getSourceSyncState,
@@ -224,6 +225,20 @@ router.post("/admin/users", (req, res) => {
     detail: `New ${profileSummary(user.profileIds)} in ${user.area} with ${CLEARANCE_TITLES[user.clearance]} clearance.`,
   });
   req.log.info({ userId: user.id, actor: grant.role.id }, "admin: user registered");
+  observe(req, {
+    kind: "config_change",
+    page: "/admin",
+    roleId: grant.role.id,
+    roleLabel: grant.role.name,
+    summary: `Registered user ${user.name} (${user.email})`,
+    status: "applied",
+    detail: {
+      change: "user_registered",
+      area: user.area,
+      profiles: profileSummary(user.profileIds),
+      clearance: CLEARANCE_TITLES[user.clearance],
+    },
+  });
   res.json(CreatePlatformUserResponse.parse(user));
 });
 
@@ -285,6 +300,20 @@ router.post("/admin/users/update", (req, res) => {
     detail: `Set ${user.area} · ${profileSummary(user.profileIds)} · ${CLEARANCE_TITLES[user.clearance]} clearance.`,
   });
   req.log.info({ userId: user.id, actor: grant.role.id }, "admin: user updated");
+  observe(req, {
+    kind: "config_change",
+    page: "/admin",
+    roleId: grant.role.id,
+    roleLabel: grant.role.name,
+    summary: `Permission change — ${user.name}: ${user.area} · ${profileSummary(user.profileIds)} · ${CLEARANCE_TITLES[user.clearance]} clearance`,
+    status: "applied",
+    detail: {
+      change: "user_updated",
+      area: user.area,
+      profiles: profileSummary(user.profileIds),
+      clearance: CLEARANCE_TITLES[user.clearance],
+    },
+  });
   res.json(UpdatePlatformUserResponse.parse(user));
 });
 
@@ -316,6 +345,19 @@ router.post("/admin/users/remove", (req, res) => {
     detail: `Removed ${removed.email} (${removed.area}, ${profileSummary(removed.profileIds)}).`,
   });
   req.log.info({ userId: removed.id, actor: grant.role.id }, "admin: user removed");
+  observe(req, {
+    kind: "config_change",
+    page: "/admin",
+    roleId: grant.role.id,
+    roleLabel: grant.role.name,
+    summary: `User removed — ${removed.name} (${removed.email})`,
+    status: "applied",
+    detail: {
+      change: "user_removed",
+      area: removed.area,
+      profiles: profileSummary(removed.profileIds),
+    },
+  });
   res.json(RemovePlatformUserResponse.parse(removed));
 });
 
@@ -499,6 +541,16 @@ router.post("/admin/source-sync/label", async (req, res) => {
     { docId, to: confidentiality, kind: result.delta?.kind },
     "source-sync: label changed",
   );
+  observe(req, {
+    kind: "config_change",
+    page: "/admin",
+    roleId: grant.role.id,
+    roleLabel: grant.role.name,
+    summary: `Source label change — ${getDoc(docId)?.title ?? docId} → ${confidentiality}`,
+    status: "applied",
+    docIds: [docId],
+    detail: { change: "source_label", to: confidentiality },
+  });
   res.json(SetSourceLabelResponse.parse(getSourceSyncState()));
 });
 
@@ -510,6 +562,15 @@ router.post("/admin/source-sync/run", async (req, res) => {
     { runId: run.id, applied: run.appliedCount },
     "source-sync: batch run",
   );
+  observe(req, {
+    kind: "config_change",
+    page: "/admin",
+    roleId: grant.role.id,
+    roleLabel: grant.role.name,
+    summary: `Source sync batch run — ${run.appliedCount} label change(s) applied`,
+    status: "applied",
+    detail: { change: "source_sync_run", runId: run.id, applied: String(run.appliedCount) },
+  });
   res.json(RunSourceSyncResponse.parse(getSourceSyncState()));
 });
 

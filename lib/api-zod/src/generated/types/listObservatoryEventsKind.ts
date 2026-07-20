@@ -17,4 +17,6 @@ export const ListObservatoryEventsKind = {
   generate: 'generate',
   export: 'export',
   download: 'download',
+  ingest: 'ingest',
+  config_change: 'config_change',
 } as const;
