@@ -33,6 +33,8 @@ import {
 } from "@workspace/api-zod";
 import { ROLES, type Clearance, type Area } from "../data/corpus";
 import { requireCapability } from "../data/accessControl";
+import { isQuotaError } from "../data/userUsage";
+import { respondIfQuotaError } from "../lib/quotaHttp";
 import { PLANNING_SOURCES, PLANNING_TODAY } from "../data/planning";
 import {
   listEvents,
@@ -147,6 +149,7 @@ router.post("/planning/ask", async (req, res) => {
     const result = await runPlanningAsk(parsed.data, req.log);
     res.json(PlanningAskResponse.parse(result));
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "planning-ask route failed");
     res.status(500).json({ error: "The Hub could not complete this request." });
   }
@@ -192,6 +195,8 @@ router.post("/planning/ask/stream", async (req, res) => {
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       req.log.info("planning ask stream cancelled: client disconnected");
+    } else if (isQuotaError(err)) {
+      send("error", { error: err.message, code: err.code });
     } else {
       req.log.error({ err }, "planning ask stream failed");
       send("error", { error: "The calendar agent could not complete this request." });
@@ -245,6 +250,8 @@ router.post("/planning/forecast/stream", async (req, res) => {
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       req.log.info("planning forecast stream cancelled: client disconnected");
+    } else if (isQuotaError(err)) {
+      send("error", { error: err.message, code: err.code });
     } else {
       req.log.error({ err }, "planning forecast stream failed");
       send("error", { error: "The forecast agent could not complete this request." });
@@ -640,6 +647,7 @@ router.post("/planning/forecast", async (req, res) => {
       result.status === "generated" ? buildForecastDraft(result, parsed.data) : null;
     res.json(PlanningForecastResponse.parse({ ...result, draft }));
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "planning-forecast route failed");
     res.status(500).json({ error: "The Hub could not complete this request." });
   }

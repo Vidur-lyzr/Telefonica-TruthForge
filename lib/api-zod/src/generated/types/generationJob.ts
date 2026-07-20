@@ -17,5 +17,7 @@ export interface GenerationJob {
   status: string;
   draft?: GeneratedDraft | null;
   error?: string | null;
+  /** Machine-readable refusal code, e.g. quota_exceeded */
+  errorCode?: string | null;
   createdAt: string;
 }

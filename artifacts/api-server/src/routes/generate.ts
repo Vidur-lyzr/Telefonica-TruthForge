@@ -69,6 +69,8 @@ import {
 import { runBrandGuardian } from "../agent/brandGuardian";
 import { ROLES, CLEARANCE_RANK, getDoc, type Clearance, type Role } from "../data/corpus";
 import { requireCapability } from "../data/accessControl";
+import { isQuotaError } from "../data/userUsage";
+import { respondIfQuotaError } from "../lib/quotaHttp";
 import { observe } from "../lib/observe";
 import {
   TEMPLATES,
@@ -188,6 +190,7 @@ router.post("/generate", async (req, res) => {
     });
     res.json(GenerateResponse.parse(result));
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "generate route failed");
     res.status(500).json({ error: "The Hub could not generate this document." });
   }
@@ -227,6 +230,7 @@ router.post("/generate/refine", async (req, res) => {
     });
     res.json(RefineDocumentResponse.parse(result));
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "refine route failed");
     res.status(500).json({ error: "The Hub could not refine this document." });
   }
@@ -242,6 +246,7 @@ router.post("/generate/check", async (req, res) => {
     const guardian = runBrandGuardian(parsed.data.draft as unknown as GeneratedDraft);
     res.json(CheckDocumentResponse.parse(guardian));
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "check route failed");
     res.status(500).json({ error: "The Brand Guardian could not check this document." });
   }
@@ -314,6 +319,7 @@ router.post("/generate/canvas/suggestions", async (req, res) => {
     );
     res.json(CanvasSuggestionsResponse.parse({ suggestions }));
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "canvas suggestions route failed");
     res.status(500).json({ error: "Could not derive suggestions for this block." });
   }
@@ -358,6 +364,7 @@ router.post("/generate/canvas/edit", async (req, res) => {
       res.status(409).json({ error: err.message, code: "block_locked" });
       return;
     }
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "canvas edit route failed");
     res.status(500).json({ error: "The Hub could not edit this block." });
   }
@@ -928,6 +935,10 @@ router.post("/generate/jobs", async (req, res) => {
         },
       });
     } catch (err) {
+      if (isQuotaError(err)) {
+        failJob(job.id, err.message, err.code);
+        return;
+      }
       log.error({ err }, "generate job failed");
       failJob(job.id, "The Hub could not generate this document.");
     }
@@ -970,6 +981,10 @@ router.post("/generate/refine/jobs", async (req, res) => {
         },
       });
     } catch (err) {
+      if (isQuotaError(err)) {
+        failJob(job.id, err.message, err.code);
+        return;
+      }
       log.error({ err }, "refine job failed");
       failJob(job.id, "The Hub could not refine this document.");
     }

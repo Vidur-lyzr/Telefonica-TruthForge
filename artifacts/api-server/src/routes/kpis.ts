@@ -17,6 +17,8 @@ import {
 } from "@workspace/api-zod";
 import { listKpis, getKpiDetail, computeAndListAlerts } from "../adapters/kpi";
 import { requireCapability } from "../data/accessControl";
+import { isQuotaError } from "../data/userUsage";
+import { respondIfQuotaError } from "../lib/quotaHttp";
 import { runKpiAgent, type KpiStreamEvent } from "../agent/kpiAgent";
 import {
   ROLES,
@@ -138,6 +140,7 @@ router.post("/kpis/ask", async (req, res) => {
     res.json(AskKpisResponse.parse(result));
     return;
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "kpis/ask route failed");
     res.status(500).json({ error: "The Hub could not complete this request." });
     return;
@@ -184,6 +187,8 @@ router.post("/kpis/ask/stream", async (req, res) => {
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       req.log.info("kpis/ask stream cancelled: client disconnected");
+    } else if (isQuotaError(err)) {
+      send("error", { error: err.message, code: err.code });
     } else {
       req.log.error({ err }, "kpis/ask stream failed");
       send("error", { error: "The Hub could not complete this request." });

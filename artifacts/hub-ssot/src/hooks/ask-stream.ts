@@ -15,6 +15,18 @@ export interface AskStreamHandlers {
   onToken: (content: string) => void;
 }
 
+// Error carrying the server's machine-readable refusal code (e.g.
+// quota_exceeded) so the UI can key remediation copy on the code, not the
+// message text.
+export class AskStreamError extends Error {
+  code: string | null;
+  constructor(message: string, code?: string | null) {
+    super(message);
+    this.name = "AskStreamError";
+    this.code = code ?? null;
+  }
+}
+
 // POST to the SSE endpoint and parse step / token / result / error events.
 // Resolves with the final AskResult (citations land last, inside the result).
 export async function streamAsk(
@@ -29,7 +41,18 @@ export async function streamAsk(
     signal,
   });
   if (!response.ok || !response.body) {
-    throw new Error(`ask stream failed: ${response.status}`);
+    // Non-stream refusals (e.g. 429 quota_exceeded) arrive as JSON with a
+    // machine-readable code — surface it so the UI can react specifically.
+    let message = `ask stream failed: ${response.status}`;
+    let code: string | null = null;
+    try {
+      const payload = (await response.json()) as { error?: string; code?: string };
+      if (typeof payload.error === "string" && payload.error) message = payload.error;
+      if (typeof payload.code === "string") code = payload.code;
+    } catch {
+      // keep defaults
+    }
+    throw new AskStreamError(message, code);
   }
 
   const reader = response.body.getReader();
@@ -37,6 +60,7 @@ export async function streamAsk(
   let buffer = "";
   let result: AskResult | null = null;
   let streamError: string | null = null;
+  let streamErrorCode: string | null = null;
 
   const handleFrame = (frame: string) => {
     let event = "message";
@@ -63,6 +87,7 @@ export async function streamAsk(
     } else if (event === "error") {
       streamError =
         (data as { error?: string }).error ?? "The Hub could not complete this request.";
+      streamErrorCode = (data as { code?: string }).code ?? null;
     }
   };
 
@@ -99,7 +124,7 @@ export async function streamAsk(
   drainBuffer();
   if (buffer.trim()) handleFrame(buffer);
 
-  if (streamError) throw new Error(streamError);
-  if (!result) throw new Error("ask stream ended without a result");
+  if (streamError) throw new AskStreamError(streamError, streamErrorCode);
+  if (!result) throw new AskStreamError("ask stream ended without a result");
   return result;
 }

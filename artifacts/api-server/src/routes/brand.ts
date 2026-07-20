@@ -47,6 +47,7 @@ import {
 } from "../data/brandSkillStore";
 import { updateTonePrinciples, resetTonePrinciples } from "../data/toneStore";
 import { requireCapability, type CapabilityGrant } from "../data/accessControl";
+import { isQuotaError } from "../data/userUsage";
 import type { Request, Response } from "express";
 import { ResetBrandSkillBody } from "@workspace/api-zod";
 
@@ -315,6 +316,8 @@ router.post("/brand/guardian/stream", async (req, res) => {
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       req.log.info("guardian stream cancelled: client disconnected");
+    } else if (isQuotaError(err)) {
+      send("error", { error: err.message, code: err.code });
     } else {
       req.log.error({ err }, "guardian stream failed");
       send("error", { error: "The Brand Guardian could not complete this check." });

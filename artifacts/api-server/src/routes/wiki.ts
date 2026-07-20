@@ -29,6 +29,8 @@ import {
 import { buildWikiGraph } from "../adapters/kg";
 import { runWikiSearch, type WikiStreamEvent } from "../agent/wikiSearchAgent";
 import { requireCapability } from "../data/accessControl";
+import { isQuotaError } from "../data/userUsage";
+import { respondIfQuotaError } from "../lib/quotaHttp";
 import type { Request, Response } from "express";
 
 const router: IRouter = Router();
@@ -255,6 +257,7 @@ router.post("/wiki/search", async (req, res) => {
     res.json(SearchWikiResponse.parse(result));
     return;
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "wiki search route failed");
     res.status(500).json({ error: "The Hub could not complete this request." });
     return;
@@ -305,6 +308,8 @@ router.post("/wiki/search/stream", async (req, res) => {
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       req.log.info("wiki search stream cancelled: client disconnected");
+    } else if (isQuotaError(err)) {
+      send("error", { error: err.message, code: err.code });
     } else {
       req.log.error({ err }, "wiki search stream failed");
       send("error", { error: "The Hub could not complete this request." });

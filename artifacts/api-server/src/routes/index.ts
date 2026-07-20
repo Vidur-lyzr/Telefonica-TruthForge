@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import authRouter from "./auth";
 import { requireAuth } from "../middlewares/requireAuth";
+import { usageContext } from "../lib/usageContext";
 import askRouter from "./ask";
 import knowledgeRouter from "./knowledge";
 import adminRouter from "./admin";
@@ -21,6 +22,9 @@ router.use(healthRouter);
 router.use(authRouter);
 // Everything below requires an authenticated session.
 router.use(requireAuth);
+// Thread the verified session identity into the usage context so every
+// metered Claude call is attributed to the acting user (and quota-gated).
+router.use(usageContext);
 router.use(askRouter);
 router.use(knowledgeRouter);
 router.use(adminRouter);

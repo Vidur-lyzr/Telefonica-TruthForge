@@ -3,6 +3,7 @@ import { clearanceLabel } from "@/components/data-center/helpers";
 import { useLocation, useSearch } from "wouter";
 import {
   useAsk,
+  useGetMyUsage,
   useListSuggestions,
   useListAxes,
   useListDocuments,
@@ -22,7 +23,7 @@ import {
   validityLabel,
   type AskStrings,
 } from "@/i18n/ask";
-import { streamAsk, type AskStep } from "@/hooks/ask-stream";
+import { streamAsk, AskStreamError, type AskStep } from "@/hooks/ask-stream";
 import {
   ArtifactPanel,
   downloadAskDocument,
@@ -103,6 +104,9 @@ interface Turn {
   result: AskResult | null;
   pending: boolean;
   error?: boolean;
+  // Machine-readable refusal code from the server (e.g. quota_exceeded) so the
+  // UI can show specific remediation copy instead of the generic failure text.
+  errorCode?: string | null;
   // Live run progress, streamed from the agent as it genuinely happens.
   steps?: AskStep[];
   streamText?: string | null;
@@ -196,6 +200,12 @@ export default function Ask() {
   const { area, roleId, lang, setLang } = useApp();
   const t = ASK_I18N[lang];
   const [, navigate] = useLocation();
+
+  // The signed-in user's own quota status, refreshed after every run so the
+  // near-limit warning appears as soon as the warning ratio is crossed.
+  const myUsageQ = useGetMyUsage({ query: { queryKey: ["my-usage"] } });
+  const myUsage = myUsageQ.data;
+  const refetchMyUsage = myUsageQ.refetch;
 
   const [conversations, setConversations] = React.useState<Conversation[]>(() =>
     loadConversations(),
@@ -446,17 +456,40 @@ export default function Ask() {
     } catch (err) {
       if (abort.signal.aborted) return;
       if (err instanceof DOMException && err.name === "AbortError") return;
+      // A quota refusal is a deliberate pre-model refusal, not a transient
+      // failure — do not retry via the non-stream endpoint (it would refuse
+      // identically) and surface the specific remediation copy.
+      if (err instanceof AskStreamError && err.code === "quota_exceeded") {
+        patchTurn({
+          pending: false,
+          error: true,
+          errorCode: err.code,
+          streamText: null,
+        });
+        return;
+      }
       try {
         const result = await askQuery({ data: body });
         patchTurn({ result, pending: false, streamText: null });
         const docs = result.documents ?? [];
         if (docs.length > 0 && activeIdRef.current === convoId)
           setOpenDocId(docs[docs.length - 1].id);
-      } catch {
-        patchTurn({ pending: false, error: true, streamText: null });
+      } catch (fallbackErr) {
+        let code: string | null = null;
+        if (fallbackErr && typeof fallbackErr === "object" && "data" in fallbackErr) {
+          const data = (fallbackErr as { data?: unknown }).data;
+          if (data && typeof data === "object" && "code" in data) {
+            const c = (data as { code?: unknown }).code;
+            if (typeof c === "string") code = c;
+          }
+        }
+        patchTurn({ pending: false, error: true, errorCode: code, streamText: null });
       }
     } finally {
       if (askAbortRef.current === abort) askAbortRef.current = null;
+      // Keep the near-limit banner honest after every run (tokens were spent
+      // or the quota refused the call).
+      void refetchMyUsage();
     }
   };
 
@@ -618,6 +651,34 @@ export default function Ask() {
           onClear={() => setFilters(EMPTY_FILTERS)}
           t={t}
         />
+      )}
+
+      {/* Personal quota banner: amber once past the warning ratio, red when
+          the allocation is spent and further model calls will be refused. */}
+      {myUsage && myUsage.quotaState !== "ok" && (
+        <div
+          style={{
+            backgroundColor:
+              myUsage.quotaState === "exceeded"
+                ? skinVars.colors.errorLow
+                : skinVars.colors.warningLow,
+            padding: "10px 24px",
+          }}
+        >
+          <Inline space={12} alignItems="center">
+            <IconAlertRegular
+              size={18}
+              color={
+                myUsage.quotaState === "exceeded"
+                  ? skinVars.colors.error
+                  : skinVars.colors.warning
+              }
+            />
+            <Text2 regular>
+              {myUsage.quotaState === "exceeded" ? t.quotaExceeded : t.quotaNearLimit}
+            </Text2>
+          </Inline>
+        </div>
       )}
 
       <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
@@ -1256,7 +1317,9 @@ function TurnBlock({
               >
                 <Inline space={12} alignItems="center">
                   <IconAlertRegular size={20} color={skinVars.colors.error} />
-                  <Text2 regular>{t.turnError}</Text2>
+                  <Text2 regular>
+                    {turn.errorCode === "quota_exceeded" ? t.quotaExceeded : t.turnError}
+                  </Text2>
                 </Inline>
               </div>
             )}

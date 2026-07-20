@@ -51,3 +51,4 @@
 - [Generate templateId & tone wiring](generate-template-and-tone.md) — UI uses /generate/jobs (not /generate); thread new GenerateInput fields into BOTH; tone must read getTonePrinciples() live.
 - [Gitignored .data on deploy](gitignored-data-on-deploy.md) — file-backed stores under .data start empty on fresh deploy (gitignored); ship a committed code seed loaded when the file is absent.
 - [Ask stream aborted on load](ask-stream-abort-on-persona-init.md) — persona-switch abort effect must skip the initial ""→persona transition or it kills the Home ?q= auto-run's first request.
+- [Metering chokepoint coverage](metering-chokepoint-coverage.md) — quota/attribution gates must cover agent-runtime model paths too, not just metered wrappers; re-throw quota errors in fallbacks.

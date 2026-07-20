@@ -27,8 +27,26 @@ import {
   SetSourceLabelBody,
   SetSourceLabelResponse,
   RunSourceSyncResponse,
+  ListUserUsageResponse,
+  GetUserUsageDetailResponse,
+  SetUserAllocationBody,
+  SetUserAllocationResponse,
+  ResetUserUsageBody,
+  ResetUserUsageResponse,
+  GetMyUsageResponse,
 } from "@workspace/api-zod";
 import { getUsage } from "../data/usageMeter";
+import {
+  DEFAULT_MONTHLY_TOKEN_QUOTA,
+  QUOTA_WARNING_RATIO,
+  getUsagePeriod,
+  tracedEmails,
+  summarizeUser,
+  getUserLedger,
+  setAllocation,
+  resetUserUsage as resetUserUsageStore,
+} from "../data/userUsage";
+import { getActingUser } from "../lib/usageContext";
 import {
   ADMIN_PROFILES,
   SCHEDULED_DOCS,
@@ -438,6 +456,137 @@ router.get("/admin/usage", (req, res) => {
     { calls: 0, inputTokens: 0, outputTokens: 0 },
   );
   res.json(GetUsageMeterResponse.parse({ ...usage, totals }));
+});
+
+// ---------------------------------------------------------------------------
+// Per-user usage & quotas. Every metered model call is attributed to the
+// signed-in user (verified session email, threaded via the usage context) and
+// gated by a monthly token allocation BEFORE the model runs. Reads ride on
+// view_audit (traceability); allocation edits and resets require
+// manage_users_roles and land in the same persisted audit trail as the other
+// user-administration mutations.
+// ---------------------------------------------------------------------------
+
+function userQuotaRow(email: string) {
+  const summary = summarizeUser(email);
+  const managed = findManagedUserByEmail(email);
+  return {
+    ...summary,
+    managed: managed !== null,
+    name: managed?.name ?? null,
+  };
+}
+
+router.get("/admin/usage/users", (req, res) => {
+  if (!requireCapability(req, res, "view_audit")) return;
+  // Show every managed user (even without traced usage yet) plus any traced
+  // email outside the directory, flagged unmanaged.
+  const emails = new Set<string>(tracedEmails());
+  for (const u of listManagedUsers()) emails.add(u.email.trim().toLowerCase());
+  const users = [...emails]
+    .map(userQuotaRow)
+    .sort((a, b) => b.usedTokens - a.usedTokens || a.email.localeCompare(b.email));
+  res.json(
+    ListUserUsageResponse.parse({
+      period: getUsagePeriod(),
+      defaultAllocation: DEFAULT_MONTHLY_TOKEN_QUOTA,
+      warningRatio: QUOTA_WARNING_RATIO,
+      users,
+    }),
+  );
+});
+
+router.get("/admin/usage/users/detail", (req, res) => {
+  if (!requireCapability(req, res, "view_audit")) return;
+  const email = typeof req.query.email === "string" ? req.query.email : "";
+  if (!email) {
+    res.status(400).json({ error: "Missing email." });
+    return;
+  }
+  const { entries, byModule } = getUserLedger(email);
+  res.json(
+    GetUserUsageDetailResponse.parse({
+      period: getUsagePeriod(),
+      summary: userQuotaRow(email),
+      byModule,
+      entries: entries.map(({ id, ts, module, inputTokens, outputTokens }) => ({
+        id,
+        ts,
+        module,
+        inputTokens,
+        outputTokens,
+      })),
+    }),
+  );
+});
+
+router.post("/admin/usage/allocation", (req, res) => {
+  const parsed = SetUserAllocationBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const grant = requireCapability(req, res, "manage_users_roles", "partial", parsed.data.roleId);
+  if (!grant) return;
+  const change = setAllocation(parsed.data.email, parsed.data.allocation);
+  recordAudit({
+    actor: grant.role.name,
+    action: "Quota allocation change",
+    target: change.email,
+    kind: "permission",
+    detail: `Monthly token allocation set to ${change.next.toLocaleString("en-US")} (was ${change.previous.toLocaleString("en-US")}).`,
+  });
+  req.log.info(
+    { email: change.email, previous: change.previous, next: change.next, actor: grant.role.id },
+    "admin: user allocation changed",
+  );
+  res.json(SetUserAllocationResponse.parse(userQuotaRow(change.email)));
+});
+
+router.post("/admin/usage/reset", (req, res) => {
+  const parsed = ResetUserUsageBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+    return;
+  }
+  const grant = requireCapability(req, res, "manage_users_roles", "partial", parsed.data.roleId);
+  if (!grant) return;
+  const result = resetUserUsageStore(parsed.data.email);
+  recordAudit({
+    actor: grant.role.name,
+    action: "Usage reset",
+    target: result.email,
+    kind: "permission",
+    detail: `Current-period usage cleared (${result.clearedTokens.toLocaleString("en-US")} tokens across ${result.clearedCalls} calls).`,
+  });
+  req.log.info(
+    { email: result.email, clearedTokens: result.clearedTokens, actor: grant.role.id },
+    "admin: user usage reset",
+  );
+  res.json(ResetUserUsageResponse.parse(userQuotaRow(result.email)));
+});
+
+// The signed-in user's own quota status — identity from the verified session
+// only, so the frontend can surface the near-limit warning without any admin
+// capability.
+router.get("/usage/me", (req, res) => {
+  const acting = getActingUser();
+  if (!acting) {
+    res.status(401).json({ error: "No session." });
+    return;
+  }
+  const s = summarizeUser(acting.email);
+  res.json(
+    GetMyUsageResponse.parse({
+      email: s.email,
+      period: getUsagePeriod(),
+      allocation: s.allocation,
+      usedTokens: s.usedTokens,
+      remainingTokens: s.remainingTokens,
+      quotaState: s.quotaState,
+      warningRatio: QUOTA_WARNING_RATIO,
+    }),
+  );
 });
 
 // Partial view_audit (admin): an entry is visible when its actor belongs to

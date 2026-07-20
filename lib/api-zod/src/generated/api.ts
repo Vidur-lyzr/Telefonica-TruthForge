@@ -867,6 +867,146 @@ export const GetUsageMeterResponse = zod.object({
 
 
 /**
+ * Joins the traced usage ledger with the managed user directory. Requires the view_audit capability.
+ * @summary Per-user quota summaries for the current monthly period
+ */
+export const ListUserUsageQueryParams = zod.object({
+  "roleId": zod.coerce.string()
+})
+
+export const ListUserUsageResponse = zod.object({
+  "period": zod.string().describe('Current usage period, YYYY-MM'),
+  "defaultAllocation": zod.number(),
+  "warningRatio": zod.number().describe('Fraction of the allocation at which the amber warning fires'),
+  "users": zod.array(zod.object({
+  "email": zod.string(),
+  "allocation": zod.number().describe('Monthly token allowance for the current period'),
+  "usedTokens": zod.number(),
+  "remainingTokens": zod.number(),
+  "usedInputTokens": zod.number(),
+  "usedOutputTokens": zod.number(),
+  "calls": zod.number(),
+  "quotaState": zod.enum(['ok', 'warning', 'exceeded']),
+  "isDefaultAllocation": zod.boolean().describe('True when no admin override exists for this user'),
+  "lastActivityAt": zod.string().nullable(),
+  "managed": zod.boolean().describe('True when the email matches a user in the managed directory'),
+  "name": zod.string().nullable().describe('Display name from the managed directory, when available')
+}))
+})
+
+
+/**
+ * Requires the view_audit capability.
+ * @summary Per-call ledger and module breakdown for one user (current period)
+ */
+export const GetUserUsageDetailQueryParams = zod.object({
+  "roleId": zod.coerce.string(),
+  "email": zod.coerce.string()
+})
+
+export const GetUserUsageDetailResponse = zod.object({
+  "period": zod.string(),
+  "summary": zod.object({
+  "email": zod.string(),
+  "allocation": zod.number().describe('Monthly token allowance for the current period'),
+  "usedTokens": zod.number(),
+  "remainingTokens": zod.number(),
+  "usedInputTokens": zod.number(),
+  "usedOutputTokens": zod.number(),
+  "calls": zod.number(),
+  "quotaState": zod.enum(['ok', 'warning', 'exceeded']),
+  "isDefaultAllocation": zod.boolean().describe('True when no admin override exists for this user'),
+  "lastActivityAt": zod.string().nullable(),
+  "managed": zod.boolean().describe('True when the email matches a user in the managed directory'),
+  "name": zod.string().nullable().describe('Display name from the managed directory, when available')
+}),
+  "byModule": zod.array(zod.object({
+  "module": zod.string(),
+  "calls": zod.number(),
+  "inputTokens": zod.number(),
+  "outputTokens": zod.number()
+})),
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "ts": zod.string(),
+  "module": zod.string(),
+  "inputTokens": zod.number(),
+  "outputTokens": zod.number()
+}))
+})
+
+
+/**
+ * Requires the manage_users_roles capability. The change is recorded in the audit trail.
+ * @summary Override a user's monthly token allocation
+ */
+export const setUserAllocationBodyAllocationMin = 0;
+
+
+
+export const SetUserAllocationBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the manage_users_roles capability'),
+  "email": zod.string(),
+  "allocation": zod.number().min(setUserAllocationBodyAllocationMin)
+})
+
+export const SetUserAllocationResponse = zod.object({
+  "email": zod.string(),
+  "allocation": zod.number().describe('Monthly token allowance for the current period'),
+  "usedTokens": zod.number(),
+  "remainingTokens": zod.number(),
+  "usedInputTokens": zod.number(),
+  "usedOutputTokens": zod.number(),
+  "calls": zod.number(),
+  "quotaState": zod.enum(['ok', 'warning', 'exceeded']),
+  "isDefaultAllocation": zod.boolean().describe('True when no admin override exists for this user'),
+  "lastActivityAt": zod.string().nullable(),
+  "managed": zod.boolean().describe('True when the email matches a user in the managed directory'),
+  "name": zod.string().nullable().describe('Display name from the managed directory, when available')
+})
+
+
+/**
+ * Requires the manage_users_roles capability. The reset is recorded in the audit trail.
+ * @summary Reset a user's current-period usage and ledger
+ */
+export const ResetUserUsageBody = zod.object({
+  "roleId": zod.string().describe('Acting persona — must hold the manage_users_roles capability'),
+  "email": zod.string()
+})
+
+export const ResetUserUsageResponse = zod.object({
+  "email": zod.string(),
+  "allocation": zod.number().describe('Monthly token allowance for the current period'),
+  "usedTokens": zod.number(),
+  "remainingTokens": zod.number(),
+  "usedInputTokens": zod.number(),
+  "usedOutputTokens": zod.number(),
+  "calls": zod.number(),
+  "quotaState": zod.enum(['ok', 'warning', 'exceeded']),
+  "isDefaultAllocation": zod.boolean().describe('True when no admin override exists for this user'),
+  "lastActivityAt": zod.string().nullable(),
+  "managed": zod.boolean().describe('True when the email matches a user in the managed directory'),
+  "name": zod.string().nullable().describe('Display name from the managed directory, when available')
+})
+
+
+/**
+ * Identity comes from the verified session, never from the client. Used by the frontend to surface the near-limit warning.
+ * @summary The signed-in user's own quota status for the current period
+ */
+export const GetMyUsageResponse = zod.object({
+  "email": zod.string(),
+  "period": zod.string(),
+  "allocation": zod.number(),
+  "usedTokens": zod.number(),
+  "remainingTokens": zod.number(),
+  "quotaState": zod.enum(['ok', 'warning', 'exceeded']),
+  "warningRatio": zod.number()
+})
+
+
+/**
  * Reads agent.yaml, the skill catalog and the .gitagent session state from the agent repo directory at request time. Nothing is hardcoded; this is the same brain the Ask chat runs on. Requires the configure_backend capability (Superadmin only).
  * @summary The live GitAgent identity, parsed from the real agent repo on disk
  */
@@ -6356,6 +6496,7 @@ export const StartGenerateJobResponse = zod.object({
 })]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }).nullish(),
   "error": zod.string().nullish(),
+  "errorCode": zod.string().nullish().describe('Machine-readable refusal code, e.g. quota_exceeded'),
   "createdAt": zod.string()
 })
 
@@ -6630,6 +6771,7 @@ export const StartRefineJobResponse = zod.object({
 })]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }).nullish(),
   "error": zod.string().nullish(),
+  "errorCode": zod.string().nullish().describe('Machine-readable refusal code, e.g. quota_exceeded'),
   "createdAt": zod.string()
 })
 
@@ -6773,6 +6915,7 @@ export const GetGenerationJobResponse = zod.object({
 })]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
 }).nullish(),
   "error": zod.string().nullish(),
+  "errorCode": zod.string().nullish().describe('Machine-readable refusal code, e.g. quota_exceeded'),
   "createdAt": zod.string()
 })
 

@@ -29,6 +29,7 @@ import {
   type TaxonomyVersionKind,
 } from "../data/governance";
 import { proposeRetag, suggestDocTags, RetagInputError } from "../agent/retagAgent";
+import { respondIfQuotaError } from "../lib/quotaHttp";
 import { requireCapability } from "../data/accessControl";
 import { observe } from "../lib/observe";
 import {
@@ -223,6 +224,7 @@ router.post("/governance/retag/propose", async (req, res) => {
       res.status(400).json({ error: err.message, code: "invalid_taxonomy_edit" });
       return;
     }
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "governance: propose retag failed");
     res.status(500).json({ error: "The Hub could not build re-tagging proposals." });
   }
@@ -584,6 +586,7 @@ router.post("/governance/documents/retag/suggest", async (req, res) => {
     const result = await suggestDocTags(parsed.data.docIds, req.log);
     res.json(SuggestDocumentTagsResponse.parse(result));
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "governance: document tag suggestions failed");
     res.status(500).json({ error: "The Hub could not build tag suggestions." });
   }

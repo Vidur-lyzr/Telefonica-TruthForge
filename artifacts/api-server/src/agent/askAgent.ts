@@ -14,7 +14,8 @@
 //    follow-ups are expanded with the last user turn for retrieval. Permission is
 //    re-resolved every turn against the current persona.
 
-import { meteredCreate } from "./metering";
+import { meteredCreate, gateQuota, attributeEstimated } from "./metering";
+import { isQuotaError } from "../data/userUsage";
 import { recordUsage, estimateTokens } from "../data/usageMeter";
 import {
   retrieveGoverned,
@@ -499,6 +500,9 @@ async function conversationalTurnResult(opts: {
 
   let convAnswer = "";
   try {
+    // Pre-model quota gate: throws QuotaExceededError before any tokens are
+    // spent when the acting user's monthly allocation is exhausted.
+    const actingEmail = gateQuota();
     const run = await runAgent({
       prompt: `User said: ${question}`,
       systemPromptSuffix: conversationalSystem,
@@ -511,12 +515,14 @@ async function conversationalTurnResult(opts: {
       },
     });
     convAnswer = run.text.trim();
-    recordUsage(
+    attributeEstimated(
+      actingEmail,
       "ask",
       estimateTokens(conversationalSystem + question),
       estimateTokens(convAnswer),
     );
   } catch (err) {
+    if (isQuotaError(err)) throw err;
     log.warn({ err }, "ask: conversational gitagent failed, using static reply");
   }
   // Strip any stray citation markers — there are no sources this turn.
@@ -1165,6 +1171,10 @@ export async function runAskAgent(
 
   let answer = "";
   try {
+    // Pre-model quota gate: refuse BEFORE the agent run when the acting
+    // user's monthly allocation is exhausted. A quota refusal must never
+    // degrade into the direct-model fallback (it would refuse identically).
+    const actingEmail = gateQuota();
     const run = await runAgent({
       prompt: userPrompt,
       systemPromptSuffix: systemPrompt,
@@ -1174,12 +1184,14 @@ export async function runAskAgent(
     });
     answer = run.text.trim();
     // The gitagent runtime does not expose token usage, so meter an estimate.
-    recordUsage(
+    attributeEstimated(
+      actingEmail,
       "ask",
       estimateTokens(systemPrompt + userPrompt),
       estimateTokens(answer),
     );
   } catch (err) {
+    if (isQuotaError(err)) throw err;
     // Explicit degradation path: fall back to a direct model call, then to
     // extractive text — each step is logged, never silent.
     log.error({ err }, "ask: gitagent run failed, using direct model fallback");

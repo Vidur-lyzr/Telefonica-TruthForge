@@ -19,6 +19,8 @@ import {
   effectiveDefaultTemplateForShape as defaultTemplateForShape,
 } from "../data/templateOverrides";
 import { requireCapability } from "../data/accessControl";
+import { isQuotaError } from "../data/userUsage";
+import { respondIfQuotaError } from "../lib/quotaHttp";
 import { observe } from "../lib/observe";
 import type { AskAgentResult } from "../agent/askAgent";
 
@@ -57,6 +59,7 @@ router.post("/ask", async (req, res) => {
     res.json(data);
     return;
   } catch (err) {
+    if (respondIfQuotaError(err, res)) return;
     req.log.error({ err }, "ask route failed");
     res.status(500).json({ error: "The Hub could not complete this request." });
     return;
@@ -116,6 +119,9 @@ router.post("/ask/stream", async (req, res) => {
         summary: parsed.data.question,
         status: "cancelled",
       });
+    } else if (isQuotaError(err)) {
+      req.log.info({ email: err.email }, "ask stream refused: quota exceeded");
+      send("error", { error: err.message, code: err.code });
     } else {
       req.log.error({ err }, "ask stream failed");
       send("error", { error: "The Hub could not complete this request." });

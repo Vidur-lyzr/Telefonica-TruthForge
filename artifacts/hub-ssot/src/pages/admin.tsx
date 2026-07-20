@@ -25,6 +25,7 @@ import SourceSyncSection from "@/components/admin/source-sync";
 import RetrievalLogSection from "@/components/admin/retrieval-log";
 import AgentSection from "@/components/admin/agent";
 import QualitySection from "@/components/admin/quality";
+import UsageQuotasSection from "@/components/admin/usage-quotas";
 import {
   Box,
   Boxed,
@@ -673,6 +674,7 @@ export default function AdminPage() {
               { text: t.tabs.audit },
               { text: t.tabs.agent },
               { text: t.tabs.quality },
+              { text: t.tabs.usage },
             ]}
           />
           <Divider />
@@ -1066,6 +1068,8 @@ export default function AdminPage() {
         {adminTab === 5 && <AgentSection />}
 
         {adminTab === 6 && <QualitySection />}
+
+        {adminTab === 7 && <UsageQuotasSection />}
       </Stack>
 
       {/* Register / Edit user dialog */}

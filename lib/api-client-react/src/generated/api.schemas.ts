@@ -394,6 +394,8 @@ export interface GenerationJob {
   status: string;
   draft?: GeneratedDraft | null;
   error?: string | null;
+  /** Machine-readable refusal code, e.g. quota_exceeded */
+  errorCode?: string | null;
   createdAt: string;
 }
 
@@ -634,6 +636,98 @@ export interface UsageMeter {
   since: string;
   modules: ModuleUsage[];
   totals: UsageMeterTotals;
+}
+
+export type UserQuotaSummaryQuotaState = typeof UserQuotaSummaryQuotaState[keyof typeof UserQuotaSummaryQuotaState];
+
+
+export const UserQuotaSummaryQuotaState = {
+  ok: 'ok',
+  warning: 'warning',
+  exceeded: 'exceeded',
+} as const;
+
+export interface UserQuotaSummary {
+  email: string;
+  /** Monthly token allowance for the current period */
+  allocation: number;
+  usedTokens: number;
+  remainingTokens: number;
+  usedInputTokens: number;
+  usedOutputTokens: number;
+  calls: number;
+  quotaState: UserQuotaSummaryQuotaState;
+  /** True when no admin override exists for this user */
+  isDefaultAllocation: boolean;
+  lastActivityAt: string | null;
+  /** True when the email matches a user in the managed directory */
+  managed: boolean;
+  /** Display name from the managed directory, when available */
+  name: string | null;
+}
+
+export interface UserUsageList {
+  /** Current usage period, YYYY-MM */
+  period: string;
+  defaultAllocation: number;
+  /** Fraction of the allocation at which the amber warning fires */
+  warningRatio: number;
+  users: UserQuotaSummary[];
+}
+
+export interface UserUsageLedgerEntry {
+  id: string;
+  ts: string;
+  module: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface UserModuleBreakdown {
+  module: string;
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface UserUsageDetail {
+  period: string;
+  summary: UserQuotaSummary;
+  byModule: UserModuleBreakdown[];
+  entries: UserUsageLedgerEntry[];
+}
+
+export interface SetUserAllocationInput {
+  /** Acting persona — must hold the manage_users_roles capability */
+  roleId: string;
+  email: string;
+  /** @minimum 0 */
+  allocation: number;
+}
+
+export interface ResetUserUsageInput {
+  /** Acting persona — must hold the manage_users_roles capability */
+  roleId: string;
+  email: string;
+}
+
+export type MyUsageQuotaState = typeof MyUsageQuotaState[keyof typeof MyUsageQuotaState];
+
+
+export const MyUsageQuotaState = {
+  ok: 'ok',
+  warning: 'warning',
+  exceeded: 'exceeded',
+} as const;
+
+export interface MyUsage {
+  email: string;
+  period: string;
+  allocation: number;
+  usedTokens: number;
+  remainingTokens: number;
+  quotaState: MyUsageQuotaState;
+  warningRatio: number;
 }
 
 /**
@@ -3906,6 +4000,15 @@ roleId: string;
 
 export type GetUsageMeterParams = {
 roleId: string;
+};
+
+export type ListUserUsageParams = {
+roleId: string;
+};
+
+export type GetUserUsageDetailParams = {
+roleId: string;
+email: string;
 };
 
 export type GetAgentOverviewParams = {

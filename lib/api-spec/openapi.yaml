@@ -743,6 +743,143 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /admin/usage/users:
+    get:
+      operationId: listUserUsage
+      tags: [admin]
+      summary: Per-user quota summaries for the current monthly period
+      description: >
+        Joins the traced usage ledger with the managed user directory. Requires
+        the view_audit capability.
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Per-user quota summaries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserUsageList"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/usage/users/detail:
+    get:
+      operationId: getUserUsageDetail
+      tags: [admin]
+      summary: Per-call ledger and module breakdown for one user (current period)
+      description: Requires the view_audit capability.
+      parameters:
+        - name: roleId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: email
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Ledger drill-down
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserUsageDetail"
+        "403":
+          description: Persona lacks the view_audit capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/usage/allocation:
+    post:
+      operationId: setUserAllocation
+      tags: [admin]
+      summary: Override a user's monthly token allocation
+      description: >
+        Requires the manage_users_roles capability. The change is recorded in
+        the audit trail.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetUserAllocationInput"
+      responses:
+        "200":
+          description: Updated quota summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserQuotaSummary"
+        "400":
+          description: Invalid allocation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Persona lacks the manage_users_roles capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/usage/reset:
+    post:
+      operationId: resetUserUsage
+      tags: [admin]
+      summary: Reset a user's current-period usage and ledger
+      description: >
+        Requires the manage_users_roles capability. The reset is recorded in
+        the audit trail.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetUserUsageInput"
+      responses:
+        "200":
+          description: Updated quota summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserQuotaSummary"
+        "403":
+          description: Persona lacks the manage_users_roles capability (code capability_blocked)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /usage/me:
+    get:
+      operationId: getMyUsage
+      tags: [admin]
+      summary: The signed-in user's own quota status for the current period
+      description: >
+        Identity comes from the verified session, never from the client. Used
+        by the frontend to surface the near-limit warning.
+      responses:
+        "200":
+          description: Own quota status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyUsage"
+
   /admin/agent/overview:
     get:
       operationId: getAgentOverview
@@ -4004,6 +4141,10 @@ components:
         error:
           type: string
           nullable: true
+        errorCode:
+          type: string
+          nullable: true
+          description: Machine-readable refusal code, e.g. quota_exceeded
         createdAt:
           type: string
     HealthStatus:
@@ -4441,6 +4582,162 @@ components:
               type: integer
             outputTokens:
               type: integer
+
+    UserQuotaSummary:
+      type: object
+      required:
+        [
+          email,
+          allocation,
+          usedTokens,
+          remainingTokens,
+          usedInputTokens,
+          usedOutputTokens,
+          calls,
+          quotaState,
+          isDefaultAllocation,
+          lastActivityAt,
+          managed,
+          name,
+        ]
+      properties:
+        email:
+          type: string
+        allocation:
+          type: integer
+          description: Monthly token allowance for the current period
+        usedTokens:
+          type: integer
+        remainingTokens:
+          type: integer
+        usedInputTokens:
+          type: integer
+        usedOutputTokens:
+          type: integer
+        calls:
+          type: integer
+        quotaState:
+          type: string
+          enum: [ok, warning, exceeded]
+        isDefaultAllocation:
+          type: boolean
+          description: True when no admin override exists for this user
+        lastActivityAt:
+          type: string
+          nullable: true
+        managed:
+          type: boolean
+          description: True when the email matches a user in the managed directory
+        name:
+          type: string
+          nullable: true
+          description: Display name from the managed directory, when available
+
+    UserUsageList:
+      type: object
+      required: [period, defaultAllocation, warningRatio, users]
+      properties:
+        period:
+          type: string
+          description: Current usage period, YYYY-MM
+        defaultAllocation:
+          type: integer
+        warningRatio:
+          type: number
+          description: Fraction of the allocation at which the amber warning fires
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserQuotaSummary"
+
+    UserUsageLedgerEntry:
+      type: object
+      required: [id, ts, module, inputTokens, outputTokens]
+      properties:
+        id:
+          type: string
+        ts:
+          type: string
+        module:
+          type: string
+        inputTokens:
+          type: integer
+        outputTokens:
+          type: integer
+
+    UserModuleBreakdown:
+      type: object
+      required: [module, calls, inputTokens, outputTokens]
+      properties:
+        module:
+          type: string
+        calls:
+          type: integer
+        inputTokens:
+          type: integer
+        outputTokens:
+          type: integer
+
+    UserUsageDetail:
+      type: object
+      required: [period, summary, byModule, entries]
+      properties:
+        period:
+          type: string
+        summary:
+          $ref: "#/components/schemas/UserQuotaSummary"
+        byModule:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserModuleBreakdown"
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserUsageLedgerEntry"
+
+    SetUserAllocationInput:
+      type: object
+      required: [roleId, email, allocation]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_users_roles capability
+        email:
+          type: string
+        allocation:
+          type: integer
+          minimum: 0
+
+    ResetUserUsageInput:
+      type: object
+      required: [roleId, email]
+      properties:
+        roleId:
+          type: string
+          description: Acting persona — must hold the manage_users_roles capability
+        email:
+          type: string
+
+    MyUsage:
+      type: object
+      required:
+        [email, period, allocation, usedTokens, remainingTokens, quotaState, warningRatio]
+      properties:
+        email:
+          type: string
+        period:
+          type: string
+        allocation:
+          type: integer
+        usedTokens:
+          type: integer
+        remainingTokens:
+          type: integer
+        quotaState:
+          type: string
+          enum: [ok, warning, exceeded]
+        warningRatio:
+          type: number
 
     CapabilitySet:
       type: object

@@ -43,6 +43,8 @@ export interface AskStrings {
     agentActions: string;
   };
   turnError: string;
+  quotaExceeded: string;
+  quotaNearLimit: string;
   feedback: {
     prompt: string;
     correct: string;
@@ -172,6 +174,10 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       agentActions: "Agent actions",
     },
     turnError: "The Hub could not complete this request. Please try again.",
+    quotaExceeded:
+      "Your monthly usage allocation is spent. Ask an administrator to raise your allocation or wait for the next period.",
+    quotaNearLimit:
+      "You are approaching your monthly usage allocation. Requests will be refused once it is spent.",
     feedback: {
       prompt: "Rate this answer",
       correct: "Correct",
@@ -309,6 +315,10 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
       agentActions: "Acciones del agente",
     },
     turnError: "El Hub no pudo completar esta solicitud. Inténtalo de nuevo.",
+    quotaExceeded:
+      "Tu asignación mensual de uso está agotada. Pide a un administrador que amplíe tu asignación o espera al siguiente periodo.",
+    quotaNearLimit:
+      "Te estás acercando a tu asignación mensual de uso. Las solicitudes se rechazarán cuando se agote.",
     feedback: {
       prompt: "Valora esta respuesta",
       correct: "Correcta",
@@ -449,6 +459,10 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
     },
     turnError:
       "Der Hub konnte diese Anfrage nicht abschließen. Bitte versuchen Sie es erneut.",
+    quotaExceeded:
+      "Ihr monatliches Nutzungskontingent ist aufgebraucht. Bitten Sie einen Administrator, Ihr Kontingent zu erhöhen, oder warten Sie auf den nächsten Zeitraum.",
+    quotaNearLimit:
+      "Sie nähern sich Ihrem monatlichen Nutzungskontingent. Anfragen werden abgelehnt, sobald es aufgebraucht ist.",
     feedback: {
       prompt: "Diese Antwort bewerten",
       correct: "Korrekt",
@@ -589,6 +603,10 @@ export const ASK_I18N: Record<Lang, AskStrings> = {
     },
     turnError:
       "O Hub não conseguiu concluir esta solicitação. Tente novamente.",
+    quotaExceeded:
+      "Sua alocação mensal de uso está esgotada. Peça a um administrador para aumentar sua alocação ou aguarde o próximo período.",
+    quotaNearLimit:
+      "Você está se aproximando da sua alocação mensal de uso. As solicitações serão recusadas quando ela se esgotar.",
     feedback: {
       prompt: "Avalie esta resposta",
       correct: "Correta",

@@ -641,6 +641,8 @@ export interface GenerationJob {
   status: JobStatus;
   draft: GeneratedDraft | null;
   error: string | null;
+  /** Machine-readable refusal code (e.g. quota_exceeded), when applicable. */
+  errorCode: string | null;
   createdAt: string;
 }
 
@@ -654,6 +656,7 @@ export function createJob(mode: "generate" | "refine"): GenerationJob {
     status: "running",
     draft: null,
     error: null,
+    errorCode: null,
     createdAt: new Date().toISOString(),
   };
   jobs.set(job.id, job);
@@ -677,9 +680,10 @@ export function completeJob(id: string, draft: GeneratedDraft): void {
   job.draft = draft;
 }
 
-export function failJob(id: string, error: string): void {
+export function failJob(id: string, error: string, errorCode?: string): void {
   const job = jobs.get(id);
   if (!job) return;
   job.status = "error";
   job.error = error;
+  job.errorCode = errorCode ?? null;
 }

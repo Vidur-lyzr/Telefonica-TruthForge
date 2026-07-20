@@ -97,6 +97,7 @@ import type {
   GetQualityRunParams,
   GetSourceSyncStateParams,
   GetUsageMeterParams,
+  GetUserUsageDetailParams,
   GetUserVisibilityMatrixParams,
   GetWikiGraphParams,
   GetWikiPageParams,
@@ -131,6 +132,7 @@ import type {
   ListRadarParams,
   ListRetrievalLogParams,
   ListScheduledDocumentsParams,
+  ListUserUsageParams,
   ListVersionsParams,
   ListWikiLineageParams,
   ListWikiPagesParams,
@@ -142,6 +144,7 @@ import type {
   LogoutResult,
   ManualUploadForm,
   ManualUploadResult,
+  MyUsage,
   NotificationRecord,
   ObservatoryEventsPage,
   ObservatoryOverview,
@@ -187,6 +190,7 @@ import type {
   RefineInput,
   RelevanceFilterSnapshot,
   ResetToneBody,
+  ResetUserUsageInput,
   RetagApplyInput,
   RetagApplyResult,
   RetagProposeInput,
@@ -199,6 +203,7 @@ import type {
   Schedule,
   ScheduledDocument,
   SetSourceLabelInput,
+  SetUserAllocationInput,
   SourceSyncState,
   StrategicAxis,
   SuggestTemplateInput,
@@ -212,6 +217,9 @@ import type {
   TrackResult,
   UpdateToneBody,
   UsageMeter,
+  UserQuotaSummary,
+  UserUsageDetail,
+  UserUsageList,
   ValidationItem,
   VisibilityMatrix,
   WikiGraph,
@@ -2275,6 +2283,396 @@ export function useGetUsageMeter<TData = Awaited<ReturnType<typeof getUsageMeter
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetUsageMeterQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListUserUsageUrl = (params: ListUserUsageParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/usage/users?${stringifiedParams}` : `/api/admin/usage/users`
+}
+
+/**
+ * Joins the traced usage ledger with the managed user directory. Requires the view_audit capability.
+ * @summary Per-user quota summaries for the current monthly period
+ */
+export const listUserUsage = async (params: ListUserUsageParams, options?: RequestInit): Promise<UserUsageList> => {
+
+  return customFetch<UserUsageList>(getListUserUsageUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListUserUsageQueryKey = (params?: ListUserUsageParams,) => {
+    return [
+    `/api/admin/usage/users`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListUserUsageQueryOptions = <TData = Awaited<ReturnType<typeof listUserUsage>>, TError = ErrorType<ErrorResponse>>(params: ListUserUsageParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listUserUsage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListUserUsageQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listUserUsage>>> = ({ signal }) => listUserUsage(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listUserUsage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListUserUsageQueryResult = NonNullable<Awaited<ReturnType<typeof listUserUsage>>>
+export type ListUserUsageQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Per-user quota summaries for the current monthly period
+ */
+
+export function useListUserUsage<TData = Awaited<ReturnType<typeof listUserUsage>>, TError = ErrorType<ErrorResponse>>(
+ params: ListUserUsageParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listUserUsage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListUserUsageQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetUserUsageDetailUrl = (params: GetUserUsageDetailParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/usage/users/detail?${stringifiedParams}` : `/api/admin/usage/users/detail`
+}
+
+/**
+ * Requires the view_audit capability.
+ * @summary Per-call ledger and module breakdown for one user (current period)
+ */
+export const getUserUsageDetail = async (params: GetUserUsageDetailParams, options?: RequestInit): Promise<UserUsageDetail> => {
+
+  return customFetch<UserUsageDetail>(getGetUserUsageDetailUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetUserUsageDetailQueryKey = (params?: GetUserUsageDetailParams,) => {
+    return [
+    `/api/admin/usage/users/detail`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetUserUsageDetailQueryOptions = <TData = Awaited<ReturnType<typeof getUserUsageDetail>>, TError = ErrorType<ErrorResponse>>(params: GetUserUsageDetailParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserUsageDetail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetUserUsageDetailQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserUsageDetail>>> = ({ signal }) => getUserUsageDetail(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getUserUsageDetail>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetUserUsageDetailQueryResult = NonNullable<Awaited<ReturnType<typeof getUserUsageDetail>>>
+export type GetUserUsageDetailQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Per-call ledger and module breakdown for one user (current period)
+ */
+
+export function useGetUserUsageDetail<TData = Awaited<ReturnType<typeof getUserUsageDetail>>, TError = ErrorType<ErrorResponse>>(
+ params: GetUserUsageDetailParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserUsageDetail>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetUserUsageDetailQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetUserAllocationUrl = () => {
+
+
+
+
+  return `/api/admin/usage/allocation`
+}
+
+/**
+ * Requires the manage_users_roles capability. The change is recorded in the audit trail.
+ * @summary Override a user's monthly token allocation
+ */
+export const setUserAllocation = async (setUserAllocationInput: SetUserAllocationInput, options?: RequestInit): Promise<UserQuotaSummary> => {
+
+  return customFetch<UserQuotaSummary>(getSetUserAllocationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(setUserAllocationInput)
+  }
+);}
+
+
+
+
+export const getSetUserAllocationMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setUserAllocation>>, TError,{data: BodyType<SetUserAllocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setUserAllocation>>, TError,{data: BodyType<SetUserAllocationInput>}, TContext> => {
+
+const mutationKey = ['setUserAllocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setUserAllocation>>, {data: BodyType<SetUserAllocationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  setUserAllocation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetUserAllocationMutationResult = NonNullable<Awaited<ReturnType<typeof setUserAllocation>>>
+    export type SetUserAllocationMutationBody = BodyType<SetUserAllocationInput>
+    export type SetUserAllocationMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Override a user's monthly token allocation
+ */
+export const useSetUserAllocation = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setUserAllocation>>, TError,{data: BodyType<SetUserAllocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setUserAllocation>>,
+        TError,
+        {data: BodyType<SetUserAllocationInput>},
+        TContext
+      > => {
+      return useMutation(getSetUserAllocationMutationOptions(options));
+    }
+
+export const getResetUserUsageUrl = () => {
+
+
+
+
+  return `/api/admin/usage/reset`
+}
+
+/**
+ * Requires the manage_users_roles capability. The reset is recorded in the audit trail.
+ * @summary Reset a user's current-period usage and ledger
+ */
+export const resetUserUsage = async (resetUserUsageInput: ResetUserUsageInput, options?: RequestInit): Promise<UserQuotaSummary> => {
+
+  return customFetch<UserQuotaSummary>(getResetUserUsageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(resetUserUsageInput)
+  }
+);}
+
+
+
+
+export const getResetUserUsageMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetUserUsage>>, TError,{data: BodyType<ResetUserUsageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resetUserUsage>>, TError,{data: BodyType<ResetUserUsageInput>}, TContext> => {
+
+const mutationKey = ['resetUserUsage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resetUserUsage>>, {data: BodyType<ResetUserUsageInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  resetUserUsage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResetUserUsageMutationResult = NonNullable<Awaited<ReturnType<typeof resetUserUsage>>>
+    export type ResetUserUsageMutationBody = BodyType<ResetUserUsageInput>
+    export type ResetUserUsageMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Reset a user's current-period usage and ledger
+ */
+export const useResetUserUsage = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resetUserUsage>>, TError,{data: BodyType<ResetUserUsageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resetUserUsage>>,
+        TError,
+        {data: BodyType<ResetUserUsageInput>},
+        TContext
+      > => {
+      return useMutation(getResetUserUsageMutationOptions(options));
+    }
+
+export const getGetMyUsageUrl = () => {
+
+
+
+
+  return `/api/usage/me`
+}
+
+/**
+ * Identity comes from the verified session, never from the client. Used by the frontend to surface the near-limit warning.
+ * @summary The signed-in user's own quota status for the current period
+ */
+export const getMyUsage = async ( options?: RequestInit): Promise<MyUsage> => {
+
+  return customFetch<MyUsage>(getGetMyUsageUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyUsageQueryKey = () => {
+    return [
+    `/api/usage/me`
+    ] as const;
+    }
+
+
+export const getGetMyUsageQueryOptions = <TData = Awaited<ReturnType<typeof getMyUsage>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyUsage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyUsageQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyUsage>>> = ({ signal }) => getMyUsage({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyUsage>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyUsageQueryResult = NonNullable<Awaited<ReturnType<typeof getMyUsage>>>
+export type GetMyUsageQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The signed-in user's own quota status for the current period
+ */
+
+export function useGetMyUsage<TData = Awaited<ReturnType<typeof getMyUsage>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyUsage>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyUsageQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

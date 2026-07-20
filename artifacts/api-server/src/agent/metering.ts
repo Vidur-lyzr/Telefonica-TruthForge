@@ -9,6 +9,44 @@ import {
   estimateTokens,
   type UsageModule,
 } from "../data/usageMeter";
+import { enforceQuota, recordUserUsage } from "../data/userUsage";
+import { getActingUser } from "../lib/usageContext";
+
+// Pre-model quota gate + per-user attribution. Identity comes from the usage
+// context (verified session, threaded by middleware). Throws
+// QuotaExceededError BEFORE any Claude call when the acting user's period
+// allowance is spent; unattributed calls (background jobs) pass through.
+export function gateQuota(): string | null {
+  const user = getActingUser();
+  if (!user) return null;
+  enforceQuota(user.email);
+  return user.email;
+}
+
+/**
+ * Attribute an ESTIMATED usage figure for model runs that go through the
+ * gitagent runtime (which does not expose token counts). Same chokepoint
+ * semantics as the metered wrappers: global meter always, per-user ledger
+ * when an acting user is present. Call gateQuota() BEFORE the run.
+ */
+export function attributeEstimated(
+  email: string | null,
+  module: UsageModule,
+  input: number,
+  output: number,
+): void {
+  attribute(email, module, input, output);
+}
+
+function attribute(
+  email: string | null,
+  module: UsageModule,
+  input: number,
+  output: number,
+): void {
+  recordUsage(module, input, output);
+  if (email) recordUserUsage(email, module, input, output);
+}
 
 interface MeteredCreateParams {
   model: string;
@@ -26,6 +64,7 @@ export async function meteredStream(
   onToken: (content: string) => void,
   signal?: AbortSignal,
 ): Promise<string> {
+  const email = gateQuota();
   const stream = anthropic.messages.stream({ ...params });
   let text = "";
   stream.on("text", (delta) => {
@@ -37,11 +76,12 @@ export async function meteredStream(
   const input =
     final.usage?.input_tokens ?? estimateTokens(JSON.stringify(params.messages));
   const output = final.usage?.output_tokens ?? estimateTokens(text);
-  recordUsage(module, input, output);
+  attribute(email, module, input, output);
   return text;
 }
 
 export async function meteredCreate(module: UsageModule, params: MeteredCreateParams) {
+  const email = gateQuota();
   const message = await anthropic.messages.create({ ...params, stream: false });
   const input =
     message.usage?.input_tokens ?? estimateTokens(JSON.stringify(params.messages));
@@ -50,6 +90,6 @@ export async function meteredCreate(module: UsageModule, params: MeteredCreatePa
     estimateTokens(
       message.content.map((b) => (b.type === "text" ? b.text : "")).join(""),
     );
-  recordUsage(module, input, output);
+  attribute(email, module, input, output);
   return message;
 }
