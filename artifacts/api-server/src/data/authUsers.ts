@@ -48,6 +48,24 @@ export const AUTH_USERS: AuthUser[] = [
       "scrypt:f6b5bd3759b097fc62e5eea55e88c89d:89139fca2777afafc9903258025c9a9ced202850e79dda582c386aed834bc965",
   },
   {
+    email: "sergio.sanchez@telefonica.com",
+    team: "telefonica",
+    passwordHash:
+      "scrypt:af15edf5fe6f3b24a874a1b0b39df76b:aa2ce1f5b0f7b8d8d9dc907a8cc5940e6ad0ac216e2331efc158f5431285c0ba",
+  },
+  {
+    email: "oscar.candilesjimenez@telefonica.com",
+    team: "telefonica",
+    passwordHash:
+      "scrypt:aaeacfe211a4d2950002045872102468:fd75c3113af89952cc6c0285ed59de663da52dd7e2570efa141e19d52975adc5",
+  },
+  {
+    email: "ana.martinmartinez@telefonica.com",
+    team: "telefonica",
+    passwordHash:
+      "scrypt:4e892dedf6cd706cc6749515b231b0f2:c1f076885d1e85575f124482da2ce6a6bd9d53da82dc128be480c9dbb62388e1",
+  },
+  {
     email: "juan.rovira.blanco@accenture.com",
     team: "accenture",
     passwordHash:
