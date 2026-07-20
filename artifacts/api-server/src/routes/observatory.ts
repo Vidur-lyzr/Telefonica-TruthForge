@@ -36,20 +36,22 @@ router.post("/track", (req, res) => {
 });
 
 // Everything below is the Lyzr-only read side.
-router.get("/observatory/overview", requireLyzr, (req, res) => {
+router.get("/observatory/overview", requireLyzr, async (req, res) => {
   const includeLyzr = req.query.includeLyzr === "true";
   res.json(
-    GetObservatoryOverviewResponse.parse({ users: getObservatoryOverview(includeLyzr) }),
+    GetObservatoryOverviewResponse.parse({ users: await getObservatoryOverview(includeLyzr) }),
   );
 });
 
-router.get("/observatory/sessions", requireLyzr, (req, res) => {
+router.get("/observatory/sessions", requireLyzr, async (req, res) => {
   const email = typeof req.query.email === "string" ? req.query.email : "";
   if (!email) {
     res.status(400).json({ error: "email is required" });
     return;
   }
-  res.json(ListObservatorySessionsResponse.parse({ sessions: getObservatorySessions(email) }));
+  res.json(
+    ListObservatorySessionsResponse.parse({ sessions: await getObservatorySessions(email) }),
+  );
 });
 
 const EVENT_KINDS: ObservatoryEventKind[] = [
@@ -64,7 +66,7 @@ const EVENT_KINDS: ObservatoryEventKind[] = [
   "config_change",
 ];
 
-router.get("/observatory/events", requireLyzr, (req, res) => {
+router.get("/observatory/events", requireLyzr, async (req, res) => {
   const email = typeof req.query.email === "string" ? req.query.email : null;
   const sid = typeof req.query.sid === "string" ? req.query.sid : null;
   const rawKind = typeof req.query.kind === "string" ? req.query.kind : null;
@@ -73,7 +75,7 @@ router.get("/observatory/events", requireLyzr, (req, res) => {
     : null;
   const limit = Number.parseInt(String(req.query.limit ?? ""), 10);
   const offset = Number.parseInt(String(req.query.offset ?? ""), 10);
-  const page = queryObservatoryEvents({
+  const page = await queryObservatoryEvents({
     email,
     sid,
     kind,

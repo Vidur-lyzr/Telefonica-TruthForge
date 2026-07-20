@@ -5,19 +5,23 @@
 // governance outcome), every generation and export, and how long each
 // session lasted.
 //
-// Two structures:
-//   - events[]  — append-only, capped: login/logout/page_view/ask/generate/
-//                 export/download. Heartbeats are NOT events (they would
-//                 evict the meaningful ones) — they only touch the session
-//                 aggregate.
-//   - sessions  — per-sid aggregate: first/last activity and seconds spent
-//                 per page, derived purely from the server clock.
+// Two structures, now DB-authoritative:
+//   - observatory_events   — append-only rows: login/logout/page_view/ask/
+//                            generate/export/download/ingest/config_change.
+//                            Heartbeats are NOT events — they only touch the
+//                            session aggregate.
+//   - observatory_sessions — per-sid aggregate rows: first/last activity and
+//                            seconds spent per page, from the server clock.
 //
-// Persisted to a JSON file (no database, per project constraints) with the
-// same debounced atomic writer the retrieval log uses.
+// The WRITE path stays synchronous (recording an audit event must never slow
+// a request): events queue in memory and sessions are mutated in an in-memory
+// cache, then a debounced serialized flush inserts the event rows and upserts
+// the dirty session rows. READS go to the database (after draining the
+// queue), so audit history survives restarts and is shared across autoscale
+// instances.
 
-import fs from "node:fs";
-import path from "node:path";
+import { db, observatoryEvents, observatorySessions } from "@workspace/db";
+import { and, desc, eq, sql, type SQL } from "drizzle-orm";
 import { logger } from "../lib/logger";
 
 export type ObservatoryEventKind =
@@ -72,7 +76,9 @@ export interface ObservatorySessionRecord {
   endedTs: string | null;
 }
 
+/** Read-side cap: the overview aggregates over at most this many recent events. */
 const MAX_EVENTS = 10000;
+/** In-memory session cache cap (DB rows are never trimmed). */
 const MAX_SESSIONS = 2000;
 const MAX_SUMMARY_CHARS = 500;
 const MAX_RESPONSE_CHARS = 4000;
@@ -83,45 +89,175 @@ const ACTIVITY_WINDOW_MS = 90 * 1000;
  * bound. Overflow time buckets into "other". */
 const MAX_PAGES_PER_SESSION = 50;
 
-const STORE_DIR = path.resolve(process.cwd(), ".data");
-const STORE_FILE = path.join(STORE_DIR, "observatory.json");
-
-let events: ObservatoryEventRecord[] = [];
+// In-memory working set: sessions need their previous state for gap
+// attribution, so the recent ones live here; events only pass through the
+// pending queue on their way to the database.
 let sessions: Record<string, ObservatorySessionRecord> = {};
 let counter = 0;
+// Per-boot suffix so ids from concurrent autoscale instances cannot collide
+// even when they land in the same millisecond with the same counter value.
+const INSTANCE_TAG = Math.random().toString(36).slice(2, 8);
 
-{
+const pendingEvents: ObservatoryEventRecord[] = [];
+const dirtySids = new Set<string>();
+
+/** Loads recent sessions into the cache — call once at boot, before listen. */
+export async function initObservatory(): Promise<void> {
   try {
-    const raw = fs.readFileSync(STORE_FILE, "utf8");
-    const parsed = JSON.parse(raw) as {
-      events?: ObservatoryEventRecord[];
-      sessions?: Record<string, ObservatorySessionRecord>;
-      counter?: number;
-    };
-    if (Array.isArray(parsed.events)) events = parsed.events.slice(-MAX_EVENTS);
-    if (parsed.sessions && typeof parsed.sessions === "object") sessions = parsed.sessions;
-    if (typeof parsed.counter === "number") counter = parsed.counter;
-  } catch {
-    // First boot or unreadable file — start empty.
+    const rows = await db
+      .select()
+      .from(observatorySessions)
+      .orderBy(desc(observatorySessions.lastSeenTs))
+      .limit(MAX_SESSIONS);
+    sessions = {};
+    for (const r of rows) sessions[r.sid] = sessionFromRow(r);
+    logger.info({ sessions: rows.length }, "observatory: session cache loaded from db");
+  } catch (err) {
+    logger.error({ err }, "observatory: session cache load failed — starting empty");
+    sessions = {};
   }
 }
 
-let persistTimer: NodeJS.Timeout | null = null;
+type SessionRow = typeof observatorySessions.$inferSelect;
+type EventRow = typeof observatoryEvents.$inferSelect;
 
-function schedulePersist(): void {
-  if (persistTimer) return;
-  persistTimer = setTimeout(() => {
-    persistTimer = null;
+function sessionFromRow(r: SessionRow): ObservatorySessionRecord {
+  return {
+    sid: r.sid,
+    email: r.email,
+    team: r.team,
+    firstSeenTs: r.firstSeenTs.toISOString(),
+    lastSeenTs: r.lastSeenTs.toISOString(),
+    secondsByPage: r.secondsByPage ?? {},
+    pagesVisited: r.pagesVisited ?? [],
+    lastPage: r.lastPage,
+    endedTs: r.endedTs ? r.endedTs.toISOString() : null,
+  };
+}
+
+function eventFromRow(r: EventRow): ObservatoryEventRecord {
+  return {
+    id: r.id,
+    ts: r.ts.toISOString(),
+    sid: r.sid,
+    email: r.email,
+    team: r.team,
+    kind: r.kind as ObservatoryEventKind,
+    page: r.page,
+    roleId: r.roleId,
+    roleLabel: r.roleLabel,
+    summary: r.summary,
+    response: r.response,
+    status: r.status,
+    docIds: r.docIds ?? [],
+    retrievalAuditId: r.retrievalAuditId,
+    detail: r.detail ?? null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Debounced serialized flush — same discipline as the snapshot writer: at
+// most one in-flight write, the drain loop re-checks the queues after each
+// pass, and a failed batch is re-queued so audit records are never dropped
+// silently (they retry on the next scheduled flush).
+
+let flushTimer: NodeJS.Timeout | null = null;
+let inFlight: Promise<void> | null = null;
+
+async function flushWrite(): Promise<void> {
+  while (pendingEvents.length > 0 || dirtySids.size > 0) {
+    const eventsBatch = pendingEvents.splice(0);
+    const sids = [...dirtySids];
+    dirtySids.clear();
     try {
-      fs.mkdirSync(STORE_DIR, { recursive: true });
-      const tmp = `${STORE_FILE}.tmp`;
-      fs.writeFileSync(tmp, JSON.stringify({ events, sessions, counter }), "utf8");
-      fs.renameSync(tmp, STORE_FILE);
+      if (eventsBatch.length > 0) {
+        await db
+          .insert(observatoryEvents)
+          .values(
+            eventsBatch.map((e) => ({
+              id: e.id,
+              ts: new Date(e.ts),
+              sid: e.sid,
+              email: e.email,
+              team: e.team,
+              kind: e.kind,
+              page: e.page,
+              roleId: e.roleId,
+              roleLabel: e.roleLabel,
+              summary: e.summary,
+              response: e.response,
+              status: e.status,
+              docIds: e.docIds,
+              retrievalAuditId: e.retrievalAuditId,
+              detail: e.detail,
+            })),
+          )
+          .onConflictDoNothing({ target: observatoryEvents.id });
+      }
+      for (const sid of sids) {
+        const s = sessions[sid];
+        if (!s) continue;
+        await db
+          .insert(observatorySessions)
+          .values({
+            sid: s.sid,
+            email: s.email,
+            team: s.team,
+            firstSeenTs: new Date(s.firstSeenTs),
+            lastSeenTs: new Date(s.lastSeenTs),
+            secondsByPage: s.secondsByPage,
+            pagesVisited: s.pagesVisited,
+            lastPage: s.lastPage ?? null,
+            endedTs: s.endedTs ? new Date(s.endedTs) : null,
+          })
+          .onConflictDoUpdate({
+            target: observatorySessions.sid,
+            set: {
+              email: sql`excluded.email`,
+              team: sql`excluded.team`,
+              lastSeenTs: sql`excluded.last_seen_ts`,
+              secondsByPage: sql`excluded.seconds_by_page`,
+              pagesVisited: sql`excluded.pages_visited`,
+              lastPage: sql`excluded.last_page`,
+              endedTs: sql`excluded.ended_ts`,
+            },
+          });
+      }
     } catch (err) {
-      logger.error({ err }, "observatory: persist failed — audit events remain in memory only");
+      logger.error(
+        { err },
+        "observatory: persist failed — audit records re-queued for the next flush",
+      );
+      pendingEvents.unshift(...eventsBatch);
+      for (const sid of sids) dirtySids.add(sid);
+      break;
     }
+  }
+  inFlight = null;
+}
+
+function scheduleFlush(): void {
+  if (inFlight || flushTimer) return;
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    inFlight = flushWrite();
   }, 500);
-  persistTimer.unref?.();
+  flushTimer.unref?.();
+}
+
+/** Drains the write queue — reads call this so they see the latest records.
+ * Also retries records re-queued by a failed flush (which leaves no timer). */
+async function flushNow(): Promise<void> {
+  if (flushTimer) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  if (!inFlight && (pendingEvents.length > 0 || dirtySids.size > 0)) {
+    inFlight = flushWrite();
+  }
+  while (inFlight) {
+    await inFlight;
+  }
 }
 
 function trimSessions(): void {
@@ -177,7 +313,8 @@ function touchSession(identity: SessionIdentity, page: string | null): void {
       s.pagesVisited.push(page);
     }
   }
-  schedulePersist();
+  dirtySids.add(identity.sid);
+  scheduleFlush();
 }
 
 /** Returns the secondsByPage key for a page, bucketing overflow into "other". */
@@ -206,8 +343,8 @@ export interface RecordEventInput {
 
 export function recordObservatoryEvent(input: RecordEventInput): void {
   counter += 1;
-  events.push({
-    id: `obs-${Date.now()}-${counter}`,
+  pendingEvents.push({
+    id: `obs-${Date.now()}-${INSTANCE_TAG}-${counter}`,
     ts: new Date().toISOString(),
     sid: input.identity.sid,
     email: input.identity.email,
@@ -223,17 +360,20 @@ export function recordObservatoryEvent(input: RecordEventInput): void {
     retrievalAuditId: input.retrievalAuditId ?? null,
     detail: input.detail ?? null,
   });
-  if (events.length > MAX_EVENTS) events = events.slice(-MAX_EVENTS);
   touchSession(input.identity, input.page ?? null);
   if (input.kind === "logout") {
     const s = sessions[input.identity.sid];
-    if (s) s.endedTs = new Date().toISOString();
+    if (s) {
+      s.endedTs = new Date().toISOString();
+      dirtySids.add(s.sid);
+    }
   }
-  schedulePersist();
+  scheduleFlush();
 }
 
 // ---------------------------------------------------------------------------
-// Read side (Observatory panel)
+// Read side (Observatory panel) — database queries, so every instance sees
+// the full shared history.
 
 export interface ObservatoryUserSummary {
   email: string;
@@ -251,7 +391,29 @@ export interface ObservatoryUserSummary {
   topPages: { page: string; seconds: number }[];
 }
 
-export function getObservatoryOverview(includeLyzr: boolean): ObservatoryUserSummary[] {
+export async function getObservatoryOverview(
+  includeLyzr: boolean,
+): Promise<ObservatoryUserSummary[]> {
+  await flushNow();
+  const [sessionRows, eventRows] = await Promise.all([
+    db
+      .select()
+      .from(observatorySessions)
+      .orderBy(desc(observatorySessions.lastSeenTs))
+      .limit(MAX_SESSIONS * 5),
+    db
+      .select({
+        email: observatoryEvents.email,
+        team: observatoryEvents.team,
+        kind: observatoryEvents.kind,
+        status: observatoryEvents.status,
+        ts: observatoryEvents.ts,
+      })
+      .from(observatoryEvents)
+      .orderBy(desc(observatoryEvents.seq))
+      .limit(MAX_EVENTS),
+  ]);
+
   const byEmail = new Map<string, ObservatoryUserSummary>();
   const ensure = (email: string, team: string): ObservatoryUserSummary => {
     let u = byEmail.get(email);
@@ -277,8 +439,9 @@ export function getObservatoryOverview(includeLyzr: boolean): ObservatoryUserSum
   };
 
   const pageSeconds = new Map<string, Map<string, number>>();
-  for (const s of Object.values(sessions)) {
-    if (!includeLyzr && s.team === "lyzr") continue;
+  for (const row of sessionRows) {
+    if (!includeLyzr && row.team === "lyzr") continue;
+    const s = sessionFromRow(row);
     const u = ensure(s.email, s.team);
     u.sessionCount += 1;
     let secs = 0;
@@ -291,7 +454,7 @@ export function getObservatoryOverview(includeLyzr: boolean): ObservatoryUserSum
     u.totalSeconds += secs;
     if (!u.lastSeenTs || s.lastSeenTs > u.lastSeenTs) u.lastSeenTs = s.lastSeenTs;
   }
-  for (const e of events) {
+  for (const e of eventRows) {
     if (!includeLyzr && e.team === "lyzr") continue;
     const u = ensure(e.email, e.team);
     if (e.kind === "ask") u.askCount += 1;
@@ -301,7 +464,8 @@ export function getObservatoryOverview(includeLyzr: boolean): ObservatoryUserSum
     else if (e.kind === "config_change") u.changeCount += 1;
     else if (e.kind === "page_view") u.pageViewCount += 1;
     if (e.status === "permission_blocked") u.blockedCount += 1;
-    if (!u.lastSeenTs || e.ts > u.lastSeenTs) u.lastSeenTs = e.ts;
+    const ts = e.ts.toISOString();
+    if (!u.lastSeenTs || ts > u.lastSeenTs) u.lastSeenTs = ts;
   }
   for (const u of byEmail.values()) {
     const m = pageSeconds.get(u.email);
@@ -312,13 +476,22 @@ export function getObservatoryOverview(includeLyzr: boolean): ObservatoryUserSum
         .slice(0, 5);
     }
   }
-  return [...byEmail.values()].sort((a, b) => (b.lastSeenTs ?? "").localeCompare(a.lastSeenTs ?? ""));
+  return [...byEmail.values()].sort((a, b) =>
+    (b.lastSeenTs ?? "").localeCompare(a.lastSeenTs ?? ""),
+  );
 }
 
-export function getObservatorySessions(email: string): ObservatorySessionRecord[] {
-  return Object.values(sessions)
-    .filter((s) => s.email === email)
-    .sort((a, b) => b.firstSeenTs.localeCompare(a.firstSeenTs));
+export async function getObservatorySessions(
+  email: string,
+): Promise<ObservatorySessionRecord[]> {
+  await flushNow();
+  const rows = await db
+    .select()
+    .from(observatorySessions)
+    .where(eq(observatorySessions.email, email))
+    .orderBy(desc(observatorySessions.firstSeenTs))
+    .limit(MAX_SESSIONS);
+  return rows.map(sessionFromRow);
 }
 
 export interface ObservatoryEventsQuery {
@@ -329,16 +502,30 @@ export interface ObservatoryEventsQuery {
   offset?: number;
 }
 
-export function queryObservatoryEvents(q: ObservatoryEventsQuery): {
+export async function queryObservatoryEvents(q: ObservatoryEventsQuery): Promise<{
   total: number;
   items: ObservatoryEventRecord[];
-} {
-  let filtered = [...events].reverse();
-  if (q.email) filtered = filtered.filter((e) => e.email === q.email);
-  if (q.sid) filtered = filtered.filter((e) => e.sid === q.sid);
-  if (q.kind) filtered = filtered.filter((e) => e.kind === q.kind);
-  const total = filtered.length;
+}> {
+  await flushNow();
+  const conditions: SQL[] = [];
+  if (q.email) conditions.push(eq(observatoryEvents.email, q.email));
+  if (q.sid) conditions.push(eq(observatoryEvents.sid, q.sid));
+  if (q.kind) conditions.push(eq(observatoryEvents.kind, q.kind));
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
   const offset = Math.max(q.offset ?? 0, 0);
   const limit = Math.min(Math.max(q.limit ?? 100, 1), 500);
-  return { total, items: filtered.slice(offset, offset + limit) };
+  const [countRows, rows] = await Promise.all([
+    db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(observatoryEvents)
+      .where(where),
+    db
+      .select()
+      .from(observatoryEvents)
+      .where(where)
+      .orderBy(desc(observatoryEvents.seq))
+      .offset(offset)
+      .limit(limit),
+  ]);
+  return { total: countRows[0]?.total ?? 0, items: rows.map(eventFromRow) };
 }

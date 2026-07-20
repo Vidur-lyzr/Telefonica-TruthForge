@@ -10,13 +10,12 @@
 // (threshold breach or forecast deviation) and recorded per owner with a
 // simulated Teams/email delivery trail. Acknowledgements persist.
 //
-// Persistence mirrors generateStore: one JSON snapshot written atomically on
-// every mutation; corrupt or missing files fail soft to an empty overlay.
+// Persistence mirrors generateStore: one store_snapshots row written through
+// on every mutation; a missing or corrupt snapshot fails soft to the seed.
 
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { logger } from "../lib/logger";
+import { loadSnapshot, createSnapshotWriter } from "./dbSnapshot";
 import {
   KPIS,
   OBJECTIVES,
@@ -106,7 +105,7 @@ export const DEFAULT_THRESHOLDS: KpiThresholds = { amberBelow: 1, criticalBelow:
 
 // ---- Persistence ---------------------------------------------------------------
 
-const STORE_PATH = join(process.cwd(), ".data", "kpi-store.json");
+const STORE_NAME = "kpi-store";
 
 interface PersistedState {
   records: KpiDefinitionRecord[];
@@ -118,16 +117,22 @@ let records: KpiDefinitionRecord[] = [];
 let alerts: KpiAlertRecord[] = [];
 let idCounter = 0;
 
-function load(): void {
+const writer = createSnapshotWriter(STORE_NAME, (): PersistedState => ({
+  records,
+  alerts,
+  idCounter,
+}));
+
+export async function initKpiStore(): Promise<void> {
   try {
-    if (!existsSync(STORE_PATH)) return;
-    const raw = JSON.parse(readFileSync(STORE_PATH, "utf8")) as Partial<PersistedState>;
+    const raw = await loadSnapshot<Partial<PersistedState>>(STORE_NAME);
+    if (!raw) return;
     records = Array.isArray(raw.records) ? raw.records : [];
     alerts = Array.isArray(raw.alerts) ? raw.alerts : [];
     idCounter = typeof raw.idCounter === "number" ? raw.idCounter : 0;
     logger.info(
       { definitions: records.length, alerts: alerts.length },
-      "kpi store loaded from disk",
+      "kpi store loaded from database",
     );
   } catch (err) {
     logger.error({ err }, "kpi store could not be loaded; starting from seed only");
@@ -137,18 +142,8 @@ function load(): void {
 }
 
 function persist(): void {
-  try {
-    const state: PersistedState = { records, alerts, idCounter };
-    mkdirSync(dirname(STORE_PATH), { recursive: true });
-    const tmp = `${STORE_PATH}.tmp`;
-    writeFileSync(tmp, JSON.stringify(state), "utf8");
-    renameSync(tmp, STORE_PATH);
-  } catch (err) {
-    logger.error({ err }, "kpi store could not be persisted");
-  }
+  writer.schedule();
 }
-
-load();
 
 function nextId(prefix: string): string {
   idCounter += 1;

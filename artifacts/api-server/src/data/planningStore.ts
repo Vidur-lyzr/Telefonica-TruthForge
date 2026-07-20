@@ -2,16 +2,15 @@
 // Hub (an overlay over the read-only seed calendar) and the simulated
 // bidirectional sync-back records that every mutation produces.
 //
-// No database is used (project constraint). State is held in memory and
-// persisted as a JSON snapshot on every mutation, mirroring generateStore.
+// State is held in memory for sync reads and write-through persisted to the
+// store_snapshots table so Hub edits survive autoscale instance recycling.
 // The sync records are honest about their nature: the Hub simulates writing
 // the change back to the origin source (Asana, Excel, ...) and labels every
 // record "pending confirmation" — the origin system never actually confirms
 // in this demo, per the RFP's to-confirm framing.
 
-import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { logger } from "../lib/logger";
+import { loadSnapshot, createSnapshotWriter } from "./dbSnapshot";
 import {
   PLANNING_EVENTS,
   type PlanningEvent,
@@ -33,7 +32,7 @@ export interface SyncRecord {
   status: "pending_confirmation";
 }
 
-const STORE_PATH = join(process.cwd(), ".data", "planning-store.json");
+const STORE_NAME = "planning-store";
 
 interface PersistedState {
   createdEvents: PlanningEvent[];
@@ -49,17 +48,24 @@ let overrides = new Map<string, PlanningEvent>();
 let syncRecords: SyncRecord[] = [];
 let idCounter = 0;
 
-function load(): void {
+const writer = createSnapshotWriter(STORE_NAME, (): PersistedState => ({
+  createdEvents,
+  overrides: Object.fromEntries(overrides),
+  syncRecords,
+  idCounter,
+}));
+
+export async function initPlanningStore(): Promise<void> {
   try {
-    if (!existsSync(STORE_PATH)) return;
-    const raw = JSON.parse(readFileSync(STORE_PATH, "utf8")) as Partial<PersistedState>;
+    const raw = await loadSnapshot<Partial<PersistedState>>(STORE_NAME);
+    if (!raw) return;
     createdEvents = Array.isArray(raw.createdEvents) ? raw.createdEvents : [];
     overrides = new Map(Object.entries(raw.overrides ?? {}));
     syncRecords = Array.isArray(raw.syncRecords) ? raw.syncRecords : [];
     idCounter = typeof raw.idCounter === "number" ? raw.idCounter : 0;
     logger.info(
       { created: createdEvents.length, overrides: overrides.size, sync: syncRecords.length },
-      "planning store loaded from disk",
+      "planning store loaded from database",
     );
   } catch (err) {
     logger.error({ err }, "planning store could not be loaded; starting empty");
@@ -70,23 +76,8 @@ function load(): void {
 }
 
 function persist(): void {
-  try {
-    const state: PersistedState = {
-      createdEvents,
-      overrides: Object.fromEntries(overrides),
-      syncRecords,
-      idCounter,
-    };
-    mkdirSync(dirname(STORE_PATH), { recursive: true });
-    const tmp = `${STORE_PATH}.tmp`;
-    writeFileSync(tmp, JSON.stringify(state), "utf8");
-    renameSync(tmp, STORE_PATH);
-  } catch (err) {
-    logger.error({ err }, "planning store could not be persisted");
-  }
+  writer.schedule();
 }
-
-load();
 
 function nextId(prefix: string): string {
   idCounter += 1;

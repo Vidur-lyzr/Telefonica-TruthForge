@@ -1,18 +1,26 @@
 // Runtime platform-user store (G1 + I2).
 //
 // The seed PLATFORM_USERS list from corpus.ts is only the FIRST-BOOT snapshot:
-// once .data/platform-users.json exists, that file is authoritative — creates,
-// permission changes and removals all persist there and survive a restart,
-// exactly like the governance taxonomy versions. Every mutation is recorded in
-// the real server audit trail by the routes (never client-side).
+// once the platform_users table has rows, the database is authoritative —
+// creates, permission changes and removals all persist there and survive
+// restarts AND republishes, exactly like the governance taxonomy versions.
+// Every mutation is recorded in the real server audit trail by the routes
+// (never client-side).
+//
+// The API stays synchronous (the directory is read on hot request paths):
+// the in-memory list is the working copy, loaded once at boot
+// (initPlatformUsers, before listen), and every mutation write-through
+// persists via a debounced serialized flush that upserts current rows and
+// deletes removed ones.
 //
 // I2 — profile composition: a user holds one or more profiles (profileIds).
 // The effective capability level is the per-capability MAXIMUM across held
 // profiles; `profileId` is kept as the primary profile (profileIds[0]) for
 // display back-compat.
 
-import fs from "node:fs";
-import path from "node:path";
+import { db, platformUsers } from "@workspace/db";
+import { inArray, sql } from "drizzle-orm";
+import { logger } from "../lib/logger";
 import {
   PLATFORM_USERS,
   type Area,
@@ -40,14 +48,7 @@ export const VALID_PROFILE_IDS: readonly ProfileId[] = [
   "auditor",
 ];
 
-const STORE_DIR = path.resolve(process.cwd(), ".data");
-const STORE_FILE = path.join(STORE_DIR, "platform-users.json");
-
-interface UsersFile {
-  users: ManagedUser[];
-}
-
-// Older snapshots (or hand-edited files) may miss profileIds — normalize so
+// Older snapshots (or hand-edited records) may miss profileIds — normalize so
 // every runtime user always satisfies the contract.
 function normalize(u: PlatformUser & { profileIds?: ProfileId[] }): ManagedUser {
   const profileIds =
@@ -55,22 +56,91 @@ function normalize(u: PlatformUser & { profileIds?: ProfileId[] }): ManagedUser 
   return { ...u, profileIds, profileId: profileIds[0] };
 }
 
-function loadUsers(): ManagedUser[] {
+let users: ManagedUser[] = PLATFORM_USERS.map(normalize);
+
+/**
+ * Loads the managed-user directory from the database — call once at boot,
+ * before listen. An empty table means first boot: seed from the corpus
+ * snapshot and persist it, so the seed is written exactly once.
+ */
+export async function initPlatformUsers(): Promise<void> {
   try {
-    const raw = fs.readFileSync(STORE_FILE, "utf8");
-    const parsed = JSON.parse(raw) as UsersFile;
-    if (Array.isArray(parsed.users)) return parsed.users.map(normalize);
-  } catch {
-    // First boot or unreadable file — seed from the corpus snapshot.
+    const rows = await db.select({ data: platformUsers.data }).from(platformUsers);
+    if (rows.length > 0) {
+      users = rows.map((r) => normalize(r.data as PlatformUser & { profileIds?: ProfileId[] }));
+      logger.info({ users: users.length }, "platform users loaded from db");
+      return;
+    }
+    users = PLATFORM_USERS.map(normalize);
+    await flushWrite();
+    logger.info({ users: users.length }, "platform users seeded from corpus");
+  } catch (err) {
+    // Fail soft to the seed directory — the server must come up.
+    logger.error({ err }, "platform users load failed — using corpus seed in memory");
+    users = PLATFORM_USERS.map(normalize);
   }
-  return PLATFORM_USERS.map(normalize);
 }
 
-let users: ManagedUser[] = loadUsers();
+// Debounced serialized flush: upsert every current user; deletions are
+// tracked explicitly and deleted BY ID ONLY — never a whole-set "delete
+// everything not in my memory" sweep, so a stale autoscale instance can
+// never destroy user rows created by another instance.
+let flushTimer: NodeJS.Timeout | null = null;
+let inFlight: Promise<void> | null = null;
+let dirty = false;
+const removedIds = new Set<string>();
+
+async function flushWrite(): Promise<void> {
+  do {
+    dirty = false;
+    const toRemove = [...removedIds];
+    removedIds.clear();
+    try {
+      const snapshot = users.map((u) => ({ ...u, profileIds: [...u.profileIds] }));
+      if (snapshot.length > 0) {
+        await db
+          .insert(platformUsers)
+          .values(
+            snapshot.map((u) => ({
+              id: u.id,
+              email: u.email.trim().toLowerCase(),
+              data: u,
+              updatedAt: new Date(),
+            })),
+          )
+          .onConflictDoUpdate({
+            target: platformUsers.id,
+            set: {
+              email: sql`excluded.email`,
+              data: sql`excluded.data`,
+              updatedAt: sql`excluded.updated_at`,
+            },
+          });
+      }
+      if (toRemove.length > 0) {
+        await db.delete(platformUsers).where(inArray(platformUsers.id, toRemove));
+      }
+    } catch (err) {
+      logger.error({ err }, "platform users persist failed — state remains in memory only");
+      for (const id of toRemove) removedIds.add(id);
+      dirty = true;
+      break;
+    }
+  } while (dirty);
+  inFlight = null;
+}
 
 function persist(): void {
-  fs.mkdirSync(STORE_DIR, { recursive: true });
-  fs.writeFileSync(STORE_FILE, JSON.stringify({ users } satisfies UsersFile, null, 2), "utf8");
+  if (inFlight) {
+    dirty = true;
+    return;
+  }
+  if (flushTimer) return;
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    inFlight = flushWrite();
+  }, 500);
+  flushTimer.unref?.();
 }
 
 export function listManagedUsers(): ManagedUser[] {
@@ -157,6 +227,7 @@ export function removeManagedUser(id: string): ManagedUser | null {
   const idx = users.findIndex((u) => u.id === id);
   if (idx === -1) return null;
   const [removed] = users.splice(idx, 1);
+  removedIds.add(removed.id);
   persist();
   return removed;
 }

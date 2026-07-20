@@ -11,7 +11,8 @@ A governed, agentic Single Source of Truth for Telefónica's Communication & Bra
 - Workflows (start/restart via the workflows tooling, not root `pnpm dev`):
   - `artifacts/api-server: API Server`
   - `artifacts/hub-ssot: web`
-- Required env: `ANTHROPIC_*` is provided by the Replit Anthropic integration (no key handling needed). No database is used.
+- Required env: `ANTHROPIC_*` is provided by the Replit Anthropic integration (no key handling needed). `DATABASE_URL` (Replit PostgreSQL) is required — the server refuses to boot without it.
+- Database schema lives in `lib/db/src/schema/` (Drizzle). Apply dev schema changes with `pnpm --filter @workspace/db run push`; production schema is applied automatically at Publish time — never script DDL against prod.
 
 ## Stack
 
@@ -19,7 +20,8 @@ A governed, agentic Single Source of Truth for Telefónica's Communication & Bra
 - API: Express 5 (async handlers; `req.log`, never `console.log`)
 - Frontend: React + Vite, official Mística React library (@telefonica/mistica, Telefónica skin) — no Tailwind/shadcn/lucide; all styling via skinVars tokens
 - Answer composition: Claude (`claude-sonnet-4-6`) via the Replit Anthropic integration
-- Retrieval: Qdrant Cloud hybrid (dense all-MiniLM-L6-v2 384-d via Cloud Inference + sparse BM25, RRF fusion, collection `hub_ssot_chunks`) with governance must-filters inside the query; native TF-IDF/BM25 engine is a dev-only fallback when Qdrant is unconfigured. All agents retrieve via `retrieveGoverned` in `adapters/kb.ts` — never call the native `retrieve` directly from agents. Re-seed with `pnpm --filter @workspace/api-server run qdrant:seed` after corpus changes (idempotent). No SQL database.
+- Retrieval: Qdrant Cloud hybrid (dense all-MiniLM-L6-v2 384-d via Cloud Inference + sparse BM25, RRF fusion) with governance must-filters inside the query; native TF-IDF/BM25 engine is a dev-only fallback when Qdrant is unconfigured. Collections are split per environment: production uses `hub_ssot_chunks`, development uses `hub_ssot_chunks_dev` (keyed on `NODE_ENV`, overridable via `QDRANT_COLLECTION`). All agents retrieve via `retrieveGoverned` in `adapters/kb.ts` — never call the native `retrieve` directly from agents. Re-seed the CURRENT environment's collection with `pnpm --filter @workspace/api-server run qdrant:seed` after corpus changes (idempotent; run with `NODE_ENV=production` to target the prod collection).
+- Persistence: Replit PostgreSQL via Drizzle (`lib/db`, barrel `@workspace/db`). Low-churn admin stores persist as JSONB snapshots in `store_snapshots` (debounced write-through, `data/dbSnapshot.ts`); append/enforcement-critical data has real row tables: `usage_ledger` + `usage_allocations` (quota, DB-authoritative), `observatory_events` + `observatory_sessions`, `retrieval_log`, `platform_users`. Stores keep synchronous write APIs (in-memory working set + debounced serialized flush); audit reads query the DB.
 - Validation: Zod (`zod/v4`); API codegen via Orval from the OpenAPI spec
 
 ## Where things live
@@ -47,14 +49,13 @@ A governed, agentic Single Source of Truth for Telefónica's Communication & Bra
 
 - Ask: natural-language questions answered over the governed corpus with real citations, numeric facts, and honest no-evidence / permission-blocked / historic states.
 - Data: browse the corpus (docs, chunks, axes) that backs answers.
-- Observatory: Lyzr-team-only audit panel (`/observatory`) tracking every user's logins, page visits and time-on-page (sid in session token, 90s activity-window attribution to the previous page), ask turns (question + exact response + persona + governance status + citations), generations (full draft body + refine turns), exports, Data Center ingestion (searches, accepted docs, uploads — kind `ingest`) and governance/admin changes (user CRUD, source labels, axes, retagging, rollbacks — kind `config_change`). Server-gated by `requireLyzr` (403 code:"forbidden"); nav item is cosmetic. Store: `data/observatoryStore.ts`, persisted to `.data/observatory.json` (instance-local — audit history does not survive redeploys).
+- Observatory: Lyzr-team-only audit panel (`/observatory`) tracking every user's logins, page visits and time-on-page (sid in session token, 90s activity-window attribution to the previous page), ask turns (question + exact response + persona + governance status + citations), generations (full draft body + refine turns), exports, Data Center ingestion (searches, accepted docs, uploads — kind `ingest`) and governance/admin changes (user CRUD, source labels, axes, retagging, rollbacks — kind `config_change`). Server-gated by `requireLyzr` (403 code:"forbidden"); nav item is cosmetic. Store: `data/observatoryStore.ts`, persisted to PostgreSQL (`observatory_events` / `observatory_sessions`) — audit history is shared across autoscale instances and survives redeploys.
 - Other Workspace/Knowledge/Backend pages are elegant "in development" stubs.
 
 ## User preferences
 
 - The Telefónica design system must be applied exactly as specified — do not deviate.
 - No emojis anywhere in the product or code.
-- No database.
 - No gradient fills in charts/graphs — never reintroduce gradient area fills. Approved sparkline style (Mística data-card look): solid 2px status-color line, flat uniform-alpha tint underneath (applyAlpha 0.1), dot on the latest value, padded Y domain so trends are readable.
 
 ## Gotchas

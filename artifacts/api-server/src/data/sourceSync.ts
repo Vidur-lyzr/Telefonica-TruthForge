@@ -13,13 +13,12 @@
 //     stricter label — a document never becomes MORE visible without an
 //     explicit, audited sync run.
 //
-// Persistence is a JSON file (no database, per project constraints). Applied
-// deltas are replayed onto the in-memory corpus at boot, exactly like the
-// taxonomy version store; deltas that target live-hydrated docs are re-applied
-// after hydration via applyDeltasTo().
+// Persistence is a store_snapshots row in Postgres. Applied deltas are
+// replayed onto the in-memory corpus at boot (initSourceSync, before the
+// server listens), exactly like the taxonomy version store; deltas that
+// target live-hydrated docs are re-applied after hydration via applyDeltasTo().
 
-import fs from "node:fs";
-import path from "node:path";
+import { loadSnapshot, createSnapshotWriter } from "./dbSnapshot";
 import {
   DOCS,
   AUDIT_LOG,
@@ -60,8 +59,7 @@ interface SourceSyncFile {
   counter: number;
 }
 
-const STORE_DIR = path.resolve(process.cwd(), ".data");
-const STORE_FILE = path.join(STORE_DIR, "source-sync.json");
+const STORE_NAME = "source-sync";
 
 export const CONNECTOR_NAME = "SharePoint DMS (simulated)";
 
@@ -69,28 +67,28 @@ let deltas: SourceDelta[] = [];
 let runs: SyncRun[] = [];
 let counter = 0;
 
+const writer = createSnapshotWriter(
+  STORE_NAME,
+  (): SourceSyncFile => ({ deltas, runs, counter }),
+);
+
 function persist(): void {
-  fs.mkdirSync(STORE_DIR, { recursive: true });
-  const tmp = `${STORE_FILE}.tmp`;
-  fs.writeFileSync(
-    tmp,
-    JSON.stringify({ deltas, runs, counter } satisfies SourceSyncFile, null, 2),
-    "utf8",
-  );
-  fs.renameSync(tmp, STORE_FILE);
+  writer.schedule();
 }
 
 // Boot: replay every APPLIED delta, in applied order, onto the in-memory
-// corpus. Pending downgrades stay pending — they are configuration, not state.
-{
+// corpus. Pending downgrades stay pending — they are configuration, not
+// state. MUST run (initStores) before the server accepts requests.
+export async function initSourceSync(): Promise<void> {
   try {
-    const raw = fs.readFileSync(STORE_FILE, "utf8");
-    const parsed = JSON.parse(raw) as SourceSyncFile;
-    if (Array.isArray(parsed.deltas)) deltas = parsed.deltas;
-    if (Array.isArray(parsed.runs)) runs = parsed.runs;
-    if (typeof parsed.counter === "number") counter = parsed.counter;
+    const parsed = await loadSnapshot<SourceSyncFile>(STORE_NAME);
+    if (parsed) {
+      if (Array.isArray(parsed.deltas)) deltas = parsed.deltas;
+      if (Array.isArray(parsed.runs)) runs = parsed.runs;
+      if (typeof parsed.counter === "number") counter = parsed.counter;
+    }
   } catch {
-    // First boot or unreadable file — no deltas yet.
+    // First boot or unreadable snapshot — no deltas yet.
   }
   const applied = deltas
     .filter((d) => d.appliedAt !== null)

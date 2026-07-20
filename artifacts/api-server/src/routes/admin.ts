@@ -467,8 +467,8 @@ router.get("/admin/usage", (req, res) => {
 // user-administration mutations.
 // ---------------------------------------------------------------------------
 
-function userQuotaRow(email: string) {
-  const summary = summarizeUser(email);
+async function userQuotaRow(email: string) {
+  const summary = await summarizeUser(email);
   const managed = findManagedUserByEmail(email);
   return {
     ...summary,
@@ -477,14 +477,13 @@ function userQuotaRow(email: string) {
   };
 }
 
-router.get("/admin/usage/users", (req, res) => {
+router.get("/admin/usage/users", async (req, res) => {
   if (!requireCapability(req, res, "view_audit")) return;
   // Show every managed user (even without traced usage yet) plus any traced
   // email outside the directory, flagged unmanaged.
-  const emails = new Set<string>(tracedEmails());
+  const emails = new Set<string>(await tracedEmails());
   for (const u of listManagedUsers()) emails.add(u.email.trim().toLowerCase());
-  const users = [...emails]
-    .map(userQuotaRow)
+  const users = (await Promise.all([...emails].map(userQuotaRow)))
     .sort((a, b) => b.usedTokens - a.usedTokens || a.email.localeCompare(b.email));
   res.json(
     ListUserUsageResponse.parse({
@@ -496,18 +495,18 @@ router.get("/admin/usage/users", (req, res) => {
   );
 });
 
-router.get("/admin/usage/users/detail", (req, res) => {
+router.get("/admin/usage/users/detail", async (req, res) => {
   if (!requireCapability(req, res, "view_audit")) return;
   const email = typeof req.query.email === "string" ? req.query.email : "";
   if (!email) {
     res.status(400).json({ error: "Missing email." });
     return;
   }
-  const { entries, byModule } = getUserLedger(email);
+  const { entries, byModule } = await getUserLedger(email);
   res.json(
     GetUserUsageDetailResponse.parse({
       period: getUsagePeriod(),
-      summary: userQuotaRow(email),
+      summary: await userQuotaRow(email),
       byModule,
       entries: entries.map(({ id, ts, module, inputTokens, outputTokens }) => ({
         id,
@@ -520,7 +519,7 @@ router.get("/admin/usage/users/detail", (req, res) => {
   );
 });
 
-router.post("/admin/usage/allocation", (req, res) => {
+router.post("/admin/usage/allocation", async (req, res) => {
   const parsed = SetUserAllocationBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
@@ -528,7 +527,7 @@ router.post("/admin/usage/allocation", (req, res) => {
   }
   const grant = requireCapability(req, res, "manage_users_roles", "partial", parsed.data.roleId);
   if (!grant) return;
-  const change = setAllocation(parsed.data.email, parsed.data.allocation);
+  const change = await setAllocation(parsed.data.email, parsed.data.allocation);
   recordAudit({
     actor: grant.role.name,
     action: "Quota allocation change",
@@ -540,10 +539,10 @@ router.post("/admin/usage/allocation", (req, res) => {
     { email: change.email, previous: change.previous, next: change.next, actor: grant.role.id },
     "admin: user allocation changed",
   );
-  res.json(SetUserAllocationResponse.parse(userQuotaRow(change.email)));
+  res.json(SetUserAllocationResponse.parse(await userQuotaRow(change.email)));
 });
 
-router.post("/admin/usage/reset", (req, res) => {
+router.post("/admin/usage/reset", async (req, res) => {
   const parsed = ResetUserUsageBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
@@ -551,7 +550,7 @@ router.post("/admin/usage/reset", (req, res) => {
   }
   const grant = requireCapability(req, res, "manage_users_roles", "partial", parsed.data.roleId);
   if (!grant) return;
-  const result = resetUserUsageStore(parsed.data.email);
+  const result = await resetUserUsageStore(parsed.data.email);
   recordAudit({
     actor: grant.role.name,
     action: "Usage reset",
@@ -563,19 +562,19 @@ router.post("/admin/usage/reset", (req, res) => {
     { email: result.email, clearedTokens: result.clearedTokens, actor: grant.role.id },
     "admin: user usage reset",
   );
-  res.json(ResetUserUsageResponse.parse(userQuotaRow(result.email)));
+  res.json(ResetUserUsageResponse.parse(await userQuotaRow(result.email)));
 });
 
 // The signed-in user's own quota status — identity from the verified session
 // only, so the frontend can surface the near-limit warning without any admin
 // capability.
-router.get("/usage/me", (req, res) => {
+router.get("/usage/me", async (req, res) => {
   const acting = getActingUser();
   if (!acting) {
     res.status(401).json({ error: "No session." });
     return;
   }
-  const s = summarizeUser(acting.email);
+  const s = await summarizeUser(acting.email);
   res.json(
     GetMyUsageResponse.parse({
       email: s.email,
@@ -619,7 +618,7 @@ router.get("/admin/audit", (req, res) => {
 
 // F3 — retrieval audit log: who retrieved which chunks under which filter.
 // Ids and scores only, never chunk text. Filterable by document and persona.
-router.get("/admin/retrieval-log", (req, res) => {
+router.get("/admin/retrieval-log", async (req, res) => {
   const parsed = ListRetrievalLogQueryParams.safeParse(req.query);
   if (!parsed.success) {
     res.status(400).json({
@@ -636,7 +635,7 @@ router.get("/admin/retrieval-log", (req, res) => {
     grant.level === "partial" && grant.role.area
       ? ROLES.filter((r) => r.area === grant.role.area).map((r) => r.id)
       : undefined;
-  const page = queryRetrievalLog({ docId, roleId, limit, offset, allowedRoleIds });
+  const page = await queryRetrievalLog({ docId, roleId, limit, offset, allowedRoleIds });
   res.json(ListRetrievalLogResponse.parse(page));
 });
 

@@ -10,9 +10,8 @@
 // exports, generation) resolves templates through this module, so a saved
 // edit immediately governs all future documents until it is reset.
 
-import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { logger } from "../lib/logger";
+import { loadSnapshot, createSnapshotWriter } from "./dbSnapshot";
 import {
   EXPORT_TEMPLATES,
   getExportTemplate,
@@ -21,7 +20,7 @@ import {
   type TemplateDesign,
 } from "../export/exportTemplates";
 
-const STORE_PATH = join(process.cwd(), ".data", "template-overrides.json");
+const STORE_NAME = "template-overrides";
 
 // ---- Types -----------------------------------------------------------------
 
@@ -58,24 +57,19 @@ export class TemplateEditError extends Error {
 let overrides: Record<string, TemplateEdit> = {};
 let revs: Record<string, number> = {};
 
+const writer = createSnapshotWriter(STORE_NAME, () => ({ overrides, revs }));
+
 function persist(): void {
-  try {
-    mkdirSync(dirname(STORE_PATH), { recursive: true });
-    const tmp = `${STORE_PATH}.tmp`;
-    writeFileSync(tmp, JSON.stringify({ overrides, revs }), "utf8");
-    renameSync(tmp, STORE_PATH);
-  } catch (err) {
-    logger.error({ err }, "template-overrides: persist failed");
-  }
+  writer.schedule();
 }
 
-function load(): void {
+export async function initTemplateOverrides(): Promise<void> {
   try {
-    if (!existsSync(STORE_PATH)) return;
-    const raw = JSON.parse(readFileSync(STORE_PATH, "utf8")) as {
+    const raw = await loadSnapshot<{
       overrides?: Record<string, TemplateEdit>;
       revs?: Record<string, number>;
-    };
+    }>(STORE_NAME);
+    if (!raw) return;
     revs = raw.revs && typeof raw.revs === "object" ? raw.revs : {};
     const stored = raw.overrides && typeof raw.overrides === "object" ? raw.overrides : {};
     // Fail-soft: drop overrides whose base template no longer exists or whose
@@ -203,5 +197,3 @@ export function resetTemplateOverride(id: string): ExportTemplateView {
   }
   return decorate(base);
 }
-
-load();

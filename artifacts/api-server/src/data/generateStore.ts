@@ -2,16 +2,15 @@
 // full tags and a version chain), scheduled-document definitions and the human
 // review inbox.
 //
-// No database is used (project constraint). State is held in memory for speed
-// and persisted as a JSON snapshot on every mutation, so saved versions,
-// schedules, review items and the scheduled-draft lineage survive a server
-// restart. Generation jobs are deliberately NOT persisted — they are transient
-// progress trackers for in-flight requests.
+// State is held in memory for speed and write-through persisted to the
+// store_snapshots table on every mutation, so saved versions, schedules,
+// review items and the scheduled-draft lineage survive autoscale instance
+// recycling. Generation jobs are deliberately NOT persisted — they are
+// transient progress trackers for in-flight requests.
 
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { logger } from "../lib/logger";
+import { loadSnapshot, createSnapshotWriter } from "./dbSnapshot";
 import type { GeneratedDraft, GenerationStage } from "../agent/generateAgent";
 import { GENERATE_STORE_SEED } from "./seed/generateSeed";
 
@@ -190,7 +189,7 @@ export interface NotificationRecord {
 // mutation. Loaded once at module init; corrupt or missing files fail soft to
 // an empty store so a bad disk state can never take the API down.
 
-const STORE_PATH = join(process.cwd(), ".data", "generate-store.json");
+const STORE_NAME = "generate-store";
 
 interface PersistedState {
   savedVersions: SavedVersion[];
@@ -237,11 +236,26 @@ function applyState(raw: Partial<PersistedState>): void {
   idCounter = typeof raw.idCounter === "number" ? raw.idCounter : 0;
 }
 
-function load(): void {
-  // Fresh deployment: `.data` is gitignored and absent, so seed the store from
-  // the committed demo snapshot and persist it so the Generate module (Review
-  // inbox, Scheduled, Versions) is populated out of the box instead of empty.
-  if (!existsSync(STORE_PATH)) {
+export async function initGenerateStore(): Promise<void> {
+  try {
+    const raw = await loadSnapshot<Partial<PersistedState>>(STORE_NAME);
+    if (raw) {
+      // applyState performs the schedule migrations (timeOfDay, nextRunAt)
+      // for snapshots persisted by older builds.
+      applyState(raw);
+      logger.info(
+        {
+          versions: savedVersions.length,
+          schedules: schedules.length,
+          reviewItems: reviewInbox.length,
+        },
+        "generate store loaded from database",
+      );
+      return;
+    }
+    // Fresh database: seed the store from the committed demo snapshot and
+    // persist it so the Generate module (Review inbox, Scheduled, Versions)
+    // is populated out of the box instead of empty.
     applyState(GENERATE_STORE_SEED as unknown as Partial<PersistedState>);
     logger.info(
       {
@@ -252,37 +266,6 @@ function load(): void {
       "generate store seeded from committed demo snapshot",
     );
     persist();
-    return;
-  }
-  try {
-    const raw = JSON.parse(readFileSync(STORE_PATH, "utf8")) as Partial<PersistedState>;
-    savedVersions = Array.isArray(raw.savedVersions) ? raw.savedVersions : [];
-    schedules = Array.isArray(raw.schedules) ? raw.schedules : [];
-    reviewInbox = Array.isArray(raw.reviewInbox) ? raw.reviewInbox : [];
-    scheduledDraftIndex = new Map(Object.entries(raw.scheduledDraftIndex ?? {}));
-    editorialReviews = Array.isArray(raw.editorialReviews) ? raw.editorialReviews : [];
-    notifications = Array.isArray(raw.notifications) ? raw.notifications : [];
-    deliveries = Array.isArray(raw.deliveries) ? raw.deliveries : [];
-    publications = Array.isArray(raw.publications) ? raw.publications : [];
-    // Migration: schedules persisted before the automatic scheduler existed
-    // have no nextRunAt — derive it so they join the timer without re-creation.
-    for (const s of schedules) {
-      // Migration: schedules persisted before time-of-day existed keep the
-      // legacy interval behaviour (timeOfDay: null).
-      if (typeof s.timeOfDay !== "string") s.timeOfDay = null;
-      if (!s.nextRunAt) {
-        s.nextRunAt = computeNextRunAt(s.frequency, s.lastRunAt ?? s.createdAt, s.timeOfDay);
-      }
-    }
-    idCounter = typeof raw.idCounter === "number" ? raw.idCounter : 0;
-    logger.info(
-      {
-        versions: savedVersions.length,
-        schedules: schedules.length,
-        reviewItems: reviewInbox.length,
-      },
-      "generate store loaded from disk",
-    );
   } catch (err) {
     logger.error({ err }, "generate store could not be loaded; starting empty");
     savedVersions = [];
@@ -296,29 +279,21 @@ function load(): void {
   }
 }
 
-function persist(): void {
-  try {
-    const state: PersistedState = {
-      savedVersions,
-      schedules,
-      reviewInbox,
-      scheduledDraftIndex: Object.fromEntries(scheduledDraftIndex),
-      editorialReviews,
-      notifications,
-      deliveries,
-      publications,
-      idCounter,
-    };
-    mkdirSync(dirname(STORE_PATH), { recursive: true });
-    const tmp = `${STORE_PATH}.tmp`;
-    writeFileSync(tmp, JSON.stringify(state), "utf8");
-    renameSync(tmp, STORE_PATH);
-  } catch (err) {
-    logger.error({ err }, "generate store could not be persisted");
-  }
-}
+const writer = createSnapshotWriter(STORE_NAME, (): PersistedState => ({
+  savedVersions,
+  schedules,
+  reviewInbox,
+  scheduledDraftIndex: Object.fromEntries(scheduledDraftIndex),
+  editorialReviews,
+  notifications,
+  deliveries,
+  publications,
+  idCounter,
+}));
 
-load();
+function persist(): void {
+  writer.schedule();
+}
 
 // Deterministic hash of the governed CONTENT of a draft (ignores volatile fields
 // like guardian verdict and provenance flags), used to bind an approval to the

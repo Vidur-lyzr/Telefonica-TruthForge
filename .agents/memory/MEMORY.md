@@ -24,7 +24,7 @@
 - [Lazy schedule runs](lazy-schedule-runs.md) — no-daemon recurring runs: mark-run-before-compose on lazy reads, compose-before-persist on create, 400 on unknown roleId (never fallback).
 - [Q&A internal notes keying](qa-notes-keying.md) — notes keyed by normalized question (survive refine), excluded from content hash, stripped server-side for external exports.
 - [Corpus parallel authoring](corpus-parallel-authoring.md) — unique id prefixes + shared brief let parallel authors scale the corpus collision-free; .gitagent state self-mutates.
-- [Session-token test harness](session-token-test-harness.md) — curl-test team-gated routes by minting HMAC session cookies from SESSION_SECRET; never add test users; clean synthetic audit data after.
+- [Session-token test harness](session-token-test-harness.md) — curl-test team-gated routes by minting HMAC session cookies; never add test users; clean synthetic audit data after.
 - [SSE proxy buffering](sse-proxy-buffering.md) — SSE routes hang in the browser (works via curl) unless `X-Accel-Buffering: no` header is set; Replit proxy buffers otherwise.
 - [Wiki compile-on-miss governance](wiki-compile-on-miss.md) — per-scope compiles; confidentiality AND area derive from ALL shown chunks; never reuse a slug-colliding page without an access check.
 - [Eval golden calibration](eval-golden-calibration.md) — corpus graze docs flip blocked goldens to honest answered; recalibrate by replay+grounding; hallucination = ungrounded citations only.
@@ -46,8 +46,9 @@
 - [PDF export tooling](pdf-export-tooling.md) — no headless browser; use pdfkit via createRequire; keep pdfkit margins.bottom tiny when paginating manually or footers spawn blank pages.
 - [Section-body sanitiser](section-body-sanitiser.md) — LLM bodies need prompt + server sanitiser + client pre-pass; pipe-row grouping has pitfalls.
 - [Sentinel intent routing](sentinel-intent-routing.md) — in-view chat agents: no lexical gates; model judges intent via suppressed sentinel tokens; governance stays pre-model.
-- [Structured upload chunking](structured-upload-chunking.md) — slide/spreadsheet extraction must emit `##` markers + structured flag; the prose heading heuristic eats every terse line and yields zero chunks.
-- [Production cwd & disk assets](prod-cwd-disk-assets.md) — api-server prod runs from workspace root (cwd/agent absent); copy disk files into dist + resolve via module dir; seed dev-only .data demo data.
+- [Structured upload chunking](structured-upload-chunking.md) — slide/spreadsheet extraction must emit `##` markers + structured flag; the prose heading heuristic yields zero chunks on terse lines.
+- [Production cwd & disk assets](prod-cwd-disk-assets.md) — api-server prod runs from workspace root; copy disk files into dist + resolve via module dir; seed dev-only .data demo data.
+- [DB write-behind stores](db-write-behind-stores.md) — flushNow must drain non-empty queues (failed flush leaves no timer); no whole-set deletes on autoscale; instance-tag generated ids.
 - [Generate templateId & tone wiring](generate-template-and-tone.md) — UI uses /generate/jobs (not /generate); thread new GenerateInput fields into BOTH; tone must read getTonePrinciples() live.
 - [Gitignored .data on deploy](gitignored-data-on-deploy.md) — file-backed stores under .data start empty on fresh deploy (gitignored); ship a committed code seed loaded when the file is absent.
 - [Ask stream aborted on load](ask-stream-abort-on-persona-init.md) — persona-switch abort effect must skip the initial ""→persona transition or it kills the Home ?q= auto-run's first request.

@@ -65,7 +65,7 @@ const ERROR_CLASSES: readonly TriageErrorClass[] = [
 
 // L2 — record a verdict on an Ask answer. Any persona who can use the
 // modules can report; the trace snapshot rides along when the turn had one.
-router.post("/quality/feedback", (req, res) => {
+router.post("/quality/feedback", async (req, res) => {
   const parsed = SubmitQualityFeedbackBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request body.", code: "invalid_body" });
@@ -92,7 +92,7 @@ router.post("/quality/feedback", (req, res) => {
     lang: body.lang ?? null,
     auditId,
     // Snapshot NOW — the rolling F3 log evicts old entries, the report must not.
-    retrievalTrace: auditId ? (getRetrievalAuditEntry(auditId) ?? null) : null,
+    retrievalTrace: auditId ? ((await getRetrievalAuditEntry(auditId)) ?? null) : null,
   });
   req.log.info(
     { feedbackId: entry.id, verdict: entry.verdict, roleId: entry.roleId, auditId },

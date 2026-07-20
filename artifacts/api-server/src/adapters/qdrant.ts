@@ -15,7 +15,13 @@
 import { DOCS, CLEARANCE_RANK, type Area, type Clearance } from "../data/corpus";
 import { tokenize } from "./text";
 
-export const QDRANT_COLLECTION = "hub_ssot_chunks";
+// Separate collections per environment: production keeps the original
+// collection name; development seeds and searches its own, so local corpus
+// experiments can never touch what the deployed app retrieves from.
+// QDRANT_COLLECTION overrides both when set explicitly.
+export const QDRANT_COLLECTION =
+  process.env.QDRANT_COLLECTION ??
+  (process.env.NODE_ENV === "production" ? "hub_ssot_chunks" : "hub_ssot_chunks_dev");
 const DENSE_MODEL = "sentence-transformers/all-minilm-l6-v2";
 const DENSE_SIZE = 384;
 

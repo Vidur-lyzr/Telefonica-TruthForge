@@ -3,14 +3,13 @@
 // retrieval trace, and the triage queue embedded on each feedback entry
 // (classify → corrective action → re-evaluation).
 //
-// No database is used (project constraint). State is held in memory and
-// persisted as a JSON snapshot on every mutation, mirroring generateStore.
-// Runs that were mid-flight when the server stopped are marked failed at
-// load — a half-measured scorecard is never presented as a finished one.
+// State is held in memory and write-through persisted to the store_snapshots
+// table on every mutation, mirroring generateStore. Runs that were mid-flight
+// when the server stopped are marked failed at load — a half-measured
+// scorecard is never presented as a finished one.
 
-import { mkdirSync, readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { logger } from "../lib/logger";
+import { loadSnapshot, createSnapshotWriter } from "./dbSnapshot";
 import { GOLDEN_QUESTIONS, type GoldenQuestion } from "./goldenSet";
 import type { RetrievalLogEntry } from "./retrievalLog";
 
@@ -142,7 +141,7 @@ export function computeMetrics(results: EvalResultRow[]): EvalRunMetrics {
 
 // ---- Persistence ---------------------------------------------------------
 
-const STORE_PATH = join(process.cwd(), ".data", "quality-store.json");
+const STORE_NAME = "quality-store";
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_RUNS = 60;
 const MAX_FEEDBACK = 500;
@@ -161,16 +160,16 @@ let nextEvalAt: string | null = null;
 let idCounter = 0;
 let seeded = false;
 
+const writer = createSnapshotWriter(STORE_NAME, (): PersistedState => ({
+  runs,
+  feedback,
+  nextEvalAt,
+  idCounter,
+  seeded,
+}));
+
 function persist(): void {
-  try {
-    mkdirSync(dirname(STORE_PATH), { recursive: true });
-    const tmp = `${STORE_PATH}.tmp`;
-    const state: PersistedState = { runs, feedback, nextEvalAt, idCounter, seeded };
-    writeFileSync(tmp, JSON.stringify(state), "utf8");
-    renameSync(tmp, STORE_PATH);
-  } catch (err) {
-    logger.error({ err }, "quality store: persist failed — state remains in memory only");
-  }
+  writer.schedule();
 }
 
 function nextId(prefix: string): string {
@@ -189,10 +188,10 @@ function nextMondayMorning(from: Date): string {
   return next.toISOString();
 }
 
-function load(): void {
+async function loadFromDb(): Promise<void> {
   try {
-    if (!existsSync(STORE_PATH)) return;
-    const raw = JSON.parse(readFileSync(STORE_PATH, "utf8")) as Partial<PersistedState>;
+    const raw = await loadSnapshot<Partial<PersistedState>>(STORE_NAME);
+    if (!raw) return;
     runs = Array.isArray(raw.runs) ? raw.runs : [];
     feedback = Array.isArray(raw.feedback) ? raw.feedback : [];
     nextEvalAt = typeof raw.nextEvalAt === "string" ? raw.nextEvalAt : null;
@@ -439,8 +438,10 @@ function seedIfEmpty(): void {
   persist();
 }
 
-load();
-seedIfEmpty();
+export async function initQualityStore(): Promise<void> {
+  await loadFromDb();
+  seedIfEmpty();
+}
 
 // ---- Golden set -----------------------------------------------------------
 

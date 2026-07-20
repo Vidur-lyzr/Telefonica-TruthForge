@@ -118,7 +118,7 @@ async function evaluateGolden(golden: GoldenQuestion): Promise<EvalResultRow> {
     let ungroundedCitation = false;
     const auditId = result.auditId ?? null;
     if (citationsTotal > 0 && auditId) {
-      const trace = getRetrievalAuditEntry(auditId);
+      const trace = await getRetrievalAuditEntry(auditId);
       if (trace) {
         const retrievedDocIds = new Set(
           trace.events.flatMap((e) => e.hits.filter((h) => h.accessible).map((h) => h.docId)),

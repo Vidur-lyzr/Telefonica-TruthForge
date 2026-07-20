@@ -4,15 +4,14 @@
 // single owner of the versioned taxonomy configuration with its governed
 // re-tagging pipeline.
 //
-// Persistence is a small JSON file (no database, per project constraints):
-// applied taxonomy versions survive a restart and are re-applied to the
-// in-memory corpus at boot. Applying a version mutates document METADATA only
-// (axis mapping, topics, axis labels) — chunks, embeddings and the retrieval
-// index are untouched. That is the point: re-tagging is a configuration
-// change, not a re-index.
+// Persistence is a store_snapshots row in Postgres: applied taxonomy
+// versions survive restarts and instance recycling and are re-applied to the
+// in-memory corpus at boot (initGovernance, before the server listens).
+// Applying a version mutates document METADATA only (axis mapping, topics,
+// axis labels) — chunks, embeddings and the retrieval index are untouched.
+// That is the point: re-tagging is a configuration change, not a re-index.
 
-import fs from "node:fs";
-import path from "node:path";
+import { loadSnapshot, createSnapshotWriter } from "./dbSnapshot";
 import {
   DOCS,
   AXES,
@@ -152,29 +151,17 @@ interface GovernanceFile {
 
 const SEED_VERSION = 4; // the synthetic corpus ships classified against v4
 
-const STORE_DIR = path.resolve(process.cwd(), ".data");
-const STORE_FILE = path.join(STORE_DIR, "governance.json");
+const STORE_NAME = "governance";
 
 let versions: TaxonomyVersion[] = [];
 
-function loadFile(): GovernanceFile {
-  try {
-    const raw = fs.readFileSync(STORE_FILE, "utf8");
-    const parsed = JSON.parse(raw) as GovernanceFile;
-    if (Array.isArray(parsed.versions)) return parsed;
-  } catch {
-    // First boot or unreadable file — start from the seed taxonomy.
-  }
-  return { versions: [] };
-}
+const writer = createSnapshotWriter(
+  STORE_NAME,
+  (): GovernanceFile => ({ versions, audit: persistedAudit }),
+);
 
 function persist(): void {
-  fs.mkdirSync(STORE_DIR, { recursive: true });
-  fs.writeFileSync(
-    STORE_FILE,
-    JSON.stringify({ versions, audit: persistedAudit } satisfies GovernanceFile, null, 2),
-    "utf8",
-  );
+  writer.schedule();
 }
 
 // Applies structural axis ops to an axis catalogue (live AXES or a rollback
@@ -240,9 +227,19 @@ const SEED_DOC_TAGS = new Map<string, { axisIds: string[]; topics: string[] }>(
 
 // Boot: re-apply every persisted version, in order, to the in-memory corpus,
 // and rehydrate persisted governance audit entries into the in-memory log.
+// MUST run (initStores) before the server accepts requests: access decisions
+// and axis metadata depend on the replayed taxonomy.
 let persistedAudit: AuditEntry[] = [];
-{
-  const file = loadFile();
+
+export async function initGovernance(): Promise<void> {
+  let file: GovernanceFile = { versions: [] };
+  try {
+    const raw = await loadSnapshot<GovernanceFile>(STORE_NAME);
+    if (raw && Array.isArray(raw.versions)) file = raw;
+  } catch {
+    // Fail soft to the seed taxonomy — same behaviour as an unreadable file.
+    file = { versions: [] };
+  }
   versions = file.versions.sort((a, b) => a.version - b.version);
   for (const v of versions) applyVersionToCorpus(v);
   if (Array.isArray(file.audit)) {

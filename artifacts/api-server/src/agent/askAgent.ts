@@ -502,7 +502,7 @@ async function conversationalTurnResult(opts: {
   try {
     // Pre-model quota gate: throws QuotaExceededError before any tokens are
     // spent when the acting user's monthly allocation is exhausted.
-    const actingEmail = gateQuota();
+    const actingEmail = await gateQuota();
     const run = await runAgent({
       prompt: `User said: ${question}`,
       systemPromptSuffix: conversationalSystem,
@@ -1174,7 +1174,7 @@ export async function runAskAgent(
     // Pre-model quota gate: refuse BEFORE the agent run when the acting
     // user's monthly allocation is exhausted. A quota refusal must never
     // degrade into the direct-model fallback (it would refuse identically).
-    const actingEmail = gateQuota();
+    const actingEmail = await gateQuota();
     const run = await runAgent({
       prompt: userPrompt,
       systemPromptSuffix: systemPrompt,
