@@ -19,6 +19,8 @@ export interface SessionPayload {
   team: string;
   exp: number;
   v: number;
+  /** Session id — groups observatory events into a single sitting. */
+  sid: string;
 }
 
 function sign(data: string): string {
@@ -31,6 +33,7 @@ export function createSessionToken(email: string, team: string): string {
     team,
     exp: Date.now() + SESSION_TTL_MS,
     v: TOKEN_VERSION,
+    sid: `s-${crypto.randomBytes(8).toString("hex")}`,
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${body}.${sign(body)}`;
@@ -51,6 +54,15 @@ export function verifySessionToken(token: string | undefined): SessionPayload | 
     if (typeof payload.email !== "string" || typeof payload.exp !== "number") return null;
     if (payload.v !== TOKEN_VERSION) return null;
     if (Date.now() > payload.exp) return null;
+    if (typeof payload.sid !== "string" || !payload.sid) {
+      // Token minted before session ids existed: derive a stable synthetic id
+      // so its events still group into one sitting until the token expires.
+      payload.sid = `legacy-${crypto
+        .createHash("sha256")
+        .update(`${payload.email}:${payload.exp}`)
+        .digest("hex")
+        .slice(0, 16)}`;
+    }
     return payload;
   } catch {
     return null;
