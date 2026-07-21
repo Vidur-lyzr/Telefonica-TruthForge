@@ -14,7 +14,6 @@ import { THEME_COLORS } from "../exportTheme";
 import { brandFontPath, brandMarkPng } from "../brandAssets";
 import { iconPng } from "../iconSet";
 import { backgroundPng } from "../backgroundArt";
-import { mapPng } from "../mapArt";
 import { buildSlides } from "../slideModel";
 import type { VisualSlideModel } from "../visualLayouts";
 
@@ -230,18 +229,6 @@ export function drawVisualOps(doc: PDFKit.PDFDocument, slide: VisualSlideModel):
       case "bg": {
         const bg = backgroundPng(op.variant);
         doc.image(bg, 0, 0, { width: 13.33 * IN, height: 7.5 * IN });
-        break;
-      }
-      case "map": {
-        // Unsupported region renders nothing — honest absence.
-        const map = mapPng(op.region, Math.max(400, Math.round(op.w * 192)), op.base, op.highlight);
-        if (map) {
-          doc.image(map, op.x * IN, op.y * IN, {
-            fit: [op.w * IN, op.h * IN],
-            align: "center",
-            valign: "center",
-          });
-        }
         break;
       }
       case "line": {

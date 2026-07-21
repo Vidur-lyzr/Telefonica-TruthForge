@@ -31,6 +31,7 @@ export interface GenerateStrings {
     nlEvidenceNone: string;
 
     tplPanelTitle: string;
+    tplPanelHint: string;
     tplUse: string;
     tplSections: string;
     tplLoading: string;
@@ -406,18 +407,20 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlEvidenceNone:
         "No governed evidence matched this description — the draft would likely come back empty. Rephrase it or pick an example below.",
 
-      tplPanelTitle: "Or start from a corporate template in the Brand Room",
+      tplPanelTitle: "Corporate template",
+      tplPanelHint:
+        "The right Brand Room template is pre-selected from your brief — pick a different card to override it.",
       tplUse: "Use this template",
       tplSections: "Template structure",
       tplLoading: "Loading preview...",
       tplPagePreview: "Page preview",
-      poolTitle: "Visual layout pool",
+      poolTitle: "Visual-heavy layouts",
       poolHint:
         "Slide layouts the deck composer can pick from — Telefónica core layouts plus layouts extracted from your approved master decks.",
       poolCore: "Core",
       poolLoading: "Loading layouts...",
       poolPickHint:
-        "Tap layouts to limit the deck to your selection — the composer will build the slides from your picks only. Leave everything unselected and it chooses automatically. The cover and closing slides are always included.",
+        "Image-led layouts built on your approved brand-library photos. Tap to limit the deck to your picks — leave everything unselected and the composer chooses automatically. The cover and closing slides are always included.",
       poolPickAuto: "Automatic — the composer picks the best-fitting layouts.",
       poolPickCount: (n: number) =>
         n === 1 ? "1 layout selected" : `${n} layouts selected`,
@@ -847,18 +850,20 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlEvidenceNone:
         "Ninguna evidencia gobernada coincide con esta descripción — el borrador probablemente saldría vacío. Reformúlala o elige un ejemplo de abajo.",
 
-      tplPanelTitle: "O empieza desde una plantilla corporativa del Brand Room",
+      tplPanelTitle: "Plantilla corporativa",
+      tplPanelHint:
+        "La plantilla adecuada del Brand Room se preselecciona según su brief — elija otra tarjeta para cambiarla.",
       tplUse: "Usar esta plantilla",
       tplSections: "Estructura de la plantilla",
       tplLoading: "Cargando vista previa...",
       tplPagePreview: "Vista previa de página",
-      poolTitle: "Fondo de diseños visuales",
+      poolTitle: "Diseños con imagen protagonista",
       poolHint:
         "Diseños de diapositiva entre los que elige el compositor de presentaciones: los diseños base de Telefónica más los extraídos de sus presentaciones maestras aprobadas.",
       poolCore: "Base",
       poolLoading: "Cargando diseños...",
       poolPickHint:
-        "Toque los diseños para limitar la presentación a su selección: el compositor construirá las diapositivas solo con sus elegidos. Si no selecciona ninguno, elige automáticamente. Las diapositivas de portada y cierre se incluyen siempre.",
+        "Diseños centrados en imagen, construidos con las fotos aprobadas de su biblioteca de marca. Toque para limitar la presentación a sus elegidos — sin selección, el compositor elige automáticamente. Las diapositivas de portada y cierre se incluyen siempre.",
       poolPickAuto: "Automático — el compositor elige los diseños que mejor encajan.",
       poolPickCount: (n: number) =>
         n === 1 ? "1 diseño seleccionado" : `${n} diseños seleccionados`,
@@ -1296,18 +1301,20 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlEvidenceNone:
         "Keine kontrollierten Belege passen zu dieser Beschreibung — der Entwurf käme vermutlich leer zurück. Formulieren Sie sie um oder wählen Sie unten ein Beispiel.",
 
-      tplPanelTitle: "Oder mit einer Unternehmensvorlage aus dem Brand Room starten",
+      tplPanelTitle: "Unternehmensvorlage",
+      tplPanelHint:
+        "Die passende Brand-Room-Vorlage ist anhand Ihres Briefings vorausgewählt — wählen Sie eine andere Karte, um sie zu ändern.",
       tplUse: "Diese Vorlage verwenden",
       tplSections: "Aufbau der Vorlage",
       tplLoading: "Vorschau wird geladen...",
       tplPagePreview: "Seitenvorschau",
-      poolTitle: "Visueller Layout-Pool",
+      poolTitle: "Bildstarke Layouts",
       poolHint:
         "Folienlayouts, aus denen der Deck-Komponist wählt — die Telefónica-Kernlayouts plus die aus Ihren freigegebenen Master-Decks extrahierten Layouts.",
       poolCore: "Kern",
       poolLoading: "Layouts werden geladen...",
       poolPickHint:
-        "Tippen Sie auf Layouts, um das Deck auf Ihre Auswahl zu beschränken — der Komponist baut die Folien nur aus Ihren gewählten Layouts. Ohne Auswahl wählt er automatisch. Titel- und Schlussfolie sind immer enthalten.",
+        "Bildgeführte Layouts auf Basis der freigegebenen Fotos Ihrer Markenbibliothek. Tippen Sie, um das Deck auf Ihre Auswahl zu beschränken — ohne Auswahl wählt der Komponist automatisch. Titel- und Schlussfolie sind immer enthalten.",
       poolPickAuto: "Automatisch — der Komponist wählt die passendsten Layouts.",
       poolPickCount: (n: number) =>
         n === 1 ? "1 Layout ausgewählt" : `${n} Layouts ausgewählt`,
@@ -1744,18 +1751,20 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlEvidenceNone:
         "Nenhuma evidência governada corresponde a esta descrição — o rascunho provavelmente voltaria vazio. Reformule-a ou escolha um exemplo abaixo.",
 
-      tplPanelTitle: "Ou comece a partir de um modelo corporativo do Brand Room",
+      tplPanelTitle: "Modelo corporativo",
+      tplPanelHint:
+        "O modelo certo do Brand Room é pré-selecionado a partir do seu brief — escolha outro cartão para substituí-lo.",
       tplUse: "Usar este modelo",
       tplSections: "Estrutura do modelo",
       tplLoading: "Carregando pré-visualização...",
       tplPagePreview: "Pré-visualização de página",
-      poolTitle: "Acervo de layouts visuais",
+      poolTitle: "Layouts com imagem em destaque",
       poolHint:
         "Layouts de slide que o compositor de apresentações pode escolher — os layouts base da Telefónica mais os extraídos dos seus decks mestres aprovados.",
       poolCore: "Base",
       poolLoading: "Carregando layouts...",
       poolPickHint:
-        "Toque nos layouts para limitar o deck à sua seleção — o compositor monta os slides apenas com os escolhidos. Sem seleção, ele escolhe automaticamente. Os slides de capa e encerramento são sempre incluídos.",
+        "Layouts guiados por imagem, construídos com as fotos aprovadas da sua biblioteca de marca. Toque para limitar o deck aos escolhidos — sem seleção, o compositor escolhe automaticamente. Os slides de capa e encerramento são sempre incluídos.",
       poolPickAuto: "Automático — o compositor escolhe os layouts mais adequados.",
       poolPickCount: (n: number) =>
         n === 1 ? "1 layout selecionado" : `${n} layouts selecionados`,

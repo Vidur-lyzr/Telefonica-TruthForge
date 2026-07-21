@@ -1678,6 +1678,29 @@ function layoutPreviewUrl(layoutId: string): string {
   return `${import.meta.env.BASE_URL}api/generate/visual-layout-preview?layoutId=${encodeURIComponent(layoutId)}`;
 }
 
+// Default corporate template for a brief: document shapes map to their
+// blueprint template; visual decks split by deliverable format (weekly
+// activity report vs corporate deck). Falls back to the first visible
+// template of the shape when the preferred id is not in the persona's list.
+function defaultTemplateIdFor(
+  shape: Shape,
+  format: string,
+  templates: BrandTemplateSummary[],
+): string | null {
+  const preferred =
+    shape === "visualdeck"
+      ? format === "weekly_activity_report"
+        ? "tmpl-visual-weekly"
+        : "tmpl-visual-corporate"
+      : shape === "messaging"
+        ? "tmpl-messaging"
+        : shape === "press"
+          ? "tmpl-press"
+          : "tmpl-multiformat";
+  if (templates.some((bt) => bt.id === preferred)) return preferred;
+  return templates.find((bt) => bt.shape === shape)?.id ?? null;
+}
+
 // A rendered sample slide of one pool layout: 16:9 thumbnail, layout name,
 // and a source tag (deck of origin for extracted layouts, "Core" for coded).
 // With `onToggle` the card becomes selectable (brief form); without it the
@@ -1758,21 +1781,15 @@ function LayoutPoolCard({
 function TemplateStartPreview({
   templateId,
   roleId,
-  onUse,
 }: {
   templateId: string;
   roleId?: string;
-  onUse: (shape: string) => void;
 }) {
   const { lang } = useApp();
   const t = GENERATE_I18N[lang].form;
   const { data, isLoading } = useGetBrandTemplate(
     roleId ? { templateId, roleId } : { templateId },
   );
-  const isVisualDeck = data?.template?.shape === "visualdeck";
-  const poolQ = useGetVisualLayoutPool({
-    query: { queryKey: getGetVisualLayoutPoolQueryKey(), enabled: isVisualDeck },
-  });
   if (isLoading) {
     return (
       <Text2 regular color={c.textSecondary}>
@@ -1842,41 +1859,6 @@ function TemplateStartPreview({
               </Text1>
             ))}
           </Stack>
-          {isVisualDeck && (
-            <Stack space={8}>
-              <Divider />
-              <Stack space={4}>
-                <Text1 medium color={c.textSecondary}>
-                  {t.poolTitle}
-                </Text1>
-                <Text1 regular color={c.textSecondary}>
-                  {t.poolHint}
-                </Text1>
-              </Stack>
-              {poolQ.isLoading ? (
-                <Text1 regular color={c.textSecondary}>
-                  {t.poolLoading}
-                </Text1>
-              ) : (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  {(poolQ.data?.layouts ?? []).map((layout) => (
-                    <LayoutPoolCard key={layout.id} layout={layout} coreLabel={t.poolCore} />
-                  ))}
-                </div>
-              )}
-            </Stack>
-          )}
-          <Inline space={8}>
-            <ButtonPrimary small onPress={() => onUse(tpl.shape)}>
-              {t.tplUse}
-            </ButtonPrimary>
-          </Inline>
         </Stack>
       </Box>
     </Boxed>
@@ -1906,6 +1888,11 @@ function BriefForm({
   const [pickedTemplateId, setPickedTemplateId] = React.useState<string | null>(
     initial?.templateId ?? null,
   );
+  // A template card is always selected: the default follows the brief's
+  // shape/format until the user explicitly picks a card (or a restored /
+  // suggested brief carries one) — then their choice wins while it still
+  // matches the shape.
+  const templateTouchedRef = React.useRef(initial?.templateId != null);
   const [mode, setMode] = React.useState<"form" | "chat">("form");
   const [shape, setShape] = React.useState<Shape>(initialShape);
   const [topic, setTopic] = React.useState(initial?.topic ?? "");
@@ -1968,6 +1955,24 @@ function BriefForm({
     prevShapeRef.current = shape;
     setFormat(FORMAT_OPTIONS[shape][0].value);
   }, [shape]);
+
+  // Keep a corporate template card selected at all times. Waits for the
+  // template list so a restored templateId is never clobbered on re-mount;
+  // an explicit pick survives shape/format changes only while its shape
+  // still matches the brief.
+  const briefTemplates = brandTemplatesQ.data?.templates;
+  React.useEffect(() => {
+    if (!briefTemplates || briefTemplates.length === 0) return;
+    const current = pickedTemplateId
+      ? briefTemplates.find((bt) => bt.id === pickedTemplateId)
+      : undefined;
+    if (current && current.shape === shape && templateTouchedRef.current) return;
+    if (!current || current.shape !== shape) templateTouchedRef.current = false;
+    const def = defaultTemplateIdFor(shape, format, briefTemplates);
+    if (!templateTouchedRef.current && def && def !== pickedTemplateId) {
+      setPickedTemplateId(def);
+    }
+  }, [briefTemplates, shape, format, pickedTemplateId]);
 
   // Prefill handed over from the KPIs page ("Generate KPI report").
   React.useEffect(() => {
@@ -2048,7 +2053,10 @@ function BriefForm({
 
   const applyFromSuggestion = (s: TemplateSuggestion) => {
     if (s.shape in SHAPE_META) setShape(s.shape as Shape);
-    if (s.templateId) setPickedTemplateId(s.templateId);
+    if (s.templateId) {
+      templateTouchedRef.current = true;
+      setPickedTemplateId(s.templateId);
+    }
     applySuggested(s.brief);
   };
 
@@ -2179,6 +2187,12 @@ function BriefForm({
       fields.language && LANGUAGE_OPTIONS.some((l) => l.value === fields.language)
         ? fields.language
         : language;
+    // The chat can override the shape — a template picked under another shape
+    // must not frame this draft; the server then falls back to the shape's
+    // default blueprint.
+    const chatTemplate = pickedTemplateId
+      ? (brandTemplatesQ.data?.templates ?? []).find((bt) => bt.id === pickedTemplateId)
+      : undefined;
     setMode("form");
     onGenerate(
       buildValues(fields.topic?.trim() || topic, {
@@ -2190,6 +2204,8 @@ function BriefForm({
         format: FORMAT_OPTIONS[chatShape][0].value,
         spokesperson: fields.spokesperson?.trim() || null,
         eventDate: fields.eventDate?.trim() || null,
+        templateId:
+          chatTemplate && chatTemplate.shape === chatShape ? chatTemplate.id : null,
         // The chat can override the shape — a layout selection made under the
         // visualdeck form must not ride along into a non-deck draft.
         layoutIds: chatShape === "visualdeck" ? layoutIds : [],
@@ -2408,26 +2424,84 @@ function BriefForm({
                   {t.tplPanelTitle}
                 </Text2>
               </Inline>
-              <Inline space={8} wrap>
-                {(brandTemplatesQ.data?.templates ?? []).map((bt: BrandTemplateSummary) => (
-                  <Chip
-                    key={bt.id}
-                    active={pickedTemplateId === bt.id}
-                    onPress={() =>
-                      setPickedTemplateId((curr) => (curr === bt.id ? null : bt.id))
-                    }
-                  >
-                    {bt.name}
-                  </Chip>
-                ))}
-              </Inline>
+              <Text1 regular color={c.textSecondary}>
+                {t.tplPanelHint}
+              </Text1>
+              <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+                {(brandTemplatesQ.data?.templates ?? []).map((bt: BrandTemplateSummary) => {
+                  const selected = pickedTemplateId === bt.id;
+                  const pick = () => {
+                    templateTouchedRef.current = true;
+                    setPickedTemplateId(bt.id);
+                    if (bt.shape in SHAPE_META) setShape(bt.shape as Shape);
+                  };
+                  return (
+                    <div
+                      key={bt.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={selected}
+                      aria-label={bt.name}
+                      onClick={pick}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          pick();
+                        }
+                      }}
+                      style={{
+                        cursor: "pointer",
+                        flex: "0 0 auto",
+                        width: 216,
+                        borderRadius: skinVars.borderRadii.container,
+                        outline: selected ? `2px solid ${c.brand}` : "none",
+                        outlineOffset: 1,
+                      }}
+                    >
+                      <Boxed>
+                        <Box padding={8}>
+                          <Stack space={8}>
+                            <div
+                              style={{
+                                borderRadius: 8,
+                                overflow: "hidden",
+                                border: `1px solid ${c.border}`,
+                                aspectRatio: "16 / 10",
+                                background: c.backgroundAlternative,
+                              }}
+                            >
+                              <img
+                                src={templatePagePreviewUrl(bt.previewTemplateId, "cover")}
+                                alt={bt.name}
+                                loading="lazy"
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                  objectPosition: "top",
+                                  display: "block",
+                                }}
+                              />
+                            </div>
+                            <Stack space={4}>
+                              <Text1 medium color={c.textPrimary}>
+                                {bt.name}
+                              </Text1>
+                              <Inline space={4} wrap>
+                                <Tag type={selected ? "promo" : "inactive"}>{bt.format}</Tag>
+                              </Inline>
+                            </Stack>
+                          </Stack>
+                        </Box>
+                      </Boxed>
+                    </div>
+                  );
+                })}
+              </div>
               {pickedTemplateId && (
                 <TemplateStartPreview
                   templateId={pickedTemplateId}
                   roleId={roleId ?? undefined}
-                  onUse={(s) => {
-                    if (s in SHAPE_META) setShape(s as Shape);
-                  }}
                 />
               )}
             </Stack>
@@ -2687,22 +2761,19 @@ function BriefForm({
               </Text1>
             ) : (
               <Stack space={12}>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-                    gap: 12,
-                  }}
-                >
-                  {(briefPoolQ.data?.layouts ?? []).map((layout) => (
-                    <LayoutPoolCard
-                      key={layout.id}
-                      layout={layout}
-                      coreLabel={t.poolCore}
-                      selected={layoutIds.includes(layout.id)}
-                      onToggle={() => toggleLayout(layout.id)}
-                    />
-                  ))}
+                <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+                  {(briefPoolQ.data?.layouts ?? [])
+                    .filter((layout) => layout.imageSlots > 0)
+                    .map((layout) => (
+                      <div key={layout.id} style={{ flex: "0 0 auto", width: 220 }}>
+                        <LayoutPoolCard
+                          layout={layout}
+                          coreLabel={t.poolCore}
+                          selected={layoutIds.includes(layout.id)}
+                          onToggle={() => toggleLayout(layout.id)}
+                        />
+                      </div>
+                    ))}
                 </div>
                 <Inline space={16} alignItems="center">
                   <Text1 regular color={c.textSecondary}>

@@ -239,17 +239,6 @@ const CODED_SAMPLES: Record<string, Record<string, unknown>> = {
     chipLast: true,
     sourceLine: "Source: layout preview",
   },
-  "map-highlight": {
-    title: "Market footprint",
-    region: "europe",
-    stats: [
-      { value: "12", label: "Sample stat one" },
-      { value: "+4.2%", label: "Sample stat two" },
-      { value: "€1.1B", label: "Sample stat three" },
-    ],
-    note: "Placeholder note under the map for this preview.",
-    sourceLine: "Source: layout preview",
-  },
 };
 
 // Placeholder copy for extracted layouts, derived from the spec's own slot

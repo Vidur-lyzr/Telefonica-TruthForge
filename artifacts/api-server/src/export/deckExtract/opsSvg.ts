@@ -11,7 +11,6 @@ import { THEME_COLORS } from "../exportTheme";
 import { SLIDE_W, SLIDE_H, type DrawOp } from "../visualLayouts";
 import { iconPng } from "../iconSet";
 import { backgroundPng } from "../backgroundArt";
-import { mapPng } from "../mapArt";
 import type { ParsedSlide } from "./pptxParse";
 
 const PX_PER_IN = 96;
@@ -175,15 +174,6 @@ export function renderOpsPng(ops: DrawOp[], images: Record<string, Buffer> = {})
         const bg = backgroundPng(op.variant);
         parts.push(
           `<image x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice" href="data:image/png;base64,${bg.toString("base64")}"/>`,
-        );
-        break;
-      }
-      case "map": {
-        // Unsupported region renders nothing — honest absence.
-        const map = mapPng(op.region, Math.max(200, Math.round(op.w * PX_PER_IN * 2)), op.base, op.highlight);
-        if (!map) break;
-        parts.push(
-          `<image x="${px(op.x)}" y="${px(op.y)}" width="${px(op.w)}" height="${px(op.h)}" preserveAspectRatio="xMidYMid meet" href="data:image/png;base64,${map.toString("base64")}"/>`,
         );
         break;
       }

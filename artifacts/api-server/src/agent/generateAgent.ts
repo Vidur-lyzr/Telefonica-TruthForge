@@ -461,7 +461,10 @@ async function compose(
   const format = input.format ?? "document";
   const shape = input.shape;
   const chosenTemplate = input.templateId ? getTemplateById(input.templateId) : undefined;
-  const template = chosenTemplate ?? getTemplate(shape);
+  // A template of another shape must never frame this draft (a stale client
+  // pick could otherwise compose e.g. a press draft on a messaging blueprint).
+  const template =
+    chosenTemplate && chosenTemplate.shape === shape ? chosenTemplate : getTemplate(shape);
   const templateId = template?.id ?? "tmpl-multiformat";
 
   // Dual filter: the model may only see material that BOTH the persona is
@@ -1742,6 +1745,10 @@ export async function refineDraft(
     axisIds: base.params.axisIds,
     spokesperson: base.params.spokesperson ?? null,
     eventDate: base.params.eventDate ?? null,
+    // Refines must keep the blueprint the draft was framed on — omitting it
+    // would silently re-frame non-default templates onto the shape default.
+    // The compose() shape guard makes carrying it over safe.
+    templateId: base.templateId,
     layoutIds: base.params.layoutIds ?? null,
     deckLength: base.params.deckLength ?? null,
   };

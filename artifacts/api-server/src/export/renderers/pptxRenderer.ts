@@ -17,7 +17,6 @@ import { THEME_COLORS } from "../exportTheme";
 import { brandMarkPng, BRAND_FONT_FAMILY } from "../brandAssets";
 import { iconPng } from "../iconSet";
 import { backgroundPng } from "../backgroundArt";
-import { mapPng } from "../mapArt";
 import { buildSlides, type SlideSpec } from "../slideModel";
 
 const hex = (c: string) => c.replace("#", "");
@@ -168,18 +167,6 @@ function addVisualSlide(pptx: PptxGenJS, spec: Extract<SlideSpec, { kind: "visua
           data: `image/png;base64,${bg.toString("base64")}`,
           x: 0, y: 0, w: SLIDE_W, h: SLIDE_H,
         });
-        break;
-      }
-      case "map": {
-        // Unsupported region renders nothing — honest absence.
-        const map = mapPng(op.region, Math.max(400, Math.round(op.w * 192)), op.base, op.highlight);
-        if (map) {
-          s.addImage({
-            data: `image/png;base64,${map.toString("base64")}`,
-            x: op.x, y: op.y, w: op.w, h: op.h,
-            sizing: { type: "contain", w: op.w, h: op.h },
-          });
-        }
         break;
       }
       case "line": {

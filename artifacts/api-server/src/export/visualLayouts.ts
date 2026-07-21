@@ -23,7 +23,6 @@ import { getBrandImage, findImagesByTags } from "../data/imageLibraryStore";
 import { fetchObjectBytes } from "../lib/imageBytes";
 import { renderChart, type ExportSeries } from "./chartEngine";
 import type { BackgroundVariant } from "./backgroundArt";
-import { MAP_REGIONS } from "./mapArt";
 import { ICON_NAMES } from "./iconSet";
 
 const BRAND = THEME_COLORS.brand;
@@ -72,8 +71,6 @@ export type DrawOp =
   | { op: "icon"; icon: string; x: number; y: number; w: number; h: number; color: string }
   // Full-bleed generated background art plate (dark benchmark style).
   | { op: "bg"; variant: BackgroundVariant }
-  // Duotone static region map; unsupported regions render nothing.
-  | { op: "map"; region: string; x: number; y: number; w: number; h: number; base: string; highlight: string }
   | { op: "line"; x: number; y: number; w: number; color: string; pt: number }
   | {
       op: "text";
@@ -1445,58 +1442,6 @@ const kpiTable: VisualLayoutDef = {
   },
 };
 
-// ---- map-highlight ------------------------------------------------------------
-// Duotone region map with highlight + stats column. Regions are a fixed enum
-// so the agent can never request a map that does not exist.
-
-const mapHighlightSchema = z
-  .object({
-    title: short(70),
-    region: z.enum(MAP_REGIONS),
-    stats: z
-      .array(z.object({ value: short(14), label: short(50) }).strict())
-      .min(1)
-      .max(4),
-    note: short(100).optional(),
-    sourceLine: short(90).optional(),
-  })
-  .strict();
-
-const mapHighlight: VisualLayoutDef = {
-  id: "map-highlight",
-  name: "Map highlight",
-  purpose:
-    'Geographic slide: a stylised duotone map of one region — exactly one of "world", "europe", "spain", "brazil", "germany", "uk", "us", "china", "latam" — with 1 to 4 stat callouts (value max 14 chars, label max 50) and optionally a one-line note. Use for market footprints or per-country results. No brand-library image.',
-  schema: mapHighlightSchema,
-  imageSlots: [],
-  previewStyle: "dark",
-  compose(raw, ctx) {
-    const s = mapHighlightSchema.parse(raw);
-    const p = pal(ctx);
-    const ops: DrawOp[] = [...slideBase(ctx, "wash"), ...familyHeader(s.title, p)];
-    ops.push({
-      op: "map", region: s.region, x: 0.8, y: 2.05, w: 7.0, h: 4.375,
-      base: p.dark ? "#33506B" : "#C7D6E8",
-      highlight: BRAND,
-    });
-    const stats = s.stats;
-    const top = 2.2;
-    const step = Math.min(1.3, 4.1 / stats.length);
-    stats.forEach((st, i) => {
-      const y = top + i * step;
-      ops.push({ op: "rect", x: 8.2, y: y + 0.08, w: 0.055, h: 0.82, fill: BRAND });
-      ops.push({ op: "text", text: st.value, x: 8.45, y, w: 4.05, h: 0.6, size: 22, bold: true, color: p.heading, valign: "top" });
-      ops.push({ op: "text", text: st.label, x: 8.45, y: y + 0.56, w: 4.05, h: 0.44, size: 11, color: p.body, valign: "top", lineSpacing: 1.08 });
-    });
-    if (s.note) {
-      ops.push({ op: "text", text: s.note, x: 0.8, y: 6.28, w: 7.0, h: 0.34, size: 10, italic: true, color: p.muted });
-    }
-    ops.push(...sourceRow(s.sourceLine, p));
-    ops.push(...visualFooter(ctx, p.faint));
-    return ops;
-  },
-};
-
 // ---- Registry ----------------------------------------------------------------
 
 export const VISUAL_LAYOUTS: VisualLayoutDef[] = [
@@ -1522,7 +1467,6 @@ export const VISUAL_LAYOUTS: VisualLayoutDef[] = [
   timeline,
   flowSteps,
   kpiTable,
-  mapHighlight,
 ];
 
 const layoutById = new Map(VISUAL_LAYOUTS.map((l) => [l.id, l]));
