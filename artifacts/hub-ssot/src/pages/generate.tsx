@@ -3161,8 +3161,10 @@ function DraftingPipeline({
                   >
                     {done ? (
                       <IconCheckRegular size={16} color={c.success} />
+                    ) : current ? (
+                      <Spinner size={16} color={c.textPrimaryInverse} delay="0s" />
                     ) : (
-                      <Icon size={16} color={current ? c.textPrimaryInverse : c.textSecondary} />
+                      <Icon size={16} color={c.textSecondary} />
                     )}
                   </div>
                   <Text2 medium color={current ? c.textPrimary : done ? c.textPrimary : c.textSecondary}>
