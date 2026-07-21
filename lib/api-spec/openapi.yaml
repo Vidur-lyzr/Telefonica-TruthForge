@@ -8282,6 +8282,17 @@ components:
           anyOf:
             - type: "null"
             - $ref: "#/components/schemas/BriefAttachments"
+        layoutIds:
+          type: ["array", "null"]
+          items:
+            type: string
+          description: >
+            Optional visual-deck layout selection. When present and non-empty
+            the slide composer builds the deck from these pool layouts only
+            (the cover and closing layouts stay available so the deck frame
+            is never broken). Ids must come from GET /generate/visual-layouts;
+            unknown ids are rejected with 400. Ignored for non-visualdeck
+            shapes.
 
     AskHandoffContext:
       type: object
@@ -8369,6 +8380,10 @@ components:
           type: ["string", "null"]
         eventDate:
           type: ["string", "null"]
+        layoutIds:
+          type: ["array", "null"]
+          items:
+            type: string
 
     ChartPoint:
       type: object

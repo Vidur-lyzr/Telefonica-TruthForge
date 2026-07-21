@@ -68,7 +68,10 @@ interface ValidationOutcome {
   errors: string[];
 }
 
-function validateCandidates(candidate: unknown): ValidationOutcome {
+function validateCandidates(
+  candidate: unknown,
+  allowedIds: Set<string> | null,
+): ValidationOutcome {
   const valid: VisualSlideInput[] = [];
   const errors: string[] = [];
   const root = candidate as { slides?: unknown } | null;
@@ -82,6 +85,12 @@ function validateCandidates(candidate: unknown): ValidationOutcome {
     const layout = getVisualLayout(layoutId);
     if (!layout) {
       errors.push(`slide ${i + 1}: unknown layoutId "${layoutId || "(missing)"}"`);
+      return;
+    }
+    if (allowedIds && !allowedIds.has(layout.id)) {
+      errors.push(
+        `slide ${i + 1}: layout "${layout.id}" is not in the author's selection — use only the layouts in the catalogue`,
+      );
       return;
     }
     const slots = sanitizeSlots(slide.slots ?? {});
@@ -99,9 +108,10 @@ function validateCandidates(candidate: unknown): ValidationOutcome {
   return { valid, errors };
 }
 
-function catalogueBlock(hasCharts: boolean): string {
+function catalogueBlock(hasCharts: boolean, allowedIds: Set<string> | null): string {
   return visualLayoutCatalogue()
     .filter((l) => hasCharts || !l.wantsChart)
+    .filter((l) => !allowedIds || allowedIds.has(l.id))
     .map((l) => {
       const layout = getVisualLayout(l.id);
       let schemaDoc = "";
@@ -179,8 +189,25 @@ export async function fillVisualSlides(
   draft: GeneratedDraft,
   language: string,
   log: Logger,
+  preferredLayoutIds?: string[] | null,
 ): Promise<VisualSlideInput[] | null> {
   const hasCharts = draft.charts.length > 0;
+
+  // Author-selected layouts: restrict the catalogue the composer sees to the
+  // selection. The structural cover and closing layouts stay available so the
+  // deck frame is never broken. Ids were validated against the pool at the
+  // route; anything unknown here (e.g. a layout retired since the draft was
+  // created) is dropped rather than guessed. Empty selection = full pool.
+  const knownIds = new Set(visualLayoutCatalogue().map((l) => l.id));
+  const picked = (preferredLayoutIds ?? []).filter((id) => knownIds.has(id));
+  const allowedIds =
+    picked.length > 0 ? new Set([...picked, "photo-cover", "closing"]) : null;
+  if ((preferredLayoutIds?.length ?? 0) > 0) {
+    log.info(
+      { picked, dropped: (preferredLayoutIds ?? []).filter((id) => !knownIds.has(id)) },
+      "visual slides: composing with author-selected layouts",
+    );
+  }
 
   const system = [
     "You are the visual-deck composer of Telefónica's Hub SSoT.",
@@ -199,12 +226,17 @@ export async function fillVisualSlides(
 
 Deck structure rules:
 - Slide 1 MUST be "photo-cover". The last slide MUST be "closing".
-- Use "agenda" early when the deck has 3+ themes; use "section-divider" to open each major theme.
+${
+  allowedIds
+    ? `- The author hand-picked the layouts for this deck. Use ONLY the layouts in the catalogue below — build the substance of the deck from the author's picks, reusing a layout across several slides where it fits. Do not ask for layouts that are not listed.
+- Use each layout's purpose line to decide where it fits. Never use a chart layout when no chart series is listed.`
+    : `- Use "agenda" early when the deck has 3+ themes; use "section-divider" to open each major theme.
 - Prefer content-bearing layouts (news-card, photo-split, kpi-stats, branded-content, results-table${hasCharts ? ", campaign-metrics" : ""}) for the substance; do not pad with dividers.
-- Use each layout's purpose line to decide where it fits. Never use a chart layout when no chart series is listed.
+- Use each layout's purpose line to decide where it fits. Never use a chart layout when no chart series is listed.`
+}
 
 Layout catalogue:
-${catalogueBlock(hasCharts)}
+${catalogueBlock(hasCharts, allowedIds)}
 
 Approved brand image library (use these ids only):
 ${imageBlock()}
@@ -226,7 +258,7 @@ ${documentBlock(draft)}`;
     return null;
   }
 
-  let outcome = validateCandidates(extractJson(raw));
+  let outcome = validateCandidates(extractJson(raw), allowedIds);
 
   // Condense-retry once: send the validation errors back and ask for a fully
   // corrected deck. Valid slides must be returned unchanged.
@@ -251,7 +283,7 @@ Return the COMPLETE corrected {"slides": [...]} JSON again. Keep the slides that
         ],
       });
       const raw2 = message.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
-      const second = validateCandidates(extractJson(raw2));
+      const second = validateCandidates(extractJson(raw2), allowedIds);
       // Take the better of the two attempts — a failed retry must never
       // discard a partially-usable first pass.
       if (second.valid.length >= outcome.valid.length) outcome = second;

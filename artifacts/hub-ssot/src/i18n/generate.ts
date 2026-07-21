@@ -38,6 +38,10 @@ export interface GenerateStrings {
     poolHint: string;
     poolCore: string;
     poolLoading: string;
+    poolPickHint: string;
+    poolPickAuto: string;
+    poolPickCount: (n: number) => string;
+    poolPickClear: string;
 
     shapes: Record<FormShape, { name: string; blurb: string }>;
 
@@ -399,6 +403,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         "Slide layouts the deck composer can pick from — Telefónica core layouts plus layouts extracted from your approved master decks.",
       poolCore: "Core",
       poolLoading: "Loading layouts...",
+      poolPickHint:
+        "Tap layouts to limit the deck to your selection — the composer will build the slides from your picks only. Leave everything unselected and it chooses automatically. The cover and closing slides are always included.",
+      poolPickAuto: "Automatic — the composer picks the best-fitting layouts.",
+      poolPickCount: (n: number) =>
+        n === 1 ? "1 layout selected" : `${n} layouts selected`,
+      poolPickClear: "Clear selection",
 
       shapes: {
         messaging: {
@@ -814,6 +824,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         "Diseños de diapositiva entre los que elige el compositor de presentaciones: los diseños base de Telefónica más los extraídos de sus presentaciones maestras aprobadas.",
       poolCore: "Base",
       poolLoading: "Cargando diseños...",
+      poolPickHint:
+        "Toque los diseños para limitar la presentación a su selección: el compositor construirá las diapositivas solo con sus elegidos. Si no selecciona ninguno, elige automáticamente. Las diapositivas de portada y cierre se incluyen siempre.",
+      poolPickAuto: "Automático — el compositor elige los diseños que mejor encajan.",
+      poolPickCount: (n: number) =>
+        n === 1 ? "1 diseño seleccionado" : `${n} diseños seleccionados`,
+      poolPickClear: "Borrar selección",
 
       shapes: {
         messaging: {
@@ -1237,6 +1253,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         "Folienlayouts, aus denen der Deck-Komponist wählt — die Telefónica-Kernlayouts plus die aus Ihren freigegebenen Master-Decks extrahierten Layouts.",
       poolCore: "Kern",
       poolLoading: "Layouts werden geladen...",
+      poolPickHint:
+        "Tippen Sie auf Layouts, um das Deck auf Ihre Auswahl zu beschränken — der Komponist baut die Folien nur aus Ihren gewählten Layouts. Ohne Auswahl wählt er automatisch. Titel- und Schlussfolie sind immer enthalten.",
+      poolPickAuto: "Automatisch — der Komponist wählt die passendsten Layouts.",
+      poolPickCount: (n: number) =>
+        n === 1 ? "1 Layout ausgewählt" : `${n} Layouts ausgewählt`,
+      poolPickClear: "Auswahl aufheben",
 
       shapes: {
         messaging: {
@@ -1659,6 +1681,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         "Layouts de slide que o compositor de apresentações pode escolher — os layouts base da Telefónica mais os extraídos dos seus decks mestres aprovados.",
       poolCore: "Base",
       poolLoading: "Carregando layouts...",
+      poolPickHint:
+        "Toque nos layouts para limitar o deck à sua seleção — o compositor monta os slides apenas com os escolhidos. Sem seleção, ele escolhe automaticamente. Os slides de capa e encerramento são sempre incluídos.",
+      poolPickAuto: "Automático — o compositor escolhe os layouts mais adequados.",
+      poolPickCount: (n: number) =>
+        n === 1 ? "1 layout selecionado" : `${n} layouts selecionados`,
+      poolPickClear: "Limpar seleção",
 
       shapes: {
         messaging: {

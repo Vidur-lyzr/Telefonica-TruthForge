@@ -2479,7 +2479,8 @@ export const SchedulePlanningForecastResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2671,7 +2672,8 @@ export const SchedulePlanningForecastResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2874,7 +2876,8 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3066,7 +3069,8 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3324,7 +3328,8 @@ export const PlanningForecastResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3385,7 +3390,8 @@ export const GenerateBody = zod.object({
   "attachments": zod.union([zod.null(),zod.object({
   "pastedText": zod.string().nullish().describe('Pasted brief or data provided by the user.'),
   "links": zod.array(zod.string()).optional().describe('Governed source links or references named by the user.')
-})]).optional().describe('User-provided brief attachments (pasted brief\/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval.\n')
+})]).optional().describe('User-provided brief attachments (pasted brief\/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval.\n'),
+  "layoutIds": zod.array(zod.string()).nullish().describe('Optional visual-deck layout selection. When present and non-empty the slide composer builds the deck from these pool layouts only (the cover and closing layouts stay available so the deck frame is never broken). Ids must come from GET \/generate\/visual-layouts; unknown ids are rejected with 400. Ignored for non-visualdeck shapes.\n')
 })
 
 export const GenerateResponse = zod.object({
@@ -3501,7 +3507,8 @@ export const GenerateResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3640,7 +3647,8 @@ export const RefineDocumentBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3775,7 +3783,8 @@ export const RefineDocumentResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3911,7 +3920,8 @@ export const CheckDocumentBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4064,7 +4074,8 @@ export const CanvasSuggestionsBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4217,7 +4228,8 @@ export const CanvasEditBlockBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4354,7 +4366,8 @@ export const CanvasEditBlockResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4685,7 +4698,8 @@ export const RunScheduleResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4831,7 +4845,8 @@ export const ListReviewItemsResponseItem = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4973,7 +4988,8 @@ export const ApproveReviewItemBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5116,7 +5132,8 @@ export const ApproveReviewItemResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5295,7 +5312,8 @@ export const ListVersionsResponseItem = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5433,7 +5451,8 @@ export const SaveVersionBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5583,7 +5602,8 @@ export const SaveVersionResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5721,7 +5741,8 @@ export const ExportDocumentBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5864,7 +5885,8 @@ export const ExportDocumentPackBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6007,7 +6029,8 @@ export const ExportDocumentPreviewBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6265,7 +6288,8 @@ export const RecordEditorialReviewBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6504,7 +6528,8 @@ export const StartGenerateJobBody = zod.object({
   "attachments": zod.union([zod.null(),zod.object({
   "pastedText": zod.string().nullish().describe('Pasted brief or data provided by the user.'),
   "links": zod.array(zod.string()).optional().describe('Governed source links or references named by the user.')
-})]).optional().describe('User-provided brief attachments (pasted brief\/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval.\n')
+})]).optional().describe('User-provided brief attachments (pasted brief\/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval.\n'),
+  "layoutIds": zod.array(zod.string()).nullish().describe('Optional visual-deck layout selection. When present and non-empty the slide composer builds the deck from these pool layouts only (the cover and closing layouts stay available so the deck frame is never broken). Ids must come from GET \/generate\/visual-layouts; unknown ids are rejected with 400. Ignored for non-visualdeck shapes.\n')
 })
 
 export const StartGenerateJobResponse = zod.object({
@@ -6625,7 +6650,8 @@ export const StartGenerateJobResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6768,7 +6794,8 @@ export const StartRefineJobBody = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6908,7 +6935,8 @@ export const StartRefineJobResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -7056,7 +7084,8 @@ export const GetGenerationJobResponse = zod.object({
   "format": zod.string(),
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
-  "eventDate": zod.string().nullish()
+  "eventDate": zod.string().nullish(),
+  "layoutIds": zod.array(zod.string()).nullish()
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),

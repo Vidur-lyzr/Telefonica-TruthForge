@@ -452,6 +452,8 @@ export interface DraftParams {
   spokesperson?: string | null;
   /** @nullable */
   eventDate?: string | null;
+  /** @nullable */
+  layoutIds?: string[] | null;
 }
 
 export interface AskSignals {
@@ -2732,6 +2734,11 @@ export interface GenerateInput {
   askContext?: null | AskHandoffContext;
   /** User-provided brief attachments (pasted brief/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval. */
   attachments?: null | BriefAttachments;
+  /**
+     * Optional visual-deck layout selection. When present and non-empty the slide composer builds the deck from these pool layouts only (the cover and closing layouts stay available so the deck frame is never broken). Ids must come from GET /generate/visual-layouts; unknown ids are rejected with 400. Ignored for non-visualdeck shapes.
+     * @nullable
+     */
+  layoutIds?: string[] | null;
 }
 
 export interface EditorialReviewInput {

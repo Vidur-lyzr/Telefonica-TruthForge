@@ -208,6 +208,9 @@ type BriefValues = {
   kpiContext: KpiReportContext | null;
   askContext: AskHandoffContext | null;
   attachments: BriefAttachments | null;
+  // Visual-deck only: pool layout ids the composer must build the deck from.
+  // Empty = automatic (the composer picks from the full pool).
+  layoutIds: string[];
   // Client-side only: the full Ask handoff payload, kept so "Adjust the brief"
   // can restore the attached-answer panel exactly. Never sent to the API.
   askDraftRaw?: AskDraftHandoff | null;
@@ -1643,8 +1646,20 @@ function layoutPreviewUrl(layoutId: string): string {
 
 // A rendered sample slide of one pool layout: 16:9 thumbnail, layout name,
 // and a source tag (deck of origin for extracted layouts, "Core" for coded).
-function LayoutPoolCard({ layout, coreLabel }: { layout: VisualLayoutInfo; coreLabel: string }) {
-  return (
+// With `onToggle` the card becomes selectable (brief form); without it the
+// card is read-only (template start preview).
+function LayoutPoolCard({
+  layout,
+  coreLabel,
+  selected,
+  onToggle,
+}: {
+  layout: VisualLayoutInfo;
+  coreLabel: string;
+  selected?: boolean;
+  onToggle?: () => void;
+}) {
+  const card = (
     <Boxed>
       <Box padding={8}>
         <Stack space={8}>
@@ -1679,6 +1694,30 @@ function LayoutPoolCard({ layout, coreLabel }: { layout: VisualLayoutInfo; coreL
         </Stack>
       </Box>
     </Boxed>
+  );
+  if (!onToggle) return card;
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      aria-pressed={!!selected}
+      aria-label={layout.name}
+      onClick={onToggle}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggle();
+        }
+      }}
+      style={{
+        cursor: "pointer",
+        borderRadius: skinVars.borderRadii.container,
+        outline: selected ? `2px solid ${c.brand}` : "none",
+        outlineOffset: 1,
+      }}
+    >
+      {card}
+    </div>
   );
 }
 
@@ -1872,6 +1911,12 @@ function BriefForm({
   const [attachmentLinksText, setAttachmentLinksText] = React.useState(
     initial?.attachments?.links?.join("\n") ?? "",
   );
+  const [layoutIds, setLayoutIds] = React.useState<string[]>(initial?.layoutIds ?? []);
+
+  // Layout pool for the visual-deck layout picker; only fetched when relevant.
+  const briefPoolQ = useGetVisualLayoutPool({
+    query: { queryKey: getGetVisualLayoutPoolQueryKey(), enabled: shape === "visualdeck" },
+  });
 
   const changeAudience = (a: Audience) => {
     setAudience(a);
@@ -2000,6 +2045,9 @@ function BriefForm({
   const toggleAxis = (id: string) =>
     setAxisIds((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]));
 
+  const toggleLayout = (id: string) =>
+    setLayoutIds((prev) => (prev.includes(id) ? prev.filter((l) => l !== id) : [...prev, id]));
+
   const briefIsThin = topic.trim().split(/\s+/).filter(Boolean).length < 6;
 
   const buildValues = (finalTopic: string, overrides: Partial<BriefValues> = {}): BriefValues => ({
@@ -2024,6 +2072,7 @@ function BriefForm({
         }
       : null,
     attachments: buildAttachments(),
+    layoutIds: shape === "visualdeck" ? layoutIds : [],
     askDraftRaw: askDraft,
     ...overrides,
   });
@@ -2084,6 +2133,9 @@ function BriefForm({
         format: FORMAT_OPTIONS[chatShape][0].value,
         spokesperson: fields.spokesperson?.trim() || null,
         eventDate: fields.eventDate?.trim() || null,
+        // The chat can override the shape — a layout selection made under the
+        // visualdeck form must not ride along into a non-deck draft.
+        layoutIds: chatShape === "visualdeck" ? layoutIds : [],
       }),
     );
   };
@@ -2553,6 +2605,50 @@ function BriefForm({
             </Text1>
           </Stack>
         </div>
+
+        {shape === "visualdeck" && (
+          <Stack space={8}>
+            <FieldLabel>{t.poolTitle}</FieldLabel>
+            <Text1 regular color={c.textSecondary}>
+              {t.poolPickHint}
+            </Text1>
+            {briefPoolQ.isLoading ? (
+              <Text1 regular color={c.textSecondary}>
+                {t.poolLoading}
+              </Text1>
+            ) : (
+              <Stack space={12}>
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {(briefPoolQ.data?.layouts ?? []).map((layout) => (
+                    <LayoutPoolCard
+                      key={layout.id}
+                      layout={layout}
+                      coreLabel={t.poolCore}
+                      selected={layoutIds.includes(layout.id)}
+                      onToggle={() => toggleLayout(layout.id)}
+                    />
+                  ))}
+                </div>
+                <Inline space={16} alignItems="center">
+                  <Text1 regular color={c.textSecondary}>
+                    {layoutIds.length > 0 ? t.poolPickCount(layoutIds.length) : t.poolPickAuto}
+                  </Text1>
+                  {layoutIds.length > 0 && (
+                    <ButtonLink small onPress={() => setLayoutIds([])}>
+                      {t.poolPickClear}
+                    </ButtonLink>
+                  )}
+                </Inline>
+              </Stack>
+            )}
+          </Stack>
+        )}
 
         <Stack space={8}>
           <FieldLabel>{t.axesLabel}</FieldLabel>
@@ -3217,6 +3313,7 @@ export default function Generate() {
           kpiContext: v.kpiContext,
           askContext: v.askContext,
           attachments: v.attachments,
+          layoutIds: v.layoutIds.length > 0 ? v.layoutIds : null,
         },
       },
       { onSuccess: (job) => setJobId(job.id) },

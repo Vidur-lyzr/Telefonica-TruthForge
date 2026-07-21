@@ -232,6 +232,9 @@ export interface DraftParams {
   axisIds: string[];
   spokesperson?: string | null;
   eventDate?: string | null;
+  // Author-selected visual-deck layouts (pool ids). Persisted so a refine
+  // re-composes the deck with the same selection. Null/absent = automatic.
+  layoutIds?: string[] | null;
 }
 
 export interface GeneratedDraft {
@@ -332,6 +335,11 @@ export interface GenerateInput {
   // folded into the retrieval query (coverage is a ratio over query idf mass,
   // so pasted prose would dilute it and starve legitimate sources).
   attachments?: BriefAttachments | null;
+  // Author-selected visual-deck layouts. When non-empty the slot-filling pass
+  // restricts its catalogue to this selection (cover/closing stay available so
+  // the deck frame is never broken). Validated against the pool at the route
+  // (unknown ids are a 400). Ignored for non-visualdeck shapes.
+  layoutIds?: string[] | null;
 }
 
 export interface AskHandoffContext {
@@ -567,6 +575,8 @@ async function compose(
     axisIds: input.axisIds ?? [],
     spokesperson: input.spokesperson ?? null,
     eventDate: input.eventDate ?? null,
+    layoutIds:
+      input.layoutIds && input.layoutIds.length > 0 ? [...input.layoutIds] : null,
   };
 
   const emptyGuardian: GuardianResult = {
@@ -1401,7 +1411,7 @@ ${jsonShape}${refineBlock}`;
   // once), and a failed pass degrades honestly to the text-first document.
   // Runs BEFORE the guardian so slot text is covered by the brand checks.
   if (shape === "visualdeck" && sections.length > 0) {
-    const slides = await fillVisualSlides(draft, language, log);
+    const slides = await fillVisualSlides(draft, language, log, params.layoutIds ?? null);
     if (slides) draft.visualSlides = slides;
   }
 
@@ -1449,6 +1459,7 @@ export async function refineDraft(
     axisIds: base.params.axisIds,
     spokesperson: base.params.spokesperson ?? null,
     eventDate: base.params.eventDate ?? null,
+    layoutIds: base.params.layoutIds ?? null,
   };
   const selection = input.selection?.trim();
   const instruction = selection

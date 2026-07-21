@@ -19,4 +19,6 @@ export interface DraftParams {
   spokesperson?: string | null;
   /** @nullable */
   eventDate?: string | null;
+  /** @nullable */
+  layoutIds?: string[] | null;
 }

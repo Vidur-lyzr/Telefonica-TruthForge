@@ -149,6 +149,15 @@ function refuseAboveClearance(res: Parameters<typeof requireCapability>[1], role
   });
 }
 
+// Author-selected visual-deck layouts must exist in the live pool (coded +
+// approved extracted). Unknown ids are an honest 400, never silently dropped —
+// a stale client selection should surface, not quietly change the deck.
+function unknownLayoutIds(ids: string[] | null | undefined): string[] {
+  if (!ids || ids.length === 0) return [];
+  const known = new Set(listVisualLayoutPool().map((l) => l.id));
+  return ids.filter((id) => !known.has(id));
+}
+
 router.post("/generate", async (req, res) => {
   const parsed = GenerateBody.safeParse(req.body);
   if (!parsed.success) {
@@ -156,6 +165,13 @@ router.post("/generate", async (req, res) => {
     return;
   }
   if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
+  const badLayoutIds = unknownLayoutIds(parsed.data.layoutIds);
+  if (badLayoutIds.length > 0) {
+    res.status(400).json({
+      error: `Unknown layout id(s): ${badLayoutIds.join(", ")}. Pick layouts from the visual layout pool.`,
+    });
+    return;
+  }
   try {
     const result = await runGenerateAgent(
       {
@@ -173,6 +189,7 @@ router.post("/generate", async (req, res) => {
         kpiContext: parsed.data.kpiContext ?? null,
         askContext: parsed.data.askContext ?? null,
         attachments: parsed.data.attachments ?? null,
+        layoutIds: parsed.data.layoutIds ?? null,
       },
       req.log,
     );
@@ -970,6 +987,13 @@ router.post("/generate/jobs", async (req, res) => {
     return;
   }
   if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
+  const badLayoutIds = unknownLayoutIds(parsed.data.layoutIds);
+  if (badLayoutIds.length > 0) {
+    res.status(400).json({
+      error: `Unknown layout id(s): ${badLayoutIds.join(", ")}. Pick layouts from the visual layout pool.`,
+    });
+    return;
+  }
   const job = createJob("generate");
   const input = {
     shape: parsed.data.shape as "messaging" | "press" | "multiformat" | "visualdeck",
@@ -986,6 +1010,7 @@ router.post("/generate/jobs", async (req, res) => {
     kpiContext: parsed.data.kpiContext ?? null,
     askContext: parsed.data.askContext ?? null,
     attachments: parsed.data.attachments ?? null,
+    layoutIds: parsed.data.layoutIds ?? null,
   };
   const log = req.log;
   void (async () => {
