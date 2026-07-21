@@ -12,4 +12,5 @@ export type MasterDeckUploadUrlBodyKind = typeof MasterDeckUploadUrlBodyKind[key
 export const MasterDeckUploadUrlBodyKind = {
   pptx: 'pptx',
   pdf: 'pdf',
+  zip: 'zip',
 } as const;

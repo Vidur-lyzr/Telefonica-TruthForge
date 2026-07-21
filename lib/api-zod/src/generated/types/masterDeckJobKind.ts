@@ -12,4 +12,5 @@ export type MasterDeckJobKind = typeof MasterDeckJobKind[keyof typeof MasterDeck
 export const MasterDeckJobKind = {
   pptx: 'pptx',
   pdf: 'pdf',
+  zip: 'zip',
 } as const;

@@ -7500,7 +7500,7 @@ export const ListDocumentFreshnessResponse = zod.array(ListDocumentFreshnessResp
  */
 export const requestMasterDeckUploadUrlBodyFilenameMax = 200;
 
-export const requestMasterDeckUploadUrlBodySizeMax = 104857600;
+export const requestMasterDeckUploadUrlBodySizeMax = 838860800;
 
 
 
@@ -7508,7 +7508,7 @@ export const RequestMasterDeckUploadUrlBody = zod.object({
   "roleId": zod.string(),
   "filename": zod.string().min(1).max(requestMasterDeckUploadUrlBodyFilenameMax),
   "size": zod.number().min(1).max(requestMasterDeckUploadUrlBodySizeMax),
-  "kind": zod.enum(['pptx', 'pdf'])
+  "kind": zod.enum(['pptx', 'pdf', 'zip'])
 })
 
 export const RequestMasterDeckUploadUrlResponse = zod.object({
@@ -7524,7 +7524,7 @@ export const ListMasterDeckJobsResponse = zod.object({
   "jobs": zod.array(zod.object({
   "id": zod.string(),
   "deckName": zod.string(),
-  "kind": zod.enum(['pptx', 'pdf']),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
   "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
   "progress": zod.string(),
   "slideCount": zod.number().optional(),
@@ -7556,7 +7556,7 @@ export const createMasterDeckJobBodyPartsMax = 8;
 export const CreateMasterDeckJobBody = zod.object({
   "roleId": zod.string(),
   "deckName": zod.string().min(1).max(createMasterDeckJobBodyDeckNameMax),
-  "kind": zod.enum(['pptx', 'pdf']),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
   "parts": zod.array(zod.object({
   "objectPath": zod.string(),
   "filename": zod.string().min(1).max(createMasterDeckJobBodyPartsItemFilenameMax)
@@ -7566,7 +7566,7 @@ export const CreateMasterDeckJobBody = zod.object({
 export const CreateMasterDeckJobResponse = zod.object({
   "id": zod.string(),
   "deckName": zod.string(),
-  "kind": zod.enum(['pptx', 'pdf']),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
   "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
   "progress": zod.string(),
   "slideCount": zod.number().optional(),
@@ -7647,7 +7647,7 @@ export const GetMasterDeckJobQueryParams = zod.object({
 export const GetMasterDeckJobResponse = zod.object({
   "id": zod.string(),
   "deckName": zod.string(),
-  "kind": zod.enum(['pptx', 'pdf']),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
   "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
   "progress": zod.string(),
   "slideCount": zod.number().optional(),
@@ -7741,7 +7741,7 @@ export const ApproveMasterDeckProposalResponse = zod.object({
   "job": zod.object({
   "id": zod.string(),
   "deckName": zod.string(),
-  "kind": zod.enum(['pptx', 'pdf']),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
   "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
   "progress": zod.string(),
   "slideCount": zod.number().optional(),
@@ -7831,7 +7831,7 @@ export const RejectMasterDeckProposalBody = zod.object({
 export const RejectMasterDeckProposalResponse = zod.object({
   "id": zod.string(),
   "deckName": zod.string(),
-  "kind": zod.enum(['pptx', 'pdf']),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
   "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
   "progress": zod.string(),
   "slideCount": zod.number().optional(),
@@ -7926,7 +7926,7 @@ export const ConfirmMasterDeckHarvestItemResponse = zod.object({
   "job": zod.object({
   "id": zod.string(),
   "deckName": zod.string(),
-  "kind": zod.enum(['pptx', 'pdf']),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
   "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
   "progress": zod.string(),
   "slideCount": zod.number().optional(),
@@ -8022,7 +8022,7 @@ export const DismissMasterDeckHarvestItemBody = zod.object({
 export const DismissMasterDeckHarvestItemResponse = zod.object({
   "id": zod.string(),
   "deckName": zod.string(),
-  "kind": zod.enum(['pptx', 'pdf']),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
   "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
   "progress": zod.string(),
   "slideCount": zod.number().optional(),
@@ -8107,7 +8107,7 @@ export const BulkMasterDeckHarvestResponse = zod.object({
   "job": zod.object({
   "id": zod.string(),
   "deckName": zod.string(),
-  "kind": zod.enum(['pptx', 'pdf']),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
   "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
   "progress": zod.string(),
   "slideCount": zod.number().optional(),

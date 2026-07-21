@@ -4049,6 +4049,7 @@ export type MasterDeckUploadUrlBodyKind = typeof MasterDeckUploadUrlBodyKind[key
 export const MasterDeckUploadUrlBodyKind = {
   pptx: 'pptx',
   pdf: 'pdf',
+  zip: 'zip',
 } as const;
 
 export interface MasterDeckUploadUrlBody {
@@ -4060,7 +4061,7 @@ export interface MasterDeckUploadUrlBody {
   filename: string;
   /**
      * @minimum 1
-     * @maximum 104857600
+     * @maximum 838860800
      */
   size: number;
   kind: MasterDeckUploadUrlBodyKind;
@@ -4077,6 +4078,7 @@ export type MasterDeckJobCreateInputKind = typeof MasterDeckJobCreateInputKind[k
 export const MasterDeckJobCreateInputKind = {
   pptx: 'pptx',
   pdf: 'pdf',
+  zip: 'zip',
 } as const;
 
 export type MasterDeckJobCreateInputPartsItem = {
@@ -4231,6 +4233,7 @@ export type MasterDeckJobKind = typeof MasterDeckJobKind[keyof typeof MasterDeck
 export const MasterDeckJobKind = {
   pptx: 'pptx',
   pdf: 'pdf',
+  zip: 'zip',
 } as const;
 
 export type MasterDeckJobStatus = typeof MasterDeckJobStatus[keyof typeof MasterDeckJobStatus];
@@ -4267,6 +4270,7 @@ export type MasterDeckJobSummaryKind = typeof MasterDeckJobSummaryKind[keyof typ
 export const MasterDeckJobSummaryKind = {
   pptx: 'pptx',
   pdf: 'pdf',
+  zip: 'zip',
 } as const;
 
 export type MasterDeckJobSummaryStatus = typeof MasterDeckJobSummaryStatus[keyof typeof MasterDeckJobSummaryStatus];

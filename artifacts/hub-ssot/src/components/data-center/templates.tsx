@@ -119,7 +119,7 @@ export default function TemplatesArea() {
   const queryClient = useQueryClient();
 
   const [deckName, setDeckName] = React.useState("");
-  const [kind, setKind] = React.useState<"pptx" | "pdf">("pptx");
+  const [kind, setKind] = React.useState<"pptx" | "pdf" | "zip">("pptx");
   const [files, setFiles] = React.useState<File[]>([]);
   const [busy, setBusy] = React.useState(false);
   const [step, setStep] = React.useState<string | null>(null);
@@ -238,13 +238,14 @@ export default function TemplatesArea() {
                   label={t.formatLabel}
                   value={kind}
                   onChangeValue={(v) => {
-                    setKind(v === "pdf" ? "pdf" : "pptx");
+                    setKind(v === "pdf" ? "pdf" : v === "zip" ? "zip" : "pptx");
                     setFiles([]);
                     if (fileRef.current) fileRef.current.value = "";
                   }}
                   options={[
                     { value: "pptx", text: t.formatPptx },
                     { value: "pdf", text: t.formatPdf },
+                    { value: "zip", text: t.formatZip },
                   ]}
                   fullWidth
                   disabled={busy}
@@ -256,7 +257,7 @@ export default function TemplatesArea() {
               ref={fileRef}
               type="file"
               multiple
-              accept={kind === "pptx" ? ".pptx" : ".pdf"}
+              accept={kind === "pptx" ? ".pptx" : kind === "pdf" ? ".pdf" : ".zip"}
               style={{ display: "none" }}
               onChange={(e) => onFilesPicked(e.target.files)}
             />

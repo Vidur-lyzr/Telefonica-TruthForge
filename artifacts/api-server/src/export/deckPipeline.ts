@@ -24,6 +24,8 @@ import { renderOpsPng, renderWireframePng } from "./deckExtract/opsSvg";
 import { collectHarvestCandidates, type HarvestCandidate } from "./deckExtract/harvest";
 import { parsePdfPartMedia } from "./deckExtract/pdfHarvest";
 import { saveDeckAsset } from "./deckExtract/assets";
+import { unpackZipBundle, ZipBundleError, type ZipBundleResult } from "./deckExtract/zipBundle";
+import type { MediaAsset } from "./deckExtract/pptxParse";
 
 export { DeckExtractionError } from "./deckExtract/errors";
 
@@ -120,6 +122,96 @@ async function saveHarvest(
   return harvest;
 }
 
+/** Cluster slides and render layout-family proposals. Shared by the pptx and zip paths. */
+async function proposeFamiliesFromDeck(
+  jobId: string,
+  deck: ParsedDeck,
+  deckName: string,
+  assets: Record<string, string>,
+): Promise<DeckIntakeJob["families"]> {
+  updateDeckJob(jobId, (j) => {
+    j.status = "clustering";
+    j.progress = `Grouping ${deck.slides.length} slides into layout families`;
+  });
+  await breathe();
+  const clusters = clusterSlides(deck.slides);
+  const kept = clusters.slice(0, MAX_FAMILIES);
+
+  updateDeckJob(jobId, (j) => {
+    j.status = "proposing";
+    j.progress = "Drafting layout proposals";
+  });
+
+  const families: DeckIntakeJob["families"] = [];
+  let familyIdx = 0;
+  for (const cluster of kept) {
+    const proposal = proposeLayout(cluster, deckName, familyIdx);
+    if (!proposal) {
+      logger.info(
+        { jobId, slides: cluster.slideIndexes.length, label: cluster.label },
+        "deck-pipeline: family skipped (no usable text content)",
+      );
+      continue;
+    }
+    setProgress(jobId, `Rendering proposals — family ${familyIdx + 1}`);
+
+    const famId = `fam-${familyIdx + 1}`;
+    const thumbKey = `thumb-${famId}.png`;
+    const previewKey = `preview-${famId}.png`;
+
+    try {
+      const thumbPng = renderWireframePng(cluster.representative);
+      assets[thumbKey] = await saveDeckAsset(jobId, thumbKey, thumbPng, "image/png");
+    } catch (err) {
+      logger.error({ err, jobId, famId }, "deck-pipeline: wireframe render failed");
+    }
+    await breathe();
+    try {
+      const def = compileExtractedLayout(proposal.spec);
+      const sample = buildSampleSlots(proposal.spec);
+      const ctx: ComposeCtx = {
+        images: Object.fromEntries(def.imageSlots.map((s) => [s.slot, null])),
+        footerLabel: "Brand Room",
+        confidentiality: "Internal use",
+        generatedAt: new Date().toISOString(),
+      };
+      const ops = def.compose(def.schema.parse(sample), ctx);
+      const previewPng = renderOpsPng(ops);
+      assets[previewKey] = await saveDeckAsset(jobId, previewKey, previewPng, "image/png");
+    } catch (err) {
+      logger.error({ err, jobId, famId }, "deck-pipeline: proposal preview render failed");
+    }
+    await breathe();
+
+    const globalNotes: string[] = [];
+    if (deck.dropped.tables > 0 || deck.dropped.charts > 0) {
+      globalNotes.push(
+        `${deck.dropped.tables + deck.dropped.charts} table/chart frames in the deck cannot be extracted as layout slots.`,
+      );
+    }
+
+    families.push({
+      id: famId,
+      label: cluster.label,
+      slideIndexes: cluster.slideIndexes,
+      ...(assets[thumbKey] ? { thumbKey } : {}),
+      ...(assets[previewKey] ? { previewKey } : {}),
+      proposal: proposal.spec,
+      confidenceNotes: [...proposal.notes, ...globalNotes].slice(0, 20),
+      status: "pending",
+    });
+    familyIdx += 1;
+  }
+
+  if (clusters.length > MAX_FAMILIES) {
+    logger.info(
+      { jobId, total: clusters.length, kept: MAX_FAMILIES },
+      "deck-pipeline: family list truncated",
+    );
+  }
+  return families;
+}
+
 // PDF fallback: harvest-only. PDFs carry no reusable layout semantics, so no
 // families are ever proposed — embedded raster images go straight to the
 // harvest queue and the summary says so explicitly.
@@ -188,12 +280,181 @@ async function extractPdfDeck(jobId: string): Promise<void> {
   );
 }
 
+/**
+ * Turn loose bundle images into harvest candidates. Unlike embedded slide
+ * media these were uploaded deliberately, so no minimum-size filter applies —
+ * logos and icons are exactly what the user wants in the library.
+ */
+function looseImageCandidates(
+  images: MediaAsset[],
+  startIndex: number,
+  seenShas: Set<string>,
+): HarvestCandidate[] {
+  const out: HarvestCandidate[] = [];
+  let idx = startIndex;
+  for (const img of images) {
+    if (seenShas.has(img.sha256)) continue;
+    seenShas.add(img.sha256);
+    idx += 1;
+    const base = img.path.slice(img.path.indexOf(":") + 1);
+    const file = base.includes("/") ? base.slice(base.lastIndexOf("/") + 1) : base;
+    const label = file.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").trim() || file;
+    out.push({
+      assetKey: `harvest-${idx}.${img.ext}`,
+      bytes: img.bytes,
+      filename: file,
+      contentType: img.contentType,
+      width: img.width,
+      height: img.height,
+      sourceSlide: 0,
+      suggestedLabel: label,
+      suggestedTags: ["bundle", img.width >= img.height ? "landscape" : "portrait"],
+    });
+  }
+  return out;
+}
+
+// Zip bundle: mixed brand-asset archives. Bundled .pptx decks get full layout
+// extraction, PDFs contribute embedded images, and loose PNG/JPG/SVG files go
+// straight to the harvest queue. Unusable entries are skipped, never fatal.
+async function extractZipDeck(jobId: string): Promise<void> {
+  const job = getDeckJob(jobId);
+  if (!job) throw new DeckExtractionError("The extraction job no longer exists.");
+
+  const deck = emptyParsedDeck();
+  const loose: MediaAsset[] = [];
+  const skipped: { name: string; reason: string }[] = [];
+  let pdfPages = 0;
+  let deckFileCount = 0;
+
+  for (let i = 0; i < job.parts.length; i++) {
+    const part = job.parts[i]!;
+    setProgress(
+      jobId,
+      job.parts.length === 1
+        ? "Unpacking the bundle"
+        : `Unpacking bundle — part ${i + 1} of ${job.parts.length}`,
+    );
+    const bytes = await downloadPart(jobId, part);
+    let bundle: ZipBundleResult;
+    try {
+      bundle = await unpackZipBundle(bytes, `p${i + 1}`);
+    } catch (err) {
+      logger.error({ err, jobId, filename: part.filename }, "deck-pipeline: zip unpack failed");
+      if (err instanceof ZipBundleError) throw new DeckExtractionError(err.message);
+      throw new DeckExtractionError(
+        `The file "${part.filename}" could not be read as a zip archive — check the file and upload again.`,
+      );
+    }
+    await breathe();
+
+    for (const d of bundle.decks) {
+      deckFileCount += 1;
+      setProgress(jobId, `Reading slides — ${d.name}`);
+      try {
+        const parsed = await parsePptxPart(
+          d.bytes,
+          deck.slides.length,
+          d.name,
+          `p${i + 1}d${deckFileCount}`,
+        );
+        mergeIntoDeck(deck, parsed);
+      } catch (err) {
+        logger.error({ err, jobId, name: d.name }, "deck-pipeline: bundled deck parse failed");
+        skipped.push({ name: d.name, reason: "could not be read as a .pptx deck" });
+      }
+      await breathe();
+    }
+    for (const p of bundle.pdfs) {
+      setProgress(jobId, `Scanning for images — ${p.name}`);
+      try {
+        const result = await parsePdfPartMedia(p.bytes, `p${i + 1}pdf`, pdfPages);
+        deck.media.push(...result.media);
+        pdfPages += result.pageCount;
+        if (result.notes.length > 0) {
+          logger.info({ jobId, notes: result.notes }, "deck-pipeline: pdf harvest notes");
+        }
+      } catch (err) {
+        logger.error({ err, jobId, name: p.name }, "deck-pipeline: bundled pdf parse failed");
+        skipped.push({ name: p.name, reason: "could not be read as a PDF" });
+      }
+      await breathe();
+    }
+    loose.push(...bundle.images);
+    skipped.push(...bundle.skipped);
+  }
+
+  if (deck.slides.length === 0 && deck.media.length === 0 && loose.length === 0) {
+    throw new DeckExtractionError(
+      "Nothing usable was found in the bundle — add .pptx decks, PDFs or PNG/JPG/SVG images.",
+    );
+  }
+  updateDeckJob(jobId, (j) => {
+    j.slideCount = deck.slides.length;
+  });
+
+  const assets: Record<string, string> = {};
+  let families: DeckIntakeJob["families"] = [];
+  if (deck.slides.length > 0) {
+    families = await proposeFamiliesFromDeck(jobId, deck, job.deckName, assets);
+  }
+
+  setProgress(jobId, "Collecting images for the harvest queue");
+  const { candidates, notes: harvestNotes } = collectHarvestCandidates(deck, job.deckName);
+  const seenShas = new Set(deck.media.map((m) => m.sha256));
+  const remaining = Math.max(0, 200 - candidates.length);
+  const looseCands = looseImageCandidates(loose, candidates.length, seenShas).slice(0, remaining);
+  const harvest = await saveHarvest(jobId, [...candidates, ...looseCands], assets);
+  if (harvestNotes.length > 0) {
+    logger.info({ jobId, notes: harvestNotes }, "deck-pipeline: harvest notes");
+  }
+  if (skipped.length > 0) {
+    logger.info({ jobId, skipped }, "deck-pipeline: bundle entries skipped");
+  }
+
+  const summaryBits: string[] = [];
+  if (deck.slides.length > 0) {
+    summaryBits.push(
+      `${deck.slides.length} slide${deck.slides.length === 1 ? "" : "s"} analysed`,
+      `${families.length} layout famil${families.length === 1 ? "y" : "ies"} proposed`,
+    );
+  }
+  if (pdfPages > 0) {
+    summaryBits.push(`${pdfPages} PDF page${pdfPages === 1 ? "" : "s"} scanned`);
+  }
+  summaryBits.push(`${harvest.length} image${harvest.length === 1 ? "" : "s"} harvested`);
+  if (skipped.length > 0) {
+    summaryBits.push(`${skipped.length} file${skipped.length === 1 ? "" : "s"} skipped`);
+  }
+  updateDeckJob(jobId, (j) => {
+    j.status = "ready";
+    j.progress = summaryBits.join(" · ");
+    j.families = families;
+    j.harvest = harvest;
+    j.assets = assets;
+  });
+  logger.info(
+    {
+      jobId,
+      slides: deck.slides.length,
+      families: families.length,
+      harvest: harvest.length,
+      skipped: skipped.length,
+    },
+    "deck-pipeline: bundle extraction complete",
+  );
+}
+
 async function extractDeck(jobId: string): Promise<void> {
   const job = getDeckJob(jobId);
   if (!job) throw new DeckExtractionError("The extraction job no longer exists.");
 
   if (job.kind === "pdf") {
     await extractPdfDeck(jobId);
+    return;
+  }
+  if (job.kind === "zip") {
+    await extractZipDeck(jobId);
     return;
   }
 
@@ -220,89 +481,9 @@ async function extractDeck(jobId: string): Promise<void> {
     j.slideCount = deck.slides.length;
   });
 
-  // ---- Cluster ---------------------------------------------------------------
-  updateDeckJob(jobId, (j) => {
-    j.status = "clustering";
-    j.progress = `Grouping ${deck.slides.length} slides into layout families`;
-  });
-  await breathe();
-  const clusters = clusterSlides(deck.slides);
-  const kept = clusters.slice(0, MAX_FAMILIES);
-
-  // ---- Propose + render -------------------------------------------------------
-  updateDeckJob(jobId, (j) => {
-    j.status = "proposing";
-    j.progress = "Drafting layout proposals";
-  });
-
-  const families: DeckIntakeJob["families"] = [];
+  // ---- Cluster + propose ------------------------------------------------------
   const assets: Record<string, string> = {};
-  let familyIdx = 0;
-  for (const cluster of kept) {
-    const proposal = proposeLayout(cluster, job.deckName, familyIdx);
-    if (!proposal) {
-      logger.info(
-        { jobId, slides: cluster.slideIndexes.length, label: cluster.label },
-        "deck-pipeline: family skipped (no usable text content)",
-      );
-      continue;
-    }
-    setProgress(jobId, `Rendering proposals — family ${familyIdx + 1}`);
-
-    const famId = `fam-${familyIdx + 1}`;
-    const thumbKey = `thumb-${famId}.png`;
-    const previewKey = `preview-${famId}.png`;
-
-    try {
-      const thumbPng = renderWireframePng(cluster.representative);
-      assets[thumbKey] = await saveDeckAsset(jobId, thumbKey, thumbPng, "image/png");
-    } catch (err) {
-      logger.error({ err, jobId, famId }, "deck-pipeline: wireframe render failed");
-    }
-    await breathe();
-    try {
-      const def = compileExtractedLayout(proposal.spec);
-      const sample = buildSampleSlots(proposal.spec);
-      const ctx: ComposeCtx = {
-        images: Object.fromEntries(def.imageSlots.map((s) => [s.slot, null])),
-        footerLabel: "Brand Room",
-        confidentiality: "Internal use",
-        generatedAt: new Date().toISOString(),
-      };
-      const ops = def.compose(def.schema.parse(sample), ctx);
-      const previewPng = renderOpsPng(ops);
-      assets[previewKey] = await saveDeckAsset(jobId, previewKey, previewPng, "image/png");
-    } catch (err) {
-      logger.error({ err, jobId, famId }, "deck-pipeline: proposal preview render failed");
-    }
-    await breathe();
-
-    const globalNotes: string[] = [];
-    if (deck.dropped.tables > 0 || deck.dropped.charts > 0) {
-      globalNotes.push(
-        `${deck.dropped.tables + deck.dropped.charts} table/chart frames in the deck cannot be extracted as layout slots.`,
-      );
-    }
-
-    families.push({
-      id: famId,
-      label: cluster.label,
-      slideIndexes: cluster.slideIndexes,
-      ...(assets[thumbKey] ? { thumbKey } : {}),
-      ...(assets[previewKey] ? { previewKey } : {}),
-      proposal: proposal.spec,
-      confidenceNotes: [...proposal.notes, ...globalNotes].slice(0, 20),
-      status: "pending",
-    });
-    familyIdx += 1;
-  }
-
-  if (clusters.length > MAX_FAMILIES) {
-    logger.info(
-      { jobId, total: clusters.length, kept: MAX_FAMILIES },
-      "deck-pipeline: family list truncated",
-    );
-  }
+  const families = await proposeFamiliesFromDeck(jobId, deck, job.deckName, assets);
 
   // ---- Harvest ---------------------------------------------------------------
   setProgress(jobId, "Collecting images for the harvest queue");

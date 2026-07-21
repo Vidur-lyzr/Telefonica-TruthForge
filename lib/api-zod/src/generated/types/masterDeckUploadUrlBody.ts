@@ -16,7 +16,7 @@ export interface MasterDeckUploadUrlBody {
   filename: string;
   /**
      * @minimum 1
-     * @maximum 104857600
+     * @maximum 838860800
      */
   size: number;
   kind: MasterDeckUploadUrlBodyKind;

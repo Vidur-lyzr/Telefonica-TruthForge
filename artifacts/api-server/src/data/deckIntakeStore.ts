@@ -29,7 +29,7 @@ export type DeckJobStatus =
   | "ready"
   | "failed";
 
-export type DeckJobKind = "pptx" | "pdf";
+export type DeckJobKind = "pptx" | "pdf" | "zip";
 
 export interface DeckPart {
   objectPath: string;

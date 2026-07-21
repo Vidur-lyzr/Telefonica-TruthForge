@@ -12,4 +12,5 @@ export type MasterDeckJobCreateInputKind = typeof MasterDeckJobCreateInputKind[k
 export const MasterDeckJobCreateInputKind = {
   pptx: 'pptx',
   pdf: 'pdf',
+  zip: 'zip',
 } as const;

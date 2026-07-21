@@ -208,16 +208,19 @@ router.post("/data/master-decks/jobs", async (req, res) => {
       });
       return;
     }
+    // .pptx and .zip are both ZIP containers, so they share the PK signature.
     const signatureOk =
-      kind === "pptx"
-        ? head.subarray(0, 4).equals(PPTX_MAGIC)
-        : head.subarray(0, 4).equals(PDF_MAGIC);
+      kind === "pdf"
+        ? head.subarray(0, 4).equals(PDF_MAGIC)
+        : head.subarray(0, 4).equals(PPTX_MAGIC);
     if (!signatureOk) {
       res.status(400).json({
         error:
           kind === "pptx"
             ? `"${part.filename}" is not a PowerPoint (.pptx) file.`
-            : `"${part.filename}" is not a PDF file.`,
+            : kind === "zip"
+              ? `"${part.filename}" is not a zip archive.`
+              : `"${part.filename}" is not a PDF file.`,
         code: "wrong_signature",
       });
       return;

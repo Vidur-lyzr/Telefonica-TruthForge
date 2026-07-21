@@ -417,6 +417,7 @@ export interface DataStrings {
     formatLabel: string;
     formatPptx: string;
     formatPdf: string;
+    formatZip: string;
     chooseFiles: string;
     filesHint: string;
     selectedFiles: (n: number) => string;
@@ -953,6 +954,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatLabel: "Format",
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (images only)",
+      formatZip: "ZIP bundle (.pptx + PDF + images)",
       chooseFiles: "Choose files",
       filesHint: "One file up to 800 MB — or up to 8 files, 800 MB total",
       selectedFiles: (n) => (n === 1 ? "1 file selected" : `${n} files selected`),
@@ -1008,7 +1010,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         rejectedReason: (reason) => `Reason: ${reason}`,
         allDecided: "Every proposal from this deck has been decided.",
         harvestTitle: "Harvested images",
-        harvestMeta: (w, h, slide) => `${w}×${h} px · slide ${slide}`,
+        harvestMeta: (w, h, slide) =>
+          slide > 0 ? `${w}×${h} px · slide ${slide}` : `${w}×${h} px · bundle file`,
         labelLabel: "Label",
         tagsLabel: "Tags",
         tagsHelper: "Comma-separated, at least one.",
@@ -1502,6 +1505,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatLabel: "Formato",
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (solo imágenes)",
+      formatZip: "Paquete ZIP (.pptx + PDF + imágenes)",
       chooseFiles: "Elegir archivos",
       filesHint: "Un archivo de hasta 800 MB — o hasta 8 archivos (800 MB en total)",
       selectedFiles: (n) => (n === 1 ? "1 archivo seleccionado" : `${n} archivos seleccionados`),
@@ -1561,7 +1565,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         rejectedReason: (reason) => `Motivo: ${reason}`,
         allDecided: "Todas las propuestas de este deck ya están decididas.",
         harvestTitle: "Imágenes extraídas",
-        harvestMeta: (w, h, slide) => `${w}×${h} px · diapositiva ${slide}`,
+        harvestMeta: (w, h, slide) =>
+          slide > 0 ? `${w}×${h} px · diapositiva ${slide}` : `${w}×${h} px · archivo del paquete`,
         labelLabel: "Etiqueta",
         tagsLabel: "Tags",
         tagsHelper: "Separados por comas, al menos uno.",
@@ -2051,6 +2056,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatLabel: "Format",
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (nur Bilder)",
+      formatZip: "ZIP-Paket (.pptx + PDF + Bilder)",
       chooseFiles: "Dateien auswählen",
       filesHint: "Eine Datei bis 800 MB — oder bis zu 8 Dateien (insgesamt 800 MB)",
       selectedFiles: (n) => (n === 1 ? "1 Datei ausgewählt" : `${n} Dateien ausgewählt`),
@@ -2110,7 +2116,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         rejectedReason: (reason) => `Grund: ${reason}`,
         allDecided: "Alle Vorschläge aus diesem Deck sind entschieden.",
         harvestTitle: "Extrahierte Bilder",
-        harvestMeta: (w, h, slide) => `${w}×${h} px · Folie ${slide}`,
+        harvestMeta: (w, h, slide) =>
+          slide > 0 ? `${w}×${h} px · Folie ${slide}` : `${w}×${h} px · Datei aus dem Paket`,
         labelLabel: "Bezeichnung",
         tagsLabel: "Tags",
         tagsHelper: "Kommagetrennt, mindestens einer.",
@@ -2602,6 +2609,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatLabel: "Formato",
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (apenas imagens)",
+      formatZip: "Pacote ZIP (.pptx + PDF + imagens)",
       chooseFiles: "Escolher ficheiros",
       filesHint: "Um ficheiro até 800 MB — ou até 8 ficheiros (800 MB no total)",
       selectedFiles: (n) => (n === 1 ? "1 ficheiro selecionado" : `${n} ficheiros selecionados`),
@@ -2661,7 +2669,8 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         rejectedReason: (reason) => `Motivo: ${reason}`,
         allDecided: "Todas as propostas deste deck já foram decididas.",
         harvestTitle: "Imagens extraídas",
-        harvestMeta: (w, h, slide) => `${w}×${h} px · slide ${slide}`,
+        harvestMeta: (w, h, slide) =>
+          slide > 0 ? `${w}×${h} px · slide ${slide}` : `${w}×${h} px · ficheiro do pacote`,
         labelLabel: "Etiqueta",
         tagsLabel: "Tags",
         tagsHelper: "Separadas por vírgulas, pelo menos uma.",
