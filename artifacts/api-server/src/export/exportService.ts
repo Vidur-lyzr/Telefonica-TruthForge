@@ -28,6 +28,7 @@ import {
 } from "../agent/qa";
 import { renderChart, type RenderedChart, type ExportSeries } from "./chartEngine";
 import type { ExportTemplate, ExportFormat } from "./exportTemplates";
+import { visualStyleForTemplate } from "./exportTemplates";
 // Effective template resolution: exports always follow any saved edit of the
 // corporate template until it is reset.
 import {
@@ -354,6 +355,7 @@ export async function buildExportModel(
         footerLabel: template.design.footerLabel,
         confidentiality: draft.confidentiality,
         generatedAt,
+        style: visualStyleForTemplate(template.id),
         charts: draft.charts.map((c) => ({
           id: c.id,
           title: c.title,

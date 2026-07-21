@@ -12,6 +12,9 @@ import type { ExportDocumentModel } from "../exportService";
 import type { TemplateDesign } from "../exportTemplates";
 import { THEME_COLORS } from "../exportTheme";
 import { brandFontPath, brandMarkPng } from "../brandAssets";
+import { iconPng } from "../iconSet";
+import { backgroundPng } from "../backgroundArt";
+import { mapPng } from "../mapArt";
 import { buildSlides } from "../slideModel";
 import type { VisualSlideModel } from "../visualLayouts";
 
@@ -177,13 +180,67 @@ export function drawVisualOps(doc: PDFKit.PDFDocument, slide: VisualSlideModel):
   for (const op of slide.ops) {
     switch (op.op) {
       case "rect": {
-        if (op.alpha !== undefined) {
-          doc.save();
-          doc.fillOpacity(op.alpha);
-          doc.rect(op.x * IN, op.y * IN, op.w * IN, op.h * IN).fill(op.fill);
-          doc.restore();
-        } else {
-          rect(doc, op.x, op.y, op.w, op.h, op.fill);
+        if (!op.fill && !op.stroke) break;
+        doc.save();
+        const r = op.radius ? Math.min(op.radius, Math.min(op.w, op.h) / 2) * IN : 0;
+        const shape = () =>
+          r > 0
+            ? doc.roundedRect(op.x * IN, op.y * IN, op.w * IN, op.h * IN, r)
+            : doc.rect(op.x * IN, op.y * IN, op.w * IN, op.h * IN);
+        if (op.fill) {
+          if (op.alpha !== undefined) doc.fillOpacity(op.alpha);
+          if (op.stroke) {
+            shape().lineWidth(op.strokePt ?? 1).fillAndStroke(op.fill, op.stroke);
+          } else {
+            shape().fill(op.fill);
+          }
+        } else if (op.stroke) {
+          if (op.alpha !== undefined) doc.strokeOpacity(op.alpha);
+          shape().lineWidth(op.strokePt ?? 1).stroke(op.stroke);
+        }
+        doc.restore();
+        break;
+      }
+      case "circle": {
+        if (!op.fill && !op.stroke) break;
+        doc.save();
+        const circle = () => doc.circle(op.cx * IN, op.cy * IN, op.r * IN);
+        if (op.fill) {
+          if (op.alpha !== undefined) doc.fillOpacity(op.alpha);
+          if (op.stroke) {
+            circle().lineWidth(op.strokePt ?? 1).fillAndStroke(op.fill, op.stroke);
+          } else {
+            circle().fill(op.fill);
+          }
+        } else if (op.stroke) {
+          if (op.alpha !== undefined) doc.strokeOpacity(op.alpha);
+          circle().lineWidth(op.strokePt ?? 1).stroke(op.stroke);
+        }
+        doc.restore();
+        break;
+      }
+      case "icon": {
+        // Unknown icon name renders nothing — honest absence.
+        const icon = iconPng(op.icon, Math.max(48, Math.round(op.w * 192)), op.color);
+        if (icon) {
+          doc.image(icon, op.x * IN, op.y * IN, { fit: [op.w * IN, op.h * IN] });
+        }
+        break;
+      }
+      case "bg": {
+        const bg = backgroundPng(op.variant);
+        doc.image(bg, 0, 0, { width: 13.33 * IN, height: 7.5 * IN });
+        break;
+      }
+      case "map": {
+        // Unsupported region renders nothing — honest absence.
+        const map = mapPng(op.region, Math.max(400, Math.round(op.w * 192)), op.base, op.highlight);
+        if (map) {
+          doc.image(map, op.x * IN, op.y * IN, {
+            fit: [op.w * IN, op.h * IN],
+            align: "center",
+            valign: "center",
+          });
         }
         break;
       }

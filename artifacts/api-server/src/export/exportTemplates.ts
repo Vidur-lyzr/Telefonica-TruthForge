@@ -692,6 +692,14 @@ export function getExportTemplate(id: string): ExportTemplate | undefined {
   return byId.get(id);
 }
 
+// Visual register for a template's coded slide layouts: the executive visual
+// deck renders in the dark benchmark style (full-bleed navy art, translucent
+// cards); every other template — including the editorial visual story —
+// keeps the original light register, byte-identical to before.
+export function visualStyleForTemplate(templateId: string): "light" | "dark" {
+  return templateId === "exp-visual-deck" ? "dark" : "light";
+}
+
 // Default template for a draft shape when the caller does not pick one.
 export function defaultTemplateForShape(shape: string): ExportTemplate {
   const preferred: Record<string, string> = {

@@ -4,11 +4,20 @@
 // headers follow the template's table style and the running footer names the
 // template. Colours come from the shared export theme only.
 
+// pptxgenjs is CJS-only: under the esbuild CJS bundle the default import is
+// the constructor, but under an ESM loader (tsx scripts) it is the module
+// namespace. Keep the import name for its type namespace (PptxGenJS.Slide
+// etc.) and normalize the runtime constructor separately.
 import PptxGenJS from "pptxgenjs";
+const PptxCtor =
+  (PptxGenJS as unknown as { default?: typeof PptxGenJS }).default ?? PptxGenJS;
 import type { ExportDocumentModel } from "../exportService";
 import type { TemplateDesign } from "../exportTemplates";
 import { THEME_COLORS } from "../exportTheme";
 import { brandMarkPng, BRAND_FONT_FAMILY } from "../brandAssets";
+import { iconPng } from "../iconSet";
+import { backgroundPng } from "../backgroundArt";
+import { mapPng } from "../mapArt";
 import { buildSlides, type SlideSpec } from "../slideModel";
 
 const hex = (c: string) => c.replace("#", "");
@@ -94,9 +103,83 @@ function addVisualSlide(pptx: PptxGenJS, spec: Extract<SlideSpec, { kind: "visua
   for (const op of spec.slide.ops) {
     switch (op.op) {
       case "rect": {
-        const fill: { color: string; transparency?: number } = { color: hex(op.fill) };
-        if (op.alpha !== undefined) fill.transparency = Math.round((1 - op.alpha) * 100);
-        s.addShape("rect", { x: op.x, y: op.y, w: op.w, h: op.h, fill });
+        const fill: { color: string; transparency?: number } = op.fill
+          ? { color: hex(op.fill) }
+          : { color: INVERSE, transparency: 100 };
+        if (op.fill && op.alpha !== undefined) fill.transparency = Math.round((1 - op.alpha) * 100);
+        // Stroke-only shapes carry alpha on the line itself (halo rings);
+        // filled shapes already express alpha through the fill transparency.
+        const line = op.stroke
+          ? {
+              color: hex(op.stroke),
+              width: op.strokePt ?? 1,
+              ...(!op.fill && op.alpha !== undefined
+                ? { transparency: Math.round((1 - op.alpha) * 100) }
+                : {}),
+            }
+          : undefined;
+        if (op.radius) {
+          s.addShape("roundRect", {
+            x: op.x, y: op.y, w: op.w, h: op.h, fill,
+            rectRadius: Math.min(op.radius, Math.min(op.w, op.h) / 2),
+            ...(line ? { line } : {}),
+          });
+        } else {
+          s.addShape("rect", { x: op.x, y: op.y, w: op.w, h: op.h, fill, ...(line ? { line } : {}) });
+        }
+        break;
+      }
+      case "circle": {
+        const fill: { color: string; transparency?: number } = op.fill
+          ? { color: hex(op.fill) }
+          : { color: INVERSE, transparency: 100 };
+        if (op.fill && op.alpha !== undefined) fill.transparency = Math.round((1 - op.alpha) * 100);
+        // Stroke-only shapes carry alpha on the line itself (halo rings);
+        // filled shapes already express alpha through the fill transparency.
+        const line = op.stroke
+          ? {
+              color: hex(op.stroke),
+              width: op.strokePt ?? 1,
+              ...(!op.fill && op.alpha !== undefined
+                ? { transparency: Math.round((1 - op.alpha) * 100) }
+                : {}),
+            }
+          : undefined;
+        s.addShape("ellipse", {
+          x: op.cx - op.r, y: op.cy - op.r, w: op.r * 2, h: op.r * 2, fill,
+          ...(line ? { line } : {}),
+        });
+        break;
+      }
+      case "icon": {
+        // Unknown icon name renders nothing — honest absence.
+        const icon = iconPng(op.icon, Math.max(48, Math.round(op.w * 192)), op.color);
+        if (icon) {
+          s.addImage({
+            data: `image/png;base64,${icon.toString("base64")}`,
+            x: op.x, y: op.y, w: op.w, h: op.h,
+          });
+        }
+        break;
+      }
+      case "bg": {
+        const bg = backgroundPng(op.variant);
+        s.addImage({
+          data: `image/png;base64,${bg.toString("base64")}`,
+          x: 0, y: 0, w: SLIDE_W, h: SLIDE_H,
+        });
+        break;
+      }
+      case "map": {
+        // Unsupported region renders nothing — honest absence.
+        const map = mapPng(op.region, Math.max(400, Math.round(op.w * 192)), op.base, op.highlight);
+        if (map) {
+          s.addImage({
+            data: `image/png;base64,${map.toString("base64")}`,
+            x: op.x, y: op.y, w: op.w, h: op.h,
+            sizing: { type: "contain", w: op.w, h: op.h },
+          });
+        }
         break;
       }
       case "line": {
@@ -231,7 +314,7 @@ export async function renderPptx(model: ExportDocumentModel): Promise<Buffer> {
   const design = model.template.design;
   const accent = accentOf(design);
   const headerStyle = tableHeaderStyleOf(design);
-  const pptx = new PptxGenJS();
+  const pptx = new PptxCtor();
   pptx.defineLayout({ name: "WIDE", width: SLIDE_W, height: SLIDE_H });
   pptx.layout = "WIDE";
   pptx.author = "Hub SSoT";

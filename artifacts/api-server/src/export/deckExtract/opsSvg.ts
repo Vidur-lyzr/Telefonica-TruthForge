@@ -9,6 +9,9 @@ import { Resvg } from "@resvg/resvg-js";
 import { brandFontPath, brandMarkPng, BRAND_FONT_FAMILY } from "../brandAssets";
 import { THEME_COLORS } from "../exportTheme";
 import { SLIDE_W, SLIDE_H, type DrawOp } from "../visualLayouts";
+import { iconPng } from "../iconSet";
+import { backgroundPng } from "../backgroundArt";
+import { mapPng } from "../mapArt";
 import type { ParsedSlide } from "./pptxParse";
 
 const PX_PER_IN = 96;
@@ -133,9 +136,54 @@ export function renderOpsPng(ops: DrawOp[], images: Record<string, Buffer> = {})
   for (const op of ops) {
     switch (op.op) {
       case "rect": {
-        const alpha = op.alpha != null ? ` fill-opacity="${op.alpha}"` : "";
+        if (!op.fill && !op.stroke) break;
+        const rx = op.radius ? ` rx="${px(op.radius)}"` : "";
+        const fill = op.fill
+          ? ` fill="${op.fill}"${op.alpha != null ? ` fill-opacity="${op.alpha}"` : ""}`
+          : ' fill="none"';
+        const stroke = op.stroke
+          ? ` stroke="${op.stroke}" stroke-width="${Math.max(0.5, (op.strokePt ?? 1) * PX_PER_PT)}"${!op.fill && op.alpha != null ? ` stroke-opacity="${op.alpha}"` : ""}`
+          : "";
         parts.push(
-          `<rect x="${px(op.x)}" y="${px(op.y)}" width="${px(op.w)}" height="${px(op.h)}" fill="${op.fill}"${alpha}/>`,
+          `<rect x="${px(op.x)}" y="${px(op.y)}" width="${px(op.w)}" height="${px(op.h)}"${rx}${fill}${stroke}/>`,
+        );
+        break;
+      }
+      case "circle": {
+        if (!op.fill && !op.stroke) break;
+        const fill = op.fill
+          ? ` fill="${op.fill}"${op.alpha != null ? ` fill-opacity="${op.alpha}"` : ""}`
+          : ' fill="none"';
+        const stroke = op.stroke
+          ? ` stroke="${op.stroke}" stroke-width="${Math.max(0.5, (op.strokePt ?? 1) * PX_PER_PT)}"${!op.fill && op.alpha != null ? ` stroke-opacity="${op.alpha}"` : ""}`
+          : "";
+        parts.push(
+          `<circle cx="${px(op.cx)}" cy="${px(op.cy)}" r="${px(op.r)}"${fill}${stroke}/>`,
+        );
+        break;
+      }
+      case "icon": {
+        // Unknown icon name renders nothing — honest absence.
+        const icon = iconPng(op.icon, Math.max(24, Math.round(op.w * PX_PER_IN * 2)), op.color);
+        if (!icon) break;
+        parts.push(
+          `<image x="${px(op.x)}" y="${px(op.y)}" width="${px(op.w)}" height="${px(op.h)}" href="data:image/png;base64,${icon.toString("base64")}"/>`,
+        );
+        break;
+      }
+      case "bg": {
+        const bg = backgroundPng(op.variant);
+        parts.push(
+          `<image x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid slice" href="data:image/png;base64,${bg.toString("base64")}"/>`,
+        );
+        break;
+      }
+      case "map": {
+        // Unsupported region renders nothing — honest absence.
+        const map = mapPng(op.region, Math.max(200, Math.round(op.w * PX_PER_IN * 2)), op.base, op.highlight);
+        if (!map) break;
+        parts.push(
+          `<image x="${px(op.x)}" y="${px(op.y)}" width="${px(op.w)}" height="${px(op.h)}" preserveAspectRatio="xMidYMid meet" href="data:image/png;base64,${map.toString("base64")}"/>`,
         );
         break;
       }

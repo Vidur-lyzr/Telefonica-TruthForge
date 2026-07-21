@@ -149,6 +149,107 @@ const CODED_SAMPLES: Record<string, Record<string, unknown>> = {
     subline: "Questions and next steps",
     contactLine: "brand-room@example.com",
   },
+  "icon-cards": {
+    title: "What carries the strategy",
+    cards: [
+      { icon: "network", label: "Network leadership", text: "Placeholder line describing this pillar." },
+      { icon: "people", label: "Customer focus", text: "Placeholder line describing this pillar." },
+      { icon: "shield", label: "Trust and security", text: "Placeholder line describing this pillar." },
+    ],
+    sourceLine: "Source: layout preview",
+  },
+  "numbered-pillars": {
+    title: "Strategic priorities",
+    pillars: [
+      { heading: "Sample pillar one", text: "Placeholder supporting line for this pillar." },
+      { heading: "Sample pillar two", text: "Placeholder supporting line for this pillar." },
+      { heading: "Sample pillar three", text: "Placeholder supporting line for this pillar." },
+    ],
+    sourceLine: "Source: layout preview",
+  },
+  "stat-tiles": {
+    title: "Figures at a glance",
+    tiles: [
+      { value: "8,127", label: "Sample metric one", note: "vs prior period" },
+      { value: "+2.1%", label: "Sample metric two" },
+      { value: "1.2M", label: "Sample metric three" },
+      { value: "94%", label: "Sample metric four", note: "of target" },
+      { value: "3", label: "Sample metric five" },
+      { value: "€310M", label: "Sample metric six" },
+    ],
+    sourceLine: "Source: layout preview",
+  },
+  "big-number": {
+    kicker: "Momentum",
+    value: "5.5M",
+    label: "Sample hero figure label for this layout",
+    callouts: [
+      { value: "+18%", label: "Sample callout one" },
+      { value: "3 of 4", label: "Sample callout two" },
+      { value: "94%", label: "Sample callout three" },
+    ],
+    sourceLine: "Source: layout preview",
+  },
+  "list-bars": {
+    title: "Key takeaways",
+    items: [
+      { text: "First takeaway line showing how a bar reads on this layout.", icon: "check" },
+      { text: "Second takeaway line, numbered because it has no icon." },
+      { text: "Third takeaway line with an icon marker.", icon: "growth" },
+      { text: "Fourth takeaway line, numbered again." },
+    ],
+    sourceLine: "Source: layout preview",
+  },
+  "two-column-compare": {
+    title: "Today and tomorrow",
+    leftTitle: "Today",
+    rightTitle: "Tomorrow",
+    leftItems: ["Sample current-state line one", "Sample current-state line two", "Sample current-state line three"],
+    rightItems: ["Sample future-state line one", "Sample future-state line two", "Sample future-state line three"],
+    sourceLine: "Source: layout preview",
+  },
+  timeline: {
+    title: "Roadmap",
+    milestones: [
+      { label: "Q1", text: "Sample milestone one" },
+      { label: "Q2", text: "Sample milestone two" },
+      { label: "Q3", text: "Sample milestone three" },
+      { label: "Q4", text: "Sample milestone four" },
+    ],
+    sourceLine: "Source: layout preview",
+  },
+  "flow-steps": {
+    title: "How it works",
+    steps: [
+      { label: "Brief", text: "Sample step description" },
+      { label: "Compose", text: "Sample step description" },
+      { label: "Review", text: "Sample step description" },
+      { label: "Publish", text: "Sample step description" },
+    ],
+    sourceLine: "Source: layout preview",
+  },
+  "kpi-table": {
+    title: "Results by market",
+    columns: ["Market", "Value", "Change"],
+    rows: [
+      ["Sample market one", "3,001", "+1.2%"],
+      ["Sample market two", "2,240", "-0.8%"],
+      ["Sample market three", "2,886", "+3.1%"],
+    ],
+    chipLast: true,
+    sourceLine: "Source: layout preview",
+  },
+  "map-highlight": {
+    title: "Market footprint",
+    region: "europe",
+    stats: [
+      { value: "12", label: "Sample stat one" },
+      { value: "+4.2%", label: "Sample stat two" },
+      { value: "€1.1B", label: "Sample stat three" },
+    ],
+    note: "Placeholder note under the map for this preview.",
+    sourceLine: "Source: layout preview",
+  },
 };
 
 // Placeholder copy for extracted layouts, derived from the spec's own slot
@@ -268,6 +369,7 @@ export async function renderLayoutSamplePng(layoutId: string): Promise<Buffer | 
     footerLabel: "Layout preview",
     confidentiality: "Internal use",
     generatedAt: new Date().toISOString(),
+    style: def.previewStyle ?? "light",
   };
   const ops = def.compose(def.schema.parse(sample), ctx);
   const png = renderOpsPng(ops, bytes);
