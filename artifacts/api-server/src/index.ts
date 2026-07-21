@@ -8,6 +8,8 @@ import { initPlanningStore } from "./data/planningStore";
 import { initQualityStore } from "./data/qualityStore";
 import { initTemplateOverrides } from "./data/templateOverrides";
 import { initImageLibrary } from "./data/imageLibraryStore";
+import { initExtractedLayouts } from "./data/extractedLayoutStore";
+import { initDeckIntake } from "./data/deckIntakeStore";
 import { initUsageMeter } from "./data/usageMeter";
 import { initObservatory } from "./data/observatoryStore";
 import { initPlatformUsers } from "./data/platformUsers";
@@ -45,6 +47,8 @@ async function boot(): Promise<void> {
     initQualityStore(),
     initTemplateOverrides(),
     initImageLibrary(),
+    initExtractedLayouts(),
+    initDeckIntake(),
     initUsageMeter(),
     initObservatory(),
     initPlatformUsers(),

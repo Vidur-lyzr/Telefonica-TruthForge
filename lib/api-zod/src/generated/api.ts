@@ -7495,6 +7495,623 @@ export const ListDocumentFreshnessResponse = zod.array(ListDocumentFreshnessResp
 
 
 /**
+ * Large-file-friendly intake for the corporate master deck. The client PUTs the bytes straight to object storage; nothing is parsed until the extraction job is registered and the server has verified size and file signature. Gated by the ingest_documents capability.
+ * @summary Presigned upload URL for one slimmed master-deck part
+ */
+export const requestMasterDeckUploadUrlBodyFilenameMax = 200;
+
+export const requestMasterDeckUploadUrlBodySizeMax = 104857600;
+
+
+
+export const RequestMasterDeckUploadUrlBody = zod.object({
+  "roleId": zod.string(),
+  "filename": zod.string().min(1).max(requestMasterDeckUploadUrlBodyFilenameMax),
+  "size": zod.number().min(1).max(requestMasterDeckUploadUrlBodySizeMax),
+  "kind": zod.enum(['pptx', 'pdf'])
+})
+
+export const RequestMasterDeckUploadUrlResponse = zod.object({
+  "uploadURL": zod.string(),
+  "objectPath": zod.string()
+})
+
+
+/**
+ * @summary All master-deck extraction jobs, newest first
+ */
+export const ListMasterDeckJobsResponse = zod.object({
+  "jobs": zod.array(zod.object({
+  "id": zod.string(),
+  "deckName": zod.string(),
+  "kind": zod.enum(['pptx', 'pdf']),
+  "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
+  "progress": zod.string(),
+  "slideCount": zod.number().optional(),
+  "partCount": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "error": zod.string().optional(),
+  "familyCount": zod.number(),
+  "pendingFamilies": zod.number(),
+  "harvestCount": zod.number(),
+  "pendingHarvest": zod.number()
+}))
+})
+
+
+/**
+ * Verifies every uploaded part (size cap, zip/PDF signature) and creates the extraction job. Parsing, clustering and proposal generation run asynchronously; poll the job for progress. Gated by ingest_documents and audit-logged to the Observatory as an ingest event.
+ * @summary Register uploaded deck parts as an extraction job
+ */
+export const createMasterDeckJobBodyDeckNameMax = 120;
+
+export const createMasterDeckJobBodyPartsItemFilenameMax = 200;
+
+export const createMasterDeckJobBodyPartsMax = 5;
+
+
+
+export const CreateMasterDeckJobBody = zod.object({
+  "roleId": zod.string(),
+  "deckName": zod.string().min(1).max(createMasterDeckJobBodyDeckNameMax),
+  "kind": zod.enum(['pptx', 'pdf']),
+  "parts": zod.array(zod.object({
+  "objectPath": zod.string(),
+  "filename": zod.string().min(1).max(createMasterDeckJobBodyPartsItemFilenameMax)
+})).min(1).max(createMasterDeckJobBodyPartsMax)
+})
+
+export const CreateMasterDeckJobResponse = zod.object({
+  "id": zod.string(),
+  "deckName": zod.string(),
+  "kind": zod.enum(['pptx', 'pdf']),
+  "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
+  "progress": zod.string(),
+  "slideCount": zod.number().optional(),
+  "partCount": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "error": zod.string().optional(),
+  "families": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "slideIndexes": zod.array(zod.number()),
+  "thumbKey": zod.string().optional(),
+  "previewKey": zod.string().optional(),
+  "proposal": zod.object({
+  "specVersion": zod.number(),
+  "id": zod.string(),
+  "name": zod.string(),
+  "purpose": zod.string(),
+  "footer": zod.enum(['light', 'dark', 'none']),
+  "background": zod.array(zod.record(zod.string(), zod.unknown())),
+  "slots": zod.array(zod.object({
+  "key": zod.string(),
+  "kind": zod.enum(['text', 'bullets', 'image']),
+  "label": zod.string(),
+  "required": zod.boolean(),
+  "frame": zod.object({
+  "x": zod.number(),
+  "y": zod.number(),
+  "w": zod.number(),
+  "h": zod.number()
+}),
+  "size": zod.number().optional(),
+  "color": zod.string().optional(),
+  "bold": zod.boolean().optional(),
+  "align": zod.enum(['left', 'center', 'right']).optional(),
+  "valign": zod.enum(['top', 'middle']).optional(),
+  "lineSpacing": zod.number().optional(),
+  "maxChars": zod.number().optional(),
+  "maxItems": zod.number().optional(),
+  "maxCharsPerItem": zod.number().optional(),
+  "hint": zod.string().optional(),
+  "fallbackFill": zod.string().optional()
+})),
+  "confidenceNotes": zod.array(zod.string()).optional()
+}),
+  "confidenceNotes": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().optional(),
+  "decidedAt": zod.string().optional(),
+  "rejectReason": zod.string().optional(),
+  "layoutId": zod.string().optional()
+})),
+  "harvest": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "bytes": zod.number(),
+  "sourceSlide": zod.number(),
+  "suggestedLabel": zod.string(),
+  "suggestedTags": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'added', 'dismissed']),
+  "imageId": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary Full detail of one extraction job
+ */
+export const GetMasterDeckJobQueryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetMasterDeckJobResponse = zod.object({
+  "id": zod.string(),
+  "deckName": zod.string(),
+  "kind": zod.enum(['pptx', 'pdf']),
+  "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
+  "progress": zod.string(),
+  "slideCount": zod.number().optional(),
+  "partCount": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "error": zod.string().optional(),
+  "families": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "slideIndexes": zod.array(zod.number()),
+  "thumbKey": zod.string().optional(),
+  "previewKey": zod.string().optional(),
+  "proposal": zod.object({
+  "specVersion": zod.number(),
+  "id": zod.string(),
+  "name": zod.string(),
+  "purpose": zod.string(),
+  "footer": zod.enum(['light', 'dark', 'none']),
+  "background": zod.array(zod.record(zod.string(), zod.unknown())),
+  "slots": zod.array(zod.object({
+  "key": zod.string(),
+  "kind": zod.enum(['text', 'bullets', 'image']),
+  "label": zod.string(),
+  "required": zod.boolean(),
+  "frame": zod.object({
+  "x": zod.number(),
+  "y": zod.number(),
+  "w": zod.number(),
+  "h": zod.number()
+}),
+  "size": zod.number().optional(),
+  "color": zod.string().optional(),
+  "bold": zod.boolean().optional(),
+  "align": zod.enum(['left', 'center', 'right']).optional(),
+  "valign": zod.enum(['top', 'middle']).optional(),
+  "lineSpacing": zod.number().optional(),
+  "maxChars": zod.number().optional(),
+  "maxItems": zod.number().optional(),
+  "maxCharsPerItem": zod.number().optional(),
+  "hint": zod.string().optional(),
+  "fallbackFill": zod.string().optional()
+})),
+  "confidenceNotes": zod.array(zod.string()).optional()
+}),
+  "confidenceNotes": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().optional(),
+  "decidedAt": zod.string().optional(),
+  "rejectReason": zod.string().optional(),
+  "layoutId": zod.string().optional()
+})),
+  "harvest": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "bytes": zod.number(),
+  "sourceSlide": zod.number(),
+  "suggestedLabel": zod.string(),
+  "suggestedTags": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'added', 'dismissed']),
+  "imageId": zod.string().optional()
+}))
+})
+
+
+/**
+ * Validates and compiles the proposal spec, registers it as a live visual layout immediately usable by the generate agent, and audit-logs a config change. Optional name/purpose overrides let the reviewer polish agent-facing wording without editing geometry. Gated by manage_brand_room (Marca area).
+ * @summary Approve a proposed layout into the live registry
+ */
+export const approveMasterDeckProposalBodyNameMax = 80;
+
+export const approveMasterDeckProposalBodyPurposeMin = 20;
+export const approveMasterDeckProposalBodyPurposeMax = 400;
+
+
+
+export const ApproveMasterDeckProposalBody = zod.object({
+  "roleId": zod.string(),
+  "jobId": zod.string(),
+  "familyId": zod.string(),
+  "name": zod.string().min(1).max(approveMasterDeckProposalBodyNameMax).optional(),
+  "purpose": zod.string().min(approveMasterDeckProposalBodyPurposeMin).max(approveMasterDeckProposalBodyPurposeMax).optional()
+})
+
+export const ApproveMasterDeckProposalResponse = zod.object({
+  "job": zod.object({
+  "id": zod.string(),
+  "deckName": zod.string(),
+  "kind": zod.enum(['pptx', 'pdf']),
+  "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
+  "progress": zod.string(),
+  "slideCount": zod.number().optional(),
+  "partCount": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "error": zod.string().optional(),
+  "families": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "slideIndexes": zod.array(zod.number()),
+  "thumbKey": zod.string().optional(),
+  "previewKey": zod.string().optional(),
+  "proposal": zod.object({
+  "specVersion": zod.number(),
+  "id": zod.string(),
+  "name": zod.string(),
+  "purpose": zod.string(),
+  "footer": zod.enum(['light', 'dark', 'none']),
+  "background": zod.array(zod.record(zod.string(), zod.unknown())),
+  "slots": zod.array(zod.object({
+  "key": zod.string(),
+  "kind": zod.enum(['text', 'bullets', 'image']),
+  "label": zod.string(),
+  "required": zod.boolean(),
+  "frame": zod.object({
+  "x": zod.number(),
+  "y": zod.number(),
+  "w": zod.number(),
+  "h": zod.number()
+}),
+  "size": zod.number().optional(),
+  "color": zod.string().optional(),
+  "bold": zod.boolean().optional(),
+  "align": zod.enum(['left', 'center', 'right']).optional(),
+  "valign": zod.enum(['top', 'middle']).optional(),
+  "lineSpacing": zod.number().optional(),
+  "maxChars": zod.number().optional(),
+  "maxItems": zod.number().optional(),
+  "maxCharsPerItem": zod.number().optional(),
+  "hint": zod.string().optional(),
+  "fallbackFill": zod.string().optional()
+})),
+  "confidenceNotes": zod.array(zod.string()).optional()
+}),
+  "confidenceNotes": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().optional(),
+  "decidedAt": zod.string().optional(),
+  "rejectReason": zod.string().optional(),
+  "layoutId": zod.string().optional()
+})),
+  "harvest": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "bytes": zod.number(),
+  "sourceSlide": zod.number(),
+  "suggestedLabel": zod.string(),
+  "suggestedTags": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'added', 'dismissed']),
+  "imageId": zod.string().optional()
+}))
+}),
+  "layoutId": zod.string()
+})
+
+
+/**
+ * @summary Reject a proposed layout with a reason
+ */
+export const rejectMasterDeckProposalBodyReasonMax = 300;
+
+
+
+export const RejectMasterDeckProposalBody = zod.object({
+  "roleId": zod.string(),
+  "jobId": zod.string(),
+  "familyId": zod.string(),
+  "reason": zod.string().min(1).max(rejectMasterDeckProposalBodyReasonMax)
+})
+
+export const RejectMasterDeckProposalResponse = zod.object({
+  "id": zod.string(),
+  "deckName": zod.string(),
+  "kind": zod.enum(['pptx', 'pdf']),
+  "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
+  "progress": zod.string(),
+  "slideCount": zod.number().optional(),
+  "partCount": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "error": zod.string().optional(),
+  "families": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "slideIndexes": zod.array(zod.number()),
+  "thumbKey": zod.string().optional(),
+  "previewKey": zod.string().optional(),
+  "proposal": zod.object({
+  "specVersion": zod.number(),
+  "id": zod.string(),
+  "name": zod.string(),
+  "purpose": zod.string(),
+  "footer": zod.enum(['light', 'dark', 'none']),
+  "background": zod.array(zod.record(zod.string(), zod.unknown())),
+  "slots": zod.array(zod.object({
+  "key": zod.string(),
+  "kind": zod.enum(['text', 'bullets', 'image']),
+  "label": zod.string(),
+  "required": zod.boolean(),
+  "frame": zod.object({
+  "x": zod.number(),
+  "y": zod.number(),
+  "w": zod.number(),
+  "h": zod.number()
+}),
+  "size": zod.number().optional(),
+  "color": zod.string().optional(),
+  "bold": zod.boolean().optional(),
+  "align": zod.enum(['left', 'center', 'right']).optional(),
+  "valign": zod.enum(['top', 'middle']).optional(),
+  "lineSpacing": zod.number().optional(),
+  "maxChars": zod.number().optional(),
+  "maxItems": zod.number().optional(),
+  "maxCharsPerItem": zod.number().optional(),
+  "hint": zod.string().optional(),
+  "fallbackFill": zod.string().optional()
+})),
+  "confidenceNotes": zod.array(zod.string()).optional()
+}),
+  "confidenceNotes": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().optional(),
+  "decidedAt": zod.string().optional(),
+  "rejectReason": zod.string().optional(),
+  "layoutId": zod.string().optional()
+})),
+  "harvest": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "bytes": zod.number(),
+  "sourceSlide": zod.number(),
+  "suggestedLabel": zod.string(),
+  "suggestedTags": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'added', 'dismissed']),
+  "imageId": zod.string().optional()
+}))
+})
+
+
+/**
+ * Moves one harvested image into the governed brand image library with the reviewer's final label and tags. Gated by manage_brand_room (Marca area) and audit-logged as a config change — identical governance to a manual library upload.
+ * @summary Add a harvested deck image to the brand image library
+ */
+export const confirmMasterDeckHarvestItemBodyLabelMax = 80;
+
+export const confirmMasterDeckHarvestItemBodyTagsItemMax = 32;
+
+export const confirmMasterDeckHarvestItemBodyTagsMax = 8;
+
+
+
+export const ConfirmMasterDeckHarvestItemBody = zod.object({
+  "roleId": zod.string(),
+  "jobId": zod.string(),
+  "itemId": zod.string(),
+  "label": zod.string().min(1).max(confirmMasterDeckHarvestItemBodyLabelMax),
+  "tags": zod.array(zod.string().min(1).max(confirmMasterDeckHarvestItemBodyTagsItemMax)).min(1).max(confirmMasterDeckHarvestItemBodyTagsMax)
+})
+
+export const ConfirmMasterDeckHarvestItemResponse = zod.object({
+  "job": zod.object({
+  "id": zod.string(),
+  "deckName": zod.string(),
+  "kind": zod.enum(['pptx', 'pdf']),
+  "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
+  "progress": zod.string(),
+  "slideCount": zod.number().optional(),
+  "partCount": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "error": zod.string().optional(),
+  "families": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "slideIndexes": zod.array(zod.number()),
+  "thumbKey": zod.string().optional(),
+  "previewKey": zod.string().optional(),
+  "proposal": zod.object({
+  "specVersion": zod.number(),
+  "id": zod.string(),
+  "name": zod.string(),
+  "purpose": zod.string(),
+  "footer": zod.enum(['light', 'dark', 'none']),
+  "background": zod.array(zod.record(zod.string(), zod.unknown())),
+  "slots": zod.array(zod.object({
+  "key": zod.string(),
+  "kind": zod.enum(['text', 'bullets', 'image']),
+  "label": zod.string(),
+  "required": zod.boolean(),
+  "frame": zod.object({
+  "x": zod.number(),
+  "y": zod.number(),
+  "w": zod.number(),
+  "h": zod.number()
+}),
+  "size": zod.number().optional(),
+  "color": zod.string().optional(),
+  "bold": zod.boolean().optional(),
+  "align": zod.enum(['left', 'center', 'right']).optional(),
+  "valign": zod.enum(['top', 'middle']).optional(),
+  "lineSpacing": zod.number().optional(),
+  "maxChars": zod.number().optional(),
+  "maxItems": zod.number().optional(),
+  "maxCharsPerItem": zod.number().optional(),
+  "hint": zod.string().optional(),
+  "fallbackFill": zod.string().optional()
+})),
+  "confidenceNotes": zod.array(zod.string()).optional()
+}),
+  "confidenceNotes": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().optional(),
+  "decidedAt": zod.string().optional(),
+  "rejectReason": zod.string().optional(),
+  "layoutId": zod.string().optional()
+})),
+  "harvest": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "bytes": zod.number(),
+  "sourceSlide": zod.number(),
+  "suggestedLabel": zod.string(),
+  "suggestedTags": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'added', 'dismissed']),
+  "imageId": zod.string().optional()
+}))
+}),
+  "image": zod.object({
+  "id": zod.string(),
+  "objectPath": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "label": zod.string(),
+  "tags": zod.array(zod.string()),
+  "uploadedBy": zod.string(),
+  "uploadedAt": zod.string()
+})
+})
+
+
+/**
+ * @summary Dismiss a harvested image without adding it to the library
+ */
+export const DismissMasterDeckHarvestItemBody = zod.object({
+  "roleId": zod.string(),
+  "jobId": zod.string(),
+  "itemId": zod.string()
+})
+
+export const DismissMasterDeckHarvestItemResponse = zod.object({
+  "id": zod.string(),
+  "deckName": zod.string(),
+  "kind": zod.enum(['pptx', 'pdf']),
+  "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
+  "progress": zod.string(),
+  "slideCount": zod.number().optional(),
+  "partCount": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "error": zod.string().optional(),
+  "families": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "slideIndexes": zod.array(zod.number()),
+  "thumbKey": zod.string().optional(),
+  "previewKey": zod.string().optional(),
+  "proposal": zod.object({
+  "specVersion": zod.number(),
+  "id": zod.string(),
+  "name": zod.string(),
+  "purpose": zod.string(),
+  "footer": zod.enum(['light', 'dark', 'none']),
+  "background": zod.array(zod.record(zod.string(), zod.unknown())),
+  "slots": zod.array(zod.object({
+  "key": zod.string(),
+  "kind": zod.enum(['text', 'bullets', 'image']),
+  "label": zod.string(),
+  "required": zod.boolean(),
+  "frame": zod.object({
+  "x": zod.number(),
+  "y": zod.number(),
+  "w": zod.number(),
+  "h": zod.number()
+}),
+  "size": zod.number().optional(),
+  "color": zod.string().optional(),
+  "bold": zod.boolean().optional(),
+  "align": zod.enum(['left', 'center', 'right']).optional(),
+  "valign": zod.enum(['top', 'middle']).optional(),
+  "lineSpacing": zod.number().optional(),
+  "maxChars": zod.number().optional(),
+  "maxItems": zod.number().optional(),
+  "maxCharsPerItem": zod.number().optional(),
+  "hint": zod.string().optional(),
+  "fallbackFill": zod.string().optional()
+})),
+  "confidenceNotes": zod.array(zod.string()).optional()
+}),
+  "confidenceNotes": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().optional(),
+  "decidedAt": zod.string().optional(),
+  "rejectReason": zod.string().optional(),
+  "layoutId": zod.string().optional()
+})),
+  "harvest": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "bytes": zod.number(),
+  "sourceSlide": zod.number(),
+  "suggestedLabel": zod.string(),
+  "suggestedTags": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'added', 'dismissed']),
+  "imageId": zod.string().optional()
+}))
+})
+
+
+/**
+ * Assets are addressed by job id plus the server-assigned asset key, so only files the pipeline itself produced are reachable.
+ * @summary Serve a job asset (slide thumbnail, proposal preview, harvest image)
+ */
+export const GetMasterDeckAssetQueryParams = zod.object({
+  "jobId": zod.coerce.string(),
+  "key": zod.coerce.string()
+})
+
+export const GetMasterDeckAssetResponse = zod.unknown()
+
+
+/**
+ * @summary Downloadable one-page guide for slimming the master deck locally
+ */
+export const DownloadSlimmingGuideResponse = zod.unknown()
+
+
+/**
  * The brand-approved document templates. Templates are internal brand governance material, so a lower-clearance persona receives an empty set with a blocked count rather than the templates themselves (fail-closed).
  * @summary Governed document templates, permission-filtered by persona clearance
  */

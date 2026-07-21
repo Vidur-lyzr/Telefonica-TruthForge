@@ -4043,6 +4043,327 @@ export interface ObservatoryEventsPage {
   items: ObservatoryEvent[];
 }
 
+export type MasterDeckUploadUrlBodyKind = typeof MasterDeckUploadUrlBodyKind[keyof typeof MasterDeckUploadUrlBodyKind];
+
+
+export const MasterDeckUploadUrlBodyKind = {
+  pptx: 'pptx',
+  pdf: 'pdf',
+} as const;
+
+export interface MasterDeckUploadUrlBody {
+  roleId: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  filename: string;
+  /**
+     * @minimum 1
+     * @maximum 104857600
+     */
+  size: number;
+  kind: MasterDeckUploadUrlBodyKind;
+}
+
+export interface MasterDeckUploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+}
+
+export type MasterDeckJobCreateInputKind = typeof MasterDeckJobCreateInputKind[keyof typeof MasterDeckJobCreateInputKind];
+
+
+export const MasterDeckJobCreateInputKind = {
+  pptx: 'pptx',
+  pdf: 'pdf',
+} as const;
+
+export type MasterDeckJobCreateInputPartsItem = {
+  objectPath: string;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  filename: string;
+};
+
+export interface MasterDeckJobCreateInput {
+  roleId: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  deckName: string;
+  kind: MasterDeckJobCreateInputKind;
+  /**
+     * @minItems 1
+     * @maxItems 5
+     */
+  parts: MasterDeckJobCreateInputPartsItem[];
+}
+
+export type MasterDeckSlotSpecKind = typeof MasterDeckSlotSpecKind[keyof typeof MasterDeckSlotSpecKind];
+
+
+export const MasterDeckSlotSpecKind = {
+  text: 'text',
+  bullets: 'bullets',
+  image: 'image',
+} as const;
+
+export type MasterDeckSlotSpecFrame = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+};
+
+export type MasterDeckSlotSpecAlign = typeof MasterDeckSlotSpecAlign[keyof typeof MasterDeckSlotSpecAlign];
+
+
+export const MasterDeckSlotSpecAlign = {
+  left: 'left',
+  center: 'center',
+  right: 'right',
+} as const;
+
+export type MasterDeckSlotSpecValign = typeof MasterDeckSlotSpecValign[keyof typeof MasterDeckSlotSpecValign];
+
+
+export const MasterDeckSlotSpecValign = {
+  top: 'top',
+  middle: 'middle',
+} as const;
+
+export interface MasterDeckSlotSpec {
+  key: string;
+  kind: MasterDeckSlotSpecKind;
+  label: string;
+  required: boolean;
+  frame: MasterDeckSlotSpecFrame;
+  size?: number;
+  color?: string;
+  bold?: boolean;
+  align?: MasterDeckSlotSpecAlign;
+  valign?: MasterDeckSlotSpecValign;
+  lineSpacing?: number;
+  maxChars?: number;
+  maxItems?: number;
+  maxCharsPerItem?: number;
+  hint?: string;
+  fallbackFill?: string;
+}
+
+export type MasterDeckLayoutSpecFooter = typeof MasterDeckLayoutSpecFooter[keyof typeof MasterDeckLayoutSpecFooter];
+
+
+export const MasterDeckLayoutSpecFooter = {
+  light: 'light',
+  dark: 'dark',
+  none: 'none',
+} as const;
+
+export type MasterDeckLayoutSpecBackgroundItem = { [key: string]: unknown };
+
+export interface MasterDeckLayoutSpec {
+  specVersion: number;
+  id: string;
+  name: string;
+  purpose: string;
+  footer: MasterDeckLayoutSpecFooter;
+  background: MasterDeckLayoutSpecBackgroundItem[];
+  slots: MasterDeckSlotSpec[];
+  confidenceNotes?: string[];
+}
+
+export type MasterDeckFamilyStatus = typeof MasterDeckFamilyStatus[keyof typeof MasterDeckFamilyStatus];
+
+
+export const MasterDeckFamilyStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface MasterDeckFamily {
+  id: string;
+  label: string;
+  slideIndexes: number[];
+  thumbKey?: string;
+  previewKey?: string;
+  proposal: MasterDeckLayoutSpec;
+  confidenceNotes: string[];
+  status: MasterDeckFamilyStatus;
+  decidedBy?: string;
+  decidedAt?: string;
+  rejectReason?: string;
+  layoutId?: string;
+}
+
+export type MasterDeckHarvestItemStatus = typeof MasterDeckHarvestItemStatus[keyof typeof MasterDeckHarvestItemStatus];
+
+
+export const MasterDeckHarvestItemStatus = {
+  pending: 'pending',
+  added: 'added',
+  dismissed: 'dismissed',
+} as const;
+
+export interface MasterDeckHarvestItem {
+  id: string;
+  key: string;
+  filename: string;
+  contentType: string;
+  width: number;
+  height: number;
+  bytes: number;
+  sourceSlide: number;
+  suggestedLabel: string;
+  suggestedTags: string[];
+  status: MasterDeckHarvestItemStatus;
+  imageId?: string;
+}
+
+export type MasterDeckJobKind = typeof MasterDeckJobKind[keyof typeof MasterDeckJobKind];
+
+
+export const MasterDeckJobKind = {
+  pptx: 'pptx',
+  pdf: 'pdf',
+} as const;
+
+export type MasterDeckJobStatus = typeof MasterDeckJobStatus[keyof typeof MasterDeckJobStatus];
+
+
+export const MasterDeckJobStatus = {
+  uploaded: 'uploaded',
+  parsing: 'parsing',
+  clustering: 'clustering',
+  proposing: 'proposing',
+  ready: 'ready',
+  failed: 'failed',
+} as const;
+
+export interface MasterDeckJob {
+  id: string;
+  deckName: string;
+  kind: MasterDeckJobKind;
+  status: MasterDeckJobStatus;
+  progress: string;
+  slideCount?: number;
+  partCount: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  error?: string;
+  families: MasterDeckFamily[];
+  harvest: MasterDeckHarvestItem[];
+}
+
+export type MasterDeckJobSummaryKind = typeof MasterDeckJobSummaryKind[keyof typeof MasterDeckJobSummaryKind];
+
+
+export const MasterDeckJobSummaryKind = {
+  pptx: 'pptx',
+  pdf: 'pdf',
+} as const;
+
+export type MasterDeckJobSummaryStatus = typeof MasterDeckJobSummaryStatus[keyof typeof MasterDeckJobSummaryStatus];
+
+
+export const MasterDeckJobSummaryStatus = {
+  uploaded: 'uploaded',
+  parsing: 'parsing',
+  clustering: 'clustering',
+  proposing: 'proposing',
+  ready: 'ready',
+  failed: 'failed',
+} as const;
+
+export interface MasterDeckJobSummary {
+  id: string;
+  deckName: string;
+  kind: MasterDeckJobSummaryKind;
+  status: MasterDeckJobSummaryStatus;
+  progress: string;
+  slideCount?: number;
+  partCount: number;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  error?: string;
+  familyCount: number;
+  pendingFamilies: number;
+  harvestCount: number;
+  pendingHarvest: number;
+}
+
+export interface MasterDeckJobsView {
+  jobs: MasterDeckJobSummary[];
+}
+
+export interface MasterDeckProposalApproveInput {
+  roleId: string;
+  jobId: string;
+  familyId: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name?: string;
+  /**
+     * @minLength 20
+     * @maxLength 400
+     */
+  purpose?: string;
+}
+
+export interface MasterDeckProposalApproveResult {
+  job: MasterDeckJob;
+  layoutId: string;
+}
+
+export interface MasterDeckProposalRejectInput {
+  roleId: string;
+  jobId: string;
+  familyId: string;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  reason: string;
+}
+
+export interface ConfirmMasterDeckHarvestBody {
+  roleId: string;
+  jobId: string;
+  itemId: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  label: string;
+  /**
+     * @minItems 1
+     * @maxItems 8
+     * @items.minLength 1
+     * @items.maxLength 32
+     */
+  tags: string[];
+}
+
+export interface ConfirmMasterDeckHarvestResponse {
+  job: MasterDeckJob;
+  image: BrandImage;
+}
+
+export interface DismissMasterDeckHarvestBody {
+  roleId: string;
+  jobId: string;
+  itemId: string;
+}
+
 export type GetCorpusStatsParams = {
 /**
  * Optional persona id to scope stats by clearance
@@ -4219,6 +4540,15 @@ roleId: string;
 
 export type ListWikiLineageParams = {
 roleId: string;
+};
+
+export type GetMasterDeckJobParams = {
+id: string;
+};
+
+export type GetMasterDeckAssetParams = {
+jobId: string;
+key: string;
 };
 
 export type GetBrandTemplatesParams = {

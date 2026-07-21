@@ -737,8 +737,25 @@ export const VISUAL_LAYOUTS: VisualLayoutDef[] = [
 
 const layoutById = new Map(VISUAL_LAYOUTS.map((l) => [l.id, l]));
 
+// Dynamic layouts (admin-approved extracted specs) are looked up at CALL
+// time, never captured at import time — the provider is registered by the
+// extracted-layout store during boot. Coded layouts always win an id
+// collision (extracted ids are "xl-" prefixed, so one should never occur).
+let dynamicProvider: (() => VisualLayoutDef[]) | null = null;
+
+export function registerDynamicLayoutProvider(provider: () => VisualLayoutDef[]): void {
+  dynamicProvider = provider;
+}
+
+function dynamicLayouts(): VisualLayoutDef[] {
+  if (!dynamicProvider) return [];
+  return dynamicProvider().filter((l) => !layoutById.has(l.id));
+}
+
 export function getVisualLayout(id: string): VisualLayoutDef | undefined {
-  return layoutById.get(id);
+  const coded = layoutById.get(id);
+  if (coded) return coded;
+  return dynamicLayouts().find((l) => l.id === id);
 }
 
 // ---- Resolution ----------------------------------------------------------------
@@ -859,7 +876,7 @@ export function visualLayoutCatalogue(): {
   imageSlots: ImageSlotSpec[];
   wantsChart: boolean;
 }[] {
-  return VISUAL_LAYOUTS.map((l) => ({
+  return [...VISUAL_LAYOUTS, ...dynamicLayouts()].map((l) => ({
     id: l.id,
     name: l.name,
     purpose: l.purpose,

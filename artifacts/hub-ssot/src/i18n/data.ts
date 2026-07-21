@@ -14,6 +14,7 @@ export interface DataStrings {
     ingestion: string;
     governance: string;
     corpus: string;
+    templates: string;
   };
   sessionActivity: string;
   sessionActivityCount: (n: number) => string;
@@ -404,6 +405,76 @@ export interface DataStrings {
     sortChunks: string;
     clearFilters: string;
   };
+
+  // Templates area — master-deck intake and extraction jobs
+  deckIntake: {
+    introTitle: string;
+    introDesc: string;
+    guideButton: string;
+    uploadTitle: string;
+    deckNameLabel: string;
+    deckNamePlaceholder: string;
+    formatLabel: string;
+    formatPptx: string;
+    formatPdf: string;
+    chooseFiles: string;
+    filesHint: string;
+    selectedFiles: (n: number) => string;
+    fileTooLarge: (name: string) => string;
+    startExtraction: string;
+    uploadingPart: (n: number, total: number) => string;
+    creatingJob: string;
+    uploadFailed: string;
+    jobsTitle: string;
+    noJobs: string;
+    noJobsDesc: string;
+    status: Record<string, string>;
+    partCount: (n: number) => string;
+    slideCount: (n: number) => string;
+    familiesSummary: (total: number, pending: number) => string;
+    harvestSummary: (total: number, pending: number) => string;
+    byUser: (who: string) => string;
+    review: {
+      open: string;
+      title: (deck: string) => string;
+      loading: string;
+      source: string;
+      preview: string;
+      slides: (list: string) => string;
+      slotsTitle: string;
+      slotKind: Record<string, string>;
+      slotLimit: (n: number) => string;
+      slotItems: (n: number, perItem: number) => string;
+      notesTitle: string;
+      nameLabel: string;
+      purposeLabel: string;
+      purposeHelper: string;
+      approve: string;
+      approving: string;
+      reject: string;
+      rejectReasonLabel: string;
+      rejectConfirm: string;
+      cancel: string;
+      approvedBadge: string;
+      rejectedBadge: string;
+      decidedBy: (who: string) => string;
+      registeredAs: (id: string) => string;
+      rejectedReason: (reason: string) => string;
+      allDecided: string;
+      harvestTitle: string;
+      harvestMeta: (w: number, h: number, slide: number) => string;
+      labelLabel: string;
+      tagsLabel: string;
+      tagsHelper: string;
+      addImage: string;
+      addingImage: string;
+      dismissImage: string;
+      addedBadge: string;
+      dismissedBadge: string;
+      noHarvest: string;
+      actionFailed: string;
+    };
+  };
 }
 
 export const DATA_I18N: Record<Lang, DataStrings> = {
@@ -414,6 +485,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       ingestion: "Ingestion",
       governance: "Governance",
       corpus: "Corpus",
+      templates: "Templates",
     },
     sessionActivity: "Session activity",
     sessionActivityCount: (n) => `Session activity (${n})`,
@@ -865,6 +937,85 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       sortChunks: "Most chunks",
       clearFilters: "Clear filters",
     },
+
+    deckIntake: {
+      introTitle: "Turn the corporate master deck into governed layouts",
+      introDesc:
+        "Upload the slimmed master deck (up to 5 parts, 100 MB each). The pipeline reads every slide, groups recurring designs into families and proposes reusable layouts — nothing goes live without Brand-admin approval.",
+      guideButton: "Slimming guide (PDF)",
+      uploadTitle: "Upload deck parts",
+      deckNameLabel: "Deck name",
+      deckNamePlaceholder: "e.g. Corporate master deck 2026",
+      formatLabel: "Format",
+      formatPptx: "PowerPoint (.pptx)",
+      formatPdf: "PDF (images only)",
+      chooseFiles: "Choose files",
+      filesHint: "Up to 5 files, 100 MB each",
+      selectedFiles: (n) => (n === 1 ? "1 file selected" : `${n} files selected`),
+      fileTooLarge: (name) => `"${name}" is larger than 100 MB — see the slimming guide.`,
+      startExtraction: "Start extraction",
+      uploadingPart: (n, total) => `Uploading part ${n} of ${total}…`,
+      creatingJob: "Verifying upload and creating the job…",
+      uploadFailed: "Upload failed",
+      jobsTitle: "Extraction jobs",
+      noJobs: "No decks processed yet",
+      noJobsDesc: "Upload the master deck above — proposals will appear here for review.",
+      status: {
+        uploaded: "Queued",
+        parsing: "Parsing",
+        clustering: "Clustering",
+        proposing: "Proposing",
+        ready: "Ready for review",
+        failed: "Failed",
+      },
+      partCount: (n) => (n === 1 ? "1 part" : `${n} parts`),
+      slideCount: (n) => (n === 1 ? "1 slide" : `${n} slides`),
+      familiesSummary: (total, pending) =>
+        pending > 0 ? `${total} layout proposals (${pending} pending)` : `${total} layout proposals`,
+      harvestSummary: (total, pending) =>
+        pending > 0 ? `${total} harvested images (${pending} pending)` : `${total} harvested images`,
+      byUser: (who) => `by ${who}`,
+      review: {
+        open: "Review proposals",
+        title: (deck) => `Review — ${deck}`,
+        loading: "Loading extraction results…",
+        source: "Source wireframe",
+        preview: "Branded preview",
+        slides: (list) => `From slides ${list}`,
+        slotsTitle: "Slots",
+        slotKind: { text: "Text", bullets: "Bullets", image: "Image" },
+        slotLimit: (n) => `up to ${n} characters`,
+        slotItems: (n, perItem) => `up to ${n} items · ${perItem} characters each`,
+        notesTitle: "Confidence notes",
+        nameLabel: "Layout name",
+        purposeLabel: "Purpose (shown to the writing agent)",
+        purposeHelper: "Leave as proposed or refine — 20 to 400 characters.",
+        approve: "Approve layout",
+        approving: "Approving…",
+        reject: "Reject",
+        rejectReasonLabel: "Rejection reason",
+        rejectConfirm: "Confirm rejection",
+        cancel: "Cancel",
+        approvedBadge: "Approved",
+        rejectedBadge: "Rejected",
+        decidedBy: (who) => `by ${who}`,
+        registeredAs: (id) => `Registered in the catalogue as ${id}`,
+        rejectedReason: (reason) => `Reason: ${reason}`,
+        allDecided: "Every proposal from this deck has been decided.",
+        harvestTitle: "Harvested images",
+        harvestMeta: (w, h, slide) => `${w}×${h} px · slide ${slide}`,
+        labelLabel: "Label",
+        tagsLabel: "Tags",
+        tagsHelper: "Comma-separated, at least one.",
+        addImage: "Add to brand library",
+        addingImage: "Adding…",
+        dismissImage: "Dismiss",
+        addedBadge: "Added to library",
+        dismissedBadge: "Dismissed",
+        noHarvest: "No reusable images were found in this deck.",
+        actionFailed: "The action could not be completed.",
+      },
+    },
   },
   ES: {
     areas: {
@@ -873,6 +1024,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       ingestion: "Ingesta",
       governance: "Gobernanza",
       corpus: "Corpus",
+      templates: "Plantillas",
     },
     sessionActivity: "Actividad de la sesión",
     sessionActivityCount: (n) => `Actividad de la sesión (${n})`,
@@ -1330,6 +1482,89 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       sortChunks: "Más fragmentos",
       clearFilters: "Limpiar filtros",
     },
+
+    deckIntake: {
+      introTitle: "Convierte el master corporativo en layouts gobernados",
+      introDesc:
+        "Sube el master aligerado (hasta 5 partes de 100 MB). El pipeline lee cada diapositiva, agrupa los diseños recurrentes en familias y propone layouts reutilizables — nada se publica sin la aprobación del admin de Marca.",
+      guideButton: "Guía para aligerar (PDF)",
+      uploadTitle: "Subir partes del deck",
+      deckNameLabel: "Nombre del deck",
+      deckNamePlaceholder: "p. ej. Master corporativo 2026",
+      formatLabel: "Formato",
+      formatPptx: "PowerPoint (.pptx)",
+      formatPdf: "PDF (solo imágenes)",
+      chooseFiles: "Elegir archivos",
+      filesHint: "Hasta 5 archivos de 100 MB",
+      selectedFiles: (n) => (n === 1 ? "1 archivo seleccionado" : `${n} archivos seleccionados`),
+      fileTooLarge: (name) => `"${name}" supera los 100 MB — consulta la guía.`,
+      startExtraction: "Iniciar extracción",
+      uploadingPart: (n, total) => `Subiendo parte ${n} de ${total}…`,
+      creatingJob: "Verificando la subida y creando el trabajo…",
+      uploadFailed: "Error al subir",
+      jobsTitle: "Trabajos de extracción",
+      noJobs: "Aún no se ha procesado ningún deck",
+      noJobsDesc: "Sube el master arriba — las propuestas aparecerán aquí para su revisión.",
+      status: {
+        uploaded: "En cola",
+        parsing: "Analizando",
+        clustering: "Agrupando",
+        proposing: "Proponiendo",
+        ready: "Listo para revisar",
+        failed: "Fallido",
+      },
+      partCount: (n) => (n === 1 ? "1 parte" : `${n} partes`),
+      slideCount: (n) => (n === 1 ? "1 diapositiva" : `${n} diapositivas`),
+      familiesSummary: (total, pending) =>
+        pending > 0
+          ? `${total} propuestas de layout (${pending} pendientes)`
+          : `${total} propuestas de layout`,
+      harvestSummary: (total, pending) =>
+        pending > 0
+          ? `${total} imágenes extraídas (${pending} pendientes)`
+          : `${total} imágenes extraídas`,
+      byUser: (who) => `por ${who}`,
+      review: {
+        open: "Revisar propuestas",
+        title: (deck) => `Revisión — ${deck}`,
+        loading: "Cargando resultados de la extracción…",
+        source: "Esquema original",
+        preview: "Vista previa con marca",
+        slides: (list) => `De las diapositivas ${list}`,
+        slotsTitle: "Campos",
+        slotKind: { text: "Texto", bullets: "Viñetas", image: "Imagen" },
+        slotLimit: (n) => `hasta ${n} caracteres`,
+        slotItems: (n, perItem) => `hasta ${n} elementos · ${perItem} caracteres cada uno`,
+        notesTitle: "Notas de confianza",
+        nameLabel: "Nombre del layout",
+        purposeLabel: "Propósito (visible para el agente de redacción)",
+        purposeHelper: "Deja la propuesta o afínala — de 20 a 400 caracteres.",
+        approve: "Aprobar layout",
+        approving: "Aprobando…",
+        reject: "Rechazar",
+        rejectReasonLabel: "Motivo del rechazo",
+        rejectConfirm: "Confirmar rechazo",
+        cancel: "Cancelar",
+        approvedBadge: "Aprobado",
+        rejectedBadge: "Rechazado",
+        decidedBy: (who) => `por ${who}`,
+        registeredAs: (id) => `Registrado en el catálogo como ${id}`,
+        rejectedReason: (reason) => `Motivo: ${reason}`,
+        allDecided: "Todas las propuestas de este deck ya están decididas.",
+        harvestTitle: "Imágenes extraídas",
+        harvestMeta: (w, h, slide) => `${w}×${h} px · diapositiva ${slide}`,
+        labelLabel: "Etiqueta",
+        tagsLabel: "Tags",
+        tagsHelper: "Separados por comas, al menos uno.",
+        addImage: "Añadir a la biblioteca de marca",
+        addingImage: "Añadiendo…",
+        dismissImage: "Descartar",
+        addedBadge: "Añadida a la biblioteca",
+        dismissedBadge: "Descartada",
+        noHarvest: "No se encontraron imágenes reutilizables en este deck.",
+        actionFailed: "No se pudo completar la acción.",
+      },
+    },
   },
   DE: {
     areas: {
@@ -1338,6 +1573,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       ingestion: "Ingestion",
       governance: "Governance",
       corpus: "Korpus",
+      templates: "Vorlagen",
     },
     sessionActivity: "Sitzungsaktivität",
     sessionActivityCount: (n) => `Sitzungsaktivität (${n})`,
@@ -1791,6 +2027,89 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       sortChunks: "Meiste Abschnitte",
       clearFilters: "Filter zurücksetzen",
     },
+
+    deckIntake: {
+      introTitle: "Das Corporate-Masterdeck in governte Layouts verwandeln",
+      introDesc:
+        "Lade das verschlankte Masterdeck hoch (bis zu 5 Teile à 100 MB). Die Pipeline liest jede Folie, gruppiert wiederkehrende Designs zu Familien und schlägt wiederverwendbare Layouts vor — nichts geht ohne Freigabe des Marken-Admins live.",
+      guideButton: "Leitfaden zum Verschlanken (PDF)",
+      uploadTitle: "Deck-Teile hochladen",
+      deckNameLabel: "Deck-Name",
+      deckNamePlaceholder: "z. B. Corporate-Masterdeck 2026",
+      formatLabel: "Format",
+      formatPptx: "PowerPoint (.pptx)",
+      formatPdf: "PDF (nur Bilder)",
+      chooseFiles: "Dateien auswählen",
+      filesHint: "Bis zu 5 Dateien à 100 MB",
+      selectedFiles: (n) => (n === 1 ? "1 Datei ausgewählt" : `${n} Dateien ausgewählt`),
+      fileTooLarge: (name) => `"${name}" ist größer als 100 MB — siehe Leitfaden.`,
+      startExtraction: "Extraktion starten",
+      uploadingPart: (n, total) => `Teil ${n} von ${total} wird hochgeladen…`,
+      creatingJob: "Upload wird geprüft und der Job angelegt…",
+      uploadFailed: "Upload fehlgeschlagen",
+      jobsTitle: "Extraktionsjobs",
+      noJobs: "Noch keine Decks verarbeitet",
+      noJobsDesc: "Lade oben das Masterdeck hoch — Vorschläge erscheinen hier zur Prüfung.",
+      status: {
+        uploaded: "In Warteschlange",
+        parsing: "Analysieren",
+        clustering: "Gruppieren",
+        proposing: "Vorschlagen",
+        ready: "Bereit zur Prüfung",
+        failed: "Fehlgeschlagen",
+      },
+      partCount: (n) => (n === 1 ? "1 Teil" : `${n} Teile`),
+      slideCount: (n) => (n === 1 ? "1 Folie" : `${n} Folien`),
+      familiesSummary: (total, pending) =>
+        pending > 0
+          ? `${total} Layout-Vorschläge (${pending} offen)`
+          : `${total} Layout-Vorschläge`,
+      harvestSummary: (total, pending) =>
+        pending > 0
+          ? `${total} extrahierte Bilder (${pending} offen)`
+          : `${total} extrahierte Bilder`,
+      byUser: (who) => `von ${who}`,
+      review: {
+        open: "Vorschläge prüfen",
+        title: (deck) => `Prüfung — ${deck}`,
+        loading: "Extraktionsergebnisse werden geladen…",
+        source: "Quell-Wireframe",
+        preview: "Marken-Vorschau",
+        slides: (list) => `Aus Folien ${list}`,
+        slotsTitle: "Felder",
+        slotKind: { text: "Text", bullets: "Aufzählung", image: "Bild" },
+        slotLimit: (n) => `bis zu ${n} Zeichen`,
+        slotItems: (n, perItem) => `bis zu ${n} Punkte · je ${perItem} Zeichen`,
+        notesTitle: "Konfidenzhinweise",
+        nameLabel: "Layout-Name",
+        purposeLabel: "Zweck (für den Schreibagenten sichtbar)",
+        purposeHelper: "Vorschlag übernehmen oder verfeinern — 20 bis 400 Zeichen.",
+        approve: "Layout freigeben",
+        approving: "Wird freigegeben…",
+        reject: "Ablehnen",
+        rejectReasonLabel: "Ablehnungsgrund",
+        rejectConfirm: "Ablehnung bestätigen",
+        cancel: "Abbrechen",
+        approvedBadge: "Freigegeben",
+        rejectedBadge: "Abgelehnt",
+        decidedBy: (who) => `von ${who}`,
+        registeredAs: (id) => `Im Katalog registriert als ${id}`,
+        rejectedReason: (reason) => `Grund: ${reason}`,
+        allDecided: "Alle Vorschläge aus diesem Deck sind entschieden.",
+        harvestTitle: "Extrahierte Bilder",
+        harvestMeta: (w, h, slide) => `${w}×${h} px · Folie ${slide}`,
+        labelLabel: "Bezeichnung",
+        tagsLabel: "Tags",
+        tagsHelper: "Kommagetrennt, mindestens einer.",
+        addImage: "Zur Markenbibliothek hinzufügen",
+        addingImage: "Wird hinzugefügt…",
+        dismissImage: "Verwerfen",
+        addedBadge: "Zur Bibliothek hinzugefügt",
+        dismissedBadge: "Verworfen",
+        noHarvest: "In diesem Deck wurden keine wiederverwendbaren Bilder gefunden.",
+        actionFailed: "Die Aktion konnte nicht abgeschlossen werden.",
+      },
+    },
   },
   PT: {
     areas: {
@@ -1799,6 +2118,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       ingestion: "Ingestão",
       governance: "Governança",
       corpus: "Corpus",
+      templates: "Modelos",
     },
     sessionActivity: "Atividade da sessão",
     sessionActivityCount: (n) => `Atividade da sessão (${n})`,
@@ -2253,6 +2573,89 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       sortTitle: "Título A–Z",
       sortChunks: "Mais fragmentos",
       clearFilters: "Limpar filtros",
+    },
+
+    deckIntake: {
+      introTitle: "Transformar o master corporativo em layouts governados",
+      introDesc:
+        "Carregue o master aligeirado (até 5 partes de 100 MB). O pipeline lê cada diapositivo, agrupa os designs recorrentes em famílias e propõe layouts reutilizáveis — nada entra em produção sem aprovação do admin de Marca.",
+      guideButton: "Guia para aligeirar (PDF)",
+      uploadTitle: "Carregar partes do deck",
+      deckNameLabel: "Nome do deck",
+      deckNamePlaceholder: "p. ex. Master corporativo 2026",
+      formatLabel: "Formato",
+      formatPptx: "PowerPoint (.pptx)",
+      formatPdf: "PDF (apenas imagens)",
+      chooseFiles: "Escolher ficheiros",
+      filesHint: "Até 5 ficheiros de 100 MB",
+      selectedFiles: (n) => (n === 1 ? "1 ficheiro selecionado" : `${n} ficheiros selecionados`),
+      fileTooLarge: (name) => `"${name}" excede os 100 MB — consulte o guia.`,
+      startExtraction: "Iniciar extração",
+      uploadingPart: (n, total) => `A carregar a parte ${n} de ${total}…`,
+      creatingJob: "A verificar o carregamento e a criar o trabalho…",
+      uploadFailed: "Falha no carregamento",
+      jobsTitle: "Trabalhos de extração",
+      noJobs: "Ainda não foi processado nenhum deck",
+      noJobsDesc: "Carregue o master acima — as propostas aparecerão aqui para revisão.",
+      status: {
+        uploaded: "Em fila",
+        parsing: "A analisar",
+        clustering: "A agrupar",
+        proposing: "A propor",
+        ready: "Pronto para revisão",
+        failed: "Falhado",
+      },
+      partCount: (n) => (n === 1 ? "1 parte" : `${n} partes`),
+      slideCount: (n) => (n === 1 ? "1 diapositivo" : `${n} diapositivos`),
+      familiesSummary: (total, pending) =>
+        pending > 0
+          ? `${total} propostas de layout (${pending} pendentes)`
+          : `${total} propostas de layout`,
+      harvestSummary: (total, pending) =>
+        pending > 0
+          ? `${total} imagens extraídas (${pending} pendentes)`
+          : `${total} imagens extraídas`,
+      byUser: (who) => `por ${who}`,
+      review: {
+        open: "Rever propostas",
+        title: (deck) => `Revisão — ${deck}`,
+        loading: "A carregar os resultados da extração…",
+        source: "Esquema original",
+        preview: "Pré-visualização com marca",
+        slides: (list) => `Dos slides ${list}`,
+        slotsTitle: "Campos",
+        slotKind: { text: "Texto", bullets: "Marcadores", image: "Imagem" },
+        slotLimit: (n) => `até ${n} caracteres`,
+        slotItems: (n, perItem) => `até ${n} itens · ${perItem} caracteres cada`,
+        notesTitle: "Notas de confiança",
+        nameLabel: "Nome do layout",
+        purposeLabel: "Propósito (visível para o agente de escrita)",
+        purposeHelper: "Mantém a proposta ou refina — de 20 a 400 caracteres.",
+        approve: "Aprovar layout",
+        approving: "A aprovar…",
+        reject: "Rejeitar",
+        rejectReasonLabel: "Motivo da rejeição",
+        rejectConfirm: "Confirmar rejeição",
+        cancel: "Cancelar",
+        approvedBadge: "Aprovado",
+        rejectedBadge: "Rejeitado",
+        decidedBy: (who) => `por ${who}`,
+        registeredAs: (id) => `Registado no catálogo como ${id}`,
+        rejectedReason: (reason) => `Motivo: ${reason}`,
+        allDecided: "Todas as propostas deste deck já foram decididas.",
+        harvestTitle: "Imagens extraídas",
+        harvestMeta: (w, h, slide) => `${w}×${h} px · slide ${slide}`,
+        labelLabel: "Etiqueta",
+        tagsLabel: "Tags",
+        tagsHelper: "Separadas por vírgulas, pelo menos uma.",
+        addImage: "Adicionar à biblioteca de marca",
+        addingImage: "A adicionar…",
+        dismissImage: "Descartar",
+        addedBadge: "Adicionada à biblioteca",
+        dismissedBadge: "Descartada",
+        noHarvest: "Não foram encontradas imagens reutilizáveis neste deck.",
+        actionFailed: "Não foi possível concluir a ação.",
+      },
     },
   },
 };

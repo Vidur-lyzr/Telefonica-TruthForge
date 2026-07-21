@@ -3015,6 +3015,217 @@ paths:
                 items:
                   $ref: "#/components/schemas/DocFreshness"
 
+  /data/master-decks/upload-url:
+    post:
+      operationId: requestMasterDeckUploadUrl
+      tags: [data]
+      summary: Presigned upload URL for one slimmed master-deck part
+      description: >
+        Large-file-friendly intake for the corporate master deck. The client
+        PUTs the bytes straight to object storage; nothing is parsed until the
+        extraction job is registered and the server has verified size and
+        file signature. Gated by the ingest_documents capability.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterDeckUploadUrlBody"
+      responses:
+        "200":
+          description: Presigned PUT URL and the object path to confirm later
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckUploadUrlResponse"
+
+  /data/master-decks/jobs:
+    get:
+      operationId: listMasterDeckJobs
+      tags: [data]
+      summary: All master-deck extraction jobs, newest first
+      responses:
+        "200":
+          description: Job summaries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckJobsView"
+    post:
+      operationId: createMasterDeckJob
+      tags: [data]
+      summary: Register uploaded deck parts as an extraction job
+      description: >
+        Verifies every uploaded part (size cap, zip/PDF signature) and creates
+        the extraction job. Parsing, clustering and proposal generation run
+        asynchronously; poll the job for progress. Gated by ingest_documents
+        and audit-logged to the Observatory as an ingest event.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterDeckJobCreateInput"
+      responses:
+        "200":
+          description: The registered job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckJob"
+
+  /data/master-decks/job:
+    get:
+      operationId: getMasterDeckJob
+      tags: [data]
+      summary: Full detail of one extraction job
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The job with families and harvest queue
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckJob"
+
+  /data/master-decks/proposals/approve:
+    post:
+      operationId: approveMasterDeckProposal
+      tags: [data]
+      summary: Approve a proposed layout into the live registry
+      description: >
+        Validates and compiles the proposal spec, registers it as a live
+        visual layout immediately usable by the generate agent, and
+        audit-logs a config change. Optional name/purpose overrides let the
+        reviewer polish agent-facing wording without editing geometry.
+        Gated by manage_brand_room (Marca area).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterDeckProposalApproveInput"
+      responses:
+        "200":
+          description: Updated job and the registered layout id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckProposalApproveResult"
+
+  /data/master-decks/proposals/reject:
+    post:
+      operationId: rejectMasterDeckProposal
+      tags: [data]
+      summary: Reject a proposed layout with a reason
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterDeckProposalRejectInput"
+      responses:
+        "200":
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckJob"
+
+  /data/master-decks/harvest/confirm:
+    post:
+      operationId: confirmMasterDeckHarvestItem
+      tags: [data]
+      summary: Add a harvested deck image to the brand image library
+      description: >
+        Moves one harvested image into the governed brand image library with
+        the reviewer's final label and tags. Gated by manage_brand_room
+        (Marca area) and audit-logged as a config change — identical
+        governance to a manual library upload.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmMasterDeckHarvestBody"
+      responses:
+        "200":
+          description: Updated job and the created library image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmMasterDeckHarvestResponse"
+
+  /data/master-decks/harvest/dismiss:
+    post:
+      operationId: dismissMasterDeckHarvestItem
+      tags: [data]
+      summary: Dismiss a harvested image without adding it to the library
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DismissMasterDeckHarvestBody"
+      responses:
+        "200":
+          description: Updated job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckJob"
+
+  /data/master-decks/asset:
+    get:
+      operationId: getMasterDeckAsset
+      tags: [data]
+      summary: Serve a job asset (slide thumbnail, proposal preview, harvest image)
+      description: >
+        Assets are addressed by job id plus the server-assigned asset key, so
+        only files the pipeline itself produced are reachable.
+      parameters:
+        - name: jobId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Asset bytes
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+
+  /data/master-decks/guide:
+    get:
+      operationId: downloadSlimmingGuide
+      tags: [data]
+      summary: Downloadable one-page guide for slimming the master deck locally
+      responses:
+        "200":
+          description: PDF guide
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
   /brand/templates:
     get:
       operationId: getBrandTemplates
@@ -10354,3 +10565,360 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ObservatoryEvent"
+
+    MasterDeckUploadUrlBody:
+      type: object
+      required: [roleId, filename, size, kind]
+      properties:
+        roleId:
+          type: string
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 200
+        size:
+          type: integer
+          minimum: 1
+          maximum: 104857600
+        kind:
+          type: string
+          enum: [pptx, pdf]
+    MasterDeckUploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+    MasterDeckJobCreateInput:
+      type: object
+      required: [roleId, deckName, kind, parts]
+      properties:
+        roleId:
+          type: string
+        deckName:
+          type: string
+          minLength: 1
+          maxLength: 120
+        kind:
+          type: string
+          enum: [pptx, pdf]
+        parts:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            type: object
+            required: [objectPath, filename]
+            properties:
+              objectPath:
+                type: string
+              filename:
+                type: string
+                minLength: 1
+                maxLength: 200
+    MasterDeckSlotSpec:
+      type: object
+      required: [key, kind, label, required, frame]
+      properties:
+        key:
+          type: string
+        kind:
+          type: string
+          enum: [text, bullets, image]
+        label:
+          type: string
+        required:
+          type: boolean
+        frame:
+          type: object
+          required: [x, y, w, h]
+          properties:
+            x:
+              type: number
+            y:
+              type: number
+            w:
+              type: number
+            h:
+              type: number
+        size:
+          type: number
+        color:
+          type: string
+        bold:
+          type: boolean
+        align:
+          type: string
+          enum: [left, center, right]
+        valign:
+          type: string
+          enum: [top, middle]
+        lineSpacing:
+          type: number
+        maxChars:
+          type: integer
+        maxItems:
+          type: integer
+        maxCharsPerItem:
+          type: integer
+        hint:
+          type: string
+        fallbackFill:
+          type: string
+    MasterDeckLayoutSpec:
+      type: object
+      required: [specVersion, id, name, purpose, footer, background, slots]
+      properties:
+        specVersion:
+          type: integer
+        id:
+          type: string
+        name:
+          type: string
+        purpose:
+          type: string
+        footer:
+          type: string
+          enum: [light, dark, none]
+        background:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        slots:
+          type: array
+          items:
+            $ref: "#/components/schemas/MasterDeckSlotSpec"
+        confidenceNotes:
+          type: array
+          items:
+            type: string
+    MasterDeckFamily:
+      type: object
+      required: [id, label, slideIndexes, proposal, confidenceNotes, status]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        slideIndexes:
+          type: array
+          items:
+            type: integer
+        thumbKey:
+          type: string
+        previewKey:
+          type: string
+        proposal:
+          $ref: "#/components/schemas/MasterDeckLayoutSpec"
+        confidenceNotes:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        decidedBy:
+          type: string
+        decidedAt:
+          type: string
+        rejectReason:
+          type: string
+        layoutId:
+          type: string
+    MasterDeckHarvestItem:
+      type: object
+      required:
+        [id, key, filename, contentType, width, height, bytes, sourceSlide, suggestedLabel, suggestedTags, status]
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        filename:
+          type: string
+        contentType:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        bytes:
+          type: integer
+        sourceSlide:
+          type: integer
+        suggestedLabel:
+          type: string
+        suggestedTags:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [pending, added, dismissed]
+        imageId:
+          type: string
+    MasterDeckJob:
+      type: object
+      required:
+        [id, deckName, kind, status, progress, partCount, createdBy, createdAt, updatedAt, families, harvest]
+      properties:
+        id:
+          type: string
+        deckName:
+          type: string
+        kind:
+          type: string
+          enum: [pptx, pdf]
+        status:
+          type: string
+          enum: [uploaded, parsing, clustering, proposing, ready, failed]
+        progress:
+          type: string
+        slideCount:
+          type: integer
+        partCount:
+          type: integer
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        error:
+          type: string
+        families:
+          type: array
+          items:
+            $ref: "#/components/schemas/MasterDeckFamily"
+        harvest:
+          type: array
+          items:
+            $ref: "#/components/schemas/MasterDeckHarvestItem"
+    MasterDeckJobSummary:
+      type: object
+      required:
+        [id, deckName, kind, status, progress, partCount, createdBy, createdAt, updatedAt, familyCount, pendingFamilies, harvestCount, pendingHarvest]
+      properties:
+        id:
+          type: string
+        deckName:
+          type: string
+        kind:
+          type: string
+          enum: [pptx, pdf]
+        status:
+          type: string
+          enum: [uploaded, parsing, clustering, proposing, ready, failed]
+        progress:
+          type: string
+        slideCount:
+          type: integer
+        partCount:
+          type: integer
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        error:
+          type: string
+        familyCount:
+          type: integer
+        pendingFamilies:
+          type: integer
+        harvestCount:
+          type: integer
+        pendingHarvest:
+          type: integer
+    MasterDeckJobsView:
+      type: object
+      required: [jobs]
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/MasterDeckJobSummary"
+    MasterDeckProposalApproveInput:
+      type: object
+      required: [roleId, jobId, familyId]
+      properties:
+        roleId:
+          type: string
+        jobId:
+          type: string
+        familyId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        purpose:
+          type: string
+          minLength: 20
+          maxLength: 400
+    MasterDeckProposalApproveResult:
+      type: object
+      required: [job, layoutId]
+      properties:
+        job:
+          $ref: "#/components/schemas/MasterDeckJob"
+        layoutId:
+          type: string
+    MasterDeckProposalRejectInput:
+      type: object
+      required: [roleId, jobId, familyId, reason]
+      properties:
+        roleId:
+          type: string
+        jobId:
+          type: string
+        familyId:
+          type: string
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 300
+    ConfirmMasterDeckHarvestBody:
+      type: object
+      required: [roleId, jobId, itemId, label, tags]
+      properties:
+        roleId:
+          type: string
+        jobId:
+          type: string
+        itemId:
+          type: string
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        tags:
+          type: array
+          minItems: 1
+          maxItems: 8
+          items:
+            type: string
+            minLength: 1
+            maxLength: 32
+    ConfirmMasterDeckHarvestResponse:
+      type: object
+      required: [job, image]
+      properties:
+        job:
+          $ref: "#/components/schemas/MasterDeckJob"
+        image:
+          $ref: "#/components/schemas/BrandImage"
+    DismissMasterDeckHarvestBody:
+      type: object
+      required: [roleId, jobId, itemId]
+      properties:
+        roleId:
+          type: string
+        jobId:
+          type: string
+        itemId:
+          type: string

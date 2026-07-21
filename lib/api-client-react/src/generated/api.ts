@@ -55,6 +55,8 @@ import type {
   CanvasSuggestionsInput,
   CanvasSuggestionsResult,
   CheckInput,
+  ConfirmMasterDeckHarvestBody,
+  ConfirmMasterDeckHarvestResponse,
   CorpusDocument,
   CorpusDocumentDetail,
   CorpusStats,
@@ -63,6 +65,7 @@ import type {
   CreateScheduleInput,
   DataSource,
   DeliveryRecord,
+  DismissMasterDeckHarvestBody,
   DocFreshness,
   DocumentRetagInput,
   DocumentShape,
@@ -96,6 +99,8 @@ import type {
   GetCorpusStatsParams,
   GetExportTemplatePreviewParams,
   GetHomeSummaryParams,
+  GetMasterDeckAssetParams,
+  GetMasterDeckJobParams,
   GetObservatoryOverviewParams,
   GetPlanningEventParams,
   GetPlanningInsightsParams,
@@ -151,6 +156,14 @@ import type {
   LogoutResult,
   ManualUploadForm,
   ManualUploadResult,
+  MasterDeckJob,
+  MasterDeckJobCreateInput,
+  MasterDeckJobsView,
+  MasterDeckProposalApproveInput,
+  MasterDeckProposalApproveResult,
+  MasterDeckProposalRejectInput,
+  MasterDeckUploadUrlBody,
+  MasterDeckUploadUrlResponse,
   MyUsage,
   NotificationRecord,
   ObservatoryEventsPage,
@@ -8924,6 +8937,753 @@ export function useListDocumentFreshness<TData = Awaited<ReturnType<typeof listD
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListDocumentFreshnessQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRequestMasterDeckUploadUrlUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/upload-url`
+}
+
+/**
+ * Large-file-friendly intake for the corporate master deck. The client PUTs the bytes straight to object storage; nothing is parsed until the extraction job is registered and the server has verified size and file signature. Gated by the ingest_documents capability.
+ * @summary Presigned upload URL for one slimmed master-deck part
+ */
+export const requestMasterDeckUploadUrl = async (masterDeckUploadUrlBody: MasterDeckUploadUrlBody, options?: RequestInit): Promise<MasterDeckUploadUrlResponse> => {
+
+  return customFetch<MasterDeckUploadUrlResponse>(getRequestMasterDeckUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(masterDeckUploadUrlBody)
+  }
+);}
+
+
+
+
+export const getRequestMasterDeckUploadUrlMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestMasterDeckUploadUrl>>, TError,{data: BodyType<MasterDeckUploadUrlBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestMasterDeckUploadUrl>>, TError,{data: BodyType<MasterDeckUploadUrlBody>}, TContext> => {
+
+const mutationKey = ['requestMasterDeckUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestMasterDeckUploadUrl>>, {data: BodyType<MasterDeckUploadUrlBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestMasterDeckUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestMasterDeckUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof requestMasterDeckUploadUrl>>>
+    export type RequestMasterDeckUploadUrlMutationBody = BodyType<MasterDeckUploadUrlBody>
+    export type RequestMasterDeckUploadUrlMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Presigned upload URL for one slimmed master-deck part
+ */
+export const useRequestMasterDeckUploadUrl = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestMasterDeckUploadUrl>>, TError,{data: BodyType<MasterDeckUploadUrlBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestMasterDeckUploadUrl>>,
+        TError,
+        {data: BodyType<MasterDeckUploadUrlBody>},
+        TContext
+      > => {
+      return useMutation(getRequestMasterDeckUploadUrlMutationOptions(options));
+    }
+
+export const getListMasterDeckJobsUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/jobs`
+}
+
+/**
+ * @summary All master-deck extraction jobs, newest first
+ */
+export const listMasterDeckJobs = async ( options?: RequestInit): Promise<MasterDeckJobsView> => {
+
+  return customFetch<MasterDeckJobsView>(getListMasterDeckJobsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListMasterDeckJobsQueryKey = () => {
+    return [
+    `/api/data/master-decks/jobs`
+    ] as const;
+    }
+
+
+export const getListMasterDeckJobsQueryOptions = <TData = Awaited<ReturnType<typeof listMasterDeckJobs>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMasterDeckJobs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListMasterDeckJobsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listMasterDeckJobs>>> = ({ signal }) => listMasterDeckJobs({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listMasterDeckJobs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListMasterDeckJobsQueryResult = NonNullable<Awaited<ReturnType<typeof listMasterDeckJobs>>>
+export type ListMasterDeckJobsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary All master-deck extraction jobs, newest first
+ */
+
+export function useListMasterDeckJobs<TData = Awaited<ReturnType<typeof listMasterDeckJobs>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listMasterDeckJobs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListMasterDeckJobsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateMasterDeckJobUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/jobs`
+}
+
+/**
+ * Verifies every uploaded part (size cap, zip/PDF signature) and creates the extraction job. Parsing, clustering and proposal generation run asynchronously; poll the job for progress. Gated by ingest_documents and audit-logged to the Observatory as an ingest event.
+ * @summary Register uploaded deck parts as an extraction job
+ */
+export const createMasterDeckJob = async (masterDeckJobCreateInput: MasterDeckJobCreateInput, options?: RequestInit): Promise<MasterDeckJob> => {
+
+  return customFetch<MasterDeckJob>(getCreateMasterDeckJobUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(masterDeckJobCreateInput)
+  }
+);}
+
+
+
+
+export const getCreateMasterDeckJobMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMasterDeckJob>>, TError,{data: BodyType<MasterDeckJobCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createMasterDeckJob>>, TError,{data: BodyType<MasterDeckJobCreateInput>}, TContext> => {
+
+const mutationKey = ['createMasterDeckJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createMasterDeckJob>>, {data: BodyType<MasterDeckJobCreateInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createMasterDeckJob(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateMasterDeckJobMutationResult = NonNullable<Awaited<ReturnType<typeof createMasterDeckJob>>>
+    export type CreateMasterDeckJobMutationBody = BodyType<MasterDeckJobCreateInput>
+    export type CreateMasterDeckJobMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Register uploaded deck parts as an extraction job
+ */
+export const useCreateMasterDeckJob = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createMasterDeckJob>>, TError,{data: BodyType<MasterDeckJobCreateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createMasterDeckJob>>,
+        TError,
+        {data: BodyType<MasterDeckJobCreateInput>},
+        TContext
+      > => {
+      return useMutation(getCreateMasterDeckJobMutationOptions(options));
+    }
+
+export const getGetMasterDeckJobUrl = (params: GetMasterDeckJobParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/data/master-decks/job?${stringifiedParams}` : `/api/data/master-decks/job`
+}
+
+/**
+ * @summary Full detail of one extraction job
+ */
+export const getMasterDeckJob = async (params: GetMasterDeckJobParams, options?: RequestInit): Promise<MasterDeckJob> => {
+
+  return customFetch<MasterDeckJob>(getGetMasterDeckJobUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMasterDeckJobQueryKey = (params?: GetMasterDeckJobParams,) => {
+    return [
+    `/api/data/master-decks/job`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMasterDeckJobQueryOptions = <TData = Awaited<ReturnType<typeof getMasterDeckJob>>, TError = ErrorType<unknown>>(params: GetMasterDeckJobParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMasterDeckJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMasterDeckJobQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMasterDeckJob>>> = ({ signal }) => getMasterDeckJob(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMasterDeckJob>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMasterDeckJobQueryResult = NonNullable<Awaited<ReturnType<typeof getMasterDeckJob>>>
+export type GetMasterDeckJobQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Full detail of one extraction job
+ */
+
+export function useGetMasterDeckJob<TData = Awaited<ReturnType<typeof getMasterDeckJob>>, TError = ErrorType<unknown>>(
+ params: GetMasterDeckJobParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMasterDeckJob>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMasterDeckJobQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getApproveMasterDeckProposalUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/proposals/approve`
+}
+
+/**
+ * Validates and compiles the proposal spec, registers it as a live visual layout immediately usable by the generate agent, and audit-logs a config change. Optional name/purpose overrides let the reviewer polish agent-facing wording without editing geometry. Gated by manage_brand_room (Marca area).
+ * @summary Approve a proposed layout into the live registry
+ */
+export const approveMasterDeckProposal = async (masterDeckProposalApproveInput: MasterDeckProposalApproveInput, options?: RequestInit): Promise<MasterDeckProposalApproveResult> => {
+
+  return customFetch<MasterDeckProposalApproveResult>(getApproveMasterDeckProposalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(masterDeckProposalApproveInput)
+  }
+);}
+
+
+
+
+export const getApproveMasterDeckProposalMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveMasterDeckProposal>>, TError,{data: BodyType<MasterDeckProposalApproveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveMasterDeckProposal>>, TError,{data: BodyType<MasterDeckProposalApproveInput>}, TContext> => {
+
+const mutationKey = ['approveMasterDeckProposal'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveMasterDeckProposal>>, {data: BodyType<MasterDeckProposalApproveInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  approveMasterDeckProposal(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveMasterDeckProposalMutationResult = NonNullable<Awaited<ReturnType<typeof approveMasterDeckProposal>>>
+    export type ApproveMasterDeckProposalMutationBody = BodyType<MasterDeckProposalApproveInput>
+    export type ApproveMasterDeckProposalMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Approve a proposed layout into the live registry
+ */
+export const useApproveMasterDeckProposal = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveMasterDeckProposal>>, TError,{data: BodyType<MasterDeckProposalApproveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveMasterDeckProposal>>,
+        TError,
+        {data: BodyType<MasterDeckProposalApproveInput>},
+        TContext
+      > => {
+      return useMutation(getApproveMasterDeckProposalMutationOptions(options));
+    }
+
+export const getRejectMasterDeckProposalUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/proposals/reject`
+}
+
+/**
+ * @summary Reject a proposed layout with a reason
+ */
+export const rejectMasterDeckProposal = async (masterDeckProposalRejectInput: MasterDeckProposalRejectInput, options?: RequestInit): Promise<MasterDeckJob> => {
+
+  return customFetch<MasterDeckJob>(getRejectMasterDeckProposalUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(masterDeckProposalRejectInput)
+  }
+);}
+
+
+
+
+export const getRejectMasterDeckProposalMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectMasterDeckProposal>>, TError,{data: BodyType<MasterDeckProposalRejectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectMasterDeckProposal>>, TError,{data: BodyType<MasterDeckProposalRejectInput>}, TContext> => {
+
+const mutationKey = ['rejectMasterDeckProposal'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectMasterDeckProposal>>, {data: BodyType<MasterDeckProposalRejectInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rejectMasterDeckProposal(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectMasterDeckProposalMutationResult = NonNullable<Awaited<ReturnType<typeof rejectMasterDeckProposal>>>
+    export type RejectMasterDeckProposalMutationBody = BodyType<MasterDeckProposalRejectInput>
+    export type RejectMasterDeckProposalMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Reject a proposed layout with a reason
+ */
+export const useRejectMasterDeckProposal = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectMasterDeckProposal>>, TError,{data: BodyType<MasterDeckProposalRejectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectMasterDeckProposal>>,
+        TError,
+        {data: BodyType<MasterDeckProposalRejectInput>},
+        TContext
+      > => {
+      return useMutation(getRejectMasterDeckProposalMutationOptions(options));
+    }
+
+export const getConfirmMasterDeckHarvestItemUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/harvest/confirm`
+}
+
+/**
+ * Moves one harvested image into the governed brand image library with the reviewer's final label and tags. Gated by manage_brand_room (Marca area) and audit-logged as a config change — identical governance to a manual library upload.
+ * @summary Add a harvested deck image to the brand image library
+ */
+export const confirmMasterDeckHarvestItem = async (confirmMasterDeckHarvestBody: ConfirmMasterDeckHarvestBody, options?: RequestInit): Promise<ConfirmMasterDeckHarvestResponse> => {
+
+  return customFetch<ConfirmMasterDeckHarvestResponse>(getConfirmMasterDeckHarvestItemUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(confirmMasterDeckHarvestBody)
+  }
+);}
+
+
+
+
+export const getConfirmMasterDeckHarvestItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmMasterDeckHarvestItem>>, TError,{data: BodyType<ConfirmMasterDeckHarvestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmMasterDeckHarvestItem>>, TError,{data: BodyType<ConfirmMasterDeckHarvestBody>}, TContext> => {
+
+const mutationKey = ['confirmMasterDeckHarvestItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmMasterDeckHarvestItem>>, {data: BodyType<ConfirmMasterDeckHarvestBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmMasterDeckHarvestItem(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmMasterDeckHarvestItemMutationResult = NonNullable<Awaited<ReturnType<typeof confirmMasterDeckHarvestItem>>>
+    export type ConfirmMasterDeckHarvestItemMutationBody = BodyType<ConfirmMasterDeckHarvestBody>
+    export type ConfirmMasterDeckHarvestItemMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Add a harvested deck image to the brand image library
+ */
+export const useConfirmMasterDeckHarvestItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmMasterDeckHarvestItem>>, TError,{data: BodyType<ConfirmMasterDeckHarvestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmMasterDeckHarvestItem>>,
+        TError,
+        {data: BodyType<ConfirmMasterDeckHarvestBody>},
+        TContext
+      > => {
+      return useMutation(getConfirmMasterDeckHarvestItemMutationOptions(options));
+    }
+
+export const getDismissMasterDeckHarvestItemUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/harvest/dismiss`
+}
+
+/**
+ * @summary Dismiss a harvested image without adding it to the library
+ */
+export const dismissMasterDeckHarvestItem = async (dismissMasterDeckHarvestBody: DismissMasterDeckHarvestBody, options?: RequestInit): Promise<MasterDeckJob> => {
+
+  return customFetch<MasterDeckJob>(getDismissMasterDeckHarvestItemUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(dismissMasterDeckHarvestBody)
+  }
+);}
+
+
+
+
+export const getDismissMasterDeckHarvestItemMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dismissMasterDeckHarvestItem>>, TError,{data: BodyType<DismissMasterDeckHarvestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof dismissMasterDeckHarvestItem>>, TError,{data: BodyType<DismissMasterDeckHarvestBody>}, TContext> => {
+
+const mutationKey = ['dismissMasterDeckHarvestItem'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof dismissMasterDeckHarvestItem>>, {data: BodyType<DismissMasterDeckHarvestBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  dismissMasterDeckHarvestItem(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DismissMasterDeckHarvestItemMutationResult = NonNullable<Awaited<ReturnType<typeof dismissMasterDeckHarvestItem>>>
+    export type DismissMasterDeckHarvestItemMutationBody = BodyType<DismissMasterDeckHarvestBody>
+    export type DismissMasterDeckHarvestItemMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Dismiss a harvested image without adding it to the library
+ */
+export const useDismissMasterDeckHarvestItem = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dismissMasterDeckHarvestItem>>, TError,{data: BodyType<DismissMasterDeckHarvestBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof dismissMasterDeckHarvestItem>>,
+        TError,
+        {data: BodyType<DismissMasterDeckHarvestBody>},
+        TContext
+      > => {
+      return useMutation(getDismissMasterDeckHarvestItemMutationOptions(options));
+    }
+
+export const getGetMasterDeckAssetUrl = (params: GetMasterDeckAssetParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/data/master-decks/asset?${stringifiedParams}` : `/api/data/master-decks/asset`
+}
+
+/**
+ * Assets are addressed by job id plus the server-assigned asset key, so only files the pipeline itself produced are reachable.
+ * @summary Serve a job asset (slide thumbnail, proposal preview, harvest image)
+ */
+export const getMasterDeckAsset = async (params: GetMasterDeckAssetParams, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetMasterDeckAssetUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMasterDeckAssetQueryKey = (params?: GetMasterDeckAssetParams,) => {
+    return [
+    `/api/data/master-decks/asset`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMasterDeckAssetQueryOptions = <TData = Awaited<ReturnType<typeof getMasterDeckAsset>>, TError = ErrorType<unknown>>(params: GetMasterDeckAssetParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMasterDeckAsset>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMasterDeckAssetQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMasterDeckAsset>>> = ({ signal }) => getMasterDeckAsset(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMasterDeckAsset>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMasterDeckAssetQueryResult = NonNullable<Awaited<ReturnType<typeof getMasterDeckAsset>>>
+export type GetMasterDeckAssetQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Serve a job asset (slide thumbnail, proposal preview, harvest image)
+ */
+
+export function useGetMasterDeckAsset<TData = Awaited<ReturnType<typeof getMasterDeckAsset>>, TError = ErrorType<unknown>>(
+ params: GetMasterDeckAssetParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMasterDeckAsset>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMasterDeckAssetQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDownloadSlimmingGuideUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/guide`
+}
+
+/**
+ * @summary Downloadable one-page guide for slimming the master deck locally
+ */
+export const downloadSlimmingGuide = async ( options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadSlimmingGuideUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadSlimmingGuideQueryKey = () => {
+    return [
+    `/api/data/master-decks/guide`
+    ] as const;
+    }
+
+
+export const getDownloadSlimmingGuideQueryOptions = <TData = Awaited<ReturnType<typeof downloadSlimmingGuide>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadSlimmingGuide>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadSlimmingGuideQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadSlimmingGuide>>> = ({ signal }) => downloadSlimmingGuide({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadSlimmingGuide>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadSlimmingGuideQueryResult = NonNullable<Awaited<ReturnType<typeof downloadSlimmingGuide>>>
+export type DownloadSlimmingGuideQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Downloadable one-page guide for slimming the master deck locally
+ */
+
+export function useDownloadSlimmingGuide<TData = Awaited<ReturnType<typeof downloadSlimmingGuide>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadSlimmingGuide>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadSlimmingGuideQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

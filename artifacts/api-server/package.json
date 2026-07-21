@@ -10,6 +10,7 @@
     "lyzr:sync": "tsx ./src/scripts/lyzrSync.ts",
     "qdrant:seed": "tsx ./src/scripts/seedQdrant.ts",
     "images:seed": "tsx ./src/scripts/seedImages.ts",
+    "deck:sample": "tsx ./src/scripts/makeSampleDeck.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "docx": "^9.7.1",
     "drizzle-orm": "catalog:",
     "express": "^5.2.1",
+    "fast-xml-parser": "^5.10.1",
     "google-auth-library": "^10.9.0",
     "image-size": "^2.0.2",
     "jszip": "^3.10.1",

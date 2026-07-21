@@ -53,4 +53,6 @@
 - [Gitignored .data on deploy](gitignored-data-on-deploy.md) — file-backed stores under .data start empty on fresh deploy (gitignored); ship a committed code seed loaded when the file is absent.
 - [Ask stream aborted on load](ask-stream-abort-on-persona-init.md) — persona-switch abort effect must skip the initial ""→persona transition or it kills the Home ?q= auto-run's first request.
 - [Metering chokepoint coverage](metering-chokepoint-coverage.md) — quota/attribution gates must cover agent-runtime model paths too, not just metered wrappers; re-throw quota errors in fallbacks.
+- [pptxgenjs under tsx](pptxgenjs-cjs-under-tsx.md) — CJS-only packages need createRequire in tsx scripts; ESM default import yields a namespace, not the constructor.
+- [PDF image harvest](pdf-image-harvest.md) — unpdf extractImages + minimal zlib PNG encoder (no sharp); cap pixels ~16M, sync deflate stalls the loop; dedupe by hash.
 - [Governed-ref fallbacks](governed-ref-fallbacks.md) — unresolvable agent-supplied ids (chartId/imageId) must render honest absence, never silently substitute another governed item.

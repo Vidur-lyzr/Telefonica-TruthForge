@@ -27,6 +27,7 @@ import {
   IconBoxRegular,
   IconWorldDeviceRegular,
   IconBookRegular,
+  IconLayersRegular,
   IconCheckedRegular,
   IconAlertRegular,
   IconStatusChartRegular,
@@ -39,10 +40,11 @@ import SourcesArea from "@/components/data-center/sources";
 import IngestionArea from "@/components/data-center/ingestion";
 import GovernanceArea from "@/components/data-center/governance";
 import CorpusArea from "@/components/data-center/corpus";
+import TemplatesArea from "@/components/data-center/templates";
 import { useApp } from "@/components/app-provider";
 import { DATA_I18N } from "@/i18n/data";
 
-type AreaId = "validation" | "sources" | "ingestion" | "governance" | "corpus";
+type AreaId = "validation" | "sources" | "ingestion" | "governance" | "corpus" | "templates";
 
 type IconType = (props: IconProps) => React.JSX.Element;
 
@@ -55,6 +57,7 @@ const AREA_DEFS: {
   { id: "sources", Icon: IconDatabaseConnectedRegular },
   { id: "ingestion", Icon: IconBoxRegular },
   { id: "governance", Icon: IconWorldDeviceRegular },
+  { id: "templates", Icon: IconLayersRegular },
 ];
 
 function ActivityDrawer() {
@@ -223,6 +226,7 @@ function DataCenterShell() {
             {area === "ingestion" && <IngestionArea />}
             {area === "governance" && <GovernanceArea />}
             {area === "corpus" && <CorpusArea />}
+            {area === "templates" && <TemplatesArea />}
           </Box>
         </Stack>
       </Box>
