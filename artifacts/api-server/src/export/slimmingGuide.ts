@@ -51,8 +51,8 @@ export async function slimmingGuidePdf(): Promise<Buffer> {
     .fillColor(MUTED)
     .text(
       "The Hub turns your corporate master deck into governed slide layouts the generate agent can use. " +
-        "Uploads are capped at 100 MB per file, so most master decks need a quick slim-down first — " +
-        "none of these steps touch your original file.",
+        "Uploads are capped at 800 MB — one file, or up to eight parts totalling 800 MB. A quick slim-down " +
+        "still speeds up extraction, and none of these steps touch your original file.",
       { width: contentW, lineGap: 2 },
     );
   doc.moveDown(1.2);
@@ -80,10 +80,10 @@ export async function slimmingGuidePdf(): Promise<Buffer> {
         "text boxes, placeholders and geometry. A deck of screenshots yields image-only proposals.",
     },
     {
-      title: "Split if still above 100 MB",
+      title: "Upload as one file — split only above 800 MB",
       body:
-        "Save section-by-section copies (delete the other sections in each copy). Up to eight parts can be " +
-        "uploaded together as one extraction job.",
+        "A single file up to 800 MB uploads as one job, no splitting needed. Only if the deck is still " +
+        "larger, save section-by-section copies (up to eight parts, 800 MB combined) and upload them together.",
     },
     {
       title: "Prefer .pptx over PDF",

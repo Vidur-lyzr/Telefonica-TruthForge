@@ -53,7 +53,8 @@ import { observe } from "../lib/observe";
 const router: IRouter = Router();
 const storage = new ObjectStorageService();
 
-const MAX_DECK_BYTES = 100 * 1024 * 1024;
+const MAX_DECK_BYTES = 800 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 800 * 1024 * 1024;
 
 // Same bounding as the Brand Room: partial (admin) grants must be Marca-area.
 function requireDeckAdmin(
@@ -202,7 +203,7 @@ router.post("/data/master-decks/jobs", async (req, res) => {
     }
     if (size > MAX_DECK_BYTES) {
       res.status(400).json({
-        error: `"${part.filename}" is larger than 100 MB — slim the deck further or split it (see the guide).`,
+        error: `"${part.filename}" is larger than 800 MB — slim the deck first (see the guide).`,
         code: "part_too_large",
       });
       return;
@@ -222,6 +223,15 @@ router.post("/data/master-decks/jobs", async (req, res) => {
       return;
     }
     verified.push({ objectPath: part.objectPath, filename: part.filename, bytes: size });
+  }
+
+  const totalBytes = verified.reduce((acc, p) => acc + p.bytes, 0);
+  if (totalBytes > MAX_TOTAL_BYTES) {
+    res.status(400).json({
+      error: "The uploaded files exceed 800 MB in total — slim the deck first (see the guide).",
+      code: "deck_too_large",
+    });
+    return;
   }
 
   const job = createDeckJob({

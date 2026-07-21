@@ -38,7 +38,8 @@ import { formatTimestamp } from "./helpers";
 import { DATA_I18N } from "../../i18n/data";
 import { DeckReviewDrawer } from "./deck-review";
 
-const MAX_PART_BYTES = 100 * 1024 * 1024;
+const MAX_PART_BYTES = 800 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 800 * 1024 * 1024;
 const MAX_PARTS = 8;
 const ACTIVE_STATUSES = ["uploaded", "parsing", "clustering", "proposing"];
 
@@ -145,6 +146,10 @@ export default function TemplatesArea() {
         setError(t.fileTooLarge(f.name));
         return;
       }
+    }
+    if (picked.reduce((acc, f) => acc + f.size, 0) > MAX_TOTAL_BYTES) {
+      setError(t.totalTooLarge);
+      return;
     }
     setFiles(picked);
   };

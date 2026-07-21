@@ -421,6 +421,7 @@ export interface DataStrings {
     filesHint: string;
     selectedFiles: (n: number) => string;
     fileTooLarge: (name: string) => string;
+    totalTooLarge: string;
     startExtraction: string;
     uploadingPart: (n: number, total: number) => string;
     creatingJob: string;
@@ -944,7 +945,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     deckIntake: {
       introTitle: "Turn the corporate master deck into governed layouts",
       introDesc:
-        "Upload the slimmed master deck (up to 8 parts, 100 MB each). The pipeline reads every slide, groups recurring designs into families and proposes reusable layouts — nothing goes live without Brand-admin approval.",
+        "Upload the master deck (one file up to 800 MB, or up to 8 parts totalling 800 MB). The pipeline reads every slide, groups recurring designs into families and proposes reusable layouts — nothing goes live without Brand-admin approval.",
       guideButton: "Slimming guide (PDF)",
       uploadTitle: "Upload deck parts",
       deckNameLabel: "Deck name",
@@ -953,9 +954,10 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (images only)",
       chooseFiles: "Choose files",
-      filesHint: "Up to 8 files, 100 MB each",
+      filesHint: "One file up to 800 MB — or up to 8 files, 800 MB total",
       selectedFiles: (n) => (n === 1 ? "1 file selected" : `${n} files selected`),
-      fileTooLarge: (name) => `"${name}" is larger than 100 MB — see the slimming guide.`,
+      fileTooLarge: (name) => `"${name}" is larger than 800 MB — see the slimming guide.`,
+      totalTooLarge: "The selected files exceed 800 MB in total — see the slimming guide.",
       startExtraction: "Start extraction",
       uploadingPart: (n, total) => `Uploading part ${n} of ${total}…`,
       creatingJob: "Verifying upload and creating the job…",
@@ -1492,7 +1494,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     deckIntake: {
       introTitle: "Convierte el master corporativo en layouts gobernados",
       introDesc:
-        "Sube el master aligerado (hasta 8 partes de 100 MB). El pipeline lee cada diapositiva, agrupa los diseños recurrentes en familias y propone layouts reutilizables — nada se publica sin la aprobación del admin de Marca.",
+        "Sube el master (un archivo de hasta 800 MB o hasta 8 partes con 800 MB en total). El pipeline lee cada diapositiva, agrupa los diseños recurrentes en familias y propone layouts reutilizables — nada se publica sin la aprobación del admin de Marca.",
       guideButton: "Guía para aligerar (PDF)",
       uploadTitle: "Subir partes del deck",
       deckNameLabel: "Nombre del deck",
@@ -1501,9 +1503,10 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (solo imágenes)",
       chooseFiles: "Elegir archivos",
-      filesHint: "Hasta 8 archivos de 100 MB",
+      filesHint: "Un archivo de hasta 800 MB — o hasta 8 archivos (800 MB en total)",
       selectedFiles: (n) => (n === 1 ? "1 archivo seleccionado" : `${n} archivos seleccionados`),
-      fileTooLarge: (name) => `"${name}" supera los 100 MB — consulta la guía.`,
+      fileTooLarge: (name) => `"${name}" supera los 800 MB — consulta la guía.`,
+      totalTooLarge: "Los archivos seleccionados superan los 800 MB en total — consulta la guía.",
       startExtraction: "Iniciar extracción",
       uploadingPart: (n, total) => `Subiendo parte ${n} de ${total}…`,
       creatingJob: "Verificando la subida y creando el trabajo…",
@@ -2040,7 +2043,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     deckIntake: {
       introTitle: "Das Corporate-Masterdeck in governte Layouts verwandeln",
       introDesc:
-        "Lade das verschlankte Masterdeck hoch (bis zu 8 Teile à 100 MB). Die Pipeline liest jede Folie, gruppiert wiederkehrende Designs zu Familien und schlägt wiederverwendbare Layouts vor — nichts geht ohne Freigabe des Marken-Admins live.",
+        "Lade das Masterdeck hoch (eine Datei mit bis zu 800 MB oder bis zu 8 Teile mit insgesamt 800 MB). Die Pipeline liest jede Folie, gruppiert wiederkehrende Designs zu Familien und schlägt wiederverwendbare Layouts vor — nichts geht ohne Freigabe des Marken-Admins live.",
       guideButton: "Leitfaden zum Verschlanken (PDF)",
       uploadTitle: "Deck-Teile hochladen",
       deckNameLabel: "Deck-Name",
@@ -2049,9 +2052,10 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (nur Bilder)",
       chooseFiles: "Dateien auswählen",
-      filesHint: "Bis zu 8 Dateien à 100 MB",
+      filesHint: "Eine Datei bis 800 MB — oder bis zu 8 Dateien (insgesamt 800 MB)",
       selectedFiles: (n) => (n === 1 ? "1 Datei ausgewählt" : `${n} Dateien ausgewählt`),
-      fileTooLarge: (name) => `"${name}" ist größer als 100 MB — siehe Leitfaden.`,
+      fileTooLarge: (name) => `"${name}" ist größer als 800 MB — siehe Leitfaden.`,
+      totalTooLarge: "Die ausgewählten Dateien überschreiten insgesamt 800 MB — siehe Leitfaden.",
       startExtraction: "Extraktion starten",
       uploadingPart: (n, total) => `Teil ${n} von ${total} wird hochgeladen…`,
       creatingJob: "Upload wird geprüft und der Job angelegt…",
@@ -2590,7 +2594,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     deckIntake: {
       introTitle: "Transformar o master corporativo em layouts governados",
       introDesc:
-        "Carregue o master aligeirado (até 8 partes de 100 MB). O pipeline lê cada diapositivo, agrupa os designs recorrentes em famílias e propõe layouts reutilizáveis — nada entra em produção sem aprovação do admin de Marca.",
+        "Carregue o master (um ficheiro até 800 MB ou até 8 partes num total de 800 MB). O pipeline lê cada diapositivo, agrupa os designs recorrentes em famílias e propõe layouts reutilizáveis — nada entra em produção sem aprovação do admin de Marca.",
       guideButton: "Guia para aligeirar (PDF)",
       uploadTitle: "Carregar partes do deck",
       deckNameLabel: "Nome do deck",
@@ -2599,9 +2603,10 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (apenas imagens)",
       chooseFiles: "Escolher ficheiros",
-      filesHint: "Até 8 ficheiros de 100 MB",
+      filesHint: "Um ficheiro até 800 MB — ou até 8 ficheiros (800 MB no total)",
       selectedFiles: (n) => (n === 1 ? "1 ficheiro selecionado" : `${n} ficheiros selecionados`),
-      fileTooLarge: (name) => `"${name}" excede os 100 MB — consulte o guia.`,
+      fileTooLarge: (name) => `"${name}" excede os 800 MB — consulte o guia.`,
+      totalTooLarge: "Os ficheiros selecionados excedem 800 MB no total — consulte o guia.",
       startExtraction: "Iniciar extração",
       uploadingPart: (n, total) => `A carregar a parte ${n} de ${total}…`,
       creatingJob: "A verificar o carregamento e a criar o trabalho…",
