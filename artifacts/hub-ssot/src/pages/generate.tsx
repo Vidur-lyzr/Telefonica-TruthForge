@@ -1708,11 +1708,13 @@ function defaultTemplateIdFor(
 function LayoutPoolCard({
   layout,
   coreLabel,
+  visualHeavyLabel,
   selected,
   onToggle,
 }: {
   layout: VisualLayoutInfo;
   coreLabel: string;
+  visualHeavyLabel: string;
   selected?: boolean;
   onToggle?: () => void;
 }) {
@@ -1746,6 +1748,7 @@ function LayoutPoolCard({
               ) : (
                 <Tag type="inactive">{coreLabel}</Tag>
               )}
+              {layout.imageSlots > 0 ? <Tag type="info">{visualHeavyLabel}</Tag> : null}
             </Inline>
           </Stack>
         </Stack>
@@ -2769,6 +2772,7 @@ function BriefForm({
                         <LayoutPoolCard
                           layout={layout}
                           coreLabel={t.poolCore}
+                          visualHeavyLabel={t.poolVisualHeavy}
                           selected={layoutIds.includes(layout.id)}
                           onToggle={() => toggleLayout(layout.id)}
                         />

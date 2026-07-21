@@ -1442,6 +1442,284 @@ const kpiTable: VisualLayoutDef = {
   },
 };
 
+// ---- photo-divider ---------------------------------------------------------
+// Chapter break carried by a full-bleed brand-art image: the gradient or
+// abstract background fills the whole page under a uniform dark scrim
+// (solid alpha, no gradient overlays), with the oversized section number
+// and title on top.
+
+const photoDividerSchema = z
+  .object({
+    number: short(4),
+    title: short(60),
+    subtitle: short(120).optional(),
+    imageId: z.string().trim().min(1),
+  })
+  .strict();
+
+const photoDivider: VisualLayoutDef = {
+  id: "photo-divider",
+  name: "Photo divider",
+  purpose:
+    "Chapter break where a brand-art image fills the ENTIRE page as the background. Needs a short section number label (like \"01\"), a title of at most 60 characters, optionally a one-line subtitle, and one abstract or gradient background image (tags like gradient, abstract, background, dark).",
+  schema: photoDividerSchema,
+  imageSlots: [
+    {
+      slot: "imageId",
+      required: true,
+      hint: "Abstract or gradient brand-art background that fills the whole slide (tags: gradient, abstract, background, dark).",
+    },
+  ],
+  compose(raw, ctx) {
+    const s = photoDividerSchema.parse(raw);
+    const img = ctx.images.imageId ?? null;
+    const ops: DrawOp[] = [];
+    if (img) {
+      ops.push({ op: "image", key: img.key, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
+      // Uniform dark scrim keeps type AA-readable on any art.
+      ops.push({ op: "rect", x: 0, y: 0, w: SLIDE_W, h: SLIDE_H, fill: "#04182F", alpha: 0.55 });
+    } else if ((ctx.style ?? "light") === "dark") {
+      ops.push(...slideBase(ctx, "cover"));
+    } else {
+      ops.push({ op: "rect", x: 0, y: 0, w: SLIDE_W, h: SLIDE_H, fill: NAVY });
+    }
+    ops.push({ op: "rect", x: 0, y: 0, w: 0.25, h: SLIDE_H, fill: BRAND });
+    ops.push({ op: "mark", color: BRAND, x: 0.8, y: 0.62, w: 0.44, h: 0.44 });
+    ops.push({ op: "text", text: "Telefónica", x: 1.36, y: 0.6, w: 4, h: 0.5, size: 18, bold: true, color: INVERSE });
+    ops.push({ op: "text", text: s.number, x: 0.8, y: 1.9, w: 6, h: 1.9, size: 88, bold: true, color: BRAND, valign: "top" });
+    ops.push({ op: "rect", x: 0.85, y: 4.1, w: 1.6, h: 0.05, fill: BRAND });
+    ops.push({ op: "text", text: s.title, x: 0.8, y: 4.35, w: 11.7, h: 1.05, size: 34, bold: true, color: INVERSE, valign: "top" });
+    if (s.subtitle) {
+      ops.push({ op: "text", text: s.subtitle, x: 0.8, y: 5.55, w: 11.7, h: 0.6, size: 15, color: INV_SEC, valign: "top" });
+    }
+    ops.push(...visualFooter(ctx, INV_TER));
+    return ops;
+  },
+};
+
+// ---- photo-quote -------------------------------------------------------------
+// Approved quote over a full-bleed brand-art background: the image fills
+// the complete page under a uniform dark scrim; the quote and attribution
+// carry the slide.
+
+const photoQuoteSchema = z
+  .object({
+    quote: z.string().trim().min(1).max(220),
+    attribution: short(60),
+    role: short(80).optional(),
+    imageId: z.string().trim().min(1),
+  })
+  .strict();
+
+const photoQuote: VisualLayoutDef = {
+  id: "photo-quote",
+  name: "Photo quote",
+  purpose:
+    "One approved quote over a full-page brand-art background image. Needs the quote text (max 220 chars, without surrounding quote marks), the speaker's name, optionally their role, and one abstract or gradient background image. Use only quotes present in the governed draft.",
+  schema: photoQuoteSchema,
+  imageSlots: [
+    {
+      slot: "imageId",
+      required: true,
+      hint: "Atmospheric or gradient background that fills the whole slide (tags: gradient, abstract, background, dark, atmospheric).",
+    },
+  ],
+  compose(raw, ctx) {
+    const s = photoQuoteSchema.parse(raw);
+    const img = ctx.images.imageId ?? null;
+    const ops: DrawOp[] = [];
+    if (img) {
+      ops.push({ op: "image", key: img.key, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
+      ops.push({ op: "rect", x: 0, y: 0, w: SLIDE_W, h: SLIDE_H, fill: "#04182F", alpha: 0.6 });
+    } else if ((ctx.style ?? "light") === "dark") {
+      ops.push(...slideBase(ctx, "wash"));
+    } else {
+      ops.push({ op: "rect", x: 0, y: 0, w: SLIDE_W, h: SLIDE_H, fill: NAVY });
+    }
+    ops.push({ op: "mark", color: BRAND, x: 0.8, y: 0.62, w: 0.44, h: 0.44 });
+    ops.push({ op: "text", text: "Telefónica", x: 1.36, y: 0.6, w: 4, h: 0.5, size: 18, bold: true, color: INVERSE });
+    ops.push({ op: "text", text: "\u201C", x: 0.72, y: 1.55, w: 1.6, h: 1.3, size: 96, bold: true, color: BRAND, valign: "top" });
+    ops.push({ op: "text", text: s.quote, x: 0.9, y: 3.0, w: 10.6, h: 2.2, size: 26, bold: true, color: INVERSE, valign: "top", lineSpacing: 1.15 });
+    ops.push({ op: "rect", x: 0.9, y: 5.5, w: 1.2, h: 0.045, fill: BRAND });
+    ops.push({ op: "text", text: s.attribution, x: 0.9, y: 5.72, w: 8.5, h: 0.4, size: 15, bold: true, color: INVERSE });
+    if (s.role) {
+      ops.push({ op: "text", text: s.role, x: 0.9, y: 6.12, w: 8.5, h: 0.35, size: 12, color: INV_SEC });
+    }
+    ops.push(...visualFooter(ctx, INV_TER));
+    return ops;
+  },
+};
+
+// ---- photo-kpi ---------------------------------------------------------------
+// Two to four headline figures on translucent cards over a full-bleed
+// brand-art background image under a uniform dark scrim.
+
+const photoKpiSchema = z
+  .object({
+    title: short(70),
+    stats: z
+      .array(z.object({ value: short(16), label: short(60) }).strict())
+      .min(2)
+      .max(4),
+    imageId: z.string().trim().min(1),
+  })
+  .strict();
+
+const photoKpi: VisualLayoutDef = {
+  id: "photo-kpi",
+  name: "Photo KPI",
+  purpose:
+    "Headline figures over a full-page brand-art background image. Needs a title and 2 to 4 stats, each with a value (max 16 chars) and a label (max 60 chars), plus one abstract or gradient background image. Use only figures present in the governed draft.",
+  schema: photoKpiSchema,
+  imageSlots: [
+    {
+      slot: "imageId",
+      required: true,
+      hint: "Abstract or gradient brand-art background that fills the whole slide (tags: gradient, abstract, background, dark).",
+    },
+  ],
+  compose(raw, ctx) {
+    const s = photoKpiSchema.parse(raw);
+    const img = ctx.images.imageId ?? null;
+    const ops: DrawOp[] = [];
+    if (img) {
+      ops.push({ op: "image", key: img.key, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
+      ops.push({ op: "rect", x: 0, y: 0, w: SLIDE_W, h: SLIDE_H, fill: "#04182F", alpha: 0.62 });
+    } else if ((ctx.style ?? "light") === "dark") {
+      ops.push(...slideBase(ctx, "wash"));
+    } else {
+      ops.push({ op: "rect", x: 0, y: 0, w: SLIDE_W, h: SLIDE_H, fill: NAVY });
+    }
+    ops.push({ op: "rect", x: 0.8, y: 0.78, w: 0.55, h: 0.07, fill: BRAND });
+    ops.push({ op: "text", text: s.title, x: 0.8, y: 0.98, w: 11.73, h: 0.85, size: 24, bold: true, color: INVERSE, valign: "top" });
+    const n = s.stats.length;
+    const gap = 0.35;
+    const cardW = (11.73 - (n - 1) * gap) / n;
+    const cardY = 2.5;
+    const cardH = 3.2;
+    s.stats.forEach((stat, i) => {
+      const x = 0.8 + i * (cardW + gap);
+      ops.push({ op: "rect", x, y: cardY, w: cardW, h: cardH, fill: CARD_DARK_FILL, alpha: 0.1, radius: 0.12, stroke: DARK_LINE, strokePt: 1 });
+      ops.push({ op: "rect", x, y: cardY, w: cardW, h: 0.07, fill: BRAND });
+      ops.push({ op: "text", text: stat.value, x: x + 0.3, y: cardY + 0.6, w: cardW - 0.6, h: 1.0, size: n === 4 ? 28 : 34, bold: true, color: INVERSE, valign: "top" });
+      ops.push({ op: "text", text: stat.label, x: x + 0.3, y: cardY + 1.7, w: cardW - 0.6, h: 1.1, size: 13, color: INV_SEC, valign: "top", lineSpacing: 1.1 });
+    });
+    ops.push(...visualFooter(ctx, INV_TER));
+    return ops;
+  },
+};
+
+// ---- photo-banner ------------------------------------------------------------
+// Wide image band across the top; heading and bullet argument below.
+
+const photoBannerSchema = z
+  .object({
+    kicker: short(40).optional(),
+    heading: short(80),
+    bullets: z.array(short(110)).min(2).max(4),
+    imageId: z.string().trim().min(1),
+  })
+  .strict();
+
+const photoBanner: VisualLayoutDef = {
+  id: "photo-banner",
+  name: "Photo banner",
+  purpose:
+    "Content slide with a wide image band across the top and the argument below. Needs a heading (max 80 chars), 2 to 4 bullet lines of at most 110 characters each, optionally a kicker, and one wide brand-library image.",
+  schema: photoBannerSchema,
+  imageSlots: [
+    { slot: "imageId", required: true, hint: "Wide landscape image that reads well cropped to a banner (tags matching the slide topic)." },
+  ],
+  compose(raw, ctx) {
+    const s = photoBannerSchema.parse(raw);
+    const p = pal(ctx);
+    const ops: DrawOp[] = [
+      ...slideBase(ctx),
+      ...imageOrFallback(ctx.images.imageId ?? null, 0, 0, SLIDE_W, 3.1, p.imgFallback),
+      { op: "rect", x: 0, y: 3.1, w: SLIDE_W, h: 0.07, fill: BRAND },
+    ];
+    let ty = 3.5;
+    if (s.kicker) {
+      ops.push({ op: "text", text: s.kicker.toUpperCase(), x: 0.8, y: ty, w: 11.7, h: 0.32, size: 11, color: p.muted, charSpacing: 2 });
+      ty += 0.4;
+    }
+    ops.push({ op: "text", text: s.heading, x: 0.8, y: ty, w: 11.7, h: 0.8, size: 24, bold: true, color: p.heading, valign: "top" });
+    const listTop = ty + 0.95;
+    const step = Math.min(0.62, (6.8 - listTop) / s.bullets.length);
+    s.bullets.forEach((line, i) => {
+      const y = listTop + i * step;
+      ops.push({ op: "rect", x: 0.8, y: y + 0.09, w: 0.16, h: 0.16, fill: BRAND });
+      ops.push({ op: "text", text: line, x: 1.16, y, w: 11.3, h: step, size: 13.5, color: p.body, valign: "top", lineSpacing: 1.1 });
+    });
+    ops.push(...visualFooter(ctx, p.muted));
+    return ops;
+  },
+};
+
+// ---- photo-quad --------------------------------------------------------------
+// Four images in a 2x2 grid with optional captions under a heading.
+
+const photoQuadSchema = z
+  .object({
+    heading: short(80),
+    image1Id: z.string().trim().min(1),
+    image2Id: z.string().trim().min(1),
+    image3Id: z.string().trim().min(1),
+    image4Id: z.string().trim().min(1),
+    caption1: short(60).optional(),
+    caption2: short(60).optional(),
+    caption3: short(60).optional(),
+    caption4: short(60).optional(),
+  })
+  .strict();
+
+const photoQuad: VisualLayoutDef = {
+  id: "photo-quad",
+  name: "Photo grid",
+  purpose:
+    "Gallery slide with exactly four brand-library images in a 2x2 grid, each with an optional caption (max 60 chars). Needs a heading. Use for broader roundups than the three-image trio.",
+  schema: photoQuadSchema,
+  imageSlots: [
+    { slot: "image1Id", required: true, hint: "Top-left image of the grid." },
+    { slot: "image2Id", required: true, hint: "Top-right image of the grid." },
+    { slot: "image3Id", required: true, hint: "Bottom-left image of the grid." },
+    { slot: "image4Id", required: true, hint: "Bottom-right image of the grid." },
+  ],
+  compose(raw, ctx) {
+    const s = photoQuadSchema.parse(raw);
+    const p = pal(ctx);
+    const ops: DrawOp[] = [
+      ...slideBase(ctx),
+      { op: "rect", x: 0, y: 0, w: SLIDE_W, h: 0.18, fill: BRAND },
+      { op: "text", text: s.heading, x: 0.8, y: 0.65, w: 11.73, h: 0.8, size: 24, bold: true, color: p.heading, valign: "top" },
+    ];
+    const gap = 0.3;
+    const imgW = (11.73 - gap) / 2;
+    const cellH = 2.55;
+    const imgH = 2.0;
+    const topY = 1.75;
+    const slots: { img: ResolvedImage | null; caption?: string }[] = [
+      { img: ctx.images.image1Id ?? null, caption: s.caption1 },
+      { img: ctx.images.image2Id ?? null, caption: s.caption2 },
+      { img: ctx.images.image3Id ?? null, caption: s.caption3 },
+      { img: ctx.images.image4Id ?? null, caption: s.caption4 },
+    ];
+    slots.forEach((slot, i) => {
+      const col = i % 2;
+      const row = Math.floor(i / 2);
+      const x = 0.8 + col * (imgW + gap);
+      const y = topY + row * cellH;
+      ops.push(...imageOrFallback(slot.img, x, y, imgW, imgH, p.imgFallback));
+      ops.push({ op: "rect", x, y: y + imgH, w: imgW, h: 0.05, fill: BRAND });
+      if (slot.caption) {
+        ops.push({ op: "text", text: slot.caption, x, y: y + imgH + 0.12, w: imgW, h: 0.32, size: 11, color: p.muted });
+      }
+    });
+    ops.push(...visualFooter(ctx, p.muted));
+    return ops;
+  },
+};
+
 // ---- Registry ----------------------------------------------------------------
 
 export const VISUAL_LAYOUTS: VisualLayoutDef[] = [
@@ -1457,6 +1735,11 @@ export const VISUAL_LAYOUTS: VisualLayoutDef[] = [
   campaignMetrics,
   resultsTable,
   photoTrio,
+  photoQuad,
+  photoBanner,
+  photoDivider,
+  photoQuote,
+  photoKpi,
   closing,
   iconCards,
   numberedPillars,

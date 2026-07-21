@@ -39,6 +39,7 @@ export interface GenerateStrings {
     poolTitle: string;
     poolHint: string;
     poolCore: string;
+    poolVisualHeavy: string;
     poolLoading: string;
     poolPickHint: string;
     poolPickAuto: string;
@@ -418,6 +419,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       poolHint:
         "Slide layouts the deck composer can pick from — Telefónica core layouts plus layouts extracted from your approved master decks.",
       poolCore: "Core",
+      poolVisualHeavy: "Visual heavy",
       poolLoading: "Loading layouts...",
       poolPickHint:
         "Image-led layouts built on your approved brand-library photos. Tap to limit the deck to your picks — leave everything unselected and the composer chooses automatically. The cover and closing slides are always included.",
@@ -861,6 +863,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       poolHint:
         "Diseños de diapositiva entre los que elige el compositor de presentaciones: los diseños base de Telefónica más los extraídos de sus presentaciones maestras aprobadas.",
       poolCore: "Base",
+      poolVisualHeavy: "Muy visual",
       poolLoading: "Cargando diseños...",
       poolPickHint:
         "Diseños centrados en imagen, construidos con las fotos aprobadas de su biblioteca de marca. Toque para limitar la presentación a sus elegidos — sin selección, el compositor elige automáticamente. Las diapositivas de portada y cierre se incluyen siempre.",
@@ -1312,6 +1315,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       poolHint:
         "Folienlayouts, aus denen der Deck-Komponist wählt — die Telefónica-Kernlayouts plus die aus Ihren freigegebenen Master-Decks extrahierten Layouts.",
       poolCore: "Kern",
+      poolVisualHeavy: "Bildstark",
       poolLoading: "Layouts werden geladen...",
       poolPickHint:
         "Bildgeführte Layouts auf Basis der freigegebenen Fotos Ihrer Markenbibliothek. Tippen Sie, um das Deck auf Ihre Auswahl zu beschränken — ohne Auswahl wählt der Komponist automatisch. Titel- und Schlussfolie sind immer enthalten.",
@@ -1762,6 +1766,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       poolHint:
         "Layouts de slide que o compositor de apresentações pode escolher — os layouts base da Telefónica mais os extraídos dos seus decks mestres aprovados.",
       poolCore: "Base",
+      poolVisualHeavy: "Muito visual",
       poolLoading: "Carregando layouts...",
       poolPickHint:
         "Layouts guiados por imagem, construídos com as fotos aprovadas da sua biblioteca de marca. Toque para limitar o deck aos escolhidos — sem seleção, o compositor escolhe automaticamente. Os slides de capa e encerramento são sempre incluídos.",

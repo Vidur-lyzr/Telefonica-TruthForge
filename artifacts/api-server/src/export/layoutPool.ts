@@ -144,6 +144,48 @@ const CODED_SAMPLES: Record<string, Record<string, unknown>> = {
     caption2: "Caption two",
     caption3: "Caption three",
   },
+  "photo-quad": {
+    heading: "Markets at a glance",
+    image1Id: "sample-1",
+    image2Id: "sample-2",
+    image3Id: "sample-3",
+    image4Id: "sample-4",
+    caption1: "Caption one",
+    caption2: "Caption two",
+    caption3: "Caption three",
+    caption4: "Caption four",
+  },
+  "photo-banner": {
+    kicker: "Context",
+    heading: "Argument under a wide image band",
+    bullets: [
+      "First supporting point for the banner layout",
+      "Second supporting point for the banner layout",
+      "Third supporting point for the banner layout",
+    ],
+    imageId: "sample",
+  },
+  "photo-divider": {
+    number: "02",
+    title: "Chapter over brand art",
+    subtitle: "Optional supporting line under the chapter title",
+    imageId: "sample",
+  },
+  "photo-quote": {
+    quote: "A placeholder quote showing how an approved statement reads over the full-page brand art.",
+    attribution: "First Last",
+    role: "Chief Communications Officer",
+    imageId: "sample",
+  },
+  "photo-kpi": {
+    title: "Key figures on brand art",
+    stats: [
+      { value: "8,127", label: "Sample metric one" },
+      { value: "+2.1%", label: "Sample metric two" },
+      { value: "1.2M", label: "Sample metric three" },
+    ],
+    imageId: "sample",
+  },
   closing: {
     headline: "Thank you",
     subline: "Questions and next steps",
