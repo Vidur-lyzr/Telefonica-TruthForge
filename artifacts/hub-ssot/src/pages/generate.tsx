@@ -2005,14 +2005,33 @@ function BriefForm({
     if (b.eventDate) setEventDate(b.eventDate);
   };
 
-  const requestSuggestion = (text?: string) => {
+  // True when the visible suggestion was already applied to the form (example
+  // chips auto-fill the whole set-up so the user can go straight to Generate).
+  const [suggestionApplied, setSuggestionApplied] = React.useState(false);
+
+  const applyFromSuggestion = (s: TemplateSuggestion) => {
+    if (s.shape in SHAPE_META) setShape(s.shape as Shape);
+    if (s.templateId) setPickedTemplateId(s.templateId);
+    applySuggested(s.brief);
+  };
+
+  const requestSuggestion = (text?: string, opts?: { autoApply?: boolean }) => {
     const description = (text ?? nlDescription).trim();
     if (!description) return;
+    setSuggestionApplied(false);
     suggestTemplate.mutate(
       // The persona travels with the request so the evidence probe runs at the
       // caller's clearance and the suggestion is honest about what it can cite.
       { data: { description, roleId: roleId ?? undefined } },
-      { onSuccess: (s) => setSuggestion(s) },
+      {
+        onSuccess: (s) => {
+          setSuggestion(s);
+          if (opts?.autoApply) {
+            applyFromSuggestion(s);
+            setSuggestionApplied(true);
+          }
+        },
+      },
     );
   };
 
@@ -2031,9 +2050,9 @@ function BriefForm({
 
   const applySuggestion = () => {
     if (!suggestion) return;
-    if (suggestion.shape in SHAPE_META) setShape(suggestion.shape as Shape);
-    applySuggested(suggestion.brief);
+    applyFromSuggestion(suggestion);
     setSuggestion(null);
+    setSuggestionApplied(false);
   };
 
   const [followUp, setFollowUp] = React.useState<string | null>(null);
@@ -2275,7 +2294,9 @@ function BriefForm({
                       onPress={() => {
                         setNlDescription(ex.text);
                         setSuggestion(null);
-                        requestSuggestion(ex.text);
+                        // Examples fill in the whole set-up automatically —
+                        // review, then go straight to Generate draft.
+                        requestSuggestion(ex.text, { autoApply: true });
                       }}
                     >
                       {ex.text}
@@ -2295,6 +2316,7 @@ function BriefForm({
                           {t.nlEvidenceBacked(suggestion.evidence.matchedDocs)}
                         </Tag>
                       )}
+                      {suggestionApplied && <Tag type="active">{t.nlApplied}</Tag>}
                     </Inline>
                     <Text2 regular color={c.textSecondary}>
                       {suggestion.rationale}
@@ -2309,10 +2331,18 @@ function BriefForm({
                       </Text1>
                     ) : null}
                     <Inline space={8}>
-                      <ButtonPrimary small onPress={applySuggestion}>
-                        {t.nlUse}
-                      </ButtonPrimary>
-                      <ButtonSecondary small onPress={() => setSuggestion(null)}>
+                      {!suggestionApplied && (
+                        <ButtonPrimary small onPress={applySuggestion}>
+                          {t.nlUse}
+                        </ButtonPrimary>
+                      )}
+                      <ButtonSecondary
+                        small
+                        onPress={() => {
+                          setSuggestion(null);
+                          setSuggestionApplied(false);
+                        }}
+                      >
                         {t.nlDismiss}
                       </ButtonSecondary>
                     </Inline>

@@ -98,6 +98,12 @@ const CODED_SAMPLES: Record<string, Record<string, unknown>> = {
     body: "Placeholder body copy for the showcase panel beside the full-bleed image.",
     imageId: "sample",
   },
+  "photo-statement": {
+    kicker: "Momentum",
+    statement: "One bold message carried by a full-background image",
+    support: "Optional supporting line under the statement",
+    imageId: "sample",
+  },
   quote: {
     quote: "A placeholder quote showing how an approved statement fills this slide.",
     attribution: "First Last",

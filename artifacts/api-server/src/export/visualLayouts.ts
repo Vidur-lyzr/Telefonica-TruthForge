@@ -484,6 +484,65 @@ const brandedContent: VisualLayoutDef = {
   },
 };
 
+// ---- photo-statement -------------------------------------------------------
+// The stock photo IS the slide: full-bleed background image with a compact
+// solid navy statement block bottom-left (no gradients — deterministic
+// contrast comes from the solid panel), matching the master-deck look where
+// the image carries the whole background.
+
+const photoStatementSchema = z
+  .object({
+    kicker: short(40).optional(),
+    statement: short(130),
+    support: short(120).optional(),
+    imageId: z.string().trim().min(1),
+  })
+  .strict();
+
+const photoStatement: VisualLayoutDef = {
+  id: "photo-statement",
+  name: "Photo statement",
+  purpose:
+    "Full-background image slide: the photo fills the entire slide and one bold message sits on a compact panel. Needs a statement of at most 130 characters, optionally a kicker and a one-line support, and one brand-library image strong enough to carry the whole background. Use for a single high-impact message, not for detail.",
+  schema: photoStatementSchema,
+  imageSlots: [
+    { slot: "imageId", required: true, hint: "Atmospheric full-background image that works edge to edge (city, network, people, landscape)." },
+  ],
+  compose(raw, ctx) {
+    const s = photoStatementSchema.parse(raw);
+    const img = ctx.images.imageId ?? null;
+    const ops: DrawOp[] = [];
+    if (img) {
+      ops.push({ op: "image", key: img.key, x: 0, y: 0, w: SLIDE_W, h: SLIDE_H });
+    } else {
+      ops.push({ op: "rect", x: 0, y: 0, w: SLIDE_W, h: SLIDE_H, fill: ZEBRA });
+      ops.push({ op: "mark", color: DIVIDER, x: 5.96, y: 1.35, w: 1.4, h: 1.4 });
+    }
+    // Wordmark chip top-left so the brand reads over any photo.
+    ops.push({ op: "rect", x: 0, y: 0.42, w: 2.86, h: 0.84, fill: NAVY });
+    ops.push({ op: "mark", color: BRAND, x: 0.5, y: 0.62, w: 0.44, h: 0.44 });
+    ops.push({ op: "text", text: "Telefónica", x: 1.06, y: 0.6, w: 1.9, h: 0.5, size: 18, bold: true, color: INVERSE });
+    // Compact statement panel bottom-left — the image stays the protagonist.
+    const panelH = s.support ? 2.35 : 1.95;
+    const panelY = SLIDE_H - panelH;
+    ops.push({ op: "rect", x: 0, y: panelY, w: 8.9, h: panelH, fill: NAVY });
+    ops.push({ op: "rect", x: 0, y: panelY, w: 8.9, h: 0.06, fill: BRAND });
+    let ty = panelY + 0.28;
+    if (s.kicker) {
+      ops.push({ op: "text", text: s.kicker.toUpperCase(), x: 0.8, y: ty, w: 7.5, h: 0.32, size: 11, color: INV_SEC, charSpacing: 2 });
+      ty += 0.38;
+    }
+    ops.push({ op: "text", text: s.statement, x: 0.8, y: ty, w: 7.5, h: 1.05, size: 22, bold: true, color: INVERSE, valign: "top", lineSpacing: 1.1 });
+    if (s.support) {
+      ops.push({ op: "text", text: s.support, x: 0.8, y: panelY + panelH - 0.62, w: 7.5, h: 0.4, size: 12, color: INV_SEC });
+    }
+    // Confidentiality chip bottom-right: solid navy so it reads on any photo.
+    ops.push({ op: "rect", x: 10.53, y: SLIDE_H - 0.56, w: 2.8, h: 0.56, fill: NAVY });
+    ops.push({ op: "text", text: ctx.confidentiality, x: 10.63, y: SLIDE_H - 0.48, w: 2.6, h: 0.4, size: 9, color: INV_SEC, align: "right" });
+    return ops;
+  },
+};
+
 // ---- quote -----------------------------------------------------------------------
 // Approved quote, brand-blue full bleed, attribution with role.
 
@@ -728,6 +787,7 @@ export const VISUAL_LAYOUTS: VisualLayoutDef[] = [
   newsCard,
   kpiStats,
   brandedContent,
+  photoStatement,
   quoteLayout,
   campaignMetrics,
   resultsTable,

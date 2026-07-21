@@ -231,7 +231,7 @@ ${
     ? `- The author hand-picked the layouts for this deck. Use ONLY the layouts in the catalogue below — build the substance of the deck from the author's picks, reusing a layout across several slides where it fits. Do not ask for layouts that are not listed.
 - Use each layout's purpose line to decide where it fits. Never use a chart layout when no chart series is listed.`
     : `- Use "agenda" early when the deck has 3+ themes; use "section-divider" to open each major theme.
-- Prefer content-bearing layouts (news-card, photo-split, kpi-stats, branded-content, results-table${hasCharts ? ", campaign-metrics" : ""}) for the substance; do not pad with dividers.
+- Prefer content-bearing layouts (news-card, photo-split, kpi-stats, branded-content, photo-statement, results-table${hasCharts ? ", campaign-metrics" : ""}) for the substance; do not pad with dividers.
 - Use each layout's purpose line to decide where it fits. Never use a chart layout when no chart series is listed.`
 }
 

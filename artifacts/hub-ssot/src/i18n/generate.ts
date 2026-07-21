@@ -25,6 +25,7 @@ export interface GenerateStrings {
     nlSuggest: string;
     nlUse: string;
     nlDismiss: string;
+    nlApplied: string;
     nlExamplesLabel: string;
     nlEvidenceBacked: (n: number) => string;
     nlEvidenceNone: string;
@@ -387,6 +388,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Suggest a set-up",
       nlUse: "Use this set-up",
       nlDismiss: "Dismiss",
+      nlApplied: "Set-up applied — review and generate",
       nlExamplesLabel: "Or try an example backed by governed evidence:",
       nlEvidenceBacked: (n) =>
         n === 1 ? "Backed by 1 governed source" : `Backed by ${n} governed sources`,
@@ -808,6 +810,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Sugerir una configuración",
       nlUse: "Usar esta configuración",
       nlDismiss: "Descartar",
+      nlApplied: "Configuración aplicada — revisa y genera",
       nlExamplesLabel: "O prueba un ejemplo respaldado por evidencia gobernada:",
       nlEvidenceBacked: (n) =>
         n === 1 ? "Respaldado por 1 fuente gobernada" : `Respaldado por ${n} fuentes gobernadas`,
@@ -1237,6 +1240,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Konfiguration vorschlagen",
       nlUse: "Diese Konfiguration verwenden",
       nlDismiss: "Verwerfen",
+      nlApplied: "Konfiguration übernommen — prüfen und generieren",
       nlExamplesLabel: "Oder probieren Sie ein Beispiel mit kontrollierten Belegen:",
       nlEvidenceBacked: (n) =>
         n === 1 ? "Gestützt auf 1 kontrollierte Quelle" : `Gestützt auf ${n} kontrollierte Quellen`,
@@ -1665,6 +1669,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Sugerir uma configuração",
       nlUse: "Usar esta configuração",
       nlDismiss: "Descartar",
+      nlApplied: "Configuração aplicada — revise e gere",
       nlExamplesLabel: "Ou experimente um exemplo respaldado por evidência governada:",
       nlEvidenceBacked: (n) =>
         n === 1 ? "Respaldado por 1 fonte governada" : `Respaldado por ${n} fontes governadas`,
