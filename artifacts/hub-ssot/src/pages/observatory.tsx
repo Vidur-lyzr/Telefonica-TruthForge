@@ -129,6 +129,8 @@ function detailEntry(key: string, value: string): { label: string; value: string
       return { label: "Destination", value };
     case "templateId":
       return { label: "Template", value };
+    case "file":
+      return { label: "File", value };
     case "source":
       return { label: "Source", value };
     default:
@@ -216,15 +218,33 @@ function EventRow({ event }: { event: ObservatoryEvent }) {
                   </Text1>
                 )}
                 {event.detail &&
-                  Object.entries(event.detail).map(([k, v]) => {
-                    const d = detailEntry(k, String(v));
-                    return (
-                      <Text1 key={k} regular color={skinVars.colors.textSecondary}>
-                        {d.label}: {d.value}
-                      </Text1>
-                    );
-                  })}
+                  Object.entries(event.detail)
+                    .filter(([k]) => k !== "assetId")
+                    .map(([k, v]) => {
+                      const d = detailEntry(k, String(v));
+                      return (
+                        <Text1 key={k} regular color={skinVars.colors.textSecondary}>
+                          {d.label}: {d.value}
+                        </Text1>
+                      );
+                    })}
               </Inline>
+              {event.kind === "export" && event.detail?.assetId && (
+                <div>
+                  <ButtonSecondary
+                    small
+                    onPress={() => {
+                      const a = document.createElement("a");
+                      a.href = `/api/observatory/export-assets/${event.detail?.assetId}/file`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    }}
+                  >
+                    Download exported file
+                  </ButtonSecondary>
+                </div>
+              )}
             </Stack>
           </div>
         </Box>

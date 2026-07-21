@@ -14,6 +14,7 @@ import {
   type ExportDestination,
 } from "../export/exportService";
 import type { ExportFormat } from "../export/exportTemplates";
+import { saveAuditExportAsset } from "../export/auditAssets";
 import {
   effectiveTemplate as getExportTemplate,
   effectiveDefaultTemplateForShape as defaultTemplateForShape,
@@ -196,12 +197,23 @@ router.post("/ask/documents/export", async (req, res) => {
       { documentId: record.id, format, destination, bytes: result.buffer.length },
       "ask document exported",
     );
+    let auditAssetId: string | null = null;
+    try {
+      auditAssetId = await saveAuditExportAsset(result.buffer, result.contentType, result.filename);
+    } catch (assetErr) {
+      req.log.warn({ err: assetErr }, "audit export copy failed — event will carry metadata only");
+    }
     observe(req, {
       kind: "export",
       page: "/ask",
       summary: record.draft.title,
       docIds: [record.id],
-      detail: { format, destination, source: "ask_document" },
+      detail: {
+        format,
+        destination,
+        source: "ask_document",
+        ...(auditAssetId ? { assetId: auditAssetId, file: result.filename } : {}),
+      },
     });
     res.setHeader("Content-Type", result.contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
@@ -240,12 +252,23 @@ router.post("/ask/documents/export-pack", async (req, res) => {
       { documentId: record.id, formats, destination, bytes: result.buffer.length },
       "ask document pack exported",
     );
+    let auditAssetId: string | null = null;
+    try {
+      auditAssetId = await saveAuditExportAsset(result.buffer, result.contentType, result.filename);
+    } catch (assetErr) {
+      req.log.warn({ err: assetErr }, "audit export copy failed — event will carry metadata only");
+    }
     observe(req, {
       kind: "export",
       page: "/ask",
       summary: record.draft.title,
       docIds: [record.id],
-      detail: { format: formats.join(","), destination, source: "ask_document_pack" },
+      detail: {
+        format: formats.join(","),
+        destination,
+        source: "ask_document_pack",
+        ...(auditAssetId ? { assetId: auditAssetId, file: result.filename } : {}),
+      },
     });
     res.setHeader("Content-Type", result.contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);

@@ -53,6 +53,7 @@ import {
   type ExportDestination,
 } from "../export/exportService";
 import type { ExportFormat } from "../export/exportTemplates";
+import { saveAuditExportAsset } from "../export/auditAssets";
 import { renderExportPreview, type PreviewFormat } from "../export/previewService";
 import { listVisualLayoutPool, renderLayoutSamplePng } from "../export/layoutPool";
 import {
@@ -756,6 +757,12 @@ router.post("/generate/export", async (req, res) => {
       },
       "document exported",
     );
+    let auditAssetId: string | null = null;
+    try {
+      auditAssetId = await saveAuditExportAsset(result.buffer, result.contentType, result.filename);
+    } catch (assetErr) {
+      req.log.warn({ err: assetErr }, "audit export copy failed — event will carry metadata only");
+    }
     observe(req, {
       kind: "export",
       page: "/generate",
@@ -766,6 +773,7 @@ router.post("/generate/export", async (req, res) => {
         destination,
         source: "generate",
         ...(result.templateId ? { templateId: result.templateId } : {}),
+        ...(auditAssetId ? { assetId: auditAssetId, file: result.filename } : {}),
       },
     });
     res.setHeader("Content-Type", result.contentType);
@@ -799,6 +807,12 @@ router.post("/generate/export/pack", async (req, res) => {
       { formats, destination, templateId: result.templateId, bytes: result.buffer.length },
       "document pack exported",
     );
+    let auditAssetId: string | null = null;
+    try {
+      auditAssetId = await saveAuditExportAsset(result.buffer, result.contentType, result.filename);
+    } catch (assetErr) {
+      req.log.warn({ err: assetErr }, "audit export copy failed — event will carry metadata only");
+    }
     observe(req, {
       kind: "export",
       page: "/generate",
@@ -809,6 +823,7 @@ router.post("/generate/export/pack", async (req, res) => {
         destination,
         source: "generate_pack",
         ...(result.templateId ? { templateId: result.templateId } : {}),
+        ...(auditAssetId ? { assetId: auditAssetId, file: result.filename } : {}),
       },
     });
     res.setHeader("Content-Type", result.contentType);

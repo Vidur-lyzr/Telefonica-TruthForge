@@ -12554,3 +12554,81 @@ export function useListObservatoryEvents<TData = Awaited<ReturnType<typeof listO
 
 
 
+export const getDownloadObservatoryExportAssetUrl = (assetId: string,) => {
+
+
+
+
+  return `/api/observatory/export-assets/${assetId}/file`
+}
+
+/**
+ * Streams the exact file a user received from an export. The asset id comes from an export event's detail.assetId. Exports made before file retention was enabled have no stored copy and return 404.
+ * @summary Download the stored copy of an exported file (audit teams only)
+ */
+export const downloadObservatoryExportAsset = async (assetId: string, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadObservatoryExportAssetUrl(assetId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadObservatoryExportAssetQueryKey = (assetId: string,) => {
+    return [
+    `/api/observatory/export-assets/${assetId}/file`
+    ] as const;
+    }
+
+
+export const getDownloadObservatoryExportAssetQueryOptions = <TData = Awaited<ReturnType<typeof downloadObservatoryExportAsset>>, TError = ErrorType<ErrorResponse>>(assetId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadObservatoryExportAsset>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadObservatoryExportAssetQueryKey(assetId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadObservatoryExportAsset>>> = ({ signal }) => downloadObservatoryExportAsset(assetId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: assetId !== null && assetId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadObservatoryExportAsset>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadObservatoryExportAssetQueryResult = NonNullable<Awaited<ReturnType<typeof downloadObservatoryExportAsset>>>
+export type DownloadObservatoryExportAssetQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Download the stored copy of an exported file (audit teams only)
+ */
+
+export function useDownloadObservatoryExportAsset<TData = Awaited<ReturnType<typeof downloadObservatoryExportAsset>>, TError = ErrorType<ErrorResponse>>(
+ assetId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadObservatoryExportAsset>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadObservatoryExportAssetQueryOptions(assetId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+

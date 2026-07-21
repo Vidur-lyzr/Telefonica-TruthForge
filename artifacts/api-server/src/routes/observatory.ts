@@ -8,6 +8,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuditTeam } from "../middlewares/requireAuditTeam";
 import { observe, observeHeartbeat } from "../lib/observe";
+import { getAuditExportAsset } from "../export/auditAssets";
 import {
   getObservatoryOverview,
   getObservatorySessions,
@@ -83,5 +84,39 @@ router.get("/observatory/events", requireAuditTeam, async (req, res) => {
   });
   res.json(ListObservatoryEventsResponse.parse(page));
 });
+
+// Streams the stored audit copy of an exported file — the exact bytes the
+// user downloaded. The asset id comes from an export event's detail; unknown
+// or malformed ids 404 (assets predating this feature have no stored copy).
+router.get(
+  "/observatory/export-assets/:assetId/file",
+  requireAuditTeam,
+  async (req, res) => {
+    try {
+      const asset = await getAuditExportAsset(String(req.params.assetId ?? ""));
+      if (!asset) {
+        res.status(404).json({
+          error: "No stored file for this export (it may predate file retention).",
+        });
+        return;
+      }
+      res.setHeader("Content-Type", asset.contentType);
+      res.setHeader("Content-Disposition", asset.contentDisposition);
+      if (asset.size !== null) res.setHeader("Content-Length", String(asset.size));
+      asset.stream.on("error", (err) => {
+        req.log.error({ err }, "audit export asset stream failed");
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Could not read the stored export file." });
+        } else {
+          res.destroy();
+        }
+      });
+      asset.stream.pipe(res);
+    } catch (err) {
+      req.log.error({ err }, "audit export asset route failed");
+      res.status(500).json({ error: "Could not read the stored export file." });
+    }
+  },
+);
 
 export default router;

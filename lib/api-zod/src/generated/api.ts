@@ -9201,3 +9201,14 @@ export const ListObservatoryEventsResponse = zod.object({
 })
 
 
+/**
+ * Streams the exact file a user received from an export. The asset id comes from an export event's detail.assetId. Exports made before file retention was enabled have no stored copy and return 404.
+ * @summary Download the stored copy of an exported file (audit teams only)
+ */
+export const DownloadObservatoryExportAssetParams = zod.object({
+  "assetId": zod.coerce.string()
+})
+
+export const DownloadObservatoryExportAssetResponse = zod.unknown()
+
+

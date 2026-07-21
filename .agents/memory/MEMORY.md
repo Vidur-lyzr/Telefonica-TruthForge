@@ -56,5 +56,5 @@
 - [Metering chokepoint coverage](metering-chokepoint-coverage.md) — quota/attribution gates must cover agent-runtime model paths too, not just metered wrappers; re-throw quota errors in fallbacks.
 - [pptxgenjs under tsx](pptxgenjs-cjs-under-tsx.md) — CJS-only packages need createRequire in tsx scripts; ESM default import yields a namespace, not the constructor.
 - [PDF image harvest](pdf-image-harvest.md) — unpdf extractImages + minimal zlib PNG encoder (no sharp); cap pixels ~16M, sync deflate stalls the loop; dedupe by hash.
-- [Longform per-section compose](longform-per-section-compose.md) — multi-page templates compose one governed model call per section; skipped no-evidence sections go on draft.note; refine stays single-call.
+- [Longform per-section compose](longform-per-section-compose.md) — multi-page templates compose one governed call per section; skipped sections noted on the draft.
 - [Governed-ref fallbacks](governed-ref-fallbacks.md) — unresolvable agent-supplied ids (chartId/imageId) must render honest absence, never silently substitute another governed item.
