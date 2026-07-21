@@ -11,7 +11,6 @@ import {
   Tag,
   Touchable,
   ButtonSecondary,
-  Checkbox,
   Spinner,
   IconChevronLeftRegular,
   IconEyeRegular,
@@ -334,10 +333,9 @@ const OVERVIEW_COLUMNS =
 
 export default function ObservatoryPage() {
   const me = useGetAuthMe();
-  const [includeLyzr, setIncludeLyzr] = React.useState(false);
   const [selected, setSelected] = React.useState<string | null>(null);
   const isAuditTeam = me.data?.team === "lyzr" || me.data?.team === "accenture";
-  const overview = useGetObservatoryOverview(includeLyzr ? { includeLyzr: true } : {});
+  const overview = useGetObservatoryOverview();
 
   if (me.isLoading) {
     return (
@@ -380,13 +378,6 @@ export default function ObservatoryPage() {
         ) : (
           <Stack space={12}>
             <Inline space={16} alignItems="center">
-              <Checkbox
-                name="includeLyzr"
-                checked={includeLyzr}
-                onChange={setIncludeLyzr}
-              >
-                Include Lyzr team activity
-              </Checkbox>
               <ButtonSecondary
                 small
                 onPress={() => {
@@ -423,8 +414,8 @@ export default function ObservatoryPage() {
               ) : (overview.data?.users.length ?? 0) === 0 ? (
                 <Box padding={24}>
                   <Text2 regular color={skinVars.colors.textSecondary}>
-                    No tracked activity yet. Events appear as soon as a Telefónica or
-                    Accenture user signs in and starts working.
+                    No tracked activity yet. Events appear as soon as users sign in
+                    and start working.
                   </Text2>
                 </Box>
               ) : (

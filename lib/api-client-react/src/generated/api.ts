@@ -103,7 +103,6 @@ import type {
   GetHomeSummaryParams,
   GetMasterDeckAssetParams,
   GetMasterDeckJobParams,
-  GetObservatoryOverviewParams,
   GetPlanningEventParams,
   GetPlanningInsightsParams,
   GetPlanningOverviewParams,
@@ -12308,28 +12307,21 @@ export const useTrackActivity = <TError = ErrorType<ErrorResponse>,
       return useMutation(getTrackActivityMutationOptions(options));
     }
 
-export const getGetObservatoryOverviewUrl = (params?: GetObservatoryOverviewParams,) => {
-  const normalizedParams = new URLSearchParams();
+export const getGetObservatoryOverviewUrl = () => {
 
-  Object.entries(params || {}).forEach(([key, value]) => {
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
-    }
-  });
 
-  const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/observatory/overview?${stringifiedParams}` : `/api/observatory/overview`
+  return `/api/observatory/overview`
 }
 
 /**
- * One row per tracked user - sessions, total active time, asks, generations, exports, page views, governance blocks and top pages. Lyzr team members are excluded unless includeLyzr is set. Requires a lyzr-team session; everyone else gets 403 (code forbidden).
- * @summary Per-user activity rollup across the whole platform (Lyzr only)
+ * One row per tracked user - sessions, total active time, asks, generations, exports, page views, governance blocks and top pages. All tracked users are included. Requires a lyzr- or accenture-team session; everyone else gets 403 (code forbidden).
+ * @summary Per-user activity rollup across the whole platform (audit teams only)
  */
-export const getObservatoryOverview = async (params?: GetObservatoryOverviewParams, options?: RequestInit): Promise<ObservatoryOverview> => {
+export const getObservatoryOverview = async ( options?: RequestInit): Promise<ObservatoryOverview> => {
 
-  return customFetch<ObservatoryOverview>(getGetObservatoryOverviewUrl(params),
+  return customFetch<ObservatoryOverview>(getGetObservatoryOverviewUrl(),
   {
     ...options,
     method: 'GET'
@@ -12342,23 +12334,23 @@ export const getObservatoryOverview = async (params?: GetObservatoryOverviewPara
 
 
 
-export const getGetObservatoryOverviewQueryKey = (params?: GetObservatoryOverviewParams,) => {
+export const getGetObservatoryOverviewQueryKey = () => {
     return [
-    `/api/observatory/overview`, ...(params ? [params] : [])
+    `/api/observatory/overview`
     ] as const;
     }
 
 
-export const getGetObservatoryOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getObservatoryOverview>>, TError = ErrorType<ErrorResponse>>(params?: GetObservatoryOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getObservatoryOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetObservatoryOverviewQueryOptions = <TData = Awaited<ReturnType<typeof getObservatoryOverview>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getObservatoryOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetObservatoryOverviewQueryKey(params);
+  const queryKey =  queryOptions?.queryKey ?? getGetObservatoryOverviewQueryKey();
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getObservatoryOverview>>> = ({ signal }) => getObservatoryOverview(params, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getObservatoryOverview>>> = ({ signal }) => getObservatoryOverview({ signal, ...requestOptions });
 
 
 
@@ -12372,15 +12364,15 @@ export type GetObservatoryOverviewQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Per-user activity rollup across the whole platform (Lyzr only)
+ * @summary Per-user activity rollup across the whole platform (audit teams only)
  */
 
 export function useGetObservatoryOverview<TData = Awaited<ReturnType<typeof getObservatoryOverview>>, TError = ErrorType<ErrorResponse>>(
- params?: GetObservatoryOverviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getObservatoryOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getObservatoryOverview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetObservatoryOverviewQueryOptions(params,options)
+  const queryOptions = getGetObservatoryOverviewQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -12409,7 +12401,7 @@ export const getListObservatorySessionsUrl = (params: ListObservatorySessionsPar
 }
 
 /**
- * @summary Session timeline for one user (Lyzr only)
+ * @summary Session timeline for one user (audit teams only)
  */
 export const listObservatorySessions = async (params: ListObservatorySessionsParams, options?: RequestInit): Promise<ObservatorySessionsResult> => {
 
@@ -12456,7 +12448,7 @@ export type ListObservatorySessionsQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Session timeline for one user (Lyzr only)
+ * @summary Session timeline for one user (audit teams only)
  */
 
 export function useListObservatorySessions<TData = Awaited<ReturnType<typeof listObservatorySessions>>, TError = ErrorType<ErrorResponse>>(
@@ -12494,7 +12486,7 @@ export const getListObservatoryEventsUrl = (params?: ListObservatoryEventsParams
 
 /**
  * Newest first. Filter by user email, session id and event kind. Ask events carry the question, the exact response shown, the persona, the governance status, cited doc ids and the retrieval-audit id.
- * @summary Filterable audit event feed (Lyzr only)
+ * @summary Filterable audit event feed (audit teams only)
  */
 export const listObservatoryEvents = async (params?: ListObservatoryEventsParams, options?: RequestInit): Promise<ObservatoryEventsPage> => {
 
@@ -12541,7 +12533,7 @@ export type ListObservatoryEventsQueryError = ErrorType<ErrorResponse>
 
 
 /**
- * @summary Filterable audit event feed (Lyzr only)
+ * @summary Filterable audit event feed (audit teams only)
  */
 
 export function useListObservatoryEvents<TData = Awaited<ReturnType<typeof listObservatoryEvents>>, TError = ErrorType<ErrorResponse>>(

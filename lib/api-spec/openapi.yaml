@@ -4126,18 +4126,12 @@ paths:
     get:
       operationId: getObservatoryOverview
       tags: [observatory]
-      summary: Per-user activity rollup across the whole platform (Lyzr only)
+      summary: Per-user activity rollup across the whole platform (audit teams only)
       description: >
         One row per tracked user - sessions, total active time, asks,
         generations, exports, page views, governance blocks and top pages.
-        Lyzr team members are excluded unless includeLyzr is set. Requires a
-        lyzr-team session; everyone else gets 403 (code forbidden).
-      parameters:
-        - name: includeLyzr
-          in: query
-          required: false
-          schema:
-            type: boolean
+        All tracked users are included. Requires a lyzr- or accenture-team
+        session; everyone else gets 403 (code forbidden).
       responses:
         "200":
           description: Activity overview
@@ -4146,7 +4140,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ObservatoryOverview"
         "403":
-          description: Session is not on the lyzr team (code forbidden)
+          description: Session is not on an audit team (code forbidden)
           content:
             application/json:
               schema:
@@ -4156,7 +4150,7 @@ paths:
     get:
       operationId: listObservatorySessions
       tags: [observatory]
-      summary: Session timeline for one user (Lyzr only)
+      summary: Session timeline for one user (audit teams only)
       parameters:
         - name: email
           in: query
@@ -4171,7 +4165,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ObservatorySessionsResult"
         "403":
-          description: Session is not on the lyzr team (code forbidden)
+          description: Session is not on an audit team (code forbidden)
           content:
             application/json:
               schema:
@@ -4181,7 +4175,7 @@ paths:
     get:
       operationId: listObservatoryEvents
       tags: [observatory]
-      summary: Filterable audit event feed (Lyzr only)
+      summary: Filterable audit event feed (audit teams only)
       description: >
         Newest first. Filter by user email, session id and event kind. Ask
         events carry the question, the exact response shown, the persona,
@@ -4232,7 +4226,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ObservatoryEventsPage"
         "403":
-          description: Session is not on the lyzr team (code forbidden)
+          description: Session is not on an audit team (code forbidden)
           content:
             application/json:
               schema:

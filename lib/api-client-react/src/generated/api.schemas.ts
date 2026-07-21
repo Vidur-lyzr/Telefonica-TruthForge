@@ -4713,10 +4713,6 @@ viewerRoleId: string;
 runId: string;
 };
 
-export type GetObservatoryOverviewParams = {
-includeLyzr?: boolean;
-};
-
 export type ListObservatorySessionsParams = {
 email: string;
 };

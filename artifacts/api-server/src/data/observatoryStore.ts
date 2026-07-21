@@ -391,9 +391,7 @@ export interface ObservatoryUserSummary {
   topPages: { page: string; seconds: number }[];
 }
 
-export async function getObservatoryOverview(
-  includeLyzr: boolean,
-): Promise<ObservatoryUserSummary[]> {
+export async function getObservatoryOverview(): Promise<ObservatoryUserSummary[]> {
   await flushNow();
   const [sessionRows, eventRows] = await Promise.all([
     db
@@ -440,7 +438,6 @@ export async function getObservatoryOverview(
 
   const pageSeconds = new Map<string, Map<string, number>>();
   for (const row of sessionRows) {
-    if (!includeLyzr && row.team === "lyzr") continue;
     const s = sessionFromRow(row);
     const u = ensure(s.email, s.team);
     u.sessionCount += 1;
@@ -455,7 +452,6 @@ export async function getObservatoryOverview(
     if (!u.lastSeenTs || s.lastSeenTs > u.lastSeenTs) u.lastSeenTs = s.lastSeenTs;
   }
   for (const e of eventRows) {
-    if (!includeLyzr && e.team === "lyzr") continue;
     const u = ensure(e.email, e.team);
     if (e.kind === "ask") u.askCount += 1;
     else if (e.kind === "generate") u.generateCount += 1;

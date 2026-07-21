@@ -177,7 +177,6 @@ export * from './getExportTemplatePreviewParams';
 export * from './getHomeSummaryParams';
 export * from './getMasterDeckAssetParams';
 export * from './getMasterDeckJobParams';
-export * from './getObservatoryOverviewParams';
 export * from './getPlanningEventParams';
 export * from './getPlanningInsightsParams';
 export * from './getPlanningOverviewParams';

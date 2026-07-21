@@ -36,10 +36,9 @@ router.post("/track", (req, res) => {
 });
 
 // Everything below is the audit-team (lyzr + accenture) read side.
-router.get("/observatory/overview", requireAuditTeam, async (req, res) => {
-  const includeLyzr = req.query.includeLyzr === "true";
+router.get("/observatory/overview", requireAuditTeam, async (_req, res) => {
   res.json(
-    GetObservatoryOverviewResponse.parse({ users: await getObservatoryOverview(includeLyzr) }),
+    GetObservatoryOverviewResponse.parse({ users: await getObservatoryOverview() }),
   );
 });
 

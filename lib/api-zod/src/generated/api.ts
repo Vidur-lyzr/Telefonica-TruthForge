@@ -9121,13 +9121,9 @@ export const TrackActivityResponse = zod.object({
 
 
 /**
- * One row per tracked user - sessions, total active time, asks, generations, exports, page views, governance blocks and top pages. Lyzr team members are excluded unless includeLyzr is set. Requires a lyzr-team session; everyone else gets 403 (code forbidden).
- * @summary Per-user activity rollup across the whole platform (Lyzr only)
+ * One row per tracked user - sessions, total active time, asks, generations, exports, page views, governance blocks and top pages. All tracked users are included. Requires a lyzr- or accenture-team session; everyone else gets 403 (code forbidden).
+ * @summary Per-user activity rollup across the whole platform (audit teams only)
  */
-export const GetObservatoryOverviewQueryParams = zod.object({
-  "includeLyzr": zod.coerce.boolean().optional()
-})
-
 export const GetObservatoryOverviewResponse = zod.object({
   "users": zod.array(zod.object({
   "email": zod.string(),
@@ -9151,7 +9147,7 @@ export const GetObservatoryOverviewResponse = zod.object({
 
 
 /**
- * @summary Session timeline for one user (Lyzr only)
+ * @summary Session timeline for one user (audit teams only)
  */
 export const ListObservatorySessionsQueryParams = zod.object({
   "email": zod.coerce.string()
@@ -9173,7 +9169,7 @@ export const ListObservatorySessionsResponse = zod.object({
 
 /**
  * Newest first. Filter by user email, session id and event kind. Ask events carry the question, the exact response shown, the persona, the governance status, cited doc ids and the retrieval-audit id.
- * @summary Filterable audit event feed (Lyzr only)
+ * @summary Filterable audit event feed (audit teams only)
  */
 export const ListObservatoryEventsQueryParams = zod.object({
   "email": zod.coerce.string().optional(),
