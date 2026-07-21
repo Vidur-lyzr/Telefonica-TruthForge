@@ -11,6 +11,8 @@ import type { BrandTemplateSection } from './brandTemplateSection';
 export interface BrandTemplate {
   id: string;
   shape: string;
+  /** Export template whose rendered pages preview this template's design. */
+  previewTemplateId: string;
   name: string;
   description: string;
   purpose: string;

@@ -111,6 +111,7 @@ import type {
   GetUsageMeterParams,
   GetUserUsageDetailParams,
   GetUserVisibilityMatrixParams,
+  GetVisualLayoutPreviewParams,
   GetWikiGraphParams,
   GetWikiPageParams,
   GuardianResult,
@@ -246,6 +247,7 @@ import type {
   UserUsageList,
   ValidationItem,
   VisibilityMatrix,
+  VisualLayoutPoolView,
   WikiGraph,
   WikiLineage,
   WikiPageDetail,
@@ -7397,6 +7399,169 @@ export const useBriefChat = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getBriefChatMutationOptions(options));
     }
+
+export const getGetVisualLayoutPoolUrl = () => {
+
+
+
+
+  return `/api/generate/visual-layouts`
+}
+
+/**
+ * Every slide layout the generate agent can pick from when composing a visual deck — the coded Telefónica layouts plus every admin-approved layout extracted from uploaded master decks. Extracted layouts carry the name of the deck they came from.
+ * @summary The visual layout pool used to compose visual decks
+ */
+export const getVisualLayoutPool = async ( options?: RequestInit): Promise<VisualLayoutPoolView> => {
+
+  return customFetch<VisualLayoutPoolView>(getGetVisualLayoutPoolUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVisualLayoutPoolQueryKey = () => {
+    return [
+    `/api/generate/visual-layouts`
+    ] as const;
+    }
+
+
+export const getGetVisualLayoutPoolQueryOptions = <TData = Awaited<ReturnType<typeof getVisualLayoutPool>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVisualLayoutPool>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVisualLayoutPoolQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVisualLayoutPool>>> = ({ signal }) => getVisualLayoutPool({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVisualLayoutPool>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVisualLayoutPoolQueryResult = NonNullable<Awaited<ReturnType<typeof getVisualLayoutPool>>>
+export type GetVisualLayoutPoolQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary The visual layout pool used to compose visual decks
+ */
+
+export function useGetVisualLayoutPool<TData = Awaited<ReturnType<typeof getVisualLayoutPool>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVisualLayoutPool>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVisualLayoutPoolQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetVisualLayoutPreviewUrl = (params: GetVisualLayoutPreviewParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/generate/visual-layout-preview?${stringifiedParams}` : `/api/generate/visual-layout-preview`
+}
+
+/**
+ * A deterministic PNG rendering of the layout filled with neutral placeholder copy — drawn by the same compose and render engine the real deck exports use, so the preview IS what the layout produces.
+ * @summary Server-rendered sample slide of one visual layout
+ */
+export const getVisualLayoutPreview = async (params: GetVisualLayoutPreviewParams, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetVisualLayoutPreviewUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVisualLayoutPreviewQueryKey = (params?: GetVisualLayoutPreviewParams,) => {
+    return [
+    `/api/generate/visual-layout-preview`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetVisualLayoutPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getVisualLayoutPreview>>, TError = ErrorType<ErrorResponse>>(params: GetVisualLayoutPreviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVisualLayoutPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVisualLayoutPreviewQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVisualLayoutPreview>>> = ({ signal }) => getVisualLayoutPreview(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVisualLayoutPreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetVisualLayoutPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getVisualLayoutPreview>>>
+export type GetVisualLayoutPreviewQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Server-rendered sample slide of one visual layout
+ */
+
+export function useGetVisualLayoutPreview<TData = Awaited<ReturnType<typeof getVisualLayoutPreview>>, TError = ErrorType<ErrorResponse>>(
+ params: GetVisualLayoutPreviewParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getVisualLayoutPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetVisualLayoutPreviewQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListDeliveriesUrl = () => {
 

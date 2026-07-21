@@ -6359,6 +6359,35 @@ export const BriefChatResponse = zod.object({
 
 
 /**
+ * Every slide layout the generate agent can pick from when composing a visual deck — the coded Telefónica layouts plus every admin-approved layout extracted from uploaded master decks. Extracted layouts carry the name of the deck they came from.
+ * @summary The visual layout pool used to compose visual decks
+ */
+export const GetVisualLayoutPoolResponse = zod.object({
+  "layouts": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "purpose": zod.string(),
+  "source": zod.enum(['coded', 'extracted']),
+  "imageSlots": zod.number(),
+  "wantsChart": zod.boolean(),
+  "deckName": zod.string().optional().describe('For extracted layouts, the master deck it came from.'),
+  "approvedAt": zod.string().optional()
+}))
+})
+
+
+/**
+ * A deterministic PNG rendering of the layout filled with neutral placeholder copy — drawn by the same compose and render engine the real deck exports use, so the preview IS what the layout produces.
+ * @summary Server-rendered sample slide of one visual layout
+ */
+export const GetVisualLayoutPreviewQueryParams = zod.object({
+  "layoutId": zod.coerce.string()
+})
+
+export const GetVisualLayoutPreviewResponse = zod.unknown()
+
+
+/**
  * When a scheduled run lands a draft in the review inbox, the Hub records a simulated Teams message and email to the schedule owner. No real message is sent — these records make the hand-off auditable.
  * @summary Simulated Teams/email delivery records for scheduled drafts
  */
@@ -8213,6 +8242,7 @@ export const GetBrandTemplatesResponse = zod.object({
   "templates": zod.array(zod.object({
   "id": zod.string(),
   "shape": zod.string(),
+  "previewTemplateId": zod.string().describe('Export template whose rendered pages preview this template\'s design.'),
   "name": zod.string(),
   "description": zod.string(),
   "purpose": zod.string(),
@@ -8241,6 +8271,7 @@ export const GetBrandTemplateResponse = zod.object({
   "template": zod.union([zod.object({
   "id": zod.string(),
   "shape": zod.string(),
+  "previewTemplateId": zod.string().describe('Export template whose rendered pages preview this template\'s design.'),
   "name": zod.string(),
   "description": zod.string(),
   "purpose": zod.string(),

@@ -6,6 +6,7 @@
 
 import { CLEARANCE_RANK, ROLES, type Clearance, type Validity } from "./corpus";
 import { getTonePrinciples } from "./toneStore";
+import { defaultTemplateForShape } from "../export/exportTemplates";
 import {
   TEMPLATES,
   BOILERPLATES,
@@ -163,6 +164,7 @@ export interface BrandTemplate {
   clearance: Clearance;
   sections: BrandTemplateSection[];
   disclaimers: BrandTemplateDisclaimer[];
+  previewTemplateId: string;
 }
 
 // The gallery card shape: governance metadata without the full section
@@ -179,6 +181,7 @@ export interface BrandTemplateSummary {
   validity: Validity;
   clearance: Clearance;
   sectionCount: number;
+  previewTemplateId: string;
 }
 
 interface TemplateMeta {
@@ -233,6 +236,7 @@ const BRAND_TEMPLATES: BrandTemplate[] = TEMPLATES.map((t) => ({
   description: t.description,
   ...TEMPLATE_META[t.shape],
   clearance: TEMPLATE_CLEARANCE,
+  previewTemplateId: defaultTemplateForShape(t.shape).id,
   sections: t.sections.map((s) => ({
     key: s.key,
     label: s.label,
@@ -258,6 +262,7 @@ function toSummary(t: BrandTemplate): BrandTemplateSummary {
     validity: t.validity,
     clearance: t.clearance,
     sectionCount: t.sections.length,
+    previewTemplateId: t.previewTemplateId,
   };
 }
 

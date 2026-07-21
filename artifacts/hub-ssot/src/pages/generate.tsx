@@ -31,6 +31,9 @@ import {
   useCanvasEditBlock,
   useGetBrandTemplates,
   useGetBrandTemplate,
+  useGetVisualLayoutPool,
+  getGetVisualLayoutPoolQueryKey,
+  type VisualLayoutInfo,
   type BrandTemplateSummary,
   type CanvasSuggestion,
   type GeneratedDraft,
@@ -1626,6 +1629,55 @@ function DocumentCanvas({
 }
 
 // ---- Start-from-template preview (Brand Room library) -------------------------
+function templatePagePreviewUrl(previewTemplateId: string, page: "cover" | "body"): string {
+  return `${import.meta.env.BASE_URL}api/brand/export-template-preview?templateId=${encodeURIComponent(previewTemplateId)}&page=${page}`;
+}
+
+function layoutPreviewUrl(layoutId: string): string {
+  return `${import.meta.env.BASE_URL}api/generate/visual-layout-preview?layoutId=${encodeURIComponent(layoutId)}`;
+}
+
+// A rendered sample slide of one pool layout: 16:9 thumbnail, layout name,
+// and a source tag (deck of origin for extracted layouts, "Core" for coded).
+function LayoutPoolCard({ layout, coreLabel }: { layout: VisualLayoutInfo; coreLabel: string }) {
+  return (
+    <Boxed>
+      <Box padding={8}>
+        <Stack space={8}>
+          <div
+            style={{
+              borderRadius: 8,
+              overflow: "hidden",
+              border: `1px solid ${c.border}`,
+              aspectRatio: "16 / 9",
+              background: c.backgroundAlternative,
+            }}
+          >
+            <img
+              src={layoutPreviewUrl(layout.id)}
+              alt={layout.name}
+              loading="lazy"
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          </div>
+          <Stack space={4}>
+            <Text1 medium color={c.textPrimary}>
+              {layout.name}
+            </Text1>
+            <Inline space={4} wrap>
+              {layout.source === "extracted" ? (
+                <Tag type="promo">{layout.deckName ?? "Master deck"}</Tag>
+              ) : (
+                <Tag type="inactive">{coreLabel}</Tag>
+              )}
+            </Inline>
+          </Stack>
+        </Stack>
+      </Box>
+    </Boxed>
+  );
+}
+
 function TemplateStartPreview({
   templateId,
   roleId,
@@ -1640,6 +1692,10 @@ function TemplateStartPreview({
   const { data, isLoading } = useGetBrandTemplate(
     roleId ? { templateId, roleId } : { templateId },
   );
+  const isVisualDeck = data?.template?.shape === "visualdeck";
+  const poolQ = useGetVisualLayoutPool({
+    query: { queryKey: getGetVisualLayoutPoolQueryKey(), enabled: isVisualDeck },
+  });
   if (isLoading) {
     return (
       <Text2 regular color={c.textSecondary}>
@@ -1668,6 +1724,39 @@ function TemplateStartPreview({
           </Stack>
           <Stack space={4}>
             <Text1 medium color={c.textSecondary}>
+              {t.tplPagePreview}
+            </Text1>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                gap: 8,
+                maxWidth: 420,
+              }}
+            >
+              {(["cover", "body"] as const).map((page) => (
+                <div
+                  key={page}
+                  style={{
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    border: `1px solid ${c.border}`,
+                    aspectRatio: "1 / 1.294",
+                    background: c.backgroundAlternative,
+                  }}
+                >
+                  <img
+                    src={templatePagePreviewUrl(tpl.previewTemplateId, page)}
+                    alt={`${tpl.name} — ${page}`}
+                    loading="lazy"
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                  />
+                </div>
+              ))}
+            </div>
+          </Stack>
+          <Stack space={4}>
+            <Text1 medium color={c.textSecondary}>
               {t.tplSections}
             </Text1>
             {tpl.sections.map((s) => (
@@ -1676,6 +1765,36 @@ function TemplateStartPreview({
               </Text1>
             ))}
           </Stack>
+          {isVisualDeck && (
+            <Stack space={8}>
+              <Divider />
+              <Stack space={4}>
+                <Text1 medium color={c.textSecondary}>
+                  {t.poolTitle}
+                </Text1>
+                <Text1 regular color={c.textSecondary}>
+                  {t.poolHint}
+                </Text1>
+              </Stack>
+              {poolQ.isLoading ? (
+                <Text1 regular color={c.textSecondary}>
+                  {t.poolLoading}
+                </Text1>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {(poolQ.data?.layouts ?? []).map((layout) => (
+                    <LayoutPoolCard key={layout.id} layout={layout} coreLabel={t.poolCore} />
+                  ))}
+                </div>
+              )}
+            </Stack>
+          )}
           <Inline space={8}>
             <ButtonPrimary small onPress={() => onUse(tpl.shape)}>
               {t.tplUse}

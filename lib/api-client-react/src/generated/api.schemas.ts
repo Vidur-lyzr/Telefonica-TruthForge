@@ -46,9 +46,35 @@ export interface BrandTemplateDisclaimer {
   text: string;
 }
 
+export type VisualLayoutInfoSource = typeof VisualLayoutInfoSource[keyof typeof VisualLayoutInfoSource];
+
+
+export const VisualLayoutInfoSource = {
+  coded: 'coded',
+  extracted: 'extracted',
+} as const;
+
+export interface VisualLayoutInfo {
+  id: string;
+  name: string;
+  purpose: string;
+  source: VisualLayoutInfoSource;
+  imageSlots: number;
+  wantsChart: boolean;
+  /** For extracted layouts, the master deck it came from. */
+  deckName?: string;
+  approvedAt?: string;
+}
+
+export interface VisualLayoutPoolView {
+  layouts: VisualLayoutInfo[];
+}
+
 export interface BrandTemplate {
   id: string;
   shape: string;
+  /** Export template whose rendered pages preview this template's design. */
+  previewTemplateId: string;
   name: string;
   description: string;
   purpose: string;
@@ -65,6 +91,8 @@ export interface BrandTemplate {
 export interface BrandTemplateSummary {
   id: string;
   shape: string;
+  /** Export template whose rendered pages preview this template's design. */
+  previewTemplateId: string;
   name: string;
   description: string;
   purpose: string;
@@ -4544,6 +4572,10 @@ export type ListVersionsParams = {
  * Optional persona id; scopes the list to that persona's own saved versions
  */
 roleId?: string;
+};
+
+export type GetVisualLayoutPreviewParams = {
+layoutId: string;
 };
 
 export type GetWikiGraphParams = {

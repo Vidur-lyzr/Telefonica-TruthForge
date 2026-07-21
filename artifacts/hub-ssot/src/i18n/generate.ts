@@ -30,6 +30,11 @@ export interface GenerateStrings {
     tplUse: string;
     tplSections: string;
     tplLoading: string;
+    tplPagePreview: string;
+    poolTitle: string;
+    poolHint: string;
+    poolCore: string;
+    poolLoading: string;
 
     shapes: Record<FormShape, { name: string; blurb: string }>;
 
@@ -380,6 +385,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       tplUse: "Use this template",
       tplSections: "Template structure",
       tplLoading: "Loading preview...",
+      tplPagePreview: "Page preview",
+      poolTitle: "Visual layout pool",
+      poolHint:
+        "Slide layouts the deck composer can pick from — Telefónica core layouts plus layouts extracted from your approved master decks.",
+      poolCore: "Core",
+      poolLoading: "Loading layouts...",
 
       shapes: {
         messaging: {
@@ -784,6 +795,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       tplUse: "Usar esta plantilla",
       tplSections: "Estructura de la plantilla",
       tplLoading: "Cargando vista previa...",
+      tplPagePreview: "Vista previa de página",
+      poolTitle: "Fondo de diseños visuales",
+      poolHint:
+        "Diseños de diapositiva entre los que elige el compositor de presentaciones: los diseños base de Telefónica más los extraídos de sus presentaciones maestras aprobadas.",
+      poolCore: "Base",
+      poolLoading: "Cargando diseños...",
 
       shapes: {
         messaging: {
@@ -1196,6 +1213,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       tplUse: "Diese Vorlage verwenden",
       tplSections: "Aufbau der Vorlage",
       tplLoading: "Vorschau wird geladen...",
+      tplPagePreview: "Seitenvorschau",
+      poolTitle: "Visueller Layout-Pool",
+      poolHint:
+        "Folienlayouts, aus denen der Deck-Komponist wählt — die Telefónica-Kernlayouts plus die aus Ihren freigegebenen Master-Decks extrahierten Layouts.",
+      poolCore: "Kern",
+      poolLoading: "Layouts werden geladen...",
 
       shapes: {
         messaging: {
@@ -1607,6 +1630,12 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       tplUse: "Usar este modelo",
       tplSections: "Estrutura do modelo",
       tplLoading: "Carregando pré-visualização...",
+      tplPagePreview: "Pré-visualização de página",
+      poolTitle: "Acervo de layouts visuais",
+      poolHint:
+        "Layouts de slide que o compositor de apresentações pode escolher — os layouts base da Telefónica mais os extraídos dos seus decks mestres aprovados.",
+      poolCore: "Base",
+      poolLoading: "Carregando layouts...",
 
       shapes: {
         messaging: {

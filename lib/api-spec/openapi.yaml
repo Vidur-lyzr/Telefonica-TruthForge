@@ -2622,6 +2622,54 @@ paths:
               schema:
                 $ref: "#/components/schemas/BriefChatResult"
 
+  /generate/visual-layouts:
+    get:
+      operationId: getVisualLayoutPool
+      tags: [generate]
+      summary: The visual layout pool used to compose visual decks
+      description: >
+        Every slide layout the generate agent can pick from when composing a
+        visual deck — the coded Telefónica layouts plus every admin-approved
+        layout extracted from uploaded master decks. Extracted layouts carry
+        the name of the deck they came from.
+      responses:
+        "200":
+          description: The layout pool
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisualLayoutPoolView"
+
+  /generate/visual-layout-preview:
+    get:
+      operationId: getVisualLayoutPreview
+      tags: [generate]
+      summary: Server-rendered sample slide of one visual layout
+      description: >
+        A deterministic PNG rendering of the layout filled with neutral
+        placeholder copy — drawn by the same compose and render engine the
+        real deck exports use, so the preview IS what the layout produces.
+      parameters:
+        - name: layoutId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: The rendered sample slide
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Unknown layout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /generate/deliveries:
     get:
       operationId: listDeliveries
@@ -4220,15 +4268,48 @@ components:
           type: string
         text:
           type: string
+    VisualLayoutInfo:
+      type: object
+      required: [id, name, purpose, source, imageSlots, wantsChart]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        purpose:
+          type: string
+        source:
+          type: string
+          enum: [coded, extracted]
+        imageSlots:
+          type: integer
+        wantsChart:
+          type: boolean
+        deckName:
+          type: string
+          description: For extracted layouts, the master deck it came from.
+        approvedAt:
+          type: string
+    VisualLayoutPoolView:
+      type: object
+      required: [layouts]
+      properties:
+        layouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/VisualLayoutInfo"
     BrandTemplate:
       type: object
       required:
-        [id, shape, name, description, purpose, format, owner, version, validity, clearance, sections, disclaimers]
+        [id, shape, name, description, purpose, format, owner, version, validity, clearance, sections, disclaimers, previewTemplateId]
       properties:
         id:
           type: string
         shape:
           type: string
+        previewTemplateId:
+          type: string
+          description: Export template whose rendered pages preview this template's design.
         name:
           type: string
         description:
@@ -4257,12 +4338,15 @@ components:
     BrandTemplateSummary:
       type: object
       required:
-        [id, shape, name, description, purpose, format, owner, version, validity, clearance, sectionCount]
+        [id, shape, name, description, purpose, format, owner, version, validity, clearance, sectionCount, previewTemplateId]
       properties:
         id:
           type: string
         shape:
           type: string
+        previewTemplateId:
+          type: string
+          description: Export template whose rendered pages preview this template's design.
         name:
           type: string
         description:

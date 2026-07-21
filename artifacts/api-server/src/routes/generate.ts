@@ -42,6 +42,7 @@ import {
   ListCanvasEditsResponse,
   RunScheduleBody,
   PublishReviewItemBody,
+  GetVisualLayoutPoolResponse,
 } from "@workspace/api-zod";
 import { publishApprovedDraft, PublishRefusedError } from "../data/publishBack";
 import {
@@ -52,6 +53,7 @@ import {
 } from "../export/exportService";
 import type { ExportFormat } from "../export/exportTemplates";
 import { renderExportPreview, type PreviewFormat } from "../export/previewService";
+import { listVisualLayoutPool, renderLayoutSamplePng } from "../export/layoutPool";
 import {
   runGenerateAgent,
   refineDraft,
@@ -300,6 +302,38 @@ router.get("/generate/assets", async (_req, res) => {
     glossary: GLOSSARY.map((g) => ({ id: g.id, term: g.term, definition: g.definition })),
   };
   res.json(ListAssetsResponse.parse(assets));
+});
+
+// The visual layout pool — every slide layout the deck composer can pick
+// from, coded and extracted alike. Read-only; nothing here is confidential
+// (layouts are structure, not content).
+router.get("/generate/visual-layouts", (_req, res) => {
+  res.json(GetVisualLayoutPoolResponse.parse({ layouts: listVisualLayoutPool() }));
+});
+
+// Deterministic sample-slide rendering of one pool layout, drawn by the
+// same compose + PNG engine the real deck exports use.
+router.get("/generate/visual-layout-preview", (req, res) => {
+  const layoutId = typeof req.query.layoutId === "string" ? req.query.layoutId : "";
+  if (!layoutId) {
+    res.status(400).json({ error: "layoutId is required" });
+    return;
+  }
+  let png: Buffer | null;
+  try {
+    png = renderLayoutSamplePng(layoutId);
+  } catch (err) {
+    req.log.error({ err, layoutId }, "layout-pool: sample render failed");
+    res.status(500).json({ error: "The layout preview could not be rendered." });
+    return;
+  }
+  if (!png) {
+    res.status(404).json({ error: "Unknown layout" });
+    return;
+  }
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.send(png);
 });
 
 router.get("/generate/schedules", async (_req, res) => {
