@@ -6,7 +6,7 @@ import {
   ListObservatorySessionsResponse,
   ListObservatoryEventsResponse,
 } from "@workspace/api-zod";
-import { requireLyzr } from "../middlewares/requireLyzr";
+import { requireAuditTeam } from "../middlewares/requireAuditTeam";
 import { observe, observeHeartbeat } from "../lib/observe";
 import {
   getObservatoryOverview,
@@ -35,15 +35,15 @@ router.post("/track", (req, res) => {
   res.json(TrackActivityResponse.parse({ ok: true }));
 });
 
-// Everything below is the Lyzr-only read side.
-router.get("/observatory/overview", requireLyzr, async (req, res) => {
+// Everything below is the audit-team (lyzr + accenture) read side.
+router.get("/observatory/overview", requireAuditTeam, async (req, res) => {
   const includeLyzr = req.query.includeLyzr === "true";
   res.json(
     GetObservatoryOverviewResponse.parse({ users: await getObservatoryOverview(includeLyzr) }),
   );
 });
 
-router.get("/observatory/sessions", requireLyzr, async (req, res) => {
+router.get("/observatory/sessions", requireAuditTeam, async (req, res) => {
   const email = typeof req.query.email === "string" ? req.query.email : "";
   if (!email) {
     res.status(400).json({ error: "email is required" });
@@ -66,7 +66,7 @@ const EVENT_KINDS: ObservatoryEventKind[] = [
   "config_change",
 ];
 
-router.get("/observatory/events", requireLyzr, async (req, res) => {
+router.get("/observatory/events", requireAuditTeam, async (req, res) => {
   const email = typeof req.query.email === "string" ? req.query.email : null;
   const sid = typeof req.query.sid === "string" ? req.query.sid : null;
   const rawKind = typeof req.query.kind === "string" ? req.query.kind : null;

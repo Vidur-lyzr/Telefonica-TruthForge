@@ -336,7 +336,7 @@ export default function ObservatoryPage() {
   const me = useGetAuthMe();
   const [includeLyzr, setIncludeLyzr] = React.useState(false);
   const [selected, setSelected] = React.useState<string | null>(null);
-  const isLyzr = me.data?.team === "lyzr";
+  const isAuditTeam = me.data?.team === "lyzr" || me.data?.team === "accenture";
   const overview = useGetObservatoryOverview(includeLyzr ? { includeLyzr: true } : {});
 
   if (me.isLoading) {
@@ -347,16 +347,16 @@ export default function ObservatoryPage() {
     );
   }
 
-  if (!isLyzr) {
+  if (!isAuditTeam) {
     return (
       <Box padding={48}>
         <Stack space={12}>
           <IconEyeRegular size={32} color={skinVars.colors.neutralMedium} />
           <Text3 medium color={skinVars.colors.textPrimary}>
-            Observatory access is restricted
+            Platform Audit access is restricted
           </Text3>
           <Text2 regular color={skinVars.colors.textSecondary}>
-            This audit panel is only available to the Lyzr operations team.
+            This audit panel is only available to the Lyzr and Accenture teams.
           </Text2>
         </Stack>
       </Box>
@@ -367,7 +367,7 @@ export default function ObservatoryPage() {
     <Box paddingY={32} paddingX={32}>
       <Stack space={24}>
         <Stack space={4}>
-          <Text5 color={skinVars.colors.textPrimary}>Observatory</Text5>
+          <Text5 color={skinVars.colors.textPrimary}>Platform Audit</Text5>
           <Text2 regular color={skinVars.colors.textSecondary}>
             Full audit trail of platform usage: who signed in, what they asked, the exact
             answers they were shown, what they generated and exported, and where they spent

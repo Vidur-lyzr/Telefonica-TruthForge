@@ -232,7 +232,8 @@ ${
 - Use each layout's purpose line to decide where it fits. Never use a chart layout when no chart series is listed.`
     : `- Use "agenda" early when the deck has 3+ themes; use "section-divider" to open each major theme.
 - Prefer content-bearing layouts (news-card, photo-split, kpi-stats, stat-tiles, big-number, icon-cards, numbered-pillars, list-bars, two-column-compare, timeline, flow-steps, kpi-table, map-highlight, branded-content, photo-statement, results-table${hasCharts ? ", campaign-metrics" : ""}) for the substance; do not pad with dividers.
-- Vary the visual register across the deck: mix icon/card layouts, figure layouts and photo layouts rather than repeating one family.${hasCharts ? '\n- On campaign-metrics, set "chartKind" when the data shape is clear: "waterfall" for a bridge of deltas to a total, "gauge" for a single share-of-target percentage, otherwise leave it "auto".' : ""}
+- Vary the visual register across the deck: mix icon/card layouts, figure layouts and photo layouts rather than repeating one family.
+- Every deck MUST carry the full visual language, content permitting: at least one figure-led slide (stat-tiles, big-number, kpi-stats or kpi-table) whenever the document contains numbers, at least one icon/card slide (icon-cards, numbered-pillars, list-bars or flow-steps) for pillars, takeaways or processes, and "map-highlight" whenever the document discusses markets, countries or regions. Skip a family only when the document truly has no content for it.${hasCharts ? '\n- On campaign-metrics, set "chartKind" when the data shape is clear: "waterfall" for a bridge of deltas to a total, "gauge" for a single share-of-target percentage, otherwise leave it "auto".' : ""}
 - Use each layout's purpose line to decide where it fits. Never use a chart layout when no chart series is listed.`
 }
 

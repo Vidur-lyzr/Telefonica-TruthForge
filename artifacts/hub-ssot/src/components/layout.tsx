@@ -49,7 +49,7 @@ type CapabilityId = keyof Capabilities;
 function buildNavGroups(
   t: ChromeStrings,
   caps: Capabilities | undefined,
-  isLyzr: boolean,
+  isAuditTeam: boolean,
 ): { label: string; items: NavItemDef[] }[] {
   const has = (capability: CapabilityId) => !caps || caps[capability] !== "none";
   const anyOf = (...capabilities: CapabilityId[]) => capabilities.some(has);
@@ -94,13 +94,14 @@ function buildNavGroups(
           : []),
       ],
     },
-    // Lyzr-only audit panel. The nav entry is cosmetic — the API itself is
-    // gated server-side on the session team, so hiding it is not the boundary.
-    ...(isLyzr
+    // Audit panel for the lyzr and accenture teams. The nav entry is cosmetic —
+    // the API itself is gated server-side on the session team, so hiding it is
+    // not the boundary.
+    ...(isAuditTeam
       ? [
           {
-            label: "Lyzr",
-            items: [{ name: "Observatory", path: "/observatory", icon: IconEyeRegular }],
+            label: "Audit",
+            items: [{ name: "Platform Audit", path: "/observatory", icon: IconEyeRegular }],
           },
         ]
       : []),
@@ -156,10 +157,10 @@ function Sidebar({
   const { data: roles } = useListRoles();
   const { data: me } = useGetAuthMe();
   const activeCaps = roles?.find((r) => r.id === roleId)?.capabilities;
-  const isLyzr = me?.team === "lyzr";
+  const isAuditTeam = me?.team === "lyzr" || me?.team === "accenture";
   const navGroups = React.useMemo(
-    () => buildNavGroups(UI[lang], activeCaps, isLyzr),
-    [lang, activeCaps, isLyzr],
+    () => buildNavGroups(UI[lang], activeCaps, isAuditTeam),
+    [lang, activeCaps, isAuditTeam],
   );
 
   return (
