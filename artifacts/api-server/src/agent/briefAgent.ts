@@ -11,9 +11,14 @@
 
 import { meteredCreate } from "./metering";
 import { TEMPLATES, type DocShape } from "../data/assets";
-import { AXES } from "../data/corpus";
+import { AXES, CLEARANCE_RANK, getDoc, type Clearance } from "../data/corpus";
+import { retrieveGoverned } from "../adapters/kb";
 
 const MODEL = "claude-sonnet-4-6";
+
+// Same relevance gate the generate agent applies: a suggestion only counts as
+// evidence-backed when at least one permitted chunk clears this coverage.
+const COVERAGE_MIN = 0.33;
 
 interface Logger {
   info: (obj: unknown, msg?: string) => void;
@@ -75,12 +80,18 @@ function sanitiseFields(raw: Record<string, unknown> | null | undefined): BriefF
 
 // ---- 1. Natural-language template suggestion ---------------------------------
 
+export interface SuggestionEvidence {
+  matchedDocs: number;
+  docTitles: string[];
+}
+
 export interface TemplateSuggestion {
   templateId: string;
   shape: DocShape;
   templateName: string;
   rationale: string;
   brief: BriefFields;
+  evidence: SuggestionEvidence;
 }
 
 function fallbackShape(description: string): DocShape {
@@ -90,14 +101,71 @@ function fallbackShape(description: string): DocShape {
   return "multiformat";
 }
 
+interface MatchedDoc {
+  docId: string;
+  title: string;
+  confidentiality: string;
+  topics: string[];
+}
+
+// Governed corpus probe used to anchor and verify suggestions. Runs through
+// the same retrieveGoverned + coverage gate as the generate agent, so a
+// suggestion is only labelled evidence-backed when the resulting brief would
+// actually retrieve permitted material. Only permitted docs are surfaced —
+// blocked chunks never contribute titles.
+async function matchGovernedDocs(
+  query: string,
+  clearance: Clearance,
+  log: Logger,
+): Promise<MatchedDoc[]> {
+  try {
+    const res = await retrieveGoverned({ question: query, clearance, topK: 10 }, log);
+    const out: MatchedDoc[] = [];
+    const seen = new Set<string>();
+    for (const c of res.chunks) {
+      if (!c.accessible || c.coverage < COVERAGE_MIN || seen.has(c.docId)) continue;
+      const doc = getDoc(c.docId);
+      if (!doc) continue;
+      seen.add(c.docId);
+      out.push({
+        docId: doc.id,
+        title: doc.title,
+        confidentiality: doc.confidentiality,
+        topics: doc.topics ?? [],
+      });
+    }
+    return out;
+  } catch (err) {
+    log.warn({ err }, "suggestTemplate: governed corpus probe failed");
+    return [];
+  }
+}
+
 export async function suggestTemplate(
   description: string,
+  clearance: Clearance,
   log: Logger,
 ): Promise<TemplateSuggestion> {
   const axisList = AXES.map((a) => `${a.id}: ${a.name}`).join("; ");
   const templateList = TEMPLATES.map(
     (t) => `${t.shape}: ${t.name} — ${t.description}`,
   ).join("\n");
+
+  // Ground the suggestion before the model sees it: probe the governed corpus
+  // with the user's own description so the suggested topic can reuse the
+  // vocabulary of material that actually exists at this persona's clearance.
+  const matched = await matchGovernedDocs(description, clearance, log);
+  const sourceBlock =
+    matched.length > 0
+      ? `Governed sources available for this description (the ONLY material a draft can cite):
+${matched
+  .slice(0, 6)
+  .map((d) => `- "${d.title}"${d.topics.length > 0 ? ` — topics: ${d.topics.join(", ")}` : ""}`)
+  .join("\n")}
+
+The topic MUST be a short phrase (at most 15 words) answerable from these sources. Reuse their vocabulary. Do not promise analysis the sources cannot support.`
+      : `No governed sources matched this description. Still distil a short topic (at most 15 words), but keep the rationale honest about thin evidence.`;
+
   const prompt = `A Telefónica communications user describes the document they need:
 
 "${description}"
@@ -107,8 +175,10 @@ ${templateList}
 
 Strategic axes (ids): ${axisList}
 
+${sourceBlock}
+
 Pick the best shape and pre-fill the brief. Return ONLY JSON:
-{"shape":"messaging"|"press"|"multiformat","rationale":string (one plain sentence, why this shape),"topic":string (a concise brief distilled from the description),"audience":"internal"|"external"|null,"language":"en"|"es"|"de"|"pt"|null,"confidentiality":"public"|"internal"|"confidential"|null,"axisIds":string[],"spokesperson":string|null,"eventDate":string|null}`;
+{"shape":"messaging"|"press"|"multiformat","rationale":string (one plain sentence, why this shape),"topic":string (short, at most 15 words, grounded in the governed sources),"audience":"internal"|"external"|null,"language":"en"|"es"|"de"|"pt"|null,"confidentiality":"public"|"private"|"confidential"|null,"axisIds":string[],"spokesperson":string|null,"eventDate":string|null}`;
 
   let parsed: Record<string, unknown> | null = null;
   try {
@@ -126,6 +196,49 @@ Pick the best shape and pre-fill the brief. Return ONLY JSON:
   const fields = sanitiseFields(parsed);
   const shape = fields.shape ?? fallbackShape(description);
   const template = TEMPLATES.find((t) => t.shape === shape) ?? TEMPLATES[2];
+  let topic = fields.topic ?? description.trim();
+
+  // Verify the final topic retrieves evidence. An external audience caps the
+  // draft's sources at public, so the check must run at that same cap or the
+  // suggestion would over-promise. If the model's rephrasing lost the match
+  // the description itself had, fall back to the description as the topic.
+  const audienceExternal = fields.audience === "external";
+  const checkClearance: Clearance = audienceExternal ? "public" : clearance;
+  let evidenceDocs =
+    checkClearance === clearance && topic === description.trim()
+      ? matched
+      : await matchGovernedDocs(topic, checkClearance, log);
+  if (evidenceDocs.length === 0 && topic !== description.trim()) {
+    const descDocs =
+      checkClearance === clearance
+        ? matched
+        : await matchGovernedDocs(description, checkClearance, log);
+    if (descDocs.length > 0) {
+      topic = description.trim();
+      evidenceDocs = descDocs;
+    }
+  }
+
+  // Align the destination confidentiality with the evidence: an internal
+  // draft whose best sources are confidential must be labelled at least
+  // confidential, or the generate destination gate would exclude exactly the
+  // material the suggestion is promising. Evidence docs are already capped at
+  // the persona's clearance, so this never suggests above what they may use.
+  let confidentiality = fields.confidentiality;
+  if (!audienceExternal && evidenceDocs.length > 0) {
+    const rank = (c: string): number => CLEARANCE_RANK[c as Clearance] ?? 0;
+    const maxEvidence = evidenceDocs.reduce(
+      (best, d) => (rank(d.confidentiality) > rank(best) ? d.confidentiality : best),
+      confidentiality ?? "private",
+    );
+    confidentiality = maxEvidence;
+  }
+
+  log.info(
+    { matchedDocs: evidenceDocs.length, clearance: checkClearance },
+    "suggestTemplate: evidence check",
+  );
+
   return {
     templateId: template.id,
     shape,
@@ -134,7 +247,11 @@ Pick the best shape and pre-fill the brief. Return ONLY JSON:
       typeof parsed?.rationale === "string" && parsed.rationale.trim()
         ? parsed.rationale.trim()
         : `The description maps to the ${template.name.toLowerCase()} shape.`,
-    brief: { ...fields, shape, topic: fields.topic ?? description.trim() },
+    brief: { ...fields, shape, topic, confidentiality },
+    evidence: {
+      matchedDocs: evidenceDocs.length,
+      docTitles: evidenceDocs.slice(0, 5).map((d) => d.title),
+    },
   };
 }
 

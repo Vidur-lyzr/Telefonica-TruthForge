@@ -25,6 +25,9 @@ export interface GenerateStrings {
     nlSuggest: string;
     nlUse: string;
     nlDismiss: string;
+    nlExamplesLabel: string;
+    nlEvidenceBacked: (n: number) => string;
+    nlEvidenceNone: string;
 
     tplPanelTitle: string;
     tplUse: string;
@@ -380,6 +383,11 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Suggest a set-up",
       nlUse: "Use this set-up",
       nlDismiss: "Dismiss",
+      nlExamplesLabel: "Or try an example backed by governed evidence:",
+      nlEvidenceBacked: (n) =>
+        n === 1 ? "Backed by 1 governed source" : `Backed by ${n} governed sources`,
+      nlEvidenceNone:
+        "No governed evidence matched this description — the draft would likely come back empty. Rephrase it or pick an example below.",
 
       tplPanelTitle: "Or start from a corporate template in the Brand Room",
       tplUse: "Use this template",
@@ -790,6 +798,11 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Sugerir una configuración",
       nlUse: "Usar esta configuración",
       nlDismiss: "Descartar",
+      nlExamplesLabel: "O prueba un ejemplo respaldado por evidencia gobernada:",
+      nlEvidenceBacked: (n) =>
+        n === 1 ? "Respaldado por 1 fuente gobernada" : `Respaldado por ${n} fuentes gobernadas`,
+      nlEvidenceNone:
+        "Ninguna evidencia gobernada coincide con esta descripción — el borrador probablemente saldría vacío. Reformúlala o elige un ejemplo de abajo.",
 
       tplPanelTitle: "O empieza desde una plantilla corporativa del Brand Room",
       tplUse: "Usar esta plantilla",
@@ -1208,6 +1221,11 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Konfiguration vorschlagen",
       nlUse: "Diese Konfiguration verwenden",
       nlDismiss: "Verwerfen",
+      nlExamplesLabel: "Oder probieren Sie ein Beispiel mit kontrollierten Belegen:",
+      nlEvidenceBacked: (n) =>
+        n === 1 ? "Gestützt auf 1 kontrollierte Quelle" : `Gestützt auf ${n} kontrollierte Quellen`,
+      nlEvidenceNone:
+        "Keine kontrollierten Belege passen zu dieser Beschreibung — der Entwurf käme vermutlich leer zurück. Formulieren Sie sie um oder wählen Sie unten ein Beispiel.",
 
       tplPanelTitle: "Oder mit einer Unternehmensvorlage aus dem Brand Room starten",
       tplUse: "Diese Vorlage verwenden",
@@ -1625,6 +1643,11 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
       nlSuggest: "Sugerir uma configuração",
       nlUse: "Usar esta configuração",
       nlDismiss: "Descartar",
+      nlExamplesLabel: "Ou experimente um exemplo respaldado por evidência governada:",
+      nlEvidenceBacked: (n) =>
+        n === 1 ? "Respaldado por 1 fonte governada" : `Respaldado por ${n} fontes governadas`,
+      nlEvidenceNone:
+        "Nenhuma evidência governada corresponde a esta descrição — o rascunho provavelmente voltaria vazio. Reformule-a ou escolha um exemplo abaixo.",
 
       tplPanelTitle: "Ou comece a partir de um modelo corporativo do Brand Room",
       tplUse: "Usar este modelo",

@@ -2622,6 +2622,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/BriefChatResult"
 
+  /generate/brief-examples:
+    get:
+      operationId: getBriefExamples
+      tags: [generate]
+      summary: Example briefs verified against the governed corpus
+      description: >
+        Curated example descriptions for the suggest-a-set-up input. Every
+        example returned has been verified to retrieve governed evidence under
+        the requesting persona's clearance, so it reliably produces a draft.
+      parameters:
+        - in: query
+          name: roleId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: lang
+          required: false
+          schema:
+            type: string
+            description: en | es | de | pt (defaults to en)
+      responses:
+        "200":
+          description: Evidence-verified example briefs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BriefExampleList"
+
   /generate/visual-layouts:
     get:
       operationId: getVisualLayoutPool
@@ -8677,6 +8706,11 @@ components:
         description:
           type: string
           minLength: 1
+        roleId:
+          type: string
+          description: >
+            Persona whose clearance grounds the evidence check. When omitted
+            the check runs at public clearance.
 
     SuggestedBrief:
       type: object
@@ -8703,7 +8737,7 @@ components:
 
     TemplateSuggestion:
       type: object
-      required: [templateId, shape, templateName, rationale, brief]
+      required: [templateId, shape, templateName, rationale, brief, evidence]
       properties:
         templateId:
           type: string
@@ -8715,6 +8749,41 @@ components:
           type: string
         brief:
           $ref: "#/components/schemas/SuggestedBrief"
+        evidence:
+          $ref: "#/components/schemas/SuggestionEvidence"
+
+    SuggestionEvidence:
+      type: object
+      description: >
+        Result of the governed evidence check run on the suggested topic:
+        how many permitted corpus documents back it. matchedDocs = 0 means
+        the brief would very likely return no governed evidence.
+      required: [matchedDocs, docTitles]
+      properties:
+        matchedDocs:
+          type: integer
+        docTitles:
+          type: array
+          items:
+            type: string
+
+    BriefExample:
+      type: object
+      required: [id, text]
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+
+    BriefExampleList:
+      type: object
+      required: [examples]
+      properties:
+        examples:
+          type: array
+          items:
+            $ref: "#/components/schemas/BriefExample"
 
     BriefChatTurn:
       type: object

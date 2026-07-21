@@ -29,6 +29,7 @@ import {
   RecordEditorialReviewResponse,
   SuggestTemplateBody,
   SuggestTemplateResponse,
+  GetBriefExamplesResponse,
   BriefChatBody,
   BriefChatResponse,
   ListNotificationsResponse,
@@ -60,6 +61,7 @@ import {
   type GeneratedDraft,
 } from "../agent/generateAgent";
 import { suggestTemplate, captureBrief } from "../agent/briefAgent";
+import { listBriefExamples, type ExampleLang } from "../agent/briefExamples";
 import { runScheduleNow, ScheduleRunInProgressError } from "../agent/scheduleRunner";
 import {
   editCanvasBlock,
@@ -876,12 +878,50 @@ router.post("/generate/suggest-template", async (req, res) => {
     res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
     return;
   }
+  // The evidence check runs at the persona's clearance so the suggestion is
+  // honest about what a draft could actually cite. Unknown roleIds are
+  // rejected — never silently downgraded to a different persona.
+  let clearance: Clearance = "public";
+  if (parsed.data.roleId !== undefined) {
+    const role = ROLES.find((r) => r.id === parsed.data.roleId);
+    if (!role) {
+      res.status(400).json({ error: "Unknown roleId" });
+      return;
+    }
+    clearance = role.clearance;
+  }
   try {
-    const suggestion = await suggestTemplate(parsed.data.description, req.log);
+    const suggestion = await suggestTemplate(parsed.data.description, clearance, req.log);
     res.json(SuggestTemplateResponse.parse(suggestion));
   } catch (err) {
     req.log.error({ err }, "suggest-template route failed");
     res.status(500).json({ error: "The Hub could not suggest a template." });
+  }
+});
+
+router.get("/generate/brief-examples", async (req, res) => {
+  const roleId = typeof req.query.roleId === "string" ? req.query.roleId : undefined;
+  if (!roleId) {
+    res.status(400).json({ error: "roleId is required" });
+    return;
+  }
+  const role = ROLES.find((r) => r.id === roleId);
+  if (!role) {
+    res.status(400).json({ error: "Unknown roleId" });
+    return;
+  }
+  const langRaw = typeof req.query.lang === "string" ? req.query.lang.toLowerCase() : "en";
+  const lang: ExampleLang = (["en", "es", "de", "pt"] as const).includes(
+    langRaw as ExampleLang,
+  )
+    ? (langRaw as ExampleLang)
+    : "en";
+  try {
+    const examples = await listBriefExamples(role.clearance, lang, req.log);
+    res.json(GetBriefExamplesResponse.parse({ examples }));
+  } catch (err) {
+    req.log.error({ err }, "brief-examples route failed");
+    res.status(500).json({ error: "The Hub could not load example briefs." });
   }
 });
 

@@ -50,6 +50,54 @@ const COVERAGE_MIN = 0.33;
 const MAX_SOURCES = 8;
 const GUIDANCE_TYPES = new Set(["Note", "Playbook", "Guideline"]);
 
+// ---- Verbose-brief segmentation ----------------------------------------------
+// Coverage is a ratio over the query's idf mass, so a long multi-clause brief
+// ("Analysis of X: obligations, roadmap, risks, and opportunities across ...")
+// dilutes every chunk below the gate even when one clause squarely matches
+// governed material. When the combined passes find NOTHING over the gate and
+// the topic is verbose, each clause gets its own governed, coverage-gated
+// retrieval pass — the same rescue pattern used for refine instructions and
+// KPI names, applied to the topic's own clauses.
+const SEGMENT_RESCUE_MIN_WORDS = 9;
+const SEGMENT_MAX = 6;
+
+function topicWordCount(topic: string): number {
+  return (topic.match(/[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu) ?? []).length;
+}
+
+export function topicSegments(topic: string): string[] {
+  const clauses = topic
+    .split(/[:;.\n—•|]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const parts: string[] = [];
+  for (const clause of clauses) {
+    if (topicWordCount(clause) > 8) {
+      // A long clause is usually itself a comma list; split it further so each
+      // aspect is judged on its own coverage.
+      for (const p of clause.split(/,\s*/)) parts.push(p.trim());
+    } else {
+      parts.push(clause);
+    }
+  }
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of parts) {
+    // Strip list glue so "and strategic opportunities" scores as its content.
+    const seg = raw.replace(/^(?:and|or|y|e|o|und|oder|ou)\s+/i, "").trim();
+    // Single-word fragments ("risks", "networks") are too generic: with a
+    // one-term query the coverage ratio for any chunk containing the word is
+    // 1.0, which would let stray fragments pull in unrelated documents.
+    if (topicWordCount(seg) < 2) continue;
+    const key = seg.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(seg);
+    if (out.length >= SEGMENT_MAX) break;
+  }
+  return out;
+}
+
 export type GenStatus = "drafted" | "no_evidence" | "permission_blocked";
 export type Audience = "internal" | "external";
 
@@ -618,6 +666,38 @@ async function compose(
       if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
         seen.add(c.chunkId);
         retrieved.push(c);
+      }
+    }
+  }
+  if (
+    !retrieved.some((c) => c.coverage >= COVERAGE_MIN) &&
+    topicWordCount(input.topic) >= SEGMENT_RESCUE_MIN_WORDS
+  ) {
+    // Verbose-brief rescue (see topicSegments above): nothing cleared the gate
+    // and the topic is long enough that dilution is the likely cause. Each
+    // clause runs its own governed pass at the same clearance with the same
+    // audit trail; only chunks that clear the gate against their OWN clause
+    // query are admitted, so the no-evidence gate still does its job.
+    const segments = topicSegments(input.topic);
+    if (segments.length > 0) {
+      const segRetrievals = await Promise.all(
+        segments.map((s) =>
+          retrieveGoverned({
+            question: s,
+            clearance,
+            topK: 4,
+            audit: { id: auditId },
+          }),
+        ),
+      );
+      const seen = new Set(retrieved.map((c) => c.chunkId));
+      for (const r of segRetrievals) {
+        for (const c of r.chunks) {
+          if (c.coverage >= COVERAGE_MIN && !seen.has(c.chunkId)) {
+            seen.add(c.chunkId);
+            retrieved.push(c);
+          }
+        }
       }
     }
   }

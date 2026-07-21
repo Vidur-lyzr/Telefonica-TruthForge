@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { SuggestedBrief } from './suggestedBrief';
+import type { SuggestionEvidence } from './suggestionEvidence';
 
 export interface TemplateSuggestion {
   templateId: string;
@@ -13,4 +14,5 @@ export interface TemplateSuggestion {
   templateName: string;
   rationale: string;
   brief: SuggestedBrief;
+  evidence: SuggestionEvidence;
 }

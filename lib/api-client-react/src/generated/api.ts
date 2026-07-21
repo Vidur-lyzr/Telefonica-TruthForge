@@ -49,6 +49,7 @@ import type {
   BrandToneView,
   BriefChatInput,
   BriefChatResult,
+  BriefExampleList,
   CanvasEditAuditList,
   CanvasEditInput,
   CanvasEditResult,
@@ -96,6 +97,7 @@ import type {
   GetBrandTemplate404,
   GetBrandTemplateParams,
   GetBrandTemplatesParams,
+  GetBriefExamplesParams,
   GetCorpusStatsParams,
   GetExportTemplatePreviewParams,
   GetHomeSummaryParams,
@@ -7399,6 +7401,91 @@ export const useBriefChat = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getBriefChatMutationOptions(options));
     }
+
+export const getGetBriefExamplesUrl = (params: GetBriefExamplesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/generate/brief-examples?${stringifiedParams}` : `/api/generate/brief-examples`
+}
+
+/**
+ * Curated example descriptions for the suggest-a-set-up input. Every example returned has been verified to retrieve governed evidence under the requesting persona's clearance, so it reliably produces a draft.
+ * @summary Example briefs verified against the governed corpus
+ */
+export const getBriefExamples = async (params: GetBriefExamplesParams, options?: RequestInit): Promise<BriefExampleList> => {
+
+  return customFetch<BriefExampleList>(getGetBriefExamplesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBriefExamplesQueryKey = (params?: GetBriefExamplesParams,) => {
+    return [
+    `/api/generate/brief-examples`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBriefExamplesQueryOptions = <TData = Awaited<ReturnType<typeof getBriefExamples>>, TError = ErrorType<unknown>>(params: GetBriefExamplesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBriefExamples>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBriefExamplesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBriefExamples>>> = ({ signal }) => getBriefExamples(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBriefExamples>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBriefExamplesQueryResult = NonNullable<Awaited<ReturnType<typeof getBriefExamples>>>
+export type GetBriefExamplesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Example briefs verified against the governed corpus
+ */
+
+export function useGetBriefExamples<TData = Awaited<ReturnType<typeof getBriefExamples>>, TError = ErrorType<unknown>>(
+ params: GetBriefExamplesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBriefExamples>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBriefExamplesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetVisualLayoutPoolUrl = () => {
 

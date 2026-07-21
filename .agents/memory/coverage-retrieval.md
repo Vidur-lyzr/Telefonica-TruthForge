@@ -39,3 +39,13 @@ absent topic has most of its idf mass in absent terms, so coverage stays low.
   questions (e.g. bitcoin price) still have ~0 terms in the pool, so
   `no_evidence` is preserved. Do NOT reuse the Ask agent's idf-mass coverage gate
   verbatim for a scoped pool.
+- **Verbose-brief segment rescue (Generate) is deliberate, not a regression.**
+  Long multi-clause briefs dilute coverage (every extra clause adds idf mass to
+  the denominator), so honest topics failed `no_evidence`. The generate agent
+  therefore runs a rescue ONLY when no chunk cleared `COVERAGE_MIN` and the
+  topic is >=9 words: it splits the topic into short segments and retrieves per
+  segment, gating each segment on its own coverage. A 2-word segment reaching
+  coverage 1.0 is expected there — do not "fix" it by tightening the segment
+  gate. The rescue changes relevance only; rescued chunks flow through the same
+  clearance/accessible/destination-cap filters as every other retrieval pass,
+  and off-corpus verbose briefs still return `no_evidence` (verified).

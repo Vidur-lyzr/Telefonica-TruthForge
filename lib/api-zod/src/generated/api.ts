@@ -6301,7 +6301,8 @@ export const RecordEditorialReviewResponse = zod.object({
 
 
 export const SuggestTemplateBody = zod.object({
-  "description": zod.string().min(1)
+  "description": zod.string().min(1),
+  "roleId": zod.string().optional().describe('Persona whose clearance grounds the evidence check. When omitted the check runs at public clearance.\n')
 })
 
 export const SuggestTemplateResponse = zod.object({
@@ -6318,7 +6319,11 @@ export const SuggestTemplateResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullable(),
   "eventDate": zod.string().nullable()
-})
+}),
+  "evidence": zod.object({
+  "matchedDocs": zod.number(),
+  "docTitles": zod.array(zod.string())
+}).describe('Result of the governed evidence check run on the suggested topic: how many permitted corpus documents back it. matchedDocs = 0 means the brief would very likely return no governed evidence.\n')
 })
 
 
@@ -6355,6 +6360,23 @@ export const BriefChatResponse = zod.object({
   "skippable": zod.boolean()
 }),zod.null()]),
   "complete": zod.boolean()
+})
+
+
+/**
+ * Curated example descriptions for the suggest-a-set-up input. Every example returned has been verified to retrieve governed evidence under the requesting persona's clearance, so it reliably produces a draft.
+ * @summary Example briefs verified against the governed corpus
+ */
+export const GetBriefExamplesQueryParams = zod.object({
+  "roleId": zod.coerce.string(),
+  "lang": zod.coerce.string().optional()
+})
+
+export const GetBriefExamplesResponse = zod.object({
+  "examples": zod.array(zod.object({
+  "id": zod.string(),
+  "text": zod.string()
+}))
 })
 
 

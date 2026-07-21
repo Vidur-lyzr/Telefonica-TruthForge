@@ -2750,6 +2750,8 @@ export interface EditorialReviewRecord {
 export interface SuggestTemplateInput {
   /** @minLength 1 */
   description: string;
+  /** Persona whose clearance grounds the evidence check. When omitted the check runs at public clearance. */
+  roleId?: string;
 }
 
 export interface SuggestedBrief {
@@ -2770,12 +2772,30 @@ export interface SuggestedBrief {
   eventDate: string | null;
 }
 
+/**
+ * Result of the governed evidence check run on the suggested topic: how many permitted corpus documents back it. matchedDocs = 0 means the brief would very likely return no governed evidence.
+ */
+export interface SuggestionEvidence {
+  matchedDocs: number;
+  docTitles: string[];
+}
+
 export interface TemplateSuggestion {
   templateId: string;
   shape: string;
   templateName: string;
   rationale: string;
   brief: SuggestedBrief;
+  evidence: SuggestionEvidence;
+}
+
+export interface BriefExample {
+  id: string;
+  text: string;
+}
+
+export interface BriefExampleList {
+  examples: BriefExample[];
 }
 
 export interface BriefChatTurn {
@@ -4572,6 +4592,14 @@ export type ListVersionsParams = {
  * Optional persona id; scopes the list to that persona's own saved versions
  */
 roleId?: string;
+};
+
+export type GetBriefExamplesParams = {
+roleId: string;
+/**
+ * en | es | de | pt (defaults to en)
+ */
+lang?: string;
 };
 
 export type GetVisualLayoutPreviewParams = {

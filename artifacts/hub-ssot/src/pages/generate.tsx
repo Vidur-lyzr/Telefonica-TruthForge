@@ -17,6 +17,7 @@ import {
   useListVersions,
   useSaveVersion,
   useSuggestTemplate,
+  useGetBriefExamples,
   useBriefChat,
   useListNotifications,
   useMarkNotificationsRead,
@@ -207,6 +208,9 @@ type BriefValues = {
   kpiContext: KpiReportContext | null;
   askContext: AskHandoffContext | null;
   attachments: BriefAttachments | null;
+  // Client-side only: the full Ask handoff payload, kept so "Adjust the brief"
+  // can restore the attached-answer panel exactly. Never sent to the API.
+  askDraftRaw?: AskDraftHandoff | null;
 };
 
 // Ask → Generate handoff payload written by the Ask page under
@@ -1810,44 +1814,76 @@ function TemplateStartPreview({
 function BriefForm({
   onGenerate,
   isPending,
+  initial,
 }: {
   shapes: DocumentShape[] | undefined;
   onGenerate: (v: BriefValues) => void;
   isPending: boolean;
+  initial?: BriefValues | null;
 }) {
   const { lang: globalLang, roleId } = useApp();
   const t = GENERATE_I18N[globalLang].form;
   const { data: axes } = useListAxes();
   const brandTemplatesQ = useGetBrandTemplates(roleId ? { roleId } : undefined);
-  const [pickedTemplateId, setPickedTemplateId] = React.useState<string | null>(null);
+  // The form unmounts while a draft (or the pipeline) is on screen, so
+  // "Adjust the brief" re-mounts it. Every field hydrates from the last
+  // submitted brief — nothing the user typed may be lost on the way back.
+  const initialShape: Shape =
+    initial && initial.shape in SHAPE_META ? initial.shape : "messaging";
+  const [pickedTemplateId, setPickedTemplateId] = React.useState<string | null>(
+    initial?.templateId ?? null,
+  );
   const [mode, setMode] = React.useState<"form" | "chat">("form");
-  const [shape, setShape] = React.useState<Shape>("messaging");
-  const [topic, setTopic] = React.useState("");
-  const [audience, setAudience] = React.useState<Audience>("internal");
-  const [language, setLanguage] = React.useState(() => globalLang.toLowerCase());
+  const [shape, setShape] = React.useState<Shape>(initialShape);
+  const [topic, setTopic] = React.useState(initial?.topic ?? "");
+  const [audience, setAudience] = React.useState<Audience>(initial?.audience ?? "internal");
+  const [language, setLanguage] = React.useState(
+    () => initial?.language ?? globalLang.toLowerCase(),
+  );
   // The brief's output language follows the UI language until the user picks
-  // one explicitly (or a suggestion sets it) — then their choice wins.
-  const languageTouchedRef = React.useRef(false);
+  // one explicitly (or a suggestion sets it) — then their choice wins. A
+  // restored brief counts as an explicit choice.
+  const languageTouchedRef = React.useRef(initial != null);
   React.useEffect(() => {
     if (!languageTouchedRef.current) setLanguage(globalLang.toLowerCase());
   }, [globalLang]);
-  const [axisIds, setAxisIds] = React.useState<string[]>([]);
-  const [confidentiality, setConfidentiality] = React.useState("private");
-  const [spokesperson, setSpokesperson] = React.useState("");
-  const [eventDate, setEventDate] = React.useState("");
+  const [axisIds, setAxisIds] = React.useState<string[]>(initial?.axisIds ?? []);
+  const [confidentiality, setConfidentiality] = React.useState(
+    initial?.confidentiality ?? "private",
+  );
+  const [spokesperson, setSpokesperson] = React.useState(initial?.spokesperson ?? "");
+  const [eventDate, setEventDate] = React.useState(initial?.eventDate ?? "");
   const formatOptions = FORMAT_OPTIONS[shape];
-  const [format, setFormat] = React.useState(formatOptions[0].value);
-  const [kpiContext, setKpiContext] = React.useState<KpiReportContext | null>(null);
-  const [askDraft, setAskDraft] = React.useState<AskDraftHandoff | null>(null);
-  const [attachmentText, setAttachmentText] = React.useState("");
-  const [attachmentLinksText, setAttachmentLinksText] = React.useState("");
+  const [format, setFormat] = React.useState(() => {
+    const opts = FORMAT_OPTIONS[initialShape];
+    return initial && opts.some((o) => o.value === initial.format)
+      ? initial.format
+      : opts[0].value;
+  });
+  const [kpiContext, setKpiContext] = React.useState<KpiReportContext | null>(
+    initial?.kpiContext ?? null,
+  );
+  const [askDraft, setAskDraft] = React.useState<AskDraftHandoff | null>(
+    initial?.askDraftRaw ?? null,
+  );
+  const [attachmentText, setAttachmentText] = React.useState(
+    initial?.attachments?.pastedText ?? "",
+  );
+  const [attachmentLinksText, setAttachmentLinksText] = React.useState(
+    initial?.attachments?.links?.join("\n") ?? "",
+  );
 
   const changeAudience = (a: Audience) => {
     setAudience(a);
     setConfidentiality(a === "external" ? "public" : "private");
   };
 
+  // Reset the format only when the user actually switches shape — on mount
+  // this effect must not clobber a restored format.
+  const prevShapeRef = React.useRef(shape);
   React.useEffect(() => {
+    if (prevShapeRef.current === shape) return;
+    prevShapeRef.current = shape;
     setFormat(FORMAT_OPTIONS[shape][0].value);
   }, [shape]);
 
@@ -1924,13 +1960,29 @@ function BriefForm({
     if (b.eventDate) setEventDate(b.eventDate);
   };
 
-  const requestSuggestion = () => {
-    if (!nlDescription.trim()) return;
+  const requestSuggestion = (text?: string) => {
+    const description = (text ?? nlDescription).trim();
+    if (!description) return;
     suggestTemplate.mutate(
-      { data: { description: nlDescription.trim() } },
+      // The persona travels with the request so the evidence probe runs at the
+      // caller's clearance and the suggestion is honest about what it can cite.
+      { data: { description, roleId: roleId ?? undefined } },
       { onSuccess: (s) => setSuggestion(s) },
     );
   };
+
+  // Prewritten example briefs, verified server-side against the governed
+  // corpus at this persona's clearance — a chip never leads to no_evidence.
+  const examplesQ = useGetBriefExamples(
+    { roleId: roleId ?? "", lang: globalLang.toLowerCase() },
+    {
+      query: {
+        enabled: !!roleId,
+        queryKey: ["brief-examples", roleId, globalLang.toLowerCase()],
+      },
+    },
+  );
+  const briefExamples = examplesQ.data?.examples ?? [];
 
   const applySuggestion = () => {
     if (!suggestion) return;
@@ -1972,6 +2024,7 @@ function BriefForm({
         }
       : null,
     attachments: buildAttachments(),
+    askDraftRaw: askDraft,
     ...overrides,
   });
 
@@ -2152,22 +2205,57 @@ function BriefForm({
             <Inline space={8}>
               <ButtonSecondary
                 small
-                onPress={requestSuggestion}
+                onPress={() => requestSuggestion()}
                 disabled={!nlDescription.trim() || suggestTemplate.isPending}
               >
                 {suggestTemplate.isPending ? t.nlThinking : t.nlSuggest}
               </ButtonSecondary>
             </Inline>
+            {briefExamples.length > 0 && (
+              <Stack space={8}>
+                <Text1 medium color={c.textSecondary}>
+                  {t.nlExamplesLabel}
+                </Text1>
+                <Inline space={8} wrap>
+                  {briefExamples.map((ex) => (
+                    <Chip
+                      key={ex.id}
+                      onPress={() => {
+                        setNlDescription(ex.text);
+                        setSuggestion(null);
+                        requestSuggestion(ex.text);
+                      }}
+                    >
+                      {ex.text}
+                    </Chip>
+                  ))}
+                </Inline>
+              </Stack>
+            )}
             {suggestion && (
               <Boxed>
                 <Box padding={16}>
                   <Stack space={8}>
                     <Inline space={8} alignItems="center">
                       <Tag type="promo">{suggestion.templateName}</Tag>
+                      {suggestion.evidence.matchedDocs > 0 && (
+                        <Tag type="success">
+                          {t.nlEvidenceBacked(suggestion.evidence.matchedDocs)}
+                        </Tag>
+                      )}
                     </Inline>
                     <Text2 regular color={c.textSecondary}>
                       {suggestion.rationale}
                     </Text2>
+                    {suggestion.evidence.matchedDocs === 0 ? (
+                      <Text1 regular color={c.warning}>
+                        {t.nlEvidenceNone}
+                      </Text1>
+                    ) : suggestion.evidence.docTitles.length > 0 ? (
+                      <Text1 regular color={c.textSecondary}>
+                        {suggestion.evidence.docTitles.join(" · ")}
+                      </Text1>
+                    ) : null}
                     <Inline space={8}>
                       <ButtonPrimary small onPress={applySuggestion}>
                         {t.nlUse}
@@ -3000,6 +3088,9 @@ export default function Generate() {
   const td = GENERATE_I18N[lang].dialogs;
   const [tab, setTab] = React.useState<Tab>("compose");
   const [draft, setDraft] = React.useState<GeneratedDraft | null>(null);
+  // The last submitted brief, replayed into BriefForm when the user comes
+  // back via "Adjust the brief" so no input is ever lost.
+  const [lastBrief, setLastBrief] = React.useState<BriefValues | null>(null);
   const [instruction, setInstruction] = React.useState("");
   const [editingSectionId, setEditingSectionId] = React.useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = React.useState<string | null>(null);
@@ -3104,6 +3195,8 @@ export default function Generate() {
 
   const handleGenerate = (v: BriefValues) => {
     if (!roleId) return;
+    // Keep the submitted brief so "Adjust the brief" restores every input.
+    setLastBrief(v);
     setChatMessages([]);
     setPendingSelection(null);
     setJobVariant("generate");
@@ -3453,7 +3546,12 @@ export default function Generate() {
             {busy ? (
               <DraftingPipeline variant={jobVariant} stage={stage} />
             ) : !draft ? (
-              <BriefForm shapes={shapes} onGenerate={handleGenerate} isPending={busy} />
+              <BriefForm
+                shapes={shapes}
+                onGenerate={handleGenerate}
+                isPending={busy}
+                initial={lastBrief}
+              />
             ) : draft.status === "no_evidence" ? (
               <div style={{ maxWidth: 672, margin: "40px auto 0" }}>
                 <Stack space={16}>

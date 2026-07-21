@@ -9,4 +9,6 @@
 export interface SuggestTemplateInput {
   /** @minLength 1 */
   description: string;
+  /** Persona whose clearance grounds the evidence check. When omitted the check runs at public clearance. */
+  roleId?: string;
 }

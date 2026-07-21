@@ -1916,21 +1916,30 @@ function ImageLibraryArea() {
                   {file ? file.name : ti.noFile}
                 </Text2>
               </Inline>
-              <TextField
-                name="imageLabel"
-                label={ti.labelField}
-                value={label}
-                onChangeValue={setLabel}
-                fullWidth
-              />
-              <TextField
-                name="imageTags"
-                label={ti.tagsField}
-                helperText={ti.tagsHelper}
-                value={tagsRaw}
-                onChangeValue={setTagsRaw}
-                fullWidth
-              />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gap: 16,
+                  alignItems: "start",
+                }}
+              >
+                <TextField
+                  name="imageLabel"
+                  label={ti.labelField}
+                  value={label}
+                  onChangeValue={setLabel}
+                  fullWidth
+                />
+                <TextField
+                  name="imageTags"
+                  label={ti.tagsField}
+                  helperText={ti.tagsHelper}
+                  value={tagsRaw}
+                  onChangeValue={setTagsRaw}
+                  fullWidth
+                />
+              </div>
               <div>
                 <ButtonPrimary small onPress={handleUpload} disabled={!canUpload}>
                   {uploadBusy ? ti.uploading : ti.upload}
@@ -1941,19 +1950,24 @@ function ImageLibraryArea() {
         </Boxed>
 
         {allTags.length > 0 && (
-          <div style={{ maxWidth: 320 }}>
-            <Select
-              name="imageTagFilter"
-              label={ti.tagsField}
-              value={tagFilter}
-              onChangeValue={setTagFilter}
-              options={[
-                { value: "all", text: ti.filterAll },
-                ...allTags.map((tag) => ({ value: tag, text: tag })),
-              ]}
-              fullWidth
-            />
-          </div>
+          <Inline space={16} alignItems="center">
+            <div style={{ width: 320 }}>
+              <Select
+                name="imageTagFilter"
+                label={ti.tagsField}
+                value={tagFilter}
+                onChangeValue={setTagFilter}
+                options={[
+                  { value: "all", text: ti.filterAll },
+                  ...allTags.map((tag) => ({ value: tag, text: tag })),
+                ]}
+                fullWidth
+              />
+            </div>
+            <Text2 regular color={skinVars.colors.textSecondary}>
+              {`${visible.length} / ${images.length}`}
+            </Text2>
+          </Inline>
         )}
 
         {visible.length === 0 ? (
