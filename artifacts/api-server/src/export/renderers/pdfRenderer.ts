@@ -18,6 +18,24 @@ import {
   CITATION_TABLE_WEIGHTS,
 } from "../exportTheme";
 import { renderPptxPreviewPdf } from "./pptxPreviewPdf";
+import { iconForHeading, sectionIconPng } from "./sectionIcons";
+
+// Uppercase classification label for the per-page footer strip — always
+// derived from the server-side confidentiality, never from client input.
+export function classificationLabel(confidentiality: string): string {
+  switch (confidentiality) {
+    case "public":
+      return "PUBLIC";
+    case "internal":
+      return "USO INTERNO · INTERNAL USE";
+    case "confidential":
+      return "CONFIDENCIAL · CONFIDENTIAL";
+    case "off_the_record":
+      return "OFF THE RECORD";
+    default:
+      return confidentiality.toUpperCase();
+  }
+}
 
 const BRAND = THEME_COLORS.brand;
 const NAVY = THEME_COLORS.navy;
@@ -69,6 +87,30 @@ function heading(doc: PDFKit.PDFDocument, text: string, design: TemplateDesign):
   doc.moveDown(1);
   const accent = accentOf(design);
   const y = doc.y;
+  // Longform forecast headings: small line icon beside the heading plus a
+  // brand rule underneath, regardless of the base heading style.
+  if (design.sectionIcons) {
+    const iconSize = 14;
+    doc.image(sectionIconPng(iconForHeading(text), accent, iconSize * 4), MARGIN, y + 1, {
+      width: iconSize,
+    });
+    doc
+      .font(FB)
+      .fontSize(TYPE_SCALE_PT.h1)
+      .fillColor(NAVY)
+      .text(text, MARGIN + iconSize + 8, y, { width: CONTENT_W - iconSize - 8 });
+    const ry = doc.y + 3;
+    doc
+      .moveTo(MARGIN, ry)
+      .lineTo(MARGIN + CONTENT_W, ry)
+      .strokeColor(accent)
+      .lineWidth(1.2)
+      .stroke();
+    doc.y = ry + 4;
+    doc.x = MARGIN;
+    doc.moveDown(0.4);
+    return;
+  }
   switch (design.headingStyle) {
     case "rule": {
       doc
@@ -117,10 +159,95 @@ function heading(doc: PDFKit.PDFDocument, text: string, design: TemplateDesign):
 // Body copy with bullet support: "- " lines render as brand-blue bullets with
 // a hanging indent; "N. " lines as numbered items; everything else wraps as a
 // justified-left paragraph at the themed body size and line height.
-function bodyText(doc: PDFKit.PDFDocument, text: string): void {
+// Forecast block vocabulary (Previsiones benchmark), applied only when the
+// template design opts in via sectionIcons: bold bracketed date-block headers
+// ("[29 June]: ..."), "o " sub-bullets nested under "- " bullets, ALL-CAPS
+// sub-brand subheadings, and channel-prefixed lines (IG:/TT:/LK:/...).
+const DATE_BLOCK = /^\[([^\]]{1,40})\]:\s*(.*)$/;
+const SUB_BULLET = /^o\s+(.*)$/;
+const CHANNEL_LINE = /^(?:-\s+)?(IG|TT|LK|X|FB|YT|TW|WEB):\s+(.*)$/;
+// A standalone short ALL-CAPS line (sub-brand grouping like "MOVISTAR").
+function isCapsSubheading(line: string): boolean {
+  if (line.length < 2 || line.length > 48) return false;
+  if (!/^[A-ZÁÉÍÓÚÜÑ0-9][A-ZÁÉÍÓÚÜÑ0-9 &.·+-]*$/.test(line)) return false;
+  if (!/[A-ZÁÉÍÓÚÜÑ]/.test(line)) return false;
+  return line.split(/\s+/).length <= 6;
+}
+
+function bodyText(doc: PDFKit.PDFDocument, text: string, forecast = false): void {
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
     if (trimmed.length === 0) continue;
+    if (forecast) {
+      const dateBlock = DATE_BLOCK.exec(trimmed);
+      if (dateBlock) {
+        const marker = `[${dateBlock[1]}]:`;
+        doc.font(FB).fontSize(TYPE_SCALE_PT.body);
+        const h = doc.heightOfString(trimmed, { width: CONTENT_W, lineGap: 3 });
+        ensureSpace(doc, h + 10);
+        doc.moveDown(0.2);
+        const y = doc.y;
+        doc
+          .font(FB)
+          .fontSize(TYPE_SCALE_PT.body)
+          .fillColor(BRAND)
+          .text(marker, MARGIN, y, { continued: dateBlock[2].length > 0, lineGap: 3 });
+        if (dateBlock[2].length > 0) {
+          doc.font(FB).fillColor(NAVY).text(` ${dateBlock[2]}`, { lineGap: 3 });
+        }
+        doc.x = MARGIN;
+        doc.moveDown(0.25);
+        continue;
+      }
+      const channel = CHANNEL_LINE.exec(trimmed);
+      if (channel) {
+        const indent = 16;
+        doc.font(F).fontSize(TYPE_SCALE_PT.body);
+        const h = doc.heightOfString(trimmed, { width: CONTENT_W - indent, lineGap: 3 });
+        ensureSpace(doc, h + 6);
+        const y = doc.y;
+        doc
+          .font(FB)
+          .fontSize(TYPE_SCALE_PT.body)
+          .fillColor(BRAND)
+          .text(`${channel[1]}:`, MARGIN + indent, y, { continued: true, lineGap: 3 });
+        doc.font(F).fillColor(TEXT).text(` ${channel[2]}`, { lineGap: 3 });
+        doc.x = MARGIN;
+        doc.moveDown(0.2);
+        continue;
+      }
+      const sub = SUB_BULLET.exec(trimmed);
+      if (sub) {
+        const indent = 34;
+        doc.font(F).fontSize(TYPE_SCALE_PT.body);
+        const h = doc.heightOfString(sub[1], { width: CONTENT_W - indent, lineGap: 3 });
+        ensureSpace(doc, h + 6);
+        const y = doc.y;
+        doc.font(FB).fontSize(TYPE_SCALE_PT.body).fillColor(MUTED).text("o", MARGIN + 20, y, {
+          width: indent - 20,
+          lineBreak: false,
+        });
+        doc.font(F).fontSize(TYPE_SCALE_PT.body).fillColor(TEXT).text(sub[1], MARGIN + indent, y, {
+          width: CONTENT_W - indent,
+          lineGap: 3,
+        });
+        doc.x = MARGIN;
+        doc.moveDown(0.2);
+        continue;
+      }
+      if (isCapsSubheading(trimmed)) {
+        ensureSpace(doc, 30);
+        doc.moveDown(0.3);
+        doc
+          .font(FB)
+          .fontSize(TYPE_SCALE_PT.h2)
+          .fillColor(NAVY)
+          .text(trimmed, MARGIN, doc.y, { width: CONTENT_W, characterSpacing: 0.4 });
+        doc.x = MARGIN;
+        doc.moveDown(0.2);
+        continue;
+      }
+    }
     const bullet = /^-\s+(.*)$/.exec(trimmed);
     const numbered = /^(\d+)[.)]\s+(.*)$/.exec(trimmed);
     if (bullet || numbered) {
@@ -548,7 +675,7 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
         .text("Internal only — not for external distribution.", MARGIN, doc.y, { width: CONTENT_W });
       doc.moveDown(0.3);
     }
-    bodyText(doc, section.body);
+    bodyText(doc, section.body, design.sectionIcons === true);
   }
 
   // Structured Q&A block: styled question, answer, provenance and (internal
@@ -678,17 +805,35 @@ export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
   // before writing — otherwise pdfkit auto-paginates and spawns a blank page
   // per footer.
   const range = doc.bufferedPageRange();
-  for (let i = range.start + 1; i < range.start + range.count; i++) {
+  const classification = classificationLabel(model.confidentiality);
+  // Dark cover variants need an inverse footer so the strip stays legible.
+  const darkCover =
+    design.coverStyle === "navy-full" ||
+    design.coverStyle === "brand-full" ||
+    design.coverStyle === "split";
+  for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
     doc.page.margins.bottom = 0;
+    const isCover = i === range.start;
+    const color = isCover && darkCover ? THEME_COLORS.inverseTertiary : MUTED;
+    doc
+      .font(FM)
+      .fontSize(TYPE_SCALE_PT.footer)
+      .fillColor(color)
+      .text(classification, MARGIN, doc.page.height - 40, {
+        width: CONTENT_W,
+        align: "center",
+        lineBreak: false,
+        characterSpacing: 0.6,
+      });
     doc
       .font(F)
       .fontSize(TYPE_SCALE_PT.footer)
-      .fillColor(MUTED)
+      .fillColor(color)
       .text(
-        `Telefónica · ${design.footerLabel} · ${model.confidentiality} · page ${i + 1} of ${range.count}`,
+        `Telefónica · ${design.footerLabel} · page ${i + 1} of ${range.count}`,
         MARGIN,
-        doc.page.height - 40,
+        doc.page.height - 30,
         { width: CONTENT_W, align: "center", lineBreak: false },
       );
   }

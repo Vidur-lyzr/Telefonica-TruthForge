@@ -28,7 +28,7 @@ import {
 } from "../agent/qa";
 import { renderChart, type RenderedChart, type ExportSeries } from "./chartEngine";
 import type { ExportTemplate, ExportFormat } from "./exportTemplates";
-import { visualStyleForTemplate } from "./exportTemplates";
+import { visualStyleForTemplate, EXPORT_TEMPLATE_BY_DOC } from "./exportTemplates";
 // Effective template resolution: exports always follow any saved edit of the
 // corporate template until it is reset.
 import {
@@ -268,6 +268,7 @@ export async function buildExportModel(
 
   const template =
     (templateId ? getExportTemplate(templateId) : undefined) ??
+    getExportTemplate(EXPORT_TEMPLATE_BY_DOC[draft.templateId] ?? "") ??
     defaultTemplateForShape(draft.shape);
   if (templateId && !getExportTemplate(templateId)) {
     throw new ExportRefusedError("not_exportable", "Unknown export template.");

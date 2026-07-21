@@ -28,8 +28,16 @@ export interface DocumentTemplate {
       | "qa"
       | "summary";
     perAxis?: boolean;
+    // Longform-only extras: extra retrieval terms for the section's own
+    // governed retrieval pass, and a composition hint for the model.
+    query?: string;
+    hint?: string;
   }[];
   requiredDisclaimerIds: string[];
+  // Longform templates are composed section-by-section (one governed
+  // retrieval + one model pass per section) instead of a single call, and
+  // shrink honestly when the corpus is thin on a section.
+  longform?: boolean;
 }
 
 export interface ApprovedClaim {
@@ -109,6 +117,77 @@ export const TEMPLATES: DocumentTemplate[] = [
       { key: "qa", label: "Q&A", kind: "qa" },
     ],
     requiredDisclaimerIds: ["disc-forward-looking", "disc-no-offer"],
+  },
+  // Weekly forecast (Previsiones): longform benchmark template composed
+  // section-by-section. It sits BEFORE tmpl-multiformat on purpose — the
+  // shape→template default map is last-wins, so the multiformat default
+  // stays tmpl-multiformat.
+  {
+    id: "tmpl-previsiones",
+    shape: "multiformat",
+    name: "Weekly forecast (Previsiones)",
+    description:
+      "The Previsiones Comunicación y Marca weekly forecast: dated action blocks per section — highlighted actions, press, media and institutional events, sponsorships, internal comms, social and web.",
+    longform: true,
+    sections: [
+      {
+        key: "destacadas",
+        label: "Acciones destacadas",
+        kind: "body",
+        query: "campaign launch announcement milestone highlight flagship action",
+        hint: "The week's most important actions across all areas: launches, announcements, milestones. Dated blocks, one action per block.",
+      },
+      {
+        key: "prensa",
+        label: "Notas de prensa",
+        kind: "body",
+        query: "press release media announcement statement results publication",
+        hint: "Planned press releases and public statements: what will be announced, when, and the supporting evidence.",
+      },
+      {
+        key: "eventos-medios",
+        label: "Eventos con medios",
+        kind: "body",
+        query: "media event press briefing interview keynote conference journalists",
+        hint: "Events involving journalists and media: briefings, interviews, keynotes, panels — with dates and spokespeople where cited.",
+      },
+      {
+        key: "eventos-institucionales",
+        label: "Eventos institucionales",
+        kind: "body",
+        query: "institutional event government public sector partnership signing ceremony forum",
+        hint: "Institutional and public-sector engagements: forums, signings, official visits, regulatory or governmental milestones.",
+      },
+      {
+        key: "patrocinios",
+        label: "Patrocinios",
+        kind: "body",
+        query: "sponsorship sports culture music partnership brand activation",
+        hint: "Sponsorship activity and brand activations: sports, culture, music. Group by sub-brand where the evidence distinguishes them.",
+      },
+      {
+        key: "interna",
+        label: "Comunicación interna",
+        kind: "body",
+        query: "internal communication employees townhall intranet announcement people",
+        hint: "Internal communications: employee announcements, townhalls, intranet features, people and culture actions.",
+      },
+      {
+        key: "rrss",
+        label: "RRSS y Web",
+        kind: "body",
+        query: "social media web content Instagram TikTok LinkedIn digital campaign posts",
+        hint: "Social and web plan. Use channel-prefixed lines (IG:, TT:, LK:, X:, YT:, WEB:) for per-channel actions.",
+      },
+      {
+        key: "otras",
+        label: "Otras acciones",
+        kind: "body",
+        query: "other actions sustainability foundation initiative report study",
+        hint: "Remaining relevant actions that do not fit the sections above: studies, reports, foundation and sustainability initiatives.",
+      },
+    ],
+    requiredDisclaimerIds: ["disc-forward-looking"],
   },
   {
     id: "tmpl-multiformat",

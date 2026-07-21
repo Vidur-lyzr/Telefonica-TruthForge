@@ -63,6 +63,10 @@ export interface TemplateDesign {
   // One-line voice guidance shown with the template and folded into the
   // export subtitle context — render-time only, never sent to the model.
   tone: string;
+  // Longform forecast treatment: section headings carry a small line icon
+  // plus a brand rule, and the docx/pdf renderers apply the forecast block
+  // vocabulary styling (date blocks, sub-bullets, channel lines).
+  sectionIcons?: boolean;
 }
 
 // ---- Server-only sample payload (drives the preview pages; the response
@@ -620,6 +624,87 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
     },
   },
   {
+    id: "exp-previsiones",
+    name: "Weekly forecast (Previsiones)",
+    description:
+      "The Previsiones Comunicación y Marca weekly forecast: icon-headed sections of dated action blocks — press, events, sponsorships, internal comms, social and web.",
+    owner: "Group Communications",
+    version: "v1.0",
+    shapes: ["multiformat"],
+    formats: ["docx", "pptx", "pdf", "txt", "md"],
+    blocks: [
+      { kind: "cover", label: "Cover" },
+      { kind: "sections", label: "Forecast sections", note: "Dated action blocks per section; sections without governed evidence are omitted honestly." },
+      { kind: "citations", label: "Evidence and citations" },
+      { kind: "disclaimers", label: "Disclaimers" },
+    ],
+    preview: {
+      heading: "Previsiones — semana del 29 de junio",
+      lines: [
+        "Acciones destacadas: [29 June]: Q1 results follow-up briefing [S1].",
+        "Notas de prensa: [1 July]: Telefónica Tech cybersecurity report [S2].",
+        "RRSS y Web: IG: results carousel · LK: executive post [S3].",
+      ],
+    },
+    design: {
+      coverStyle: "brand-band",
+      accent: "brand",
+      headingStyle: "rule",
+      tableHeader: "light",
+      footerLabel: "Previsiones · Comunicación y Marca",
+      tone: "Planning register: dated action blocks, telegraphic lines, one action per block, every figure and date cited.",
+      sectionIcons: true,
+    },
+    sample: {
+      kicker: "Weekly forecast",
+      title: "Previsiones — semana del 29 de junio",
+      subtitle: "Comunicación y Marca · Internal · Cited against governed sources",
+      sections: [
+        {
+          heading: "Acciones destacadas",
+          paragraphs: [
+            "[29 June]: Follow-up media briefing on Q1 2026 results with the four core-market CFOs; approved figures only [S1].",
+            "[1 July]: Telefónica Tech publishes the annual cybersecurity landscape report; embargoed until 09:00 CET [S2].",
+          ],
+          bullets: [
+            "MOVISTAR: converged-offer refresh goes live in Spain [S1].",
+            "o Supporting social plan runs across the week (see RRSS y Web).",
+          ],
+        },
+        {
+          heading: "RRSS y Web",
+          paragraphs: ["Channel plan for the week, every figure cited:"],
+          bullets: [
+            "IG: results carousel with the three approved KPIs [S1].",
+            "LK: executive post on the cybersecurity report [S2].",
+            "WEB: newsroom feature on the converged-offer refresh [S1].",
+          ],
+        },
+      ],
+      table: {
+        title: "Week at a glance",
+        source: "Governed planning sources",
+        columns: ["Date", "Action", "Area", "Source"],
+        rows: [
+          ["29 June", "Q1 results media briefing", "Prensa", "[S1]"],
+          ["1 July", "Cybersecurity report launch", "Tech", "[S2]"],
+          ["3 July", "Converged-offer refresh", "Movistar", "[S1]"],
+        ],
+      },
+      chart: {
+        label: "Planned actions by area",
+        unit: "actions",
+        source: "Governed planning sources",
+        points: [
+          { label: "Prensa", value: 4 },
+          { label: "Eventos", value: 3 },
+          { label: "RRSS", value: 6 },
+          { label: "Interna", value: 2 },
+        ],
+      },
+    },
+  },
+  {
     id: "exp-visual-story",
     name: "Visual story",
     description:
@@ -699,6 +784,13 @@ export function getExportTemplate(id: string): ExportTemplate | undefined {
 export function visualStyleForTemplate(templateId: string): "light" | "dark" {
   return templateId === "exp-visual-deck" ? "dark" : "light";
 }
+
+// Document templates whose exports default to a dedicated corporate export
+// template rather than the generic shape default (looked up by the export
+// model builder and the Brand Room preview).
+export const EXPORT_TEMPLATE_BY_DOC: Record<string, string> = {
+  "tmpl-previsiones": "exp-previsiones",
+};
 
 // Default template for a draft shape when the caller does not pick one.
 export function defaultTemplateForShape(shape: string): ExportTemplate {

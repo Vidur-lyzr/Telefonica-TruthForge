@@ -35,6 +35,8 @@ import {
   dataTableWeights,
   CITATION_TABLE_WEIGHTS,
 } from "../exportTheme";
+import { iconForHeading, sectionIconPng } from "./sectionIcons";
+import { classificationLabel } from "./pdfRenderer";
 
 const hex = (c: string) => c.replace("#", "");
 const BRAND = hex(THEME_COLORS.brand);
@@ -59,6 +61,25 @@ function accentOf(design: TemplateDesign): string {
 
 function h(text: string, design: TemplateDesign): Paragraph {
   const accent = accentOf(design);
+  // Longform forecast headings: small line icon beside the heading plus a
+  // brand rule underneath, regardless of the base heading style.
+  if (design.sectionIcons) {
+    return new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: DOCX_SPACE.beforeH1, after: DOCX_SPACE.afterH1 },
+      border: {
+        bottom: { style: BorderStyle.SINGLE, size: 8, color: accent, space: 4 },
+      },
+      children: [
+        new ImageRun({
+          type: "png",
+          data: sectionIconPng(iconForHeading(text), `#${accent}`, 64),
+          transformation: { width: 16, height: 16 },
+        }),
+        new TextRun({ text: `  ${text}`, bold: true, color: NAVY, size: DOCX_SIZE.h1, font: FONT }),
+      ],
+    });
+  }
   switch (design.headingStyle) {
     case "rule":
       return new Paragraph({
@@ -95,11 +116,82 @@ function h(text: string, design: TemplateDesign): Paragraph {
 // Body copy with bullet support: lines starting "- " render as real Word
 // bullets with a hanging indent; numbered "N. " lines render as numbered-style
 // text items; everything else is a paragraph.
-function body(text: string): Paragraph[] {
+// Forecast block vocabulary (Previsiones benchmark), applied only when the
+// template design opts in via sectionIcons: bold bracketed date-block headers
+// ("[29 June]: ..."), "o " sub-bullets nested under "- " bullets, ALL-CAPS
+// sub-brand subheadings, and channel-prefixed lines (IG:/TT:/LK:/...).
+const DATE_BLOCK = /^\[([^\]]{1,40})\]:\s*(.*)$/;
+const SUB_BULLET = /^o\s+(.*)$/;
+const CHANNEL_LINE = /^(?:-\s+)?(IG|TT|LK|X|FB|YT|TW|WEB):\s+(.*)$/;
+// A standalone short ALL-CAPS line (sub-brand grouping like "MOVISTAR").
+function isCapsSubheading(line: string): boolean {
+  if (line.length < 2 || line.length > 48) return false;
+  if (!/^[A-ZÁÉÍÓÚÜÑ0-9][A-ZÁÉÍÓÚÜÑ0-9 &.·+-]*$/.test(line)) return false;
+  if (!/[A-ZÁÉÍÓÚÜÑ]/.test(line)) return false;
+  return line.split(/\s+/).length <= 6;
+}
+
+function body(text: string, forecast = false): Paragraph[] {
   const out: Paragraph[] = [];
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
     if (trimmed.length === 0) continue;
+    if (forecast) {
+      const dateBlock = DATE_BLOCK.exec(trimmed);
+      if (dateBlock) {
+        out.push(
+          new Paragraph({
+            spacing: { before: 120, after: 60, line: DOCX_SPACE.bodyLine },
+            children: [
+              new TextRun({ text: `[${dateBlock[1]}]:`, bold: true, color: BRAND, size: DOCX_SIZE.body, font: FONT }),
+              ...(dateBlock[2].length > 0
+                ? [new TextRun({ text: ` ${dateBlock[2]}`, bold: true, color: NAVY, size: DOCX_SIZE.body, font: FONT })]
+                : []),
+            ],
+          }),
+        );
+        continue;
+      }
+      const channel = CHANNEL_LINE.exec(trimmed);
+      if (channel) {
+        out.push(
+          new Paragraph({
+            spacing: { after: 40, line: DOCX_SPACE.bodyLine },
+            indent: { left: 360, hanging: 0 },
+            children: [
+              new TextRun({ text: `${channel[1]}:`, bold: true, color: BRAND, size: DOCX_SIZE.body, font: FONT }),
+              new TextRun({ text: ` ${channel[2]}`, color: TEXT, size: DOCX_SIZE.body, font: FONT }),
+            ],
+          }),
+        );
+        continue;
+      }
+      const sub = SUB_BULLET.exec(trimmed);
+      if (sub) {
+        out.push(
+          new Paragraph({
+            spacing: { after: 40, line: DOCX_SPACE.bodyLine },
+            indent: { left: 720, hanging: 200 },
+            children: [
+              new TextRun({ text: "o  ", bold: true, color: MUTED, size: DOCX_SIZE.body, font: FONT }),
+              new TextRun({ text: sub[1], color: TEXT, size: DOCX_SIZE.body, font: FONT }),
+            ],
+          }),
+        );
+        continue;
+      }
+      if (isCapsSubheading(trimmed)) {
+        out.push(
+          new Paragraph({
+            spacing: { before: 140, after: 60 },
+            children: [
+              new TextRun({ text: trimmed, bold: true, color: NAVY, size: DOCX_SIZE.h2, font: FONT }),
+            ],
+          }),
+        );
+        continue;
+      }
+    }
     const bullet = /^-\s+(.*)$/.exec(trimmed);
     if (bullet) {
       out.push(
@@ -562,7 +654,7 @@ export async function renderDocx(model: ExportDocumentModel): Promise<Buffer> {
     if (section.internalOnly) {
       children.push(meta("Internal only — not for external distribution."));
     }
-    children.push(...body(section.body));
+    children.push(...body(section.body, design.sectionIcons === true));
   }
 
   for (const chart of model.charts) {
@@ -665,11 +757,26 @@ export async function renderDocx(model: ExportDocumentModel): Promise<Buffer> {
         footers: {
           default: new Footer({
             children: [
+              // Classification strip: server-derived confidentiality on
+              // every page, above the running footer line.
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 20 },
+                children: [
+                  new TextRun({
+                    text: classificationLabel(model.confidentiality),
+                    bold: true,
+                    color: MUTED,
+                    size: DOCX_SIZE.footer,
+                    font: FONT,
+                  }),
+                ],
+              }),
               new Paragraph({
                 alignment: AlignmentType.CENTER,
                 children: [
                   new TextRun({
-                    text: `Telefónica · ${design.footerLabel} · ${model.confidentiality} · page `,
+                    text: `Telefónica · ${design.footerLabel} · page `,
                     color: MUTED,
                     size: DOCX_SIZE.footer,
                     font: FONT,

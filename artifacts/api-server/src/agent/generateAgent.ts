@@ -13,6 +13,7 @@
 //    permission_blocked state WITHOUT calling the model. We never fabricate.
 
 import { meteredCreate } from "./metering";
+import { isQuotaError } from "../data/userUsage";
 import { retrieveGoverned, resolveDoc, chunksForDoc } from "../adapters/kb";
 import {
   beginRetrievalAudit,
@@ -711,6 +712,41 @@ async function compose(
       }
     }
   }
+  // ---- Longform per-section retrieval (Previsiones-style templates) ---------
+  // Each blueprint section runs its OWN governed, coverage-gated pass on its
+  // declared query terms (never folded into the main query — coverage is a
+  // ratio, so mixing texts starves all of them). The per-section hits both
+  // enrich the shared pool and decide which sections have evidence at all:
+  // a section whose pass clears nothing is skipped honestly below.
+  const longform = template?.longform === true && !(instruction && baseDraft);
+  const sectionEvidence = new Map<string, Set<string>>();
+  if (longform) {
+    const secs = template?.sections ?? [];
+    const secRetrievals = await Promise.all(
+      secs.map((s) =>
+        retrieveGoverned({
+          question: s.query ?? s.label,
+          clearance,
+          topK: 6,
+          audit: { id: auditId },
+        }),
+      ),
+    );
+    const seen = new Set(retrieved.map((c) => c.chunkId));
+    for (const [si, s] of secs.entries()) {
+      const ids = new Set<string>();
+      for (const c of secRetrievals[si]?.chunks ?? []) {
+        if (c.coverage < COVERAGE_MIN) continue;
+        ids.add(c.chunkId);
+        if (!seen.has(c.chunkId)) {
+          seen.add(c.chunkId);
+          retrieved.push(c);
+        }
+      }
+      sectionEvidence.set(s.key, ids);
+    }
+  }
+
   const relevant = retrieved.filter((c) => c.coverage >= COVERAGE_MIN);
   const personaPermitted = relevant.filter((c) => c.accessible);
   const blocked = relevant.filter((c) => !c.accessible);
@@ -853,7 +889,20 @@ async function compose(
     };
   }
 
-  const sources = permitted.slice(0, MAX_SOURCES);
+  // Longform documents draw on many more sources (8-15 pages of dated blocks
+  // across eight sections) than a single-call draft. Every permitted chunk a
+  // section's own pass cleared MUST make the source list — a global cap that
+  // trimmed late sections' evidence would mislabel them "no evidence".
+  let sources: typeof permitted;
+  if (longform) {
+    const sectionCleared = new Set<string>();
+    for (const ids of sectionEvidence.values()) for (const id of ids) sectionCleared.add(id);
+    const inSection = permitted.filter((c) => sectionCleared.has(c.chunkId));
+    const rest = permitted.filter((c) => !sectionCleared.has(c.chunkId));
+    sources = [...inSection, ...rest.slice(0, Math.max(0, 18 - inSection.length))];
+  } else {
+    sources = permitted.slice(0, MAX_SOURCES);
+  }
   const topScore = sources[0]?.score ?? 1;
   const docIndexByDoc = new Map<string, number>();
   sources.forEach((s, i) => {
@@ -1051,7 +1100,9 @@ async function compose(
     "Only cite markers that were provided. If a section cannot be supported by a source, write a brief honest note instead of a fabricated claim.",
     "The umbrella message, when present, must also end with at least one source marker.",
     "Voice: clear, human, confident. Sentence case for headings. No jargon. Never use emoji. No unapproved superlatives (e.g. 'European leader', 'the largest', 'number one', 'best network in the world').",
-    "DEPTH REQUIREMENT — this is a production document, not a summary. Every body section must be fully developed: typically three to five substantial paragraphs (roughly 150 to 280 words per section), plus a bullet list where it genuinely aids scanning. Open each section by framing why the topic matters to the audience, develop the cited evidence in detail — the figure, its period, its trajectory, and what it means operationally — then close with the concrete implication or next step the evidence supports.",
+    longform
+      ? "FORECAST FORMAT — this is a weekly-forecast planning document (Previsiones), NOT prose. Compose each section as dated action blocks. Each block opens with a bold bracketed date header line like '**[29 June]:** short action headline [S1]' followed by supporting '- ' bullet lines; nest secondary detail under a bullet as lines starting exactly 'o ' (letter o plus space). Group actions under a sub-brand where the evidence distinguishes them, using a standalone ALL-CAPS line (e.g. 'MOVISTAR') before its blocks. For social/web sections use channel-prefixed lines: 'IG:', 'TT:', 'LK:', 'X:', 'YT:', 'WEB:' — one per channel action. Lines are telegraphic and information-dense, one action per block, every date and figure cited with [S#]. Develop each section fully from ALL of its cited evidence — a source left uncited when it clearly bears on the section is a quality failure."
+      : "DEPTH REQUIREMENT — this is a production document, not a summary. Every body section must be fully developed: typically three to five substantial paragraphs (roughly 150 to 280 words per section), plus a bullet list where it genuinely aids scanning. Open each section by framing why the topic matters to the audience, develop the cited evidence in detail — the figure, its period, its trajectory, and what it means operationally — then close with the concrete implication or next step the evidence supports.",
     "Synthesize ACROSS sources: where two or more sources touch the same theme, connect them explicitly rather than summarising each in isolation. Use every relevant provided source; a source left uncited when it clearly bears on the topic is a quality failure.",
     "Depth must come from analysis of the cited material — never from fabrication, speculation or filler. Do not pad, repeat points in different words, or add generic corporate boilerplate. If the sources genuinely support only a short treatment of a topic, write the short honest treatment.",
     "Q&A answers must be complete spokesperson-ready responses of three to six sentences, not one-liners. Spokesperson guidance must be specific and actionable, not generic advice.",
@@ -1120,34 +1171,135 @@ ${guidanceBlock}${
 Return the document as JSON in exactly this shape:
 ${jsonShape}${refineBlock}`;
 
-  let raw = "";
-  try {
+  type ParsedDraft = {
+    title?: string;
+    umbrella?: string | null;
+    sections?: { kind?: string; axisId?: string | null; heading?: string; body?: string }[];
+    spokesperson?: { question?: string; guidance?: string; doNotSay?: string | null }[];
+  };
+
+  let parsed: ParsedDraft | null = null;
+  let longformNote: string | null = null;
+
+  if (longform) {
+    // ---- Longform composition: one governed model pass per section ----------
+    // Each section is composed only from the sources ITS retrieval pass
+    // cleared (numbered against the shared [S#] list so citations stay
+    // global). Sections with no permitted evidence are skipped and listed
+    // honestly on the draft note — the document shrinks, it never pads.
     onStage?.("composing");
-    const message = await meteredCreate("generate", {
-      model: MODEL,
-      max_tokens: 16384,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    });
-    raw = message.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
-  } catch (err) {
-    log.error({ err }, "generate: model call failed");
-    raw = "";
+    const out: { kind: string; axisId: string | null; heading: string; body: string }[] = [];
+    const skipped: string[] = [];
+    let lfTitle: string | undefined;
+    const prevHeadings: string[] = [];
+    for (const sec of template?.sections ?? []) {
+      const ids = sectionEvidence.get(sec.key) ?? new Set<string>();
+      const secSources = sources
+        .map((s, i) => ({ s, n: i + 1 }))
+        .filter(({ s }) => ids.has(s.chunkId));
+      if (secSources.length === 0) {
+        skipped.push(sec.label);
+        continue;
+      }
+      const secBlock = secSources
+        .map(({ s, n }) => {
+          const doc = resolveDoc(s.docId);
+          return `[S${n}] ${doc?.title ?? s.docId} — ${s.breadcrumb}\n${s.text}`;
+        })
+        .join("\n\n");
+      const secPrompt = `You are composing ONE section of a weekly forecast document (Previsiones) for: ${input.topic}
+Audience: ${audience}. Destination confidentiality: ${confidentiality}.${input.eventDate ? ` Reference week / date: ${input.eventDate}.` : ""}
+
+Section to write now: "${sec.label}"
+${sec.hint ? `Section guidance: ${sec.hint}` : ""}
+Sections already written (do not repeat their content): ${prevHeadings.length > 0 ? prevHeadings.join("; ") : "(none yet — this is the first section)"}
+
+Body sources for THIS section (cite these exact markers with [S#]; they are the only citeable evidence):
+${secBlock}
+
+Follow the FORECAST FORMAT from the system prompt exactly. Return ONLY a single JSON object:
+{ "title": string,   // overall document title, only meaningful on the first section
+  "heading": string, // the section heading, normally "${sec.label}"
+  "body": string }`;
+      try {
+        const message = await meteredCreate("generate", {
+          model: MODEL,
+          max_tokens: 4096,
+          system: systemPrompt,
+          messages: [{ role: "user", content: secPrompt }],
+        });
+        const text = message.content
+          .map((b) => (b.type === "text" ? b.text : ""))
+          .join("")
+          .trim();
+        const pj = extractJson(text) as { title?: string; heading?: string; body?: string } | null;
+        if (pj?.body && pj.body.trim()) {
+          const heading = pj.heading?.trim() || sec.label;
+          out.push({ kind: "body", axisId: null, heading, body: pj.body });
+          prevHeadings.push(heading);
+          if (!lfTitle && pj.title?.trim()) lfTitle = pj.title.trim();
+        } else {
+          // Extractive fallback: honest cited excerpts instead of nothing.
+          out.push({
+            kind: "body",
+            axisId: null,
+            heading: sec.label,
+            body: secSources.map(({ s, n }) => `${s.text} [S${n}]`).join("\n\n"),
+          });
+          prevHeadings.push(sec.label);
+        }
+      } catch (err) {
+        // A spent quota must stop the run (the gate is pre-model per call);
+        // any other model failure degrades this one section extractively.
+        if (isQuotaError(err)) throw err;
+        log.error({ err, section: sec.key }, "generate: longform section compose failed");
+        out.push({
+          kind: "body",
+          axisId: null,
+          heading: sec.label,
+          body: secSources.map(({ s, n }) => `${s.text} [S${n}]`).join("\n\n"),
+        });
+        prevHeadings.push(sec.label);
+      }
+    }
+    // Always keep the template's structured (possibly empty) result — the
+    // generic source-dump fallback below would fabricate non-forecast
+    // structure and defeat the honest per-section skeleton.
+    parsed = {
+      title: lfTitle ?? input.topic,
+      umbrella: null,
+      sections: out,
+      spokesperson: [],
+    };
+    if (skipped.length > 0) {
+      longformNote = `The governed corpus holds no permitted evidence for ${skipped.length === 1 ? "one section" : `${skipped.length} sections`} of this template, so ${skipped.length === 1 ? "it was" : "they were"} omitted rather than invented: ${skipped.join(", ")}.`;
+    }
+  } else {
+    let raw = "";
+    try {
+      onStage?.("composing");
+      const message = await meteredCreate("generate", {
+        model: MODEL,
+        max_tokens: 16384,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      });
+      raw = message.content.map((b) => (b.type === "text" ? b.text : "")).join("").trim();
+    } catch (err) {
+      if (isQuotaError(err)) throw err;
+      log.error({ err }, "generate: model call failed");
+      raw = "";
+    }
+    parsed = extractJson(raw) as ParsedDraft | null;
   }
 
-  const parsed = extractJson(raw) as
-    | {
-        title?: string;
-        umbrella?: string | null;
-        sections?: { kind?: string; axisId?: string | null; heading?: string; body?: string }[];
-        spokesperson?: { question?: string; guidance?: string; doNotSay?: string | null }[];
-      }
-    | null;
-
   // Extractive fallback if the model failed or returned nothing usable.
+  // Longform drafts never fall back to a raw source dump: an empty section
+  // list there is an honest result (every template section lacked permitted
+  // evidence) and is explained by the draft note.
   const rawSections =
-    parsed?.sections && parsed.sections.length > 0
-      ? parsed.sections
+    (parsed?.sections && parsed.sections.length > 0) || longform
+      ? (parsed?.sections ?? [])
       : sources.map((s, i) => ({
           kind: "body",
           axisId: null,
@@ -1392,6 +1544,7 @@ ${jsonShape}${refineBlock}`;
     guardian: emptyGuardian,
     historic,
     historicNote,
+    note: longformNote,
     createdAt: now,
     params,
     origin: baseDraft?.origin ?? "manual",
