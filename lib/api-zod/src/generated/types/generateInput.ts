@@ -51,4 +51,9 @@ export interface GenerateInput {
      * @nullable
      */
   layoutIds?: string[] | null;
+  /**
+     * Visual-deck target length: standard (~12-16 slides, single-pass), extended (~25-35 slides) or full (~40-60 slides). Extended and full run a chaptered multi-pass composition with per-chapter governed retrieval; the deck honestly shrinks when the permitted corpus cannot support the requested length. Ignored for non-visualdeck shapes. Absent = standard.
+     * @nullable
+     */
+  deckLength?: string | null;
 }

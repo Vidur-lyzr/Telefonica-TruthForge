@@ -19,5 +19,7 @@ export interface GenerationJob {
   error?: string | null;
   /** Machine-readable refusal code, e.g. quota_exceeded */
   errorCode?: string | null;
+  /** Human-readable sub-progress within the current stage, e.g. "Chapter 2 of 6 — Network leadership" during a chaptered visual-deck composition. Null when the stage has no sub-steps. */
+  progress?: string | null;
   createdAt: string;
 }

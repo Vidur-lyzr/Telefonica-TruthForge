@@ -21,4 +21,9 @@ export interface DraftParams {
   eventDate?: string | null;
   /** @nullable */
   layoutIds?: string[] | null;
+  /**
+     * standard | extended | full (visualdeck only)
+     * @nullable
+     */
+  deckLength?: string | null;
 }

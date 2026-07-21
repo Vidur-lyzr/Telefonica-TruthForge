@@ -2480,7 +2480,8 @@ export const SchedulePlanningForecastResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2495,7 +2496,23 @@ export const SchedulePlanningForecastResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 }),
   "forecast": zod.object({
@@ -2673,7 +2690,8 @@ export const SchedulePlanningForecastResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2688,7 +2706,23 @@ export const SchedulePlanningForecastResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),zod.null()]).optional().describe('Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.')
 })
 })
@@ -2877,7 +2911,8 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -2892,7 +2927,23 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 }),
   "forecast": zod.object({
@@ -3070,7 +3121,8 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3085,7 +3137,23 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),zod.null()]).optional().describe('Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.')
 })
 })
@@ -3329,7 +3397,8 @@ export const PlanningForecastResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3344,7 +3413,23 @@ export const PlanningForecastResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),zod.null()]).optional().describe('Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.')
 })
 
@@ -3391,7 +3476,8 @@ export const GenerateBody = zod.object({
   "pastedText": zod.string().nullish().describe('Pasted brief or data provided by the user.'),
   "links": zod.array(zod.string()).optional().describe('Governed source links or references named by the user.')
 })]).optional().describe('User-provided brief attachments (pasted brief\/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval.\n'),
-  "layoutIds": zod.array(zod.string()).nullish().describe('Optional visual-deck layout selection. When present and non-empty the slide composer builds the deck from these pool layouts only (the cover and closing layouts stay available so the deck frame is never broken). Ids must come from GET \/generate\/visual-layouts; unknown ids are rejected with 400. Ignored for non-visualdeck shapes.\n')
+  "layoutIds": zod.array(zod.string()).nullish().describe('Optional visual-deck layout selection. When present and non-empty the slide composer builds the deck from these pool layouts only (the cover and closing layouts stay available so the deck frame is never broken). Ids must come from GET \/generate\/visual-layouts; unknown ids are rejected with 400. Ignored for non-visualdeck shapes.\n'),
+  "deckLength": zod.string().nullish().describe('Visual-deck target length: standard (~12-16 slides, single-pass), extended (~25-35 slides) or full (~40-60 slides). Extended and full run a chaptered multi-pass composition with per-chapter governed retrieval; the deck honestly shrinks when the permitted corpus cannot support the requested length. Ignored for non-visualdeck shapes. Absent = standard.\n')
 })
 
 export const GenerateResponse = zod.object({
@@ -3508,7 +3594,8 @@ export const GenerateResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3523,7 +3610,23 @@ export const GenerateResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 
 
@@ -3648,7 +3751,8 @@ export const RefineDocumentBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3663,7 +3767,23 @@ export const RefineDocumentBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "instruction": zod.string().min(1),
   "roleId": zod.string(),
@@ -3784,7 +3904,8 @@ export const RefineDocumentResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3799,7 +3920,23 @@ export const RefineDocumentResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 
 
@@ -3921,7 +4058,8 @@ export const CheckDocumentBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -3936,7 +4074,23 @@ export const CheckDocumentBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 })
 
@@ -4075,7 +4229,8 @@ export const CanvasSuggestionsBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4090,7 +4245,23 @@ export const CanvasSuggestionsBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "sectionId": zod.string(),
   "roleId": zod.string()
@@ -4229,7 +4400,8 @@ export const CanvasEditBlockBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4244,7 +4416,23 @@ export const CanvasEditBlockBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "sectionId": zod.string(),
   "instruction": zod.string().min(1),
@@ -4367,7 +4555,8 @@ export const CanvasEditBlockResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4382,7 +4571,23 @@ export const CanvasEditBlockResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "section": zod.object({
   "id": zod.string(),
@@ -4699,7 +4904,8 @@ export const RunScheduleResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4714,7 +4920,23 @@ export const RunScheduleResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 })
 
@@ -4846,7 +5068,8 @@ export const ListReviewItemsResponseItem = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -4861,7 +5084,23 @@ export const ListReviewItemsResponseItem = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 })
 export const ListReviewItemsResponse = zod.array(ListReviewItemsResponseItem)
@@ -4989,7 +5228,8 @@ export const ApproveReviewItemBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5004,7 +5244,23 @@ export const ApproveReviewItemBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "roleId": zod.string().describe('Acting persona — must hold the approve_sensitive capability')
 })
@@ -5133,7 +5389,8 @@ export const ApproveReviewItemResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5148,7 +5405,23 @@ export const ApproveReviewItemResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 })
 
@@ -5313,7 +5586,8 @@ export const ListVersionsResponseItem = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5328,7 +5602,23 @@ export const ListVersionsResponseItem = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 })
 export const ListVersionsResponse = zod.array(ListVersionsResponseItem)
@@ -5452,7 +5742,8 @@ export const SaveVersionBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5467,7 +5758,23 @@ export const SaveVersionBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "savedBy": zod.string()
 })
@@ -5603,7 +5910,8 @@ export const SaveVersionResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5618,7 +5926,23 @@ export const SaveVersionResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 })
 })
 
@@ -5742,7 +6066,8 @@ export const ExportDocumentBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5757,7 +6082,23 @@ export const ExportDocumentBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "format": zod.enum(['docx', 'pptx', 'pdf', 'txt', 'md']),
   "destination": zod.enum(['internal', 'external']).optional().describe('Export destination. \"external\" strips internal-only material and refuses any non-public content (default internal).\n'),
@@ -5886,7 +6227,8 @@ export const ExportDocumentPackBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -5901,7 +6243,23 @@ export const ExportDocumentPackBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "formats": zod.array(zod.enum(['docx', 'pptx', 'pdf', 'txt', 'md'])).optional().describe('Formats to bundle; empty\/absent bundles every format the template offers.'),
   "destination": zod.enum(['internal', 'external']).optional(),
@@ -6030,7 +6388,8 @@ export const ExportDocumentPreviewBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6045,7 +6404,23 @@ export const ExportDocumentPreviewBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "format": zod.enum(['pdf', 'docx', 'pptx']),
   "destination": zod.enum(['internal', 'external']).optional().describe('Preview destination. \"external\" strips internal-only material and refuses any non-public content — exactly as the real export would.\n'),
@@ -6289,7 +6664,8 @@ export const RecordEditorialReviewBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6304,7 +6680,23 @@ export const RecordEditorialReviewBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "reviewedBy": zod.string()
 })
@@ -6529,7 +6921,8 @@ export const StartGenerateJobBody = zod.object({
   "pastedText": zod.string().nullish().describe('Pasted brief or data provided by the user.'),
   "links": zod.array(zod.string()).optional().describe('Governed source links or references named by the user.')
 })]).optional().describe('User-provided brief attachments (pasted brief\/data and governed source links). Passed to the composer as clearly labeled user-provided context only — never treated as governed evidence, never cited, and never folded into retrieval.\n'),
-  "layoutIds": zod.array(zod.string()).nullish().describe('Optional visual-deck layout selection. When present and non-empty the slide composer builds the deck from these pool layouts only (the cover and closing layouts stay available so the deck frame is never broken). Ids must come from GET \/generate\/visual-layouts; unknown ids are rejected with 400. Ignored for non-visualdeck shapes.\n')
+  "layoutIds": zod.array(zod.string()).nullish().describe('Optional visual-deck layout selection. When present and non-empty the slide composer builds the deck from these pool layouts only (the cover and closing layouts stay available so the deck frame is never broken). Ids must come from GET \/generate\/visual-layouts; unknown ids are rejected with 400. Ignored for non-visualdeck shapes.\n'),
+  "deckLength": zod.string().nullish().describe('Visual-deck target length: standard (~12-16 slides, single-pass), extended (~25-35 slides) or full (~40-60 slides). Extended and full run a chaptered multi-pass composition with per-chapter governed retrieval; the deck honestly shrinks when the permitted corpus cannot support the requested length. Ignored for non-visualdeck shapes. Absent = standard.\n')
 })
 
 export const StartGenerateJobResponse = zod.object({
@@ -6651,7 +7044,8 @@ export const StartGenerateJobResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6666,10 +7060,27 @@ export const StartGenerateJobResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }).nullish(),
   "error": zod.string().nullish(),
   "errorCode": zod.string().nullish().describe('Machine-readable refusal code, e.g. quota_exceeded'),
+  "progress": zod.string().nullish().describe('Human-readable sub-progress within the current stage, e.g. \"Chapter 2 of 6 — Network leadership\" during a chaptered visual-deck composition. Null when the stage has no sub-steps.\n'),
   "createdAt": zod.string()
 })
 
@@ -6795,7 +7206,8 @@ export const StartRefineJobBody = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6810,7 +7222,23 @@ export const StartRefineJobBody = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }),
   "instruction": zod.string().min(1),
   "roleId": zod.string(),
@@ -6936,7 +7364,8 @@ export const StartRefineJobResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -6951,10 +7380,27 @@ export const StartRefineJobResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }).nullish(),
   "error": zod.string().nullish(),
   "errorCode": zod.string().nullish().describe('Machine-readable refusal code, e.g. quota_exceeded'),
+  "progress": zod.string().nullish().describe('Human-readable sub-progress within the current stage, e.g. \"Chapter 2 of 6 — Network leadership\" during a chaptered visual-deck composition. Null when the stage has no sub-steps.\n'),
   "createdAt": zod.string()
 })
 
@@ -7085,7 +7531,8 @@ export const GetGenerationJobResponse = zod.object({
   "axisIds": zod.array(zod.string()),
   "spokesperson": zod.string().nullish(),
   "eventDate": zod.string().nullish(),
-  "layoutIds": zod.array(zod.string()).nullish()
+  "layoutIds": zod.array(zod.string()).nullish(),
+  "deckLength": zod.string().nullish().describe('standard | extended | full (visualdeck only)')
 }),
   "origin": zod.string().optional().describe('manual | scheduled'),
   "reviewItemId": zod.string().nullish(),
@@ -7100,10 +7547,27 @@ export const GetGenerationJobResponse = zod.object({
   "visualSlides": zod.array(zod.object({
   "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
   "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
-})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n'),
+  "deckReport": zod.union([zod.null(),zod.object({
+  "requestedLength": zod.string().describe('extended | full'),
+  "targetMin": zod.number(),
+  "targetMax": zod.number(),
+  "plannedSlides": zod.number().describe('Slides the chapter plan targeted (including frame slides).'),
+  "actualSlides": zod.number().describe('Slides actually produced after validation and honest shrinking.'),
+  "chapters": zod.array(zod.object({
+  "title": zod.string(),
+  "query": zod.string().describe('The chapter\'s own governed retrieval query.'),
+  "plannedSlides": zod.number(),
+  "slideStart": zod.number().describe('Index of the chapter\'s section-divider slide in visualSlides.'),
+  "slideCount": zod.number().describe('Number of slides in this chapter including its divider.'),
+  "note": zod.string().nullish()
+})),
+  "note": zod.string().nullish().describe('Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.\n')
+})]).optional().describe('Honest length report for chaptered visual decks (extended\/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks.\n')
 }).nullish(),
   "error": zod.string().nullish(),
   "errorCode": zod.string().nullish().describe('Machine-readable refusal code, e.g. quota_exceeded'),
+  "progress": zod.string().nullish().describe('Human-readable sub-progress within the current stage, e.g. \"Chapter 2 of 6 — Network leadership\" during a chaptered visual-deck composition. Null when the stage has no sub-steps.\n'),
   "createdAt": zod.string()
 })
 

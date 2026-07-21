@@ -211,6 +211,9 @@ type BriefValues = {
   // Visual-deck only: pool layout ids the composer must build the deck from.
   // Empty = automatic (the composer picks from the full pool).
   layoutIds: string[];
+  // Visual-deck only: target length. "standard" = single-pass; extended/full
+  // run the chaptered multi-pass composition on the server.
+  deckLength: "standard" | "extended" | "full";
   // Client-side only: the full Ask handoff payload, kept so "Adjust the brief"
   // can restore the attached-answer panel exactly. Never sent to the API.
   askDraftRaw?: AskDraftHandoff | null;
@@ -1462,6 +1465,37 @@ function DocumentCanvas({
               </div>
             )}
 
+            {draft.deckReport && (draft.deckReport.note || draft.deckReport.chapters.length > 0) && (
+              <div
+                style={{
+                  borderRadius: skinVars.borderRadii.container,
+                  border: `1px solid ${draft.deckReport.note ? applyAlpha(skinVars.rawColors.warning, 0.2) : c.divider}`,
+                  backgroundColor: draft.deckReport.note ? c.warningLow : c.backgroundContainer,
+                  padding: 16,
+                }}
+              >
+                <Stack space={4}>
+                  <Inline space={8} alignItems="center">
+                    {draft.deckReport.note ? (
+                      <IconAlertRegular size={20} color={c.warning} />
+                    ) : (
+                      <IconCheckRegular size={20} color={c.success} />
+                    )}
+                    <Text2 medium color={draft.deckReport.note ? c.warning : c.textPrimary}>
+                      {te.deckReportTitle}
+                    </Text2>
+                  </Inline>
+                  <Text1 regular color={c.textSecondary}>
+                    {te.deckReportSummary(
+                      draft.deckReport.actualSlides,
+                      draft.deckReport.chapters.filter((ch) => ch.slideCount > 0).length,
+                    )}
+                    {draft.deckReport.note ? ` ${draft.deckReport.note}` : ""}
+                  </Text1>
+                </Stack>
+              </div>
+            )}
+
             {draft.askSignals &&
               (draft.askSignals.conflict ||
                 draft.askSignals.lowConfidence ||
@@ -1912,6 +1946,9 @@ function BriefForm({
     initial?.attachments?.links?.join("\n") ?? "",
   );
   const [layoutIds, setLayoutIds] = React.useState<string[]>(initial?.layoutIds ?? []);
+  const [deckLength, setDeckLength] = React.useState<"standard" | "extended" | "full">(
+    initial?.deckLength ?? "standard",
+  );
 
   // Layout pool for the visual-deck layout picker; only fetched when relevant.
   const briefPoolQ = useGetVisualLayoutPool({
@@ -2092,6 +2129,7 @@ function BriefForm({
       : null,
     attachments: buildAttachments(),
     layoutIds: shape === "visualdeck" ? layoutIds : [],
+    deckLength: shape === "visualdeck" ? deckLength : "standard",
     askDraftRaw: askDraft,
     ...overrides,
   });
@@ -2155,6 +2193,7 @@ function BriefForm({
         // The chat can override the shape — a layout selection made under the
         // visualdeck form must not ride along into a non-deck draft.
         layoutIds: chatShape === "visualdeck" ? layoutIds : [],
+        deckLength: chatShape === "visualdeck" ? deckLength : "standard",
       }),
     );
   };
@@ -2680,6 +2719,50 @@ function BriefForm({
           </Stack>
         )}
 
+        {shape === "visualdeck" && (
+          <Stack space={8}>
+            <FieldLabel>{t.deckLengthLabel}</FieldLabel>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {(["standard", "extended", "full"] as const).map((opt) => {
+                const active = deckLength === opt;
+                return (
+                  <Touchable key={opt} onPress={() => setDeckLength(opt)}>
+                    <div
+                      style={{
+                        borderRadius: skinVars.borderRadii.container,
+                        border: `1px solid ${active ? c.brand : c.divider}`,
+                        backgroundColor: active ? c.brandLow : c.backgroundContainer,
+                        padding: 16,
+                        height: "100%",
+                      }}
+                    >
+                      <Stack space={4}>
+                        <Text2 medium color={active ? c.brand : c.textPrimary}>
+                          {t.deckLengthOptions[opt].name}
+                        </Text2>
+                        <Text1 regular color={c.textSecondary}>
+                          {t.deckLengthOptions[opt].desc}
+                        </Text1>
+                      </Stack>
+                    </div>
+                  </Touchable>
+                );
+              })}
+            </div>
+            {deckLength !== "standard" && (
+              <Text1 regular color={c.textSecondary}>
+                {t.deckLengthHint}
+              </Text1>
+            )}
+          </Stack>
+        )}
+
         <Stack space={8}>
           <FieldLabel>{t.axesLabel}</FieldLabel>
           <Inline space={8} wrap>
@@ -3121,9 +3204,13 @@ type PipelineStage = "retrieving" | "composing" | "guardian" | "done";
 function DraftingPipeline({
   variant,
   stage,
+  progress,
 }: {
   variant: "generate" | "refine";
   stage: PipelineStage;
+  // Human-readable sub-step reported by the server within the current stage
+  // (e.g. "Chapter 2 of 6 — ..." during a chaptered visual deck).
+  progress?: string | null;
 }) {
   const { lang } = useApp();
   const te = GENERATE_I18N[lang].editor;
@@ -3197,9 +3284,16 @@ function DraftingPipeline({
                       <Icon size={16} color={c.textSecondary} />
                     )}
                   </div>
-                  <Text2 medium color={current ? c.textPrimary : done ? c.textPrimary : c.textSecondary}>
-                    {s.label}
-                  </Text2>
+                  <Stack space={2}>
+                    <Text2 medium color={current ? c.textPrimary : done ? c.textPrimary : c.textSecondary}>
+                      {s.label}
+                    </Text2>
+                    {current && progress && (
+                      <Text1 regular color={c.textSecondary}>
+                        {progress}
+                      </Text1>
+                    )}
+                  </Stack>
                 </div>
               );
             })}
@@ -3346,6 +3440,7 @@ export default function Generate() {
           askContext: v.askContext,
           attachments: v.attachments,
           layoutIds: v.layoutIds.length > 0 ? v.layoutIds : null,
+          deckLength: v.shape === "visualdeck" && v.deckLength !== "standard" ? v.deckLength : null,
         },
       },
       { onSuccess: (job) => setJobId(job.id) },
@@ -3673,7 +3768,11 @@ export default function Generate() {
           )}
           <div style={{ flex: 1, overflowY: "auto", padding: 24 }}>
             {busy ? (
-              <DraftingPipeline variant={jobVariant} stage={stage} />
+              <DraftingPipeline
+                variant={jobVariant}
+                stage={stage}
+                progress={jobQ.data?.progress ?? null}
+              />
             ) : !draft ? (
               <BriefForm
                 shapes={shapes}

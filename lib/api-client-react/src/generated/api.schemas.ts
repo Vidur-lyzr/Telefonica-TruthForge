@@ -454,6 +454,11 @@ export interface DraftParams {
   eventDate?: string | null;
   /** @nullable */
   layoutIds?: string[] | null;
+  /**
+     * standard | extended | full (visualdeck only)
+     * @nullable
+     */
+  deckLength?: string | null;
 }
 
 export interface AskSignals {
@@ -476,6 +481,36 @@ export interface VisualSlide {
   layoutId: string;
   /** Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout's strict schema. */
   slots: VisualSlideSlots;
+}
+
+export interface DeckChapter {
+  title: string;
+  /** The chapter's own governed retrieval query. */
+  query: string;
+  plannedSlides: number;
+  /** Index of the chapter's section-divider slide in visualSlides. */
+  slideStart: number;
+  /** Number of slides in this chapter including its divider. */
+  slideCount: number;
+  /** @nullable */
+  note?: string | null;
+}
+
+export interface DeckReport {
+  /** extended | full */
+  requestedLength: string;
+  targetMin: number;
+  targetMax: number;
+  /** Slides the chapter plan targeted (including frame slides). */
+  plannedSlides: number;
+  /** Slides actually produced after validation and honest shrinking. */
+  actualSlides: number;
+  chapters: DeckChapter[];
+  /**
+     * Honest explanation when the deck is shorter than requested — which chapters shrank or were dropped and why (thin permitted coverage), so the length difference is never silent.
+     * @nullable
+     */
+  note?: string | null;
 }
 
 export interface GeneratedDraft {
@@ -521,6 +556,8 @@ export interface GeneratedDraft {
   askSignals?: null | AskSignals;
   /** Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design. */
   visualSlides?: VisualSlide[];
+  /** Honest length report for chaptered visual decks (extended/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks. */
+  deckReport?: null | DeckReport;
 }
 
 export interface GenerationJob {
@@ -535,6 +572,8 @@ export interface GenerationJob {
   error?: string | null;
   /** Machine-readable refusal code, e.g. quota_exceeded */
   errorCode?: string | null;
+  /** Human-readable sub-progress within the current stage, e.g. "Chapter 2 of 6 — Network leadership" during a chaptered visual-deck composition. Null when the stage has no sub-steps. */
+  progress?: string | null;
   createdAt: string;
 }
 
@@ -2739,6 +2778,11 @@ export interface GenerateInput {
      * @nullable
      */
   layoutIds?: string[] | null;
+  /**
+     * Visual-deck target length: standard (~12-16 slides, single-pass), extended (~25-35 slides) or full (~40-60 slides). Extended and full run a chaptered multi-pass composition with per-chapter governed retrieval; the deck honestly shrinks when the permitted corpus cannot support the requested length. Ignored for non-visualdeck shapes. Absent = standard.
+     * @nullable
+     */
+  deckLength?: string | null;
 }
 
 export interface EditorialReviewInput {

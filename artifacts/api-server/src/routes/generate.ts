@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response } from "express";
 import {
   GenerateBody,
   GenerateResponse,
@@ -60,6 +60,7 @@ import {
   runGenerateAgent,
   refineDraft,
   type GeneratedDraft,
+  type DeckLength,
 } from "../agent/generateAgent";
 import { suggestTemplate, captureBrief } from "../agent/briefAgent";
 import { listBriefExamples, type ExampleLang } from "../agent/briefExamples";
@@ -159,6 +160,22 @@ function unknownLayoutIds(ids: string[] | null | undefined): string[] {
   return ids.filter((id) => !known.has(id));
 }
 
+// Deck length is a free string in the generated contract; unknown values are
+// an honest 400, never silently coerced to standard.
+function parseDeckLength(
+  raw: string | null | undefined,
+  res: Response,
+): { ok: true; value: DeckLength | null } | { ok: false } {
+  if (raw == null) return { ok: true, value: null };
+  if (raw === "standard" || raw === "extended" || raw === "full") {
+    return { ok: true, value: raw };
+  }
+  res.status(400).json({
+    error: `Unknown deckLength "${raw}". Use standard, extended or full.`,
+  });
+  return { ok: false };
+}
+
 router.post("/generate", async (req, res) => {
   const parsed = GenerateBody.safeParse(req.body);
   if (!parsed.success) {
@@ -173,6 +190,8 @@ router.post("/generate", async (req, res) => {
     });
     return;
   }
+  const deckLength = parseDeckLength(parsed.data.deckLength, res);
+  if (!deckLength.ok) return;
   try {
     const result = await runGenerateAgent(
       {
@@ -191,6 +210,7 @@ router.post("/generate", async (req, res) => {
         askContext: parsed.data.askContext ?? null,
         attachments: parsed.data.attachments ?? null,
         layoutIds: parsed.data.layoutIds ?? null,
+        deckLength: deckLength.value,
       },
       req.log,
     );
@@ -1021,6 +1041,8 @@ router.post("/generate/jobs", async (req, res) => {
     });
     return;
   }
+  const deckLength = parseDeckLength(parsed.data.deckLength, res);
+  if (!deckLength.ok) return;
   const job = createJob("generate");
   const input = {
     shape: parsed.data.shape as "messaging" | "press" | "multiformat" | "visualdeck",
@@ -1038,11 +1060,14 @@ router.post("/generate/jobs", async (req, res) => {
     askContext: parsed.data.askContext ?? null,
     attachments: parsed.data.attachments ?? null,
     layoutIds: parsed.data.layoutIds ?? null,
+    deckLength: deckLength.value,
   };
   const log = req.log;
   void (async () => {
     try {
-      const draft = await runGenerateAgent(input, log, (stage) => setJobStage(job.id, stage));
+      const draft = await runGenerateAgent(input, log, (stage, progress) =>
+        setJobStage(job.id, stage, progress ?? null),
+      );
       completeJob(job.id, draft);
       observe(req, {
         kind: "generate",
@@ -1089,7 +1114,9 @@ router.post("/generate/refine/jobs", async (req, res) => {
   const log = req.log;
   void (async () => {
     try {
-      const draft = await refineDraft(input, log, (stage) => setJobStage(job.id, stage));
+      const draft = await refineDraft(input, log, (stage, progress) =>
+        setJobStage(job.id, stage, progress ?? null),
+      );
       completeJob(job.id, draft);
       observe(req, {
         kind: "generate",

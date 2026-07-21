@@ -4760,6 +4760,13 @@ components:
           type: string
           nullable: true
           description: Machine-readable refusal code, e.g. quota_exceeded
+        progress:
+          type: string
+          nullable: true
+          description: >
+            Human-readable sub-progress within the current stage, e.g.
+            "Chapter 2 of 6 — Network leadership" during a chaptered
+            visual-deck composition. Null when the stage has no sub-steps.
         createdAt:
           type: string
     HealthStatus:
@@ -8323,6 +8330,15 @@ components:
             is never broken). Ids must come from GET /generate/visual-layouts;
             unknown ids are rejected with 400. Ignored for non-visualdeck
             shapes.
+        deckLength:
+          type: ["string", "null"]
+          description: >
+            Visual-deck target length: standard (~12-16 slides, single-pass),
+            extended (~25-35 slides) or full (~40-60 slides). Extended and
+            full run a chaptered multi-pass composition with per-chapter
+            governed retrieval; the deck honestly shrinks when the permitted
+            corpus cannot support the requested length. Ignored for
+            non-visualdeck shapes. Absent = standard.
 
     AskHandoffContext:
       type: object
@@ -8414,6 +8430,9 @@ components:
           type: ["array", "null"]
           items:
             type: string
+        deckLength:
+          type: ["string", "null"]
+          description: standard | extended | full (visualdeck only)
 
     ChartPoint:
       type: object
@@ -8673,6 +8692,63 @@ components:
             an invalid slide rather than letting it overflow the design.
           items:
             $ref: "#/components/schemas/VisualSlide"
+        deckReport:
+          description: >
+            Honest length report for chaptered visual decks (extended/full):
+            what was requested, what the chapter plan targeted, what the
+            permitted corpus actually supported, and per-chapter slide spans
+            used for chapter-scoped refines. Absent on standard decks.
+          anyOf:
+            - type: "null"
+            - $ref: "#/components/schemas/DeckReport"
+
+    DeckReport:
+      type: object
+      required: [requestedLength, targetMin, targetMax, plannedSlides, actualSlides, chapters]
+      properties:
+        requestedLength:
+          type: string
+          description: extended | full
+        targetMin:
+          type: integer
+        targetMax:
+          type: integer
+        plannedSlides:
+          type: integer
+          description: Slides the chapter plan targeted (including frame slides).
+        actualSlides:
+          type: integer
+          description: Slides actually produced after validation and honest shrinking.
+        chapters:
+          type: array
+          items:
+            $ref: "#/components/schemas/DeckChapter"
+        note:
+          type: ["string", "null"]
+          description: >
+            Honest explanation when the deck is shorter than requested —
+            which chapters shrank or were dropped and why (thin permitted
+            coverage), so the length difference is never silent.
+
+    DeckChapter:
+      type: object
+      required: [title, query, plannedSlides, slideStart, slideCount]
+      properties:
+        title:
+          type: string
+        query:
+          type: string
+          description: The chapter's own governed retrieval query.
+        plannedSlides:
+          type: integer
+        slideStart:
+          type: integer
+          description: Index of the chapter's section-divider slide in visualSlides.
+        slideCount:
+          type: integer
+          description: Number of slides in this chapter including its divider.
+        note:
+          type: ["string", "null"]
 
     VisualSlide:
       type: object

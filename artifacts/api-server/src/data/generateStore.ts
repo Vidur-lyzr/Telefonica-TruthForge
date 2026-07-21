@@ -618,6 +618,8 @@ export interface GenerationJob {
   error: string | null;
   /** Machine-readable refusal code (e.g. quota_exceeded), when applicable. */
   errorCode: string | null;
+  /** Human-readable sub-progress within the stage (e.g. "Chapter 2 of 6 — ..."). */
+  progress: string | null;
   createdAt: string;
 }
 
@@ -632,6 +634,7 @@ export function createJob(mode: "generate" | "refine"): GenerationJob {
     draft: null,
     error: null,
     errorCode: null,
+    progress: null,
     createdAt: new Date().toISOString(),
   };
   jobs.set(job.id, job);
@@ -642,9 +645,16 @@ export function getJob(id: string): GenerationJob | undefined {
   return jobs.get(id);
 }
 
-export function setJobStage(id: string, stage: GenerationStage): void {
+export function setJobStage(
+  id: string,
+  stage: GenerationStage,
+  progress?: string | null,
+): void {
   const job = jobs.get(id);
-  if (job && job.status === "running") job.stage = stage;
+  if (job && job.status === "running") {
+    job.stage = stage;
+    job.progress = progress ?? null;
+  }
 }
 
 export function completeJob(id: string, draft: GeneratedDraft): void {
@@ -652,6 +662,7 @@ export function completeJob(id: string, draft: GeneratedDraft): void {
   if (!job) return;
   job.status = "done";
   job.stage = "done";
+  job.progress = null;
   job.draft = draft;
 }
 

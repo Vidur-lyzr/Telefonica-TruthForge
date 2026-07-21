@@ -40,7 +40,16 @@ import { BRAND_RULES } from "../data/brandRoom";
 import type { VisualSlideInput } from "../export/visualLayouts";
 import { getTonePrinciples } from "../data/toneStore";
 import { runBrandGuardian } from "./brandGuardian";
-import { fillVisualSlides } from "./visualSlidesAgent";
+import {
+  fillVisualSlides,
+  fillVisualDeckChaptered,
+  refineChapteredDeck,
+  type DeckLength,
+  type DeckReport,
+  type ChapterContext,
+} from "./visualSlidesAgent";
+export type { DeckLength, DeckReport } from "./visualSlidesAgent";
+import type { RetrievedChunk } from "../adapters/kb";
 import { parseQaBody, serializeQaPairs, normalizeQuestion } from "./qa";
 import { sanitizeSectionBody } from "./bodyText";
 
@@ -236,6 +245,9 @@ export interface DraftParams {
   // Author-selected visual-deck layouts (pool ids). Persisted so a refine
   // re-composes the deck with the same selection. Null/absent = automatic.
   layoutIds?: string[] | null;
+  // Visual-deck target length (standard | extended | full). Persisted so a
+  // refine keeps the deck's chaptered composition. Null/absent = standard.
+  deckLength?: DeckLength | null;
 }
 
 export interface GeneratedDraft {
@@ -262,6 +274,10 @@ export interface GeneratedDraft {
   // pass, validated and composed into draw ops at export time
   // (export/visualLayouts.ts). Absent/empty on text-first drafts.
   visualSlides?: VisualSlideInput[];
+  // Honest length report for chaptered visual decks (extended/full): the
+  // requested vs actually supported slide counts and per-chapter spans, used
+  // for chapter-scoped refines. Absent on standard decks.
+  deckReport?: DeckReport | null;
   axisIds: string[];
   guardian: GuardianResult;
   historic: boolean;
@@ -341,6 +357,10 @@ export interface GenerateInput {
   // the deck frame is never broken). Validated against the pool at the route
   // (unknown ids are a 400). Ignored for non-visualdeck shapes.
   layoutIds?: string[] | null;
+  // Visual-deck target length. Extended/full run the chaptered multi-pass
+  // composition with per-chapter governed retrieval; the deck honestly
+  // shrinks when the permitted corpus is thin. Ignored for other shapes.
+  deckLength?: DeckLength | null;
 }
 
 export interface AskHandoffContext {
@@ -413,12 +433,17 @@ function languageName(code: string): string {
 // Observable phases the compose pipeline actually moves through, emitted as they
 // happen so the client can watch real backend progress (not a timer simulation).
 export type GenerationStage = "retrieving" | "composing" | "guardian" | "done";
-export type StageReporter = (stage: GenerationStage) => void;
+// Optional `progress` carries a human-readable sub-step within the stage
+// (e.g. "Chapter 2 of 6 — Network leadership" during a chaptered deck).
+export type StageReporter = (stage: GenerationStage, progress?: string | null) => void;
 
 interface ComposeContext {
   input: GenerateInput;
   instruction?: string;
   baseDraft?: GeneratedDraft;
+  // Raw refine selection (before it is folded into the instruction text),
+  // used to target the right chapter on a chaptered-deck refine.
+  selection?: string | null;
   onStage?: StageReporter;
 }
 
@@ -578,6 +603,11 @@ async function compose(
     eventDate: input.eventDate ?? null,
     layoutIds:
       input.layoutIds && input.layoutIds.length > 0 ? [...input.layoutIds] : null,
+    deckLength:
+      shape === "visualdeck" &&
+      (input.deckLength === "extended" || input.deckLength === "full")
+        ? input.deckLength
+        : null,
   };
 
   const emptyGuardian: GuardianResult = {
@@ -1564,8 +1594,108 @@ Follow the FORECAST FORMAT from the system prompt exactly. Return ONLY a single 
   // once), and a failed pass degrades honestly to the text-first document.
   // Runs BEFORE the guardian so slot text is covered by the brand checks.
   if (shape === "visualdeck" && sections.length > 0) {
-    const slides = await fillVisualSlides(draft, language, log, params.layoutIds ?? null);
-    if (slides) draft.visualSlides = slides;
+    const deckLength = params.deckLength ?? null;
+    if (deckLength === "extended" || deckLength === "full") {
+      // Chaptered multi-pass composition. Chapter retrieval runs under the
+      // SAME dual filter as the body pass (persona clearance AND destination
+      // rank) and every pass lands in the same audit entry.
+      const chapterCtx: ChapterContext = {
+        clearance,
+        bodyRank,
+        area: role.area,
+        auditId,
+        onProgress: (p) => onStage?.("composing", p),
+      };
+      // Citations for chapter-retrieved documents continue the S-numbering
+      // AFTER the text pass's contiguous renumbering, so text markers and
+      // chips never desync — these sources ground slides, not body prose.
+      const appendChapterCitations = (chunks: RetrievedChunk[]) => {
+        if (chunks.length === 0) return;
+        const citedDocs = new Set(draft.citations.map((c) => c.docId));
+        const byDoc = new Map<string, RetrievedChunk>();
+        for (const c of chunks) {
+          if (!citedDocs.has(c.docId) && !byDoc.has(c.docId)) byDoc.set(c.docId, c);
+        }
+        const top = Math.max(...chunks.map((c) => c.score), 1);
+        let n = draft.citations.length;
+        for (const [docId, c] of byDoc) {
+          const doc = resolveDoc(docId);
+          n += 1;
+          draft.citations.push({
+            id: `S${n}`,
+            docId,
+            docTitle: doc?.title ?? docId,
+            sourceLoc: c.breadcrumb,
+            version: doc?.quarter ?? "",
+            owner: doc?.owner ?? "",
+            validUntil: doc?.validUntil ?? null,
+            confidence: confidenceFor(c.score, top),
+            confidentiality: doc?.confidentiality ?? "public",
+            validity: doc?.validity ?? "approved",
+            snippet: c.text,
+            value: null,
+            country: doc?.country ?? null,
+            brand: doc?.brand ?? null,
+            axisIds: doc?.axisIds ?? [],
+          });
+        }
+      };
+
+      let result = null;
+      if (
+        instruction &&
+        baseDraft?.deckReport &&
+        (baseDraft.visualSlides?.length ?? 0) > 0
+      ) {
+        // Chapter-scoped refine: re-fill only the chapter the instruction
+        // targets and splice it into the existing deck.
+        result = await refineChapteredDeck(
+          draft,
+          baseDraft.visualSlides ?? [],
+          baseDraft.deckReport,
+          instruction,
+          ctx.selection ?? null,
+          language,
+          log,
+          params.layoutIds ?? null,
+          chapterCtx,
+        );
+      }
+      if (!result) {
+        result = await fillVisualDeckChaptered(
+          draft,
+          deckLength,
+          language,
+          log,
+          params.layoutIds ?? null,
+          chapterCtx,
+        );
+      }
+      if (result) {
+        draft.visualSlides = result.slides;
+        draft.deckReport = result.report;
+        appendChapterCitations(result.usedChunks);
+      } else {
+        // Chaptered pipeline could not produce a deck at all: fall back to
+        // the single-pass fill and say so honestly in the report.
+        const slides = await fillVisualSlides(draft, language, log, params.layoutIds ?? null);
+        if (slides) {
+          draft.visualSlides = slides;
+          draft.deckReport = {
+            requestedLength: deckLength,
+            targetMin: deckLength === "full" ? 40 : 25,
+            targetMax: deckLength === "full" ? 60 : 35,
+            plannedSlides: 0,
+            actualSlides: slides.length,
+            chapters: [],
+            note: `The chaptered composition could not be grounded in enough permitted material for a ${deckLength} deck; a standard-length deck was produced instead.`,
+          };
+        }
+      }
+    } else {
+      const slides = await fillVisualSlides(draft, language, log, params.layoutIds ?? null);
+      if (slides) draft.visualSlides = slides;
+    }
   }
 
   onStage?.("guardian");
@@ -1613,10 +1743,14 @@ export async function refineDraft(
     spokesperson: base.params.spokesperson ?? null,
     eventDate: base.params.eventDate ?? null,
     layoutIds: base.params.layoutIds ?? null,
+    deckLength: base.params.deckLength ?? null,
   };
   const selection = input.selection?.trim();
   const instruction = selection
     ? `${input.instruction}\n\nApply the change specifically to this passage of the draft, keeping the rest intact: "${selection}"`
     : input.instruction;
-  return compose({ input: genInput, instruction, baseDraft: base, onStage }, log);
+  return compose(
+    { input: genInput, instruction, baseDraft: base, selection: selection || null, onStage },
+    log,
+  );
 }

@@ -44,6 +44,13 @@ export interface GenerateStrings {
     poolPickCount: (n: number) => string;
     poolPickClear: string;
 
+    deckLengthLabel: string;
+    deckLengthHint: string;
+    deckLengthOptions: Record<
+      "standard" | "extended" | "full",
+      { name: string; desc: string }
+    >;
+
     shapes: Record<FormShape, { name: string; blurb: string }>;
 
     briefLabel: string;
@@ -188,6 +195,10 @@ export interface GenerateStrings {
     pipelineSubtitle: string;
     pipelineRefineSteps: { retrieving: string; composing: string; guardian: string };
     pipelineGenerateSteps: { retrieving: string; composing: string; guardian: string };
+
+    // Chaptered visual-deck length report
+    deckReportTitle: string;
+    deckReportSummary: (actual: number, chapters: number) => string;
 
     // Refine outcomes + export errors
     refineAppliedPass: string;
@@ -412,6 +423,21 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         n === 1 ? "1 layout selected" : `${n} layouts selected`,
       poolPickClear: "Clear selection",
 
+      deckLengthLabel: "Deck length",
+      deckLengthHint:
+        "Extended and full decks are composed chapter by chapter with extra evidence retrieval per chapter — they take noticeably longer and use more of your generation quota. If the permitted corpus is thin, the deck is honestly shortened rather than padded.",
+      deckLengthOptions: {
+        standard: { name: "Standard", desc: "About 12-16 slides. Single pass, fastest." },
+        extended: {
+          name: "Extended",
+          desc: "About 25-35 slides in chapters. Several model calls — takes a few minutes.",
+        },
+        full: {
+          name: "Full",
+          desc: "About 40-60 slides in chapters. The longest and most quota-intensive option.",
+        },
+      },
+
       shapes: {
         messaging: {
           name: "Messaging house",
@@ -605,6 +631,10 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         composing: "Composing the document with citations",
         guardian: "Brand Guardian checking claims and tone",
       },
+
+      deckReportTitle: "Deck length report",
+      deckReportSummary: (actual: number, chapters: number) =>
+        `${actual} slides across ${chapters} chapters.`,
 
       refineAppliedPass:
         "Applied. All claims re-cited and the Brand Guardian cleared the revision.",
@@ -834,6 +864,21 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         n === 1 ? "1 diseño seleccionado" : `${n} diseños seleccionados`,
       poolPickClear: "Borrar selección",
 
+      deckLengthLabel: "Longitud del deck",
+      deckLengthHint:
+        "Los decks extendido y completo se componen capítulo a capítulo con recuperación de evidencia adicional por capítulo — tardan bastante más y consumen más de tu cuota de generación. Si el corpus permitido es escaso, el deck se acorta con honestidad en lugar de rellenarse.",
+      deckLengthOptions: {
+        standard: { name: "Estándar", desc: "Unas 12-16 diapositivas. Una sola pasada, la más rápida." },
+        extended: {
+          name: "Extendido",
+          desc: "Unas 25-35 diapositivas por capítulos. Varias llamadas al modelo — tarda unos minutos.",
+        },
+        full: {
+          name: "Completo",
+          desc: "Unas 40-60 diapositivas por capítulos. La opción más larga y la que más cuota consume.",
+        },
+      },
+
       shapes: {
         messaging: {
           name: "Casa de mensajes",
@@ -1029,6 +1074,10 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         composing: "Componiendo el documento con citas",
         guardian: "Brand Guardian verificando afirmaciones y tono",
       },
+
+      deckReportTitle: "Informe de longitud del deck",
+      deckReportSummary: (actual: number, chapters: number) =>
+        `${actual} diapositivas en ${chapters} capítulos.`,
 
       refineAppliedPass:
         "Aplicado. Todas las afirmaciones se han vuelto a citar y el Brand Guardian aprobó la revisión.",
@@ -1264,6 +1313,21 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         n === 1 ? "1 Layout ausgewählt" : `${n} Layouts ausgewählt`,
       poolPickClear: "Auswahl aufheben",
 
+      deckLengthLabel: "Deck-Länge",
+      deckLengthHint:
+        "Erweiterte und vollständige Decks werden Kapitel für Kapitel mit zusätzlicher Evidenz-Recherche pro Kapitel erstellt — das dauert deutlich länger und verbraucht mehr Ihres Generierungskontingents. Ist der zulässige Korpus dünn, wird das Deck ehrlich gekürzt statt aufgefüllt.",
+      deckLengthOptions: {
+        standard: { name: "Standard", desc: "Etwa 12-16 Folien. Ein Durchlauf, am schnellsten." },
+        extended: {
+          name: "Erweitert",
+          desc: "Etwa 25-35 Folien in Kapiteln. Mehrere Modellaufrufe — dauert einige Minuten.",
+        },
+        full: {
+          name: "Vollständig",
+          desc: "Etwa 40-60 Folien in Kapiteln. Die längste und kontingentintensivste Option.",
+        },
+      },
+
       shapes: {
         messaging: {
           name: "Messaging-House",
@@ -1459,6 +1523,10 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         composing: "Das Dokument wird mit Zitaten erstellt",
         guardian: "Brand Guardian prüft Aussagen und Ton",
       },
+
+      deckReportTitle: "Bericht zur Deck-Länge",
+      deckReportSummary: (actual: number, chapters: number) =>
+        `${actual} Folien in ${chapters} Kapiteln.`,
 
       refineAppliedPass:
         "Angewendet. Alle Aussagen wurden neu zitiert und der Brand Guardian hat die Überarbeitung freigegeben.",
@@ -1693,6 +1761,21 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         n === 1 ? "1 layout selecionado" : `${n} layouts selecionados`,
       poolPickClear: "Limpar seleção",
 
+      deckLengthLabel: "Comprimento do deck",
+      deckLengthHint:
+        "Decks estendido e completo são compostos capítulo a capítulo com recuperação de evidência adicional por capítulo — demoram bem mais e consomem mais da sua cota de geração. Se o corpus permitido for escasso, o deck é encurtado com honestidade em vez de preenchido.",
+      deckLengthOptions: {
+        standard: { name: "Padrão", desc: "Cerca de 12-16 slides. Uma única passagem, a mais rápida." },
+        extended: {
+          name: "Estendido",
+          desc: "Cerca de 25-35 slides em capítulos. Várias chamadas ao modelo — leva alguns minutos.",
+        },
+        full: {
+          name: "Completo",
+          desc: "Cerca de 40-60 slides em capítulos. A opção mais longa e que mais cota consome.",
+        },
+      },
+
       shapes: {
         messaging: {
           name: "Casa de mensagens",
@@ -1888,6 +1971,10 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         composing: "Compondo o documento com citações",
         guardian: "Brand Guardian verificando afirmações e tom",
       },
+
+      deckReportTitle: "Relatório de comprimento do deck",
+      deckReportSummary: (actual: number, chapters: number) =>
+        `${actual} slides em ${chapters} capítulos.`,
 
       refineAppliedPass:
         "Aplicado. Todas as afirmações foram recitadas e o Brand Guardian aprovou a revisão.",

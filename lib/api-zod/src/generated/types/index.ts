@@ -105,6 +105,8 @@ export * from './createAxisInput';
 export * from './createAxisResult';
 export * from './createScheduleInput';
 export * from './dataSource';
+export * from './deckChapter';
+export * from './deckReport';
 export * from './delayRisk';
 export * from './deliveryRecord';
 export * from './disclaimerAsset';

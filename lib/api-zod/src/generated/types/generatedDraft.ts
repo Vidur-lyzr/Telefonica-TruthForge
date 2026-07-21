@@ -8,6 +8,7 @@
 import type { AskSignals } from './askSignals';
 import type { ChartSpec } from './chartSpec';
 import type { Citation } from './citation';
+import type { DeckReport } from './deckReport';
 import type { DraftDisclaimer } from './draftDisclaimer';
 import type { DraftExclusion } from './draftExclusion';
 import type { DraftParams } from './draftParams';
@@ -61,4 +62,6 @@ export interface GeneratedDraft {
   askSignals?: null | AskSignals;
   /** Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design. */
   visualSlides?: VisualSlide[];
+  /** Honest length report for chaptered visual decks (extended/full): what was requested, what the chapter plan targeted, what the permitted corpus actually supported, and per-chapter slide spans used for chapter-scoped refines. Absent on standard decks. */
+  deckReport?: null | DeckReport;
 }
