@@ -51,7 +51,7 @@ export async function renderExportPreview(
 ): Promise<ExportPreviewResult> {
   const gates = computeGateStatus(draft);
   try {
-    const model = buildExportModel(draft, destination, templateId, {
+    const model = await buildExportModel(draft, destination, templateId, {
       releaseGates: false,
     });
     if (!model.template.formats.includes(format)) {

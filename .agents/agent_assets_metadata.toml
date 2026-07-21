@@ -48,3 +48,81 @@ id = "PXQYv2FtwlOfs2uH4_97_"
 uri = "file://reports/rfp-compliance-report.md"
 type = "text"
 title = "RFP Compliance Report — Hub SSoT (A–L + CP-01–29)"
+
+[[outputs]]
+id = "qc7qw-5GPWWEkhHQCEjta"
+uri = "file://attached_assets/stock_images/telecom_tower.jpg"
+type = "image"
+title = "telecommunications antenna tower against blue sky"
+
+[[outputs]]
+id = "zF3sNCauerjSZTq5ogiKU"
+uri = "file://attached_assets/stock_images/fiber_optics.jpg"
+type = "image"
+title = "fiber optic cables glowing blue macro"
+
+[[outputs]]
+id = "5VGUVBZAlSImVW7khip6K"
+uri = "file://attached_assets/stock_images/office_team_meeting.jpg"
+type = "image"
+title = "diverse business team meeting in modern office"
+
+[[outputs]]
+id = "EhglcxJ3Ksh9F1UGDkc0b"
+uri = "file://attached_assets/stock_images/datacenter_corridor.jpg"
+type = "image"
+title = "data center server room corridor blue lights"
+
+[[outputs]]
+id = "SrR8zWxUl4eWfXNFx9Qjb"
+uri = "file://attached_assets/stock_images/city_skyline_dusk.jpg"
+type = "image"
+title = "modern city skyline at dusk with lights"
+
+[[outputs]]
+id = "mx5fgQzPNmELyu8Wy3rEs"
+uri = "file://attached_assets/stock_images/field_engineer.jpg"
+type = "image"
+title = "engineer with hard hat and tablet at antenna site"
+
+[[outputs]]
+id = "lgkTYbsgnFTA6Z2q2U-2i"
+uri = "file://attached_assets/stock_images/customer_smartphone.jpg"
+type = "image"
+title = "person using smartphone close-up urban"
+
+[[outputs]]
+id = "1guv26EEtUsB9FadrZnoL"
+uri = "file://attached_assets/stock_images/abstract_network.jpg"
+type = "image"
+title = "abstract blue technology network connections background"
+
+[[outputs]]
+id = "tP3e9Lwu5ONV9Z5Y4k9YY"
+uri = "file://attached_assets/stock_images/football_stadium.jpg"
+type = "image"
+title = "football stadium floodlights crowd"
+
+[[outputs]]
+id = "17zIp8h2pPw54MwbaoPXv"
+uri = "file://attached_assets/stock_images/support_agent.jpg"
+type = "image"
+title = "customer service agent with headset smiling"
+
+[[outputs]]
+id = "6reUkF4iCri0_YwLMX742"
+uri = "file://attached_assets/stock_images/city_skyline_dusk_real_1.jpg"
+type = "image"
+title = "city skyline at dusk with illuminated skyscrapers, real photograph"
+
+[[outputs]]
+id = "FxOO7rFgtTmnTI3nThEH0"
+uri = "file://attached_assets/stock_images/city_skyline_dusk_real_2.jpg"
+type = "image"
+title = "city skyline at dusk with illuminated skyscrapers, real photograph"
+
+[[outputs]]
+id = "CbyJhhTn8TQkYi6eny5Vw"
+uri = "file://attached_assets/stock_images/city_skyline_dusk_real_3.jpg"
+type = "image"
+title = "city skyline at dusk with illuminated skyscrapers, real photograph"

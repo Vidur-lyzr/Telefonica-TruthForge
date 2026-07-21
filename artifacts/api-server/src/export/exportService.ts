@@ -39,6 +39,11 @@ import { renderDocx } from "./renderers/docxRenderer";
 import { renderPptx } from "./renderers/pptxRenderer";
 import { renderPdf } from "./renderers/pdfRenderer";
 import { renderTxt, renderMd } from "./renderers/textRenderer";
+import {
+  resolveVisualSlides,
+  VisualSlideError,
+  type VisualSlideModel,
+} from "./visualLayouts";
 
 export type ExportDestination = "internal" | "external";
 
@@ -85,6 +90,10 @@ export interface ExportDocumentModel {
     snippet: string;
   }[];
   disclaimers: { name: string; text: string }[];
+  // Resolved visual slides (coded layouts with validated slots and embedded
+  // image bytes). Non-empty ⇒ the deck pipeline replaces the text-first slide
+  // sequence and the PDF export renders slide pages. See visualLayouts.ts.
+  visualSlides: VisualSlideModel[];
 }
 
 export class ExportRefusedError extends Error {
@@ -241,12 +250,12 @@ export function computeGateStatus(draft: GeneratedDraft): ExportGateStatus {
   };
 }
 
-export function buildExportModel(
+export async function buildExportModel(
   draft: GeneratedDraft,
   destination: ExportDestination,
   templateId?: string | null,
   options?: BuildExportModelOptions,
-): ExportDocumentModel {
+): Promise<ExportDocumentModel> {
   const releaseGates = options?.releaseGates !== false;
   assertExportable(draft);
   if (releaseGates) {
@@ -332,6 +341,36 @@ export function buildExportModel(
       }))
     : [];
 
+  // Visual slides: validated against their layout schemas, image slots
+  // resolved to approved brand-library bytes, ops composed once here so every
+  // renderer embeds identical pixels. Only templates that declare a visual
+  // block consume them — a text-first template ignores stray visual slides.
+  const wantsVisual = template.blocks.some((b) => b.kind === "visual");
+  const generatedAt = new Date().toISOString();
+  let visualSlides: VisualSlideModel[] = [];
+  if (wantsVisual && (draft.visualSlides ?? []).length > 0) {
+    try {
+      visualSlides = await resolveVisualSlides(draft.visualSlides ?? [], {
+        footerLabel: template.design.footerLabel,
+        confidentiality: draft.confidentiality,
+        generatedAt,
+        charts: draft.charts.map((c) => ({
+          id: c.id,
+          title: c.title,
+          unit: c.unit,
+          source: c.source,
+          citationId: c.citationId ?? null,
+          points: c.points,
+        })),
+      });
+    } catch (err) {
+      if (err instanceof VisualSlideError) {
+        throw new ExportRefusedError("not_exportable", err.message);
+      }
+      throw err;
+    }
+  }
+
   return {
     template,
     title: draft.title,
@@ -340,7 +379,7 @@ export function buildExportModel(
     audience: draft.audience,
     confidentiality: draft.confidentiality,
     destination,
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     umbrella: draft.umbrella ? stripEmphasisMarkers(draft.umbrella) : null,
     // The raw Q&A section stays in `sections` (pptx/pdf render it as plain
     // text and never see notes); the docx renderer skips isQa sections and
@@ -361,6 +400,7 @@ export function buildExportModel(
       snippet: c.snippet,
     })),
     disclaimers: draft.disclaimers.map((d) => ({ name: d.name, text: d.text })),
+    visualSlides,
   };
 }
 
@@ -398,7 +438,7 @@ export async function exportDraft(
   destination: ExportDestination,
   templateId?: string | null,
 ): Promise<ExportResult> {
-  const model = buildExportModel(draft, destination, templateId);
+  const model = await buildExportModel(draft, destination, templateId);
   if (!model.template.formats.includes(format)) {
     throw new ExportRefusedError(
       "not_exportable",
@@ -434,7 +474,7 @@ export async function exportPack(
   destination: ExportDestination,
   templateId?: string | null,
 ): Promise<ExportResult> {
-  const model = buildExportModel(draft, destination, templateId);
+  const model = await buildExportModel(draft, destination, templateId);
   const allowed = model.template.formats;
   const requested = formats.length > 0 ? formats : allowed;
   const unique = Array.from(new Set(requested));

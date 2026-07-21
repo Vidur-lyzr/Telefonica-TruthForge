@@ -42,10 +42,26 @@ export function runBrandGuardian(draft: GeneratedDraft): GuardianResult {
     };
   }
 
+  // Visual-deck slot text is display copy on rendered slides — it must pass
+  // the same brand checks as the document body. Ids (image/chart references)
+  // are harmless to include; only strings are collected.
+  const collectStrings = (value: unknown): string[] => {
+    if (typeof value === "string") return [value];
+    if (Array.isArray(value)) return value.flatMap(collectStrings);
+    if (value && typeof value === "object") {
+      return Object.values(value as Record<string, unknown>).flatMap(collectStrings);
+    }
+    return [];
+  };
+  const visualText = (draft.visualSlides ?? [])
+    .flatMap((s) => collectStrings(s.slots))
+    .join("\n");
+
   const allText = [
     draft.title,
     draft.umbrella ?? "",
     ...draft.sections.map((s) => `${s.heading} ${s.body}`),
+    visualText,
   ].join("\n");
 
   // 1. Uncited substantive claims — every claim-bearing section AND the umbrella

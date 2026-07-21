@@ -139,6 +139,101 @@ export interface ResetToneBody {
   roleId: string;
 }
 
+export interface BrandImage {
+  id: string;
+  objectPath: string;
+  filename: string;
+  contentType: string;
+  width: number;
+  height: number;
+  label: string;
+  tags: string[];
+  uploadedBy: string;
+  uploadedAt: string;
+}
+
+export interface BrandImagesView {
+  images: BrandImage[];
+  tags: string[];
+}
+
+export type RequestImageUploadUrlBodyContentType = typeof RequestImageUploadUrlBodyContentType[keyof typeof RequestImageUploadUrlBodyContentType];
+
+
+export const RequestImageUploadUrlBodyContentType = {
+  'image/png': 'image/png',
+  'image/jpeg': 'image/jpeg',
+} as const;
+
+export interface RequestImageUploadUrlBody {
+  roleId: string;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  filename: string;
+  contentType: RequestImageUploadUrlBodyContentType;
+  /**
+     * @minimum 1
+     * @maximum 15728640
+     */
+  size?: number;
+}
+
+export interface RequestImageUploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+}
+
+export interface BrandImageConfirmBody {
+  roleId: string;
+  objectPath: string;
+  /**
+     * @minLength 1
+     * @maxLength 160
+     */
+  filename: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  label: string;
+  /**
+     * @minItems 1
+     * @maxItems 12
+     * @items.minLength 1
+     * @items.maxLength 40
+     */
+  tags: string[];
+}
+
+export interface BrandImageEditBody {
+  roleId: string;
+  id: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  label?: string;
+  /**
+     * @minItems 1
+     * @maxItems 12
+     * @items.minLength 1
+     * @items.maxLength 40
+     */
+  tags?: string[];
+}
+
+export interface BrandImageDeleteBody {
+  roleId: string;
+  id: string;
+}
+
+export interface BrandImageDeleteResult {
+  ok: boolean;
+  id: string;
+}
+
 export interface BrandResource {
   id: string;
   name: string;
@@ -341,6 +436,18 @@ export interface AskSignals {
   note?: string | null;
 }
 
+/**
+ * Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout's strict schema.
+ */
+export type VisualSlideSlots = { [key: string]: unknown };
+
+export interface VisualSlide {
+  /** Id of a coded visual layout in the server layout registry. */
+  layoutId: string;
+  /** Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout's strict schema. */
+  slots: VisualSlideSlots;
+}
+
 export interface GeneratedDraft {
   id: string;
   /** drafted | no_evidence | permission_blocked */
@@ -382,6 +489,8 @@ export interface GeneratedDraft {
   approved?: boolean;
   /** Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict / low-confidence / historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories. */
   askSignals?: null | AskSignals;
+  /** Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design. */
+  visualSlides?: VisualSlide[];
 }
 
 export interface GenerationJob {
@@ -2559,7 +2668,7 @@ export interface BriefAttachments {
 }
 
 export interface GenerateInput {
-  /** messaging | press | multiformat */
+  /** messaging | press | multiformat | visualdeck */
   shape: string;
   /** @minLength 1 */
   topic: string;
@@ -4132,6 +4241,10 @@ roleId?: string;
 
 export type GetBrandTemplate404 = {
   error: string;
+};
+
+export type GetBrandImageContentParams = {
+id: string;
 };
 
 export type GetBrandResourcesParams = {

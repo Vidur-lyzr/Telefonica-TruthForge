@@ -10,7 +10,7 @@ import type { BriefAttachments } from './briefAttachments';
 import type { KpiReportContext } from './kpiReportContext';
 
 export interface GenerateInput {
-  /** messaging | press | multiformat */
+  /** messaging | press | multiformat | visualdeck */
   shape: string;
   /** @minLength 1 */
   topic: string;

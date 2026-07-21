@@ -13,6 +13,7 @@ import type { TemplateDesign } from "../exportTemplates";
 import { THEME_COLORS } from "../exportTheme";
 import { brandFontPath, brandMarkPng } from "../brandAssets";
 import { buildSlides } from "../slideModel";
+import type { VisualSlideModel } from "../visualLayouts";
 
 const BRAND = THEME_COLORS.brand;
 const NAVY = THEME_COLORS.navy;
@@ -169,6 +170,67 @@ function slideTable(
   for (const row of o.rows) drawRow(row, 10);
 }
 
+// Interpreter for the visual layout draw ops — the pdfkit mirror of
+// pptxRenderer's addVisualSlide, every coordinate * 72. Exported so the real
+// .pdf export of a visual deck (pdfRenderer) draws the very same pages.
+export function drawVisualOps(doc: PDFKit.PDFDocument, slide: VisualSlideModel): void {
+  for (const op of slide.ops) {
+    switch (op.op) {
+      case "rect": {
+        if (op.alpha !== undefined) {
+          doc.save();
+          doc.fillOpacity(op.alpha);
+          doc.rect(op.x * IN, op.y * IN, op.w * IN, op.h * IN).fill(op.fill);
+          doc.restore();
+        } else {
+          rect(doc, op.x, op.y, op.w, op.h, op.fill);
+        }
+        break;
+      }
+      case "line": {
+        hline(doc, op.x, op.y, op.w, op.color, op.pt);
+        break;
+      }
+      case "text": {
+        textBox(doc, op.text, {
+          x: op.x, y: op.y, w: op.w, h: op.h,
+          size: op.size,
+          color: op.color,
+          bold: op.bold,
+          italic: op.italic,
+          align: op.align,
+          valign: op.valign,
+          lineSpacingMultiple: op.lineSpacing,
+          charSpacing: op.charSpacing,
+        });
+        break;
+      }
+      case "image": {
+        const bytes = slide.images[op.key];
+        if (bytes) {
+          // Cover-crop inside a clip so the image never bleeds past its box —
+          // mirrors pptxgenjs sizing { type: "cover" }.
+          doc.save();
+          doc.rect(op.x * IN, op.y * IN, op.w * IN, op.h * IN).clip();
+          doc.image(bytes, op.x * IN, op.y * IN, {
+            cover: [op.w * IN, op.h * IN],
+            align: "center",
+            valign: "center",
+          });
+          doc.restore();
+        } else {
+          rect(doc, op.x, op.y, op.w, op.h, ZEBRA);
+        }
+        break;
+      }
+      case "mark": {
+        mark(doc, op.color, op.x, op.y, op.w, op.h);
+        break;
+      }
+    }
+  }
+}
+
 // Title slide — a 1:1 mirror of pptxRenderer's addTitleSlide per cover style.
 function addTitleSlide(doc: PDFKit.PDFDocument, model: ExportDocumentModel, design: TemplateDesign): void {
   doc.addPage();
@@ -275,6 +337,11 @@ export async function renderPptxPreviewPdf(model: ExportDocumentModel): Promise<
 
   for (const spec of buildSlides(model)) {
     switch (spec.kind) {
+      case "visual": {
+        doc.addPage();
+        drawVisualOps(doc, spec.slide);
+        break;
+      }
       case "title": {
         addTitleSlide(doc, model, design);
         break;

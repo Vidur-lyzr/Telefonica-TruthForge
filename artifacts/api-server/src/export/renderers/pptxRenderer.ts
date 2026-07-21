@@ -9,7 +9,7 @@ import type { ExportDocumentModel } from "../exportService";
 import type { TemplateDesign } from "../exportTemplates";
 import { THEME_COLORS } from "../exportTheme";
 import { brandMarkPng, BRAND_FONT_FAMILY } from "../brandAssets";
-import { buildSlides } from "../slideModel";
+import { buildSlides, type SlideSpec } from "../slideModel";
 
 const hex = (c: string) => c.replace("#", "");
 const BRAND = hex(THEME_COLORS.brand);
@@ -75,6 +75,71 @@ function contentSlide(pptx: PptxGenJS, design: TemplateDesign): PptxGenJS.Slide 
 
 function markData(color: string): string {
   return `image/png;base64,${brandMarkPng(160, color).toString("base64")}`;
+}
+
+// Data-URI for embedded image bytes, mime sniffed from magic bytes so JPEG
+// library photos and PNG chart renders both round-trip correctly.
+function imageData(bytes: Buffer): string {
+  const mime =
+    bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 ? "image/jpeg" : "image/png";
+  return `${mime};base64,${bytes.toString("base64")}`;
+}
+
+// Interpreter for the visual layout draw ops (visualLayouts.ts). Purely
+// mechanical: no layout decisions live here — coordinates, colours and copy
+// all arrive pre-composed in inches.
+function addVisualSlide(pptx: PptxGenJS, spec: Extract<SlideSpec, { kind: "visual" }>): void {
+  const s = pptx.addSlide();
+  s.background = { color: INVERSE };
+  for (const op of spec.slide.ops) {
+    switch (op.op) {
+      case "rect": {
+        const fill: { color: string; transparency?: number } = { color: hex(op.fill) };
+        if (op.alpha !== undefined) fill.transparency = Math.round((1 - op.alpha) * 100);
+        s.addShape("rect", { x: op.x, y: op.y, w: op.w, h: op.h, fill });
+        break;
+      }
+      case "line": {
+        s.addShape("line", {
+          x: op.x, y: op.y, w: op.w, h: 0,
+          line: { color: hex(op.color), width: op.pt },
+        });
+        break;
+      }
+      case "text": {
+        s.addText(op.text, {
+          x: op.x, y: op.y, w: op.w, h: op.h,
+          fontFace: FONT,
+          fontSize: op.size,
+          color: hex(op.color),
+          bold: op.bold ?? false,
+          italic: op.italic ?? false,
+          align: op.align ?? "left",
+          valign: op.valign === "top" ? "top" : "middle",
+          ...(op.lineSpacing ? { lineSpacingMultiple: op.lineSpacing } : {}),
+          ...(op.charSpacing ? { charSpacing: op.charSpacing } : {}),
+        });
+        break;
+      }
+      case "image": {
+        const bytes = spec.slide.images[op.key];
+        if (bytes) {
+          s.addImage({
+            data: imageData(bytes),
+            x: op.x, y: op.y, w: op.w, h: op.h,
+            sizing: { type: "cover", w: op.w, h: op.h },
+          });
+        } else {
+          s.addShape("rect", { x: op.x, y: op.y, w: op.w, h: op.h, fill: { color: ZEBRA } });
+        }
+        break;
+      }
+      case "mark": {
+        s.addImage({ data: markData(op.color), x: op.x, y: op.y, w: op.w, h: op.h });
+        break;
+      }
+    }
+  }
 }
 
 // Title slide, laid out per the template's cover style.
@@ -177,6 +242,10 @@ export async function renderPptx(model: ExportDocumentModel): Promise<Buffer> {
   // matches the deck they previewed, slide for slide.
   for (const spec of buildSlides(model)) {
     switch (spec.kind) {
+      case "visual": {
+        addVisualSlide(pptx, spec);
+        break;
+      }
       case "title": {
         addTitleSlide(pptx, model, design);
         break;

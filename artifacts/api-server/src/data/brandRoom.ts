@@ -216,6 +216,14 @@ const TEMPLATE_META: Record<DocShape, TemplateMeta> = {
     version: "v2.2",
     validity: "review",
   },
+  visualdeck: {
+    purpose:
+      "Compose a visually designed presentation deck from governed content: coded slide layouts, approved brand imagery, cited figures and charts.",
+    format: "Presentation (.pptx / .pdf)",
+    owner: "Executive Communications",
+    version: "v1.0",
+    validity: "approved",
+  },
 };
 
 const BRAND_TEMPLATES: BrandTemplate[] = TEMPLATES.map((t) => ({

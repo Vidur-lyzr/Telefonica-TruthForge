@@ -15,6 +15,7 @@ export interface BrandStrings {
     templates: string;
     tone: string;
     resources: string;
+    images: string;
     design: string;
     guardian: string;
   };
@@ -123,6 +124,26 @@ export interface BrandStrings {
   resetTone: string;
   toneSaveError: string;
   guardianError: string;
+  images: {
+    intro: string;
+    filterAll: string;
+    empty: string;
+    upload: string;
+    uploading: string;
+    chooseFile: string;
+    noFile: string;
+    labelField: string;
+    tagsField: string;
+    tagsHelper: string;
+    edit: string;
+    save: string;
+    cancel: string;
+    remove: string;
+    confirmRemove: string;
+    uploadError: string;
+    saveError: string;
+    removeError: string;
+  };
 }
 
 export const BRAND_I18N: Record<Lang, BrandStrings> = {
@@ -133,6 +154,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
       templates: "Templates",
       tone: "Tone of voice",
       resources: "Resources",
+      images: "Image library",
       design: "Design system",
       guardian: "Brand Guardian",
     },
@@ -282,6 +304,27 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     resetTone: "Reset to default",
     toneSaveError: "The tone of voice could not be saved.",
     guardianError: "The Brand Guardian could not complete this check. Try again.",
+    images: {
+      intro:
+        "The governed image catalogue behind visual decks. The generate agent only places images from this list, so everything that lands on a slide is brand-approved.",
+      filterAll: "All tags",
+      empty: "No images in the library yet.",
+      upload: "Add image",
+      uploading: "Uploading…",
+      chooseFile: "Choose PNG or JPEG",
+      noFile: "No file selected",
+      labelField: "Label",
+      tagsField: "Tags",
+      tagsHelper: "Comma-separated, e.g. network, datacenter, teamwork",
+      edit: "Edit",
+      save: "Save",
+      cancel: "Cancel",
+      remove: "Remove",
+      confirmRemove: "Remove this image from the library?",
+      uploadError: "The image could not be uploaded. Check it is a valid PNG or JPEG and try again.",
+      saveError: "The change could not be saved. Try again.",
+      removeError: "The image could not be removed. Try again.",
+    },
   },
   ES: {
     intro:
@@ -290,6 +333,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
       templates: "Plantillas",
       tone: "Tono de voz",
       resources: "Recursos",
+      images: "Imágenes",
       design: "Sistema de diseño",
       guardian: "Brand Guardian",
     },
@@ -441,6 +485,27 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     resetTone: "Restaurar el valor por defecto",
     toneSaveError: "No se pudo guardar el tono de voz.",
     guardianError: "El Brand Guardian no pudo completar esta comprobación. Inténtalo de nuevo.",
+    images: {
+      intro:
+        "El catálogo gobernado de imágenes detrás de los decks visuales. El agente de generación solo coloca imágenes de esta lista, así que todo lo que llega a una diapositiva está aprobado por la marca.",
+      filterAll: "Todas las etiquetas",
+      empty: "Aún no hay imágenes en la biblioteca.",
+      upload: "Añadir imagen",
+      uploading: "Subiendo…",
+      chooseFile: "Elegir PNG o JPEG",
+      noFile: "Ningún archivo seleccionado",
+      labelField: "Etiqueta",
+      tagsField: "Tags",
+      tagsHelper: "Separadas por comas, p. ej. red, datacenter, equipo",
+      edit: "Editar",
+      save: "Guardar",
+      cancel: "Cancelar",
+      remove: "Eliminar",
+      confirmRemove: "¿Eliminar esta imagen de la biblioteca?",
+      uploadError: "No se pudo subir la imagen. Comprueba que sea un PNG o JPEG válido e inténtalo de nuevo.",
+      saveError: "No se pudo guardar el cambio. Inténtalo de nuevo.",
+      removeError: "No se pudo eliminar la imagen. Inténtalo de nuevo.",
+    },
   },
   DE: {
     intro:
@@ -449,6 +514,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
       templates: "Vorlagen",
       tone: "Tonfall",
       resources: "Ressourcen",
+      images: "Bilder",
       design: "Designsystem",
       guardian: "Brand Guardian",
     },
@@ -601,6 +667,27 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     resetTone: "Auf Standard zurücksetzen",
     toneSaveError: "Die Tonalität konnte nicht gespeichert werden.",
     guardianError: "Der Brand Guardian konnte diese Prüfung nicht abschließen. Bitte erneut versuchen.",
+    images: {
+      intro:
+        "Der kontrollierte Bildkatalog hinter den visuellen Decks. Der Generierungs-Agent platziert nur Bilder aus dieser Liste — alles auf einer Folie ist markenfreigegeben.",
+      filterAll: "Alle Tags",
+      empty: "Noch keine Bilder in der Bibliothek.",
+      upload: "Bild hinzufügen",
+      uploading: "Wird hochgeladen…",
+      chooseFile: "PNG oder JPEG wählen",
+      noFile: "Keine Datei ausgewählt",
+      labelField: "Bezeichnung",
+      tagsField: "Tags",
+      tagsHelper: "Kommagetrennt, z. B. Netz, Rechenzentrum, Team",
+      edit: "Bearbeiten",
+      save: "Speichern",
+      cancel: "Abbrechen",
+      remove: "Entfernen",
+      confirmRemove: "Dieses Bild aus der Bibliothek entfernen?",
+      uploadError: "Das Bild konnte nicht hochgeladen werden. Prüfen Sie, ob es ein gültiges PNG oder JPEG ist, und versuchen Sie es erneut.",
+      saveError: "Die Änderung konnte nicht gespeichert werden. Bitte erneut versuchen.",
+      removeError: "Das Bild konnte nicht entfernt werden. Bitte erneut versuchen.",
+    },
   },
   PT: {
     intro:
@@ -609,6 +696,7 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
       templates: "Modelos",
       tone: "Tom de voz",
       resources: "Recursos",
+      images: "Imagens",
       design: "Sistema de design",
       guardian: "Brand Guardian",
     },
@@ -759,5 +847,26 @@ export const BRAND_I18N: Record<Lang, BrandStrings> = {
     resetTone: "Redefinir para o padrão",
     toneSaveError: "Não foi possível salvar o tom de voz.",
     guardianError: "O Brand Guardian não conseguiu concluir esta verificação. Tente novamente.",
+    images: {
+      intro:
+        "O catálogo governado de imagens por trás dos decks visuais. O agente de geração só coloca imagens desta lista, então tudo o que chega a um slide está aprovado pela marca.",
+      filterAll: "Todas as tags",
+      empty: "Ainda não há imagens na biblioteca.",
+      upload: "Adicionar imagem",
+      uploading: "Enviando…",
+      chooseFile: "Escolher PNG ou JPEG",
+      noFile: "Nenhum arquivo selecionado",
+      labelField: "Rótulo",
+      tagsField: "Tags",
+      tagsHelper: "Separadas por vírgulas, ex.: rede, datacenter, equipe",
+      edit: "Editar",
+      save: "Salvar",
+      cancel: "Cancelar",
+      remove: "Remover",
+      confirmRemove: "Remover esta imagem da biblioteca?",
+      uploadError: "Não foi possível enviar a imagem. Verifique se é um PNG ou JPEG válido e tente novamente.",
+      saveError: "Não foi possível salvar a alteração. Tente novamente.",
+      removeError: "Não foi possível remover a imagem. Tente novamente.",
+    },
   },
 };

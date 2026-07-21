@@ -155,7 +155,7 @@ router.post("/generate", async (req, res) => {
   try {
     const result = await runGenerateAgent(
       {
-        shape: parsed.data.shape as "messaging" | "press" | "multiformat",
+        shape: parsed.data.shape as "messaging" | "press" | "multiformat" | "visualdeck",
         topic: parsed.data.topic,
         roleId: parsed.data.roleId,
         audience: parsed.data.audience as "internal" | "external",
@@ -898,7 +898,7 @@ router.post("/generate/jobs", async (req, res) => {
   if (!requireCapability(req, res, "use_modules", "partial", parsed.data.roleId)) return;
   const job = createJob("generate");
   const input = {
-    shape: parsed.data.shape as "messaging" | "press" | "multiformat",
+    shape: parsed.data.shape as "messaging" | "press" | "multiformat" | "visualdeck",
     topic: parsed.data.topic,
     roleId: parsed.data.roleId,
     audience: parsed.data.audience as "internal" | "external",

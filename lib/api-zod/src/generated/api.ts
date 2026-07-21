@@ -2490,7 +2490,11 @@ export const SchedulePlanningForecastResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 }),
   "forecast": zod.object({
@@ -2678,7 +2682,11 @@ export const SchedulePlanningForecastResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),zod.null()]).optional().describe('Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.')
 })
 })
@@ -2877,7 +2885,11 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 }),
   "forecast": zod.object({
@@ -3065,7 +3077,11 @@ export const CreatePlanningForecastScheduleResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),zod.null()]).optional().describe('Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.')
 })
 })
@@ -3319,7 +3335,11 @@ export const PlanningForecastResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),zod.null()]).optional().describe('Server-built governed draft of this forecast for the canvas editor. Only attached by the direct forecast endpoint.')
 })
 
@@ -3332,7 +3352,7 @@ export const PlanningForecastResponse = zod.object({
 
 
 export const GenerateBody = zod.object({
-  "shape": zod.string().describe('messaging | press | multiformat'),
+  "shape": zod.string().describe('messaging | press | multiformat | visualdeck'),
   "topic": zod.string().min(1),
   "roleId": zod.string().describe('Active persona id (drives clearance)'),
   "audience": zod.string().describe('internal | external'),
@@ -3492,7 +3512,11 @@ export const GenerateResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 
 
@@ -3627,7 +3651,11 @@ export const RefineDocumentBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "instruction": zod.string().min(1),
   "roleId": zod.string(),
@@ -3758,7 +3786,11 @@ export const RefineDocumentResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 
 
@@ -3890,7 +3922,11 @@ export const CheckDocumentBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 })
 
@@ -4039,7 +4075,11 @@ export const CanvasSuggestionsBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "sectionId": zod.string(),
   "roleId": zod.string()
@@ -4188,7 +4228,11 @@ export const CanvasEditBlockBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "sectionId": zod.string(),
   "instruction": zod.string().min(1),
@@ -4321,7 +4365,11 @@ export const CanvasEditBlockResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "section": zod.object({
   "id": zod.string(),
@@ -4648,7 +4696,11 @@ export const RunScheduleResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 })
 
@@ -4790,7 +4842,11 @@ export const ListReviewItemsResponseItem = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 })
 export const ListReviewItemsResponse = zod.array(ListReviewItemsResponseItem)
@@ -4928,7 +4984,11 @@ export const ApproveReviewItemBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "roleId": zod.string().describe('Acting persona — must hold the approve_sensitive capability')
 })
@@ -5067,7 +5127,11 @@ export const ApproveReviewItemResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 })
 
@@ -5242,7 +5306,11 @@ export const ListVersionsResponseItem = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 })
 export const ListVersionsResponse = zod.array(ListVersionsResponseItem)
@@ -5376,7 +5444,11 @@ export const SaveVersionBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "savedBy": zod.string()
 })
@@ -5522,7 +5594,11 @@ export const SaveVersionResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 })
 })
 
@@ -5656,7 +5732,11 @@ export const ExportDocumentBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "format": zod.enum(['docx', 'pptx', 'pdf', 'txt', 'md']),
   "destination": zod.enum(['internal', 'external']).optional().describe('Export destination. \"external\" strips internal-only material and refuses any non-public content (default internal).\n'),
@@ -5795,7 +5875,11 @@ export const ExportDocumentPackBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "formats": zod.array(zod.enum(['docx', 'pptx', 'pdf', 'txt', 'md'])).optional().describe('Formats to bundle; empty\/absent bundles every format the template offers.'),
   "destination": zod.enum(['internal', 'external']).optional(),
@@ -5934,7 +6018,11 @@ export const ExportDocumentPreviewBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "format": zod.enum(['pdf', 'docx', 'pptx']),
   "destination": zod.enum(['internal', 'external']).optional().describe('Preview destination. \"external\" strips internal-only material and refuses any non-public content — exactly as the real export would.\n'),
@@ -6188,7 +6276,11 @@ export const RecordEditorialReviewBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "reviewedBy": zod.string()
 })
@@ -6328,7 +6420,7 @@ export const MarkNotificationsReadResponse = zod.array(MarkNotificationsReadResp
 
 
 export const StartGenerateJobBody = zod.object({
-  "shape": zod.string().describe('messaging | press | multiformat'),
+  "shape": zod.string().describe('messaging | press | multiformat | visualdeck'),
   "topic": zod.string().min(1),
   "roleId": zod.string().describe('Active persona id (drives clearance)'),
   "audience": zod.string().describe('internal | external'),
@@ -6493,7 +6585,11 @@ export const StartGenerateJobResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }).nullish(),
   "error": zod.string().nullish(),
   "errorCode": zod.string().nullish().describe('Machine-readable refusal code, e.g. quota_exceeded'),
@@ -6632,7 +6728,11 @@ export const StartRefineJobBody = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }),
   "instruction": zod.string().min(1),
   "roleId": zod.string(),
@@ -6768,7 +6868,11 @@ export const StartRefineJobResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }).nullish(),
   "error": zod.string().nullish(),
   "errorCode": zod.string().nullish().describe('Machine-readable refusal code, e.g. quota_exceeded'),
@@ -6912,7 +7016,11 @@ export const GetGenerationJobResponse = zod.object({
   "lowConfidence": zod.boolean(),
   "historic": zod.boolean().describe('Re-derived server-side from the re-validated handoff sources\' validity.'),
   "note": zod.string().nullish()
-})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n')
+})]).optional().describe('Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict \/ low-confidence \/ historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories.\n'),
+  "visualSlides": zod.array(zod.object({
+  "layoutId": zod.string().describe('Id of a coded visual layout in the server layout registry.'),
+  "slots": zod.record(zod.string(), zod.unknown()).describe('Layout-specific slot payload (titles, bodies, metric callouts, approved brand-library image ids, chart ids). Validated server-side against the layout\'s strict schema.\n')
+})).optional().describe('Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design.\n')
 }).nullish(),
   "error": zod.string().nullish(),
   "errorCode": zod.string().nullish().describe('Machine-readable refusal code, e.g. quota_exceeded'),
@@ -7528,6 +7636,140 @@ export const ResetToneOfVoiceResponse = zod.object({
   "updatedAt": zod.string(),
   "isDefault": zod.boolean()
 })
+
+
+/**
+ * @summary Governed brand image library (visual slide layouts pick only from here)
+ */
+export const GetBrandImagesResponse = zod.object({
+  "images": zod.array(zod.object({
+  "id": zod.string(),
+  "objectPath": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "label": zod.string(),
+  "tags": zod.array(zod.string()),
+  "uploadedBy": zod.string(),
+  "uploadedAt": zod.string()
+})),
+  "tags": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Request a presigned upload URL for a new library image (Brand admin)
+ */
+export const requestBrandImageUploadUrlBodyFilenameMax = 160;
+
+export const requestBrandImageUploadUrlBodySizeMax = 15728640;
+
+
+
+export const RequestBrandImageUploadUrlBody = zod.object({
+  "roleId": zod.string(),
+  "filename": zod.string().min(1).max(requestBrandImageUploadUrlBodyFilenameMax),
+  "contentType": zod.enum(['image/png', 'image/jpeg']),
+  "size": zod.number().min(1).max(requestBrandImageUploadUrlBodySizeMax).optional()
+})
+
+export const RequestBrandImageUploadUrlResponse = zod.object({
+  "uploadURL": zod.string(),
+  "objectPath": zod.string()
+})
+
+
+/**
+ * The server fetches the uploaded object, verifies it is a real PNG/JPEG and probes its pixel dimensions before the record becomes selectable by the generate agent. Unverifiable uploads are rejected.
+ * @summary Register an uploaded image in the library after server-side verification
+ */
+export const confirmBrandImageBodyFilenameMax = 160;
+
+export const confirmBrandImageBodyLabelMax = 120;
+
+export const confirmBrandImageBodyTagsItemMax = 40;
+
+export const confirmBrandImageBodyTagsMax = 12;
+
+
+
+export const ConfirmBrandImageBody = zod.object({
+  "roleId": zod.string(),
+  "objectPath": zod.string(),
+  "filename": zod.string().min(1).max(confirmBrandImageBodyFilenameMax),
+  "label": zod.string().min(1).max(confirmBrandImageBodyLabelMax),
+  "tags": zod.array(zod.string().min(1).max(confirmBrandImageBodyTagsItemMax)).min(1).max(confirmBrandImageBodyTagsMax)
+})
+
+export const ConfirmBrandImageResponse = zod.object({
+  "id": zod.string(),
+  "objectPath": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "label": zod.string(),
+  "tags": zod.array(zod.string()),
+  "uploadedBy": zod.string(),
+  "uploadedAt": zod.string()
+})
+
+
+/**
+ * @summary Edit a library image's label or tags (Brand admin)
+ */
+export const updateBrandImageBodyLabelMax = 120;
+
+export const updateBrandImageBodyTagsItemMax = 40;
+
+export const updateBrandImageBodyTagsMax = 12;
+
+
+
+export const UpdateBrandImageBody = zod.object({
+  "roleId": zod.string(),
+  "id": zod.string(),
+  "label": zod.string().min(1).max(updateBrandImageBodyLabelMax).optional(),
+  "tags": zod.array(zod.string().min(1).max(updateBrandImageBodyTagsItemMax)).min(1).max(updateBrandImageBodyTagsMax).optional()
+})
+
+export const UpdateBrandImageResponse = zod.object({
+  "id": zod.string(),
+  "objectPath": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "label": zod.string(),
+  "tags": zod.array(zod.string()),
+  "uploadedBy": zod.string(),
+  "uploadedAt": zod.string()
+})
+
+
+/**
+ * @summary Remove an image from the library (Brand admin)
+ */
+export const DeleteBrandImageBody = zod.object({
+  "roleId": zod.string(),
+  "id": zod.string()
+})
+
+export const DeleteBrandImageResponse = zod.object({
+  "ok": zod.boolean(),
+  "id": zod.string()
+})
+
+
+/**
+ * @summary Serve the bytes of a library image for in-app browsing
+ */
+export const GetBrandImageContentQueryParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetBrandImageContentResponse = zod.unknown()
 
 
 /**

@@ -20,7 +20,10 @@ export type ExportBlockKind =
   | "qa"
   | "spokesperson"
   | "citations"
-  | "disclaimers";
+  | "disclaimers"
+  // Coded visual slide layouts (visualLayouts.ts): the deck is composed from
+  // the draft's visualSlides instead of the text-first slide pipeline.
+  | "visual";
 
 export interface ExportTemplateBlock {
   kind: ExportBlockKind;
@@ -551,6 +554,136 @@ export const EXPORT_TEMPLATES: ExportTemplate[] = [
       },
     },
   },
+  {
+    id: "exp-visual-deck",
+    name: "Visual deck",
+    description:
+      "A designed slide deck built from coded Telefónica layouts: photo covers, stat rows, split layouts and chart slides — every figure still cited.",
+    owner: "Global Brand Office",
+    version: "v1.0",
+    shapes: ["visualdeck"],
+    formats: ["pptx", "pdf"],
+    blocks: [
+      { kind: "visual", label: "Designed slides", note: "Composed from approved brand layouts and the governed image library." },
+      { kind: "citations", label: "Evidence and citations" },
+      { kind: "disclaimers", label: "Disclaimers" },
+    ],
+    preview: {
+      heading: "Visual deck — strategy update",
+      lines: [
+        "Cover: full-bleed brand photo with title overlay.",
+        "KPI slide: three cited figures in stat cards [S1].",
+        "Split slide: image left, argument right [S2].",
+      ],
+    },
+    design: {
+      coverStyle: "brand-full",
+      accent: "brand",
+      headingStyle: "bar",
+      tableHeader: "brand",
+      footerLabel: "Visual deck · Global Brand Office",
+      tone: "Presentation register: one idea per slide, short assertive headlines, figures carried by the layout rather than prose.",
+    },
+    sample: {
+      kicker: "Designed deck",
+      title: "Visual deck — strategy update",
+      subtitle: "Global Brand Office · Coded layouts · Every figure cited",
+      sections: [
+        {
+          heading: "How this deck is built",
+          paragraphs: [
+            "Each slide is composed from an approved coded layout — photo cover, stat row, split, quote — with images drawn only from the governed brand library and every figure cited against governed sources [S1].",
+          ],
+        },
+      ],
+      table: {
+        title: "Slide inventory",
+        source: "Layout registry",
+        columns: ["Slide", "Layout", "Evidence"],
+        rows: [
+          ["1", "Photo cover", "—"],
+          ["2", "KPI stats", "[S1]"],
+          ["3", "Photo split", "[S2]"],
+        ],
+      },
+      chart: {
+        label: "Slides by layout family",
+        unit: "slides",
+        source: "Layout registry",
+        points: [
+          { label: "Cover", value: 1 },
+          { label: "Content", value: 6 },
+          { label: "Data", value: 3 },
+          { label: "Closing", value: 1 },
+        ],
+      },
+    },
+  },
+  {
+    id: "exp-visual-story",
+    name: "Visual story",
+    description:
+      "An editorial visual deck in the quieter navy register: masthead openers, quotes and imagery for narrative updates.",
+    owner: "Executive Communications",
+    version: "v1.0",
+    shapes: ["visualdeck"],
+    formats: ["pptx", "pdf"],
+    blocks: [
+      { kind: "visual", label: "Designed slides", note: "Composed from approved brand layouts and the governed image library." },
+      { kind: "citations", label: "Evidence and citations" },
+      { kind: "disclaimers", label: "Disclaimers" },
+    ],
+    preview: {
+      heading: "Visual story — brand momentum",
+      lines: [
+        "Opener: editorial masthead with headline.",
+        "Quote slide: approved executive line [S1].",
+        "Closing: five-dot motif and next steps.",
+      ],
+    },
+    design: {
+      coverStyle: "masthead",
+      accent: "navy",
+      headingStyle: "rule",
+      tableHeader: "navy",
+      footerLabel: "Visual story · Executive Communications",
+      tone: "Editorial register: narrative headlines, restrained navy palette, imagery carries the mood while citations carry the facts.",
+    },
+    sample: {
+      kicker: "Editorial deck",
+      title: "Visual story — brand momentum",
+      subtitle: "Executive Communications · Coded layouts · Every figure cited",
+      sections: [
+        {
+          heading: "How this deck is built",
+          paragraphs: [
+            "Slides follow the editorial family of coded layouts — masthead openers, quote slides, image-led spreads — with all imagery drawn from the governed brand library and all figures cited [S1].",
+          ],
+        },
+      ],
+      table: {
+        title: "Slide inventory",
+        source: "Layout registry",
+        columns: ["Slide", "Layout", "Evidence"],
+        rows: [
+          ["1", "Masthead opener", "—"],
+          ["2", "Quote", "[S1]"],
+          ["3", "Photo trio", "—"],
+        ],
+      },
+      chart: {
+        label: "Slides by layout family",
+        unit: "slides",
+        source: "Layout registry",
+        points: [
+          { label: "Opener", value: 1 },
+          { label: "Narrative", value: 5 },
+          { label: "Data", value: 2 },
+          { label: "Closing", value: 1 },
+        ],
+      },
+    },
+  },
 ];
 
 const byId = new Map(EXPORT_TEMPLATES.map((t) => [t.id, t]));
@@ -565,6 +698,7 @@ export function defaultTemplateForShape(shape: string): ExportTemplate {
     messaging: "exp-talking-points",
     press: "exp-press-release",
     multiformat: "exp-report",
+    visualdeck: "exp-visual-deck",
   };
   return byId.get(preferred[shape] ?? "exp-report") ?? EXPORT_TEMPLATES[3];
 }

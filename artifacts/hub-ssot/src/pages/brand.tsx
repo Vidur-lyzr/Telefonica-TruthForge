@@ -23,6 +23,13 @@ import {
   useUpdateBrandSkill,
   useResetBrandSkill,
   getGetBrandSkillQueryKey,
+  useGetBrandImages,
+  getGetBrandImagesQueryKey,
+  requestBrandImageUploadUrl,
+  confirmBrandImage,
+  updateBrandImage,
+  deleteBrandImage,
+  type BrandImage,
   type BrandTemplateSummary,
   type TonePrinciple,
   type BrandRule,
@@ -53,6 +60,7 @@ import {
   Select,
   ButtonPrimary,
   ButtonSecondary,
+  ButtonDanger,
   ButtonLink,
   Spinner,
   Text1,
@@ -80,12 +88,13 @@ import {
 } from "@telefonica/mistica";
 
 type IconType = (props: { size?: number; color?: string }) => React.ReactElement;
-type TabId = "templates" | "tone" | "resources" | "design" | "guardian";
+type TabId = "templates" | "tone" | "resources" | "images" | "design" | "guardian";
 
 const TABS: { id: TabId; icon: IconType }[] = [
   { id: "templates", icon: IconFileTextRegular },
   { id: "tone", icon: IconChatRegular },
   { id: "resources", icon: IconLibraryRegular },
+  { id: "images", icon: IconImageRegular },
   { id: "design", icon: IconAppsRegular },
   { id: "guardian", icon: IconShieldCheckedOkRegular },
 ];
@@ -1745,6 +1754,340 @@ function GuardianArea() {
   );
 }
 
+// ---- Image library (governed catalogue behind visual decks) ------------------
+
+function parseTags(raw: string): string[] {
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function ImageLibraryArea() {
+  const { roleId, lang } = useApp();
+  const t = BRAND_I18N[lang];
+  const ti = t.images;
+  const queryClient = useQueryClient();
+  const imagesQ = useGetBrandImages();
+  const images = imagesQ.data?.images ?? [];
+  const allTags = imagesQ.data?.tags ?? [];
+
+  const [tagFilter, setTagFilter] = React.useState<string>("all");
+  const visible =
+    tagFilter === "all" ? images : images.filter((img) => img.tags.includes(tagFilter));
+
+  const fileRef = React.useRef<HTMLInputElement | null>(null);
+  const [file, setFile] = React.useState<File | null>(null);
+  const [label, setLabel] = React.useState("");
+  const [tagsRaw, setTagsRaw] = React.useState("");
+  const [uploadBusy, setUploadBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editLabel, setEditLabel] = React.useState("");
+  const [editTagsRaw, setEditTagsRaw] = React.useState("");
+  const [confirmingId, setConfirmingId] = React.useState<string | null>(null);
+  const [rowBusy, setRowBusy] = React.useState(false);
+
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: getGetBrandImagesQueryKey() });
+
+  const canUpload =
+    !!file && label.trim().length > 0 && parseTags(tagsRaw).length > 0 && !uploadBusy;
+
+  const handleUpload = async () => {
+    if (!file || !roleId) return;
+    setUploadBusy(true);
+    setError(null);
+    try {
+      const contentType = file.type === "image/png" ? ("image/png" as const) : ("image/jpeg" as const);
+      const { uploadURL, objectPath } = await requestBrandImageUploadUrl({
+        roleId,
+        filename: file.name,
+        contentType,
+        size: file.size,
+      });
+      const put = await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": contentType },
+      });
+      if (!put.ok) throw new Error(`upload failed: ${put.status}`);
+      await confirmBrandImage({
+        roleId,
+        objectPath,
+        filename: file.name,
+        label: label.trim(),
+        tags: parseTags(tagsRaw),
+      });
+      setFile(null);
+      setLabel("");
+      setTagsRaw("");
+      if (fileRef.current) fileRef.current.value = "";
+      await refresh();
+    } catch {
+      setError(ti.uploadError);
+    } finally {
+      setUploadBusy(false);
+    }
+  };
+
+  const startEdit = (img: BrandImage) => {
+    setEditingId(img.id);
+    setEditLabel(img.label);
+    setEditTagsRaw(img.tags.join(", "));
+    setConfirmingId(null);
+    setError(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingId || !roleId) return;
+    const nextTags = parseTags(editTagsRaw);
+    setRowBusy(true);
+    setError(null);
+    try {
+      await updateBrandImage({
+        roleId,
+        id: editingId,
+        label: editLabel.trim() || undefined,
+        tags: nextTags.length > 0 ? nextTags : undefined,
+      });
+      setEditingId(null);
+      await refresh();
+    } catch {
+      setError(ti.saveError);
+    } finally {
+      setRowBusy(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!roleId) return;
+    setRowBusy(true);
+    setError(null);
+    try {
+      await deleteBrandImage({ roleId, id });
+      setConfirmingId(null);
+      await refresh();
+    } catch {
+      setError(ti.removeError);
+    } finally {
+      setRowBusy(false);
+    }
+  };
+
+  if (imagesQ.isLoading) return <Loading />;
+
+  return (
+    <div style={{ maxWidth: 1088 }}>
+      <Stack space={24}>
+        <IntroLine>{ti.intro}</IntroLine>
+
+        {error && (
+          <Callout
+            asset={<IconAlertRegular color={skinVars.colors.error} />}
+            title=""
+            description={error}
+          />
+        )}
+
+        <Boxed>
+          <Box padding={24}>
+            <Stack space={16}>
+              <Title3>{ti.upload}</Title3>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/png,image/jpeg"
+                style={{ display: "none" }}
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+              <Inline space={12} alignItems="center" wrap>
+                <ButtonSecondary
+                  small
+                  onPress={() => {
+                    fileRef.current?.click();
+                  }}
+                >
+                  {ti.chooseFile}
+                </ButtonSecondary>
+                <Text2 regular color={skinVars.colors.textSecondary}>
+                  {file ? file.name : ti.noFile}
+                </Text2>
+              </Inline>
+              <TextField
+                name="imageLabel"
+                label={ti.labelField}
+                value={label}
+                onChangeValue={setLabel}
+                fullWidth
+              />
+              <TextField
+                name="imageTags"
+                label={ti.tagsField}
+                helperText={ti.tagsHelper}
+                value={tagsRaw}
+                onChangeValue={setTagsRaw}
+                fullWidth
+              />
+              <div>
+                <ButtonPrimary small onPress={handleUpload} disabled={!canUpload}>
+                  {uploadBusy ? ti.uploading : ti.upload}
+                </ButtonPrimary>
+              </div>
+            </Stack>
+          </Box>
+        </Boxed>
+
+        {allTags.length > 0 && (
+          <div style={{ maxWidth: 320 }}>
+            <Select
+              name="imageTagFilter"
+              label={ti.tagsField}
+              value={tagFilter}
+              onChangeValue={setTagFilter}
+              options={[
+                { value: "all", text: ti.filterAll },
+                ...allTags.map((tag) => ({ value: tag, text: tag })),
+              ]}
+              fullWidth
+            />
+          </div>
+        )}
+
+        {visible.length === 0 ? (
+          <Text2 regular color={skinVars.colors.textSecondary}>
+            {ti.empty}
+          </Text2>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+              gap: 16,
+            }}
+          >
+            {visible.map((img) => (
+              <Boxed key={img.id}>
+                <div>
+                  <img
+                    src={`/api/brand/images/content?id=${encodeURIComponent(img.id)}`}
+                    alt={img.label}
+                    style={{
+                      width: "100%",
+                      height: 140,
+                      objectFit: "cover",
+                      display: "block",
+                      backgroundColor: skinVars.colors.backgroundAlternative,
+                    }}
+                  />
+                  <Box padding={16}>
+                    {editingId === img.id ? (
+                      <Stack space={12}>
+                        <TextField
+                          name={`editLabel-${img.id}`}
+                          label={ti.labelField}
+                          value={editLabel}
+                          onChangeValue={setEditLabel}
+                          fullWidth
+                        />
+                        <TextField
+                          name={`editTags-${img.id}`}
+                          label={ti.tagsField}
+                          helperText={ti.tagsHelper}
+                          value={editTagsRaw}
+                          onChangeValue={setEditTagsRaw}
+                          fullWidth
+                        />
+                        <Inline space={8}>
+                          <ButtonPrimary small onPress={handleSaveEdit} disabled={rowBusy}>
+                            {ti.save}
+                          </ButtonPrimary>
+                          <ButtonSecondary
+                            small
+                            onPress={() => {
+                              setEditingId(null);
+                            }}
+                          >
+                            {ti.cancel}
+                          </ButtonSecondary>
+                        </Inline>
+                      </Stack>
+                    ) : (
+                      <Stack space={8}>
+                        <Text2 medium color={skinVars.colors.textPrimary}>
+                          {img.label}
+                        </Text2>
+                        <Text1 regular color={skinVars.colors.textSecondary}>
+                          {`${img.width} × ${img.height} · ${img.filename}`}
+                        </Text1>
+                        <Inline space={4} wrap>
+                          {img.tags.map((tag) => (
+                            <Tag key={tag} type="inactive">
+                              {tag}
+                            </Tag>
+                          ))}
+                        </Inline>
+                        {confirmingId === img.id ? (
+                          <Stack space={8}>
+                            <Text1 regular color={skinVars.colors.textSecondary}>
+                              {ti.confirmRemove}
+                            </Text1>
+                            <Inline space={8}>
+                              <ButtonDanger
+                                small
+                                onPress={() => {
+                                  void handleDelete(img.id);
+                                }}
+                                disabled={rowBusy}
+                              >
+                                {ti.remove}
+                              </ButtonDanger>
+                              <ButtonSecondary
+                                small
+                                onPress={() => {
+                                  setConfirmingId(null);
+                                }}
+                              >
+                                {ti.cancel}
+                              </ButtonSecondary>
+                            </Inline>
+                          </Stack>
+                        ) : (
+                          <Inline space={8}>
+                            <ButtonSecondary
+                              small
+                              onPress={() => {
+                                startEdit(img);
+                              }}
+                            >
+                              {ti.edit}
+                            </ButtonSecondary>
+                            <ButtonSecondary
+                              small
+                              onPress={() => {
+                                setConfirmingId(img.id);
+                                setEditingId(null);
+                              }}
+                            >
+                              {ti.remove}
+                            </ButtonSecondary>
+                          </Inline>
+                        )}
+                      </Stack>
+                    )}
+                  </Box>
+                </div>
+              </Boxed>
+            ))}
+          </div>
+        )}
+      </Stack>
+    </div>
+  );
+}
+
 // ---- Page -------------------------------------------------------------------
 
 export default function BrandPage() {
@@ -1779,6 +2122,7 @@ export default function BrandPage() {
           {tab === "templates" && <TemplatesArea roleId={scopedRole} />}
           {tab === "tone" && <ToneArea />}
           {tab === "resources" && <ResourcesArea roleId={scopedRole} />}
+          {tab === "images" && <ImageLibraryArea />}
           {tab === "design" && <DesignSystemArea />}
           {tab === "guardian" && <GuardianArea />}
         </div>

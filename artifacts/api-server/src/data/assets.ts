@@ -5,7 +5,7 @@
 
 import type { Clearance, Validity } from "./corpus";
 
-export type DocShape = "messaging" | "press" | "multiformat";
+export type DocShape = "messaging" | "press" | "multiformat" | "visualdeck";
 
 export interface DocumentTemplate {
   id: string;
@@ -122,6 +122,33 @@ export const TEMPLATES: DocumentTemplate[] = [
     ],
     requiredDisclaimerIds: ["disc-forward-looking"],
   },
+  // Visual deck templates: the composed text sections stay the governed,
+  // cited backbone (traceability panel, guardian, evidence page); a second
+  // agent pass then arranges that content into coded visual slide layouts.
+  {
+    id: "tmpl-visual-weekly",
+    shape: "visualdeck",
+    name: "Weekly activity report (visual deck)",
+    description:
+      "A visually rich weekly headlines deck: photo cover, section dividers, per-item news cards with imagery and metric callouts, KPI slide and closing.",
+    sections: [
+      { key: "summary", label: "Week at a glance", kind: "summary" },
+      { key: "body", label: "News items", kind: "body", perAxis: true },
+    ],
+    requiredDisclaimerIds: ["disc-forward-looking"],
+  },
+  {
+    id: "tmpl-visual-corporate",
+    shape: "visualdeck",
+    name: "Corporate deck (visual)",
+    description:
+      "A corporate presentation deck: full-bleed photo cover, agenda, statement dividers, KPI slides, results table, campaign metrics chart and closing.",
+    sections: [
+      { key: "summary", label: "Executive summary", kind: "summary" },
+      { key: "body", label: "Strategic sections", kind: "body", perAxis: true },
+    ],
+    requiredDisclaimerIds: ["disc-forward-looking"],
+  },
 ];
 
 export const APPROVED_CLAIMS: ApprovedClaim[] = [
@@ -195,7 +222,7 @@ export const DISCLAIMERS: Disclaimer[] = [
     id: "disc-forward-looking",
     name: "Forward-looking statements",
     text: "This document may contain forward-looking statements. Actual results may differ materially. Figures are as at the date cited and should be verified against the latest published release.",
-    appliesTo: ["messaging", "press", "multiformat"],
+    appliesTo: ["messaging", "press", "multiformat", "visualdeck"],
   },
   {
     id: "disc-no-offer",

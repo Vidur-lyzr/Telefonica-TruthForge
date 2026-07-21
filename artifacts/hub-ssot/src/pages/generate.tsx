@@ -125,7 +125,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-type Shape = "messaging" | "press" | "multiformat";
+type Shape = "messaging" | "press" | "multiformat" | "visualdeck";
 type Audience = "internal" | "external";
 type Tab = "compose" | "scheduled" | "inbox" | "versions";
 
@@ -143,6 +143,10 @@ const SHAPE_META: Record<Shape, { name: string; blurb: string }> = {
   multiformat: {
     name: "Multi-format pack",
     blurb: "One governed narrative, several channel-ready cuts.",
+  },
+  visualdeck: {
+    name: "Visual deck",
+    blurb: "Branded slide deck built from coded Telefónica layouts and governed imagery.",
   },
 };
 
@@ -172,6 +176,10 @@ const FORMAT_OPTIONS: Record<Shape, { value: string; label: string }[]> = {
     { value: "multichannel_pack", label: "Multi-channel pack" },
     { value: "social_pack", label: "Social pack" },
     { value: "email_and_web", label: "Email and web" },
+  ],
+  visualdeck: [
+    { value: "corporate_deck", label: "Corporate deck" },
+    { value: "weekly_activity_report", label: "Weekly activity report" },
   ],
 };
 
@@ -1165,6 +1173,7 @@ function ExportRenditionPreview({
     draft.spokesperson ?? null,
     draft.charts,
     draft.citations,
+    draft.visualSlides ?? [],
   ]);
 
   React.useEffect(() => {
@@ -1347,8 +1356,14 @@ function DocumentCanvas({
   const [editMode, setEditMode] = React.useState(true);
   // WYSIWYG rendition tabs: the Editor tab is the live document; the PDF,
   // DOCX and PPTX tabs show a server-rendered preview of the actual export.
-  const viewModes = ["editor", "pdf", "docx", "pptx"] as const;
-  const [viewMode, setViewMode] = React.useState<(typeof viewModes)[number]>("editor");
+  // Visual decks only render slide formats, so the DOCX tab is dropped there.
+  const viewModes: readonly ("editor" | "pdf" | "docx" | "pptx")[] =
+    draft.shape === "visualdeck" ? ["editor", "pdf", "pptx"] : ["editor", "pdf", "docx", "pptx"];
+  const [viewMode, setViewMode] = React.useState<"editor" | "pdf" | "docx" | "pptx">("editor");
+  React.useEffect(() => {
+    if (!viewModes.includes(viewMode)) setViewMode("editor");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.shape]);
   const externalStripped = draft.audience === "external";
   const visibleSections = externalStripped
     ? draft.sections.filter((s) => !s.internalOnly)
@@ -1370,12 +1385,7 @@ function DocumentCanvas({
             setViewMode(next);
             setEditMode(next === "editor");
           }}
-          tabs={[
-            { text: tp.tabEditor },
-            { text: "PDF" },
-            { text: "DOCX" },
-            { text: "PPTX" },
-          ]}
+          tabs={viewModes.map((m) => ({ text: m === "editor" ? tp.tabEditor : m.toUpperCase() }))}
         />
         {viewMode !== "editor" ? (
           <ExportRenditionPreview
@@ -3128,6 +3138,15 @@ export default function Generate() {
   const chosenTemplate = formatTemplates.find((tpl) => tpl.id === exportTemplateId);
   const effectiveTemplateId = chosenTemplate ? chosenTemplate.id : null;
 
+  // Visual decks only render slide formats; snap the default away from text
+  // renditions whenever a visual deck draft arrives.
+  React.useEffect(() => {
+    if (draft?.shape === "visualdeck" && exportFormat !== "pptx" && exportFormat !== "pdf") {
+      setExportFormat("pptx");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft?.id, draft?.shape]);
+
   const draftSignature = draft
     ? JSON.stringify([draft.id, draft.umbrella, draft.sections.map((s) => s.body)])
     : null;
@@ -3420,13 +3439,20 @@ export default function Generate() {
                           label={te.formatLabel}
                           value={exportFormat}
                           onChangeValue={(v) => setExportFormat(v as "docx" | "pptx" | "pdf" | "txt" | "md")}
-                          options={[
-                            { value: "docx", text: "Word (.docx)" },
-                            { value: "pptx", text: "PowerPoint (.pptx)" },
-                            { value: "pdf", text: "PDF (.pdf)" },
-                            { value: "txt", text: "Text (.txt)" },
-                            { value: "md", text: "Markdown (.md)" },
-                          ]}
+                          options={
+                            draft.shape === "visualdeck"
+                              ? [
+                                  { value: "pptx", text: "PowerPoint (.pptx)" },
+                                  { value: "pdf", text: "PDF (.pdf)" },
+                                ]
+                              : [
+                                  { value: "docx", text: "Word (.docx)" },
+                                  { value: "pptx", text: "PowerPoint (.pptx)" },
+                                  { value: "pdf", text: "PDF (.pdf)" },
+                                  { value: "txt", text: "Text (.txt)" },
+                                  { value: "md", text: "Markdown (.md)" },
+                                ]
+                          }
                           fullWidth
                         />
                       </div>

@@ -36,8 +36,10 @@ import {
   type DocShape,
 } from "../data/assets";
 import { BRAND_RULES } from "../data/brandRoom";
+import type { VisualSlideInput } from "../export/visualLayouts";
 import { getTonePrinciples } from "../data/toneStore";
 import { runBrandGuardian } from "./brandGuardian";
+import { fillVisualSlides } from "./visualSlidesAgent";
 import { parseQaBody, serializeQaPairs, normalizeQuestion } from "./qa";
 import { sanitizeSectionBody } from "./bodyText";
 
@@ -204,6 +206,10 @@ export interface GeneratedDraft {
   // Internal per-answer notes for the Q&A section (press shape). Carried
   // across refines by question match; stripped from external exports.
   qaNotes?: QaNote[];
+  // Visual deck slides: layout id + slot values chosen by the slot-filling
+  // pass, validated and composed into draw ops at export time
+  // (export/visualLayouts.ts). Absent/empty on text-first drafts.
+  visualSlides?: VisualSlideInput[];
   axisIds: string[];
   guardian: GuardianResult;
   historic: boolean;
@@ -1307,6 +1313,17 @@ ${jsonShape}${refineBlock}`;
     // so the provenance never disappears mid-flow.
     askSignals: askSignals ?? baseDraft?.askSignals ?? null,
   };
+
+  // ---- Visual-deck slot-filling pass (visualdeck shape only) -----------------
+  // A second model call ARRANGES the already-governed, cited content above
+  // into coded slide layouts. It sees nothing the first pass did not, every
+  // slide is validated against its layout's strict schema (condense-retry
+  // once), and a failed pass degrades honestly to the text-first document.
+  // Runs BEFORE the guardian so slot text is covered by the brand checks.
+  if (shape === "visualdeck" && sections.length > 0) {
+    const slides = await fillVisualSlides(draft, language, log);
+    if (slides) draft.visualSlides = slides;
+  }
 
   onStage?.("guardian");
   draft.guardian = runBrandGuardian(draft);

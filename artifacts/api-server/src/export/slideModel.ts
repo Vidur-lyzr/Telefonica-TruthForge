@@ -5,11 +5,13 @@
 
 import type { ExportDocumentModel } from "./exportService";
 import type { RenderedChart } from "./chartEngine";
+import type { VisualSlideModel } from "./visualLayouts";
 
 export const SPOKESPERSON_PER_SLIDE = 2;
 
 export type SlideSpec =
   | { kind: "title" }
+  | { kind: "visual"; slide: VisualSlideModel }
   | { kind: "umbrella"; text: string }
   | { kind: "section"; heading: string; body: string; internalOnly: boolean }
   | {
@@ -50,6 +52,17 @@ export function tableSourceLine(table: ExportDocumentModel["tables"][number]): s
 }
 
 export function buildSlides(model: ExportDocumentModel): SlideSpec[] {
+  // A visual deck replaces the text-first slide pipeline entirely: the agent
+  // composed every content slide (including the cover) as a coded layout. Only
+  // the governed provenance slides (citations, disclaimers) are appended — a
+  // visual deck never ships without its evidence.
+  if (model.visualSlides.length > 0) {
+    const slides: SlideSpec[] = model.visualSlides.map((slide) => ({ kind: "visual" as const, slide }));
+    if (model.citations.length > 0) slides.push({ kind: "citations" });
+    if (model.disclaimers.length > 0) slides.push({ kind: "disclaimers" });
+    return slides;
+  }
+
   const slides: SlideSpec[] = [{ kind: "title" }];
 
   if (model.umbrella) {

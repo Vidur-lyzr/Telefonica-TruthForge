@@ -7,6 +7,7 @@ import { initKpiStore } from "./data/kpiStore";
 import { initPlanningStore } from "./data/planningStore";
 import { initQualityStore } from "./data/qualityStore";
 import { initTemplateOverrides } from "./data/templateOverrides";
+import { initImageLibrary } from "./data/imageLibraryStore";
 import { initUsageMeter } from "./data/usageMeter";
 import { initObservatory } from "./data/observatoryStore";
 import { initPlatformUsers } from "./data/platformUsers";
@@ -43,6 +44,7 @@ async function boot(): Promise<void> {
     initPlanningStore(),
     initQualityStore(),
     initTemplateOverrides(),
+    initImageLibrary(),
     initUsageMeter(),
     initObservatory(),
     initPlatformUsers(),

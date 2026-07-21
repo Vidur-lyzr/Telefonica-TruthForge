@@ -16,6 +16,7 @@ import type { GuardianResult } from './guardianResult';
 import type { QaNote } from './qaNote';
 import type { SpokespersonNote } from './spokespersonNote';
 import type { TableSpec } from './tableSpec';
+import type { VisualSlide } from './visualSlide';
 
 export interface GeneratedDraft {
   id: string;
@@ -58,4 +59,6 @@ export interface GeneratedDraft {
   approved?: boolean;
   /** Risk state carried over from an Ask answer handoff and re-derived server-side where possible. Persisted on the draft so conflict / low-confidence / historic provenance stays visible all the way to export, and mirrored as Brand Guardian advisories. */
   askSignals?: null | AskSignals;
+  /** Visual-deck slides produced by the agent slot-filling pass (visualdeck shape only). Each slide references a coded layout and carries only validated slot content — the server re-validates every slide against its layout schema at export time and refuses an invalid slide rather than letting it overflow the design. */
+  visualSlides?: VisualSlide[];
 }

@@ -35,6 +35,12 @@ import type {
   AuthSession,
   AxisAffectedDocuments,
   BrandCheckInput,
+  BrandImage,
+  BrandImageConfirmBody,
+  BrandImageDeleteBody,
+  BrandImageDeleteResult,
+  BrandImageEditBody,
+  BrandImagesView,
   BrandResourcesView,
   BrandSkill,
   BrandSkillUpdate,
@@ -82,6 +88,7 @@ import type {
   GetAgentOverviewParams,
   GetAgentTools200,
   GetAgentToolsParams,
+  GetBrandImageContentParams,
   GetBrandResourcesParams,
   GetBrandTemplate404,
   GetBrandTemplateParams,
@@ -189,6 +196,8 @@ import type {
   RadarItem,
   RefineInput,
   RelevanceFilterSnapshot,
+  RequestImageUploadUrlBody,
+  RequestImageUploadUrlResponse,
   ResetToneBody,
   ResetUserUsageInput,
   RetagApplyInput,
@@ -9313,6 +9322,448 @@ export const useResetToneOfVoice = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getResetToneOfVoiceMutationOptions(options));
     }
+
+export const getGetBrandImagesUrl = () => {
+
+
+
+
+  return `/api/brand/images`
+}
+
+/**
+ * @summary Governed brand image library (visual slide layouts pick only from here)
+ */
+export const getBrandImages = async ( options?: RequestInit): Promise<BrandImagesView> => {
+
+  return customFetch<BrandImagesView>(getGetBrandImagesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrandImagesQueryKey = () => {
+    return [
+    `/api/brand/images`
+    ] as const;
+    }
+
+
+export const getGetBrandImagesQueryOptions = <TData = Awaited<ReturnType<typeof getBrandImages>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandImages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrandImagesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrandImages>>> = ({ signal }) => getBrandImages({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBrandImages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBrandImagesQueryResult = NonNullable<Awaited<ReturnType<typeof getBrandImages>>>
+export type GetBrandImagesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Governed brand image library (visual slide layouts pick only from here)
+ */
+
+export function useGetBrandImages<TData = Awaited<ReturnType<typeof getBrandImages>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandImages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBrandImagesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRequestBrandImageUploadUrlUrl = () => {
+
+
+
+
+  return `/api/brand/images/upload-url`
+}
+
+/**
+ * @summary Request a presigned upload URL for a new library image (Brand admin)
+ */
+export const requestBrandImageUploadUrl = async (requestImageUploadUrlBody: RequestImageUploadUrlBody, options?: RequestInit): Promise<RequestImageUploadUrlResponse> => {
+
+  return customFetch<RequestImageUploadUrlResponse>(getRequestBrandImageUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(requestImageUploadUrlBody)
+  }
+);}
+
+
+
+
+export const getRequestBrandImageUploadUrlMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestBrandImageUploadUrl>>, TError,{data: BodyType<RequestImageUploadUrlBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestBrandImageUploadUrl>>, TError,{data: BodyType<RequestImageUploadUrlBody>}, TContext> => {
+
+const mutationKey = ['requestBrandImageUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestBrandImageUploadUrl>>, {data: BodyType<RequestImageUploadUrlBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestBrandImageUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestBrandImageUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof requestBrandImageUploadUrl>>>
+    export type RequestBrandImageUploadUrlMutationBody = BodyType<RequestImageUploadUrlBody>
+    export type RequestBrandImageUploadUrlMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Request a presigned upload URL for a new library image (Brand admin)
+ */
+export const useRequestBrandImageUploadUrl = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestBrandImageUploadUrl>>, TError,{data: BodyType<RequestImageUploadUrlBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestBrandImageUploadUrl>>,
+        TError,
+        {data: BodyType<RequestImageUploadUrlBody>},
+        TContext
+      > => {
+      return useMutation(getRequestBrandImageUploadUrlMutationOptions(options));
+    }
+
+export const getConfirmBrandImageUrl = () => {
+
+
+
+
+  return `/api/brand/images/confirm`
+}
+
+/**
+ * The server fetches the uploaded object, verifies it is a real PNG/JPEG and probes its pixel dimensions before the record becomes selectable by the generate agent. Unverifiable uploads are rejected.
+ * @summary Register an uploaded image in the library after server-side verification
+ */
+export const confirmBrandImage = async (brandImageConfirmBody: BrandImageConfirmBody, options?: RequestInit): Promise<BrandImage> => {
+
+  return customFetch<BrandImage>(getConfirmBrandImageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(brandImageConfirmBody)
+  }
+);}
+
+
+
+
+export const getConfirmBrandImageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmBrandImage>>, TError,{data: BodyType<BrandImageConfirmBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof confirmBrandImage>>, TError,{data: BodyType<BrandImageConfirmBody>}, TContext> => {
+
+const mutationKey = ['confirmBrandImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof confirmBrandImage>>, {data: BodyType<BrandImageConfirmBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  confirmBrandImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfirmBrandImageMutationResult = NonNullable<Awaited<ReturnType<typeof confirmBrandImage>>>
+    export type ConfirmBrandImageMutationBody = BodyType<BrandImageConfirmBody>
+    export type ConfirmBrandImageMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Register an uploaded image in the library after server-side verification
+ */
+export const useConfirmBrandImage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof confirmBrandImage>>, TError,{data: BodyType<BrandImageConfirmBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof confirmBrandImage>>,
+        TError,
+        {data: BodyType<BrandImageConfirmBody>},
+        TContext
+      > => {
+      return useMutation(getConfirmBrandImageMutationOptions(options));
+    }
+
+export const getUpdateBrandImageUrl = () => {
+
+
+
+
+  return `/api/brand/images/update`
+}
+
+/**
+ * @summary Edit a library image's label or tags (Brand admin)
+ */
+export const updateBrandImage = async (brandImageEditBody: BrandImageEditBody, options?: RequestInit): Promise<BrandImage> => {
+
+  return customFetch<BrandImage>(getUpdateBrandImageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(brandImageEditBody)
+  }
+);}
+
+
+
+
+export const getUpdateBrandImageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBrandImage>>, TError,{data: BodyType<BrandImageEditBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBrandImage>>, TError,{data: BodyType<BrandImageEditBody>}, TContext> => {
+
+const mutationKey = ['updateBrandImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBrandImage>>, {data: BodyType<BrandImageEditBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateBrandImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBrandImageMutationResult = NonNullable<Awaited<ReturnType<typeof updateBrandImage>>>
+    export type UpdateBrandImageMutationBody = BodyType<BrandImageEditBody>
+    export type UpdateBrandImageMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Edit a library image's label or tags (Brand admin)
+ */
+export const useUpdateBrandImage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBrandImage>>, TError,{data: BodyType<BrandImageEditBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBrandImage>>,
+        TError,
+        {data: BodyType<BrandImageEditBody>},
+        TContext
+      > => {
+      return useMutation(getUpdateBrandImageMutationOptions(options));
+    }
+
+export const getDeleteBrandImageUrl = () => {
+
+
+
+
+  return `/api/brand/images/delete`
+}
+
+/**
+ * @summary Remove an image from the library (Brand admin)
+ */
+export const deleteBrandImage = async (brandImageDeleteBody: BrandImageDeleteBody, options?: RequestInit): Promise<BrandImageDeleteResult> => {
+
+  return customFetch<BrandImageDeleteResult>(getDeleteBrandImageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(brandImageDeleteBody)
+  }
+);}
+
+
+
+
+export const getDeleteBrandImageMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBrandImage>>, TError,{data: BodyType<BrandImageDeleteBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteBrandImage>>, TError,{data: BodyType<BrandImageDeleteBody>}, TContext> => {
+
+const mutationKey = ['deleteBrandImage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteBrandImage>>, {data: BodyType<BrandImageDeleteBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  deleteBrandImage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteBrandImageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteBrandImage>>>
+    export type DeleteBrandImageMutationBody = BodyType<BrandImageDeleteBody>
+    export type DeleteBrandImageMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Remove an image from the library (Brand admin)
+ */
+export const useDeleteBrandImage = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteBrandImage>>, TError,{data: BodyType<BrandImageDeleteBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteBrandImage>>,
+        TError,
+        {data: BodyType<BrandImageDeleteBody>},
+        TContext
+      > => {
+      return useMutation(getDeleteBrandImageMutationOptions(options));
+    }
+
+export const getGetBrandImageContentUrl = (params: GetBrandImageContentParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/brand/images/content?${stringifiedParams}` : `/api/brand/images/content`
+}
+
+/**
+ * @summary Serve the bytes of a library image for in-app browsing
+ */
+export const getBrandImageContent = async (params: GetBrandImageContentParams, options?: RequestInit): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetBrandImageContentUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBrandImageContentQueryKey = (params?: GetBrandImageContentParams,) => {
+    return [
+    `/api/brand/images/content`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetBrandImageContentQueryOptions = <TData = Awaited<ReturnType<typeof getBrandImageContent>>, TError = ErrorType<unknown>>(params: GetBrandImageContentParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandImageContent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBrandImageContentQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBrandImageContent>>> = ({ signal }) => getBrandImageContent(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBrandImageContent>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBrandImageContentQueryResult = NonNullable<Awaited<ReturnType<typeof getBrandImageContent>>>
+export type GetBrandImageContentQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Serve the bytes of a library image for in-app browsing
+ */
+
+export function useGetBrandImageContent<TData = Awaited<ReturnType<typeof getBrandImageContent>>, TError = ErrorType<unknown>>(
+ params: GetBrandImageContentParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBrandImageContent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBrandImageContentQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetBrandResourcesUrl = (params?: GetBrandResourcesParams,) => {
   const normalizedParams = new URLSearchParams();

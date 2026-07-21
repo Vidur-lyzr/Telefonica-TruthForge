@@ -114,6 +114,7 @@ export function sampleExportModel(template: ExportTemplate): ExportDocumentModel
     spokesperson: [],
     charts,
     tables,
+    visualSlides: [],
     citations: SAMPLE_CITATIONS,
     disclaimers: [
       {

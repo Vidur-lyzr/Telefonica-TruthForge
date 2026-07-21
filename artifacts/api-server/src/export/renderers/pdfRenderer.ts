@@ -17,6 +17,7 @@ import {
   dataTableWeights,
   CITATION_TABLE_WEIGHTS,
 } from "../exportTheme";
+import { renderPptxPreviewPdf } from "./pptxPreviewPdf";
 
 const BRAND = THEME_COLORS.brand;
 const NAVY = THEME_COLORS.navy;
@@ -262,6 +263,12 @@ function brandedTable(
 }
 
 export async function renderPdf(model: ExportDocumentModel): Promise<Buffer> {
+  // A visual deck is slide-shaped content — its .pdf export is the slide-page
+  // renderer (960x540pt pages over the shared slide model), not the A4
+  // document layout. Delegating keeps download and preview byte-identical.
+  if (model.visualSlides.length > 0) {
+    return renderPptxPreviewPdf(model);
+  }
   const doc = new PDFDocument({ size: "A4", margin: MARGIN, bufferPages: true });
   doc.registerFont(F, brandFontPath("regular"));
   doc.registerFont(FB, brandFontPath("bold"));

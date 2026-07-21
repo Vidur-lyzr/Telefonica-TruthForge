@@ -9,7 +9,7 @@
 
 import type { Lang } from "../components/app-provider";
 
-type FormShape = "messaging" | "press" | "multiformat";
+type FormShape = "messaging" | "press" | "multiformat" | "visualdeck";
 
 export interface GenerateStrings {
   form: {
@@ -394,6 +394,10 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
           name: "Multi-format pack",
           blurb: "One governed narrative, several channel-ready cuts.",
         },
+        visualdeck: {
+          name: "Visual deck",
+          blurb: "Branded slide deck built from coded Telefónica layouts and governed imagery.",
+        },
       },
 
       briefLabel: "Brief",
@@ -475,6 +479,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         messaging: "What is the single key message you want this to land?",
         press: "What exactly are we announcing — the news hook in one line?",
         multiformat: "What is the core message, and which channel matters most?",
+        visualdeck: "What story should the deck tell, and who is in the room?",
       },
 
       generateDraft: "Generate draft",
@@ -793,6 +798,10 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
           name: "Pack multiformato",
           blurb: "Una narrativa gobernada, varios cortes listos para cada canal.",
         },
+        visualdeck: {
+          name: "Deck visual",
+          blurb: "Presentación de marca construida con layouts Telefónica codificados e imágenes gobernadas.",
+        },
       },
 
       briefLabel: "Brief",
@@ -876,6 +885,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         messaging: "¿Cuál es el mensaje clave único que quieres que cale?",
         press: "¿Qué anunciamos exactamente — el gancho de la noticia en una línea?",
         multiformat: "¿Cuál es el mensaje central y qué canal importa más?",
+        visualdeck: "¿Qué historia debe contar el deck y quién estará en la sala?",
       },
 
       generateDraft: "Generar borrador",
@@ -1200,6 +1210,10 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
           name: "Multiformat-Paket",
           blurb: "Ein kontrolliertes Narrativ, mehrere kanalfertige Zuschnitte.",
         },
+        visualdeck: {
+          name: "Visuelles Deck",
+          blurb: "Marken-Foliendeck aus codierten Telefónica-Layouts mit kontrollierten Bildern.",
+        },
       },
 
       briefLabel: "Briefing",
@@ -1283,6 +1297,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         messaging: "Was ist die eine Kernbotschaft, die ankommen soll?",
         press: "Was genau kündigen wir an — der Nachrichtenaufhänger in einer Zeile?",
         multiformat: "Was ist die Kernbotschaft, und welcher Kanal ist am wichtigsten?",
+        visualdeck: "Welche Geschichte soll das Deck erzählen, und wer sitzt im Raum?",
       },
 
       generateDraft: "Entwurf generieren",
@@ -1606,6 +1621,10 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
           name: "Pacote multiformato",
           blurb: "Uma narrativa governada, vários cortes prontos para cada canal.",
         },
+        visualdeck: {
+          name: "Deck visual",
+          blurb: "Apresentação de marca construída com layouts Telefónica codificados e imagens governadas.",
+        },
       },
 
       briefLabel: "Brief",
@@ -1689,6 +1708,7 @@ export const GENERATE_I18N: Record<Lang, GenerateStrings> = {
         messaging: "Qual é a única mensagem-chave que você quer que fique?",
         press: "O que exatamente estamos anunciando — o gancho da notícia em uma linha?",
         multiformat: "Qual é a mensagem central e qual canal importa mais?",
+        visualdeck: "Que história o deck deve contar e quem estará na sala?",
       },
 
       generateDraft: "Gerar rascunho",
