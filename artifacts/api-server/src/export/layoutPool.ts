@@ -9,11 +9,20 @@ import {
   getVisualLayout,
   visualLayoutCatalogue,
   type ComposeCtx,
+  type ImageSlotSpec,
+  type ResolvedImage,
+  type VisualLayoutDef,
 } from "./visualLayouts";
 import { renderOpsPng } from "./deckExtract/opsSvg";
 import { getApprovedLayout } from "../data/extractedLayoutStore";
 import { getDeckJob } from "../data/deckIntakeStore";
 import type { ExtractedLayoutSpec } from "./extractedLayouts";
+import {
+  findImagesByTags,
+  listBrandImages,
+  type BrandImageRecord,
+} from "../data/imageLibraryStore";
+import { fetchObjectBytes } from "../lib/imageBytes";
 
 export interface VisualLayoutInfo {
   id: string;
@@ -167,21 +176,102 @@ function sampleSlotsFromSpec(spec: ExtractedLayoutSpec): Record<string, unknown>
   return out;
 }
 
+// ---- Sample image selection --------------------------------------------------
+//
+// Previews resolve each image slot to a REAL brand-library image so the pool
+// shows what the layout actually produces. Selection is deterministic for a
+// given library state: the slot hint's words are matched against library tags
+// (best match first), the remaining library is the fallback, and the starting
+// candidate is rotated by a stable hash of layoutId+slot so different layouts
+// showcase different photos. An empty library (or unreadable bytes) degrades
+// to the layout's honest no-image fallback.
+
+function stableHash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function hintTokens(hint: string): string[] {
+  return hint
+    .toLowerCase()
+    .split(/[^a-zà-ÿ0-9]+/)
+    .filter((w) => w.length >= 3);
+}
+
+function pickSampleImages(def: VisualLayoutDef): Map<string, BrandImageRecord> {
+  const picked = new Map<string, BrandImageRecord>();
+  const all = listBrandImages();
+  if (all.length === 0) return picked;
+  const used = new Set<string>();
+  for (const spec of def.imageSlots) {
+    const matches = findImagesByTags(hintTokens(spec.hint));
+    const seen = new Set(matches.map((r) => r.id));
+    const candidates = [...matches, ...all.filter((r) => !seen.has(r.id))];
+    const start = stableHash(`${def.id}:${spec.slot}`) % candidates.length;
+    let choice: BrandImageRecord | undefined;
+    for (let i = 0; i < candidates.length; i++) {
+      const cand = candidates[(start + i) % candidates.length];
+      if (!used.has(cand.id)) {
+        choice = cand;
+        break;
+      }
+    }
+    choice = choice ?? candidates[start];
+    used.add(choice.id);
+    picked.set(spec.slot, choice);
+  }
+  return picked;
+}
+
+// Rendered-sample cache. The key includes the picked image ids (and the
+// extracted layout's approval time), so any library or layout change produces
+// a new key and stale pixels are never served.
+const sampleCache = new Map<string, Buffer>();
+const SAMPLE_CACHE_MAX = 64;
+
 /** Render a sample slide PNG for any pool layout, or null when unknown. */
-export function renderLayoutSamplePng(layoutId: string): Buffer | null {
+export async function renderLayoutSamplePng(layoutId: string): Promise<Buffer | null> {
   const def = getVisualLayout(layoutId);
   if (!def) return null;
   const extracted = CODED_IDS.has(layoutId) ? undefined : getApprovedLayout(layoutId);
   const sample = extracted ? sampleSlotsFromSpec(extracted.spec) : CODED_SAMPLES[layoutId];
   if (!sample) return null;
+
+  const picked = pickSampleImages(def);
+  const cacheKey = [
+    layoutId,
+    extracted?.approvedAt ?? "",
+    ...[...picked.entries()].map(([slot, rec]) => `${slot}=${rec.id}`),
+  ].join("|");
+  const cached = sampleCache.get(cacheKey);
+  if (cached) return cached;
+
+  const images: Record<string, ResolvedImage | null> = {};
+  const bytes: Record<string, Buffer> = {};
+  for (const spec of def.imageSlots as ImageSlotSpec[]) {
+    let resolved: ResolvedImage | null = null;
+    const rec = picked.get(spec.slot);
+    if (rec) {
+      const buf = await fetchObjectBytes(rec.objectPath);
+      if (buf) {
+        const key = `${spec.slot}:${rec.id}`;
+        bytes[key] = buf;
+        resolved = { key, width: rec.width, height: rec.height };
+      }
+    }
+    images[spec.slot] = resolved;
+  }
+
   const ctx: ComposeCtx = {
-    // No images resolved — layouts draw their honest no-image fallback,
-    // which keeps the preview deterministic and library-independent.
-    images: Object.fromEntries(def.imageSlots.map((s) => [s.slot, null])),
+    images,
     footerLabel: "Layout preview",
     confidentiality: "Internal use",
     generatedAt: new Date().toISOString(),
   };
   const ops = def.compose(def.schema.parse(sample), ctx);
-  return renderOpsPng(ops);
+  const png = renderOpsPng(ops, bytes);
+  if (sampleCache.size >= SAMPLE_CACHE_MAX) sampleCache.clear();
+  sampleCache.set(cacheKey, png);
+  return png;
 }

@@ -331,8 +331,10 @@ router.get("/generate/visual-layouts", (_req, res) => {
 });
 
 // Deterministic sample-slide rendering of one pool layout, drawn by the
-// same compose + PNG engine the real deck exports use.
-router.get("/generate/visual-layout-preview", (req, res) => {
+// same compose + PNG engine the real deck exports use. Image slots resolve
+// to real brand-library photos, so keep the browser cache short — the
+// preview changes when the library does.
+router.get("/generate/visual-layout-preview", async (req, res) => {
   const layoutId = typeof req.query.layoutId === "string" ? req.query.layoutId : "";
   if (!layoutId) {
     res.status(400).json({ error: "layoutId is required" });
@@ -340,7 +342,7 @@ router.get("/generate/visual-layout-preview", (req, res) => {
   }
   let png: Buffer | null;
   try {
-    png = renderLayoutSamplePng(layoutId);
+    png = await renderLayoutSamplePng(layoutId);
   } catch (err) {
     req.log.error({ err, layoutId }, "layout-pool: sample render failed");
     res.status(500).json({ error: "The layout preview could not be rendered." });
@@ -351,7 +353,7 @@ router.get("/generate/visual-layout-preview", (req, res) => {
     return;
   }
   res.setHeader("Content-Type", "image/png");
-  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.setHeader("Cache-Control", "public, max-age=300");
   res.send(png);
 });
 

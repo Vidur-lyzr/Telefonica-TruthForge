@@ -11,7 +11,7 @@
 - [Orval hooks require queryKey](orval-querykey-required.md) — passing `enabled` (or any query option) to a generated useXxx hook needs an explicit `queryKey` array or it fails TS2741.
 - [Wiki graph encoding](graph-encoding-fill-vs-outline.md) — Map nodes must encode color=axis and fill=layer (compiled solid, raw entities outline); never color-by-kind.
 - [Orval path+query collision](orval-path-query-collision.md) — path param + query param on one op emits <Op>Params twice (TS2308); keep detail endpoints query-only.
-- [Orval schema naming collision](orval-schema-naming.md) — component names must differ from operationId-derived <Op>Body/<Op>Response; runtime Zod consts follow the operationId, components become types.
+- [Orval schema naming collision](orval-schema-naming.md) — component names must differ from operationId-derived <Op>Body/<Op>Response names.
 - [Mística gotchas](mistica-gotchas.md) — @telefonica/mistica API constraints (spacing steps, Touchable, Drawer, Tag, borderRadii.avatar) that break typecheck if ignored.
 - [Governance access side channels](governance-access-side-channels.md) — all Ask side channels must gate via the shared area+clearance resolver; rank-only checks caused a leak.
 - [Multilingual retrieval synonyms](multilingual-retrieval-synonyms.md) — EN/ES/DE/PT matching via curated tokenizer synonym map (accent-fold first); beware short-word collisions.
