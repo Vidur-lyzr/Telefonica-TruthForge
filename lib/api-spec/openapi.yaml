@@ -3180,6 +3180,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/MasterDeckJob"
 
+  /data/master-decks/harvest/bulk:
+    post:
+      operationId: bulkMasterDeckHarvest
+      tags: [data]
+      summary: Confirm or dismiss every pending harvested image at once
+      description: >
+        Applies one decision to all still-pending images in a job's harvest
+        queue. Confirm registers each image in the brand library under its
+        suggested label and tags; dismiss marks them all dismissed. Gated by
+        manage_brand_room (Marca area) and audit-logged as a single config
+        change.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterDeckHarvestBulkBody"
+      responses:
+        "200":
+          description: Updated job plus how many images were processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckHarvestBulkResponse"
+
   /data/master-decks/asset:
     get:
       operationId: getMasterDeckAsset
@@ -10607,7 +10632,7 @@ components:
         parts:
           type: array
           minItems: 1
-          maxItems: 5
+          maxItems: 8
           items:
             type: object
             required: [objectPath, filename]
@@ -10922,3 +10947,24 @@ components:
           type: string
         itemId:
           type: string
+    MasterDeckHarvestBulkBody:
+      type: object
+      required: [roleId, jobId, action]
+      properties:
+        roleId:
+          type: string
+        jobId:
+          type: string
+        action:
+          type: string
+          enum: [confirm, dismiss]
+    MasterDeckHarvestBulkResponse:
+      type: object
+      required: [job, processed, skipped]
+      properties:
+        job:
+          $ref: "#/components/schemas/MasterDeckJob"
+        processed:
+          type: integer
+        skipped:
+          type: integer

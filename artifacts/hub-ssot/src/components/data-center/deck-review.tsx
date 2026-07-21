@@ -14,6 +14,7 @@ import {
   rejectMasterDeckProposal,
   confirmMasterDeckHarvestItem,
   dismissMasterDeckHarvestItem,
+  bulkMasterDeckHarvest,
 } from "@workspace/api-client-react";
 import type {
   MasterDeckFamily,
@@ -460,7 +461,7 @@ export function DeckReviewDrawer({
   deckName: string;
   onClose: () => void;
 }) {
-  const { lang } = useApp();
+  const { lang, roleId } = useApp();
   const R = DATA_I18N[lang].deckIntake.review;
   const queryClient = useQueryClient();
 
@@ -476,9 +477,27 @@ export function DeckReviewDrawer({
     ]);
   };
 
+  const [bulkBusy, setBulkBusy] = React.useState(false);
+  const [bulkError, setBulkError] = React.useState<string | null>(null);
+
   const families = job?.families ?? [];
   const harvest = job?.harvest ?? [];
   const pendingFamilies = families.filter((f) => f.status === "pending").length;
+  const pendingHarvest = harvest.filter((h) => h.status === "pending").length;
+
+  const runBulk = async (action: "confirm" | "dismiss") => {
+    if (bulkBusy) return;
+    setBulkBusy(true);
+    setBulkError(null);
+    try {
+      await bulkMasterDeckHarvest({ roleId, jobId, action });
+      await refresh();
+    } catch (err) {
+      setBulkError(errorMessageOf(err) ?? R.actionFailed);
+    } finally {
+      setBulkBusy(false);
+    }
+  };
 
   return (
     <Drawer onClose={onClose} onDismiss={onClose} title={R.title(deckName)} width={720}>
@@ -505,6 +524,28 @@ export function DeckReviewDrawer({
               <Text3 medium color={skinVars.colors.textPrimary}>
                 {R.harvestTitle}
               </Text3>
+              {pendingHarvest > 1 && (
+                <Stack space={8}>
+                  <Inline space={8} wrap>
+                    <ButtonPrimary small onPress={() => runBulk("confirm")} disabled={bulkBusy}>
+                      {R.addAll(pendingHarvest)}
+                    </ButtonPrimary>
+                    <ButtonSecondary small onPress={() => runBulk("dismiss")} disabled={bulkBusy}>
+                      {R.dismissAll(pendingHarvest)}
+                    </ButtonSecondary>
+                  </Inline>
+                  {bulkBusy && (
+                    <Text1 regular color={skinVars.colors.textSecondary}>
+                      {R.bulkWorking}
+                    </Text1>
+                  )}
+                  {bulkError && (
+                    <Text1 regular color={skinVars.colors.error}>
+                      {bulkError}
+                    </Text1>
+                  )}
+                </Stack>
+              )}
               {harvest.length === 0 ? (
                 <Text1 regular color={skinVars.colors.textSecondary}>
                   {R.noHarvest}

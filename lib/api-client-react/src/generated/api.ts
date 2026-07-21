@@ -156,6 +156,8 @@ import type {
   LogoutResult,
   ManualUploadForm,
   ManualUploadResult,
+  MasterDeckHarvestBulkBody,
+  MasterDeckHarvestBulkResponse,
   MasterDeckJob,
   MasterDeckJobCreateInput,
   MasterDeckJobsView,
@@ -9532,6 +9534,77 @@ export const useDismissMasterDeckHarvestItem = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getDismissMasterDeckHarvestItemMutationOptions(options));
+    }
+
+export const getBulkMasterDeckHarvestUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/harvest/bulk`
+}
+
+/**
+ * Applies one decision to all still-pending images in a job's harvest queue. Confirm registers each image in the brand library under its suggested label and tags; dismiss marks them all dismissed. Gated by manage_brand_room (Marca area) and audit-logged as a single config change.
+ * @summary Confirm or dismiss every pending harvested image at once
+ */
+export const bulkMasterDeckHarvest = async (masterDeckHarvestBulkBody: MasterDeckHarvestBulkBody, options?: RequestInit): Promise<MasterDeckHarvestBulkResponse> => {
+
+  return customFetch<MasterDeckHarvestBulkResponse>(getBulkMasterDeckHarvestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(masterDeckHarvestBulkBody)
+  }
+);}
+
+
+
+
+export const getBulkMasterDeckHarvestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkMasterDeckHarvest>>, TError,{data: BodyType<MasterDeckHarvestBulkBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof bulkMasterDeckHarvest>>, TError,{data: BodyType<MasterDeckHarvestBulkBody>}, TContext> => {
+
+const mutationKey = ['bulkMasterDeckHarvest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof bulkMasterDeckHarvest>>, {data: BodyType<MasterDeckHarvestBulkBody>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  bulkMasterDeckHarvest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BulkMasterDeckHarvestMutationResult = NonNullable<Awaited<ReturnType<typeof bulkMasterDeckHarvest>>>
+    export type BulkMasterDeckHarvestMutationBody = BodyType<MasterDeckHarvestBulkBody>
+    export type BulkMasterDeckHarvestMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Confirm or dismiss every pending harvested image at once
+ */
+export const useBulkMasterDeckHarvest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof bulkMasterDeckHarvest>>, TError,{data: BodyType<MasterDeckHarvestBulkBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof bulkMasterDeckHarvest>>,
+        TError,
+        {data: BodyType<MasterDeckHarvestBulkBody>},
+        TContext
+      > => {
+      return useMutation(getBulkMasterDeckHarvestMutationOptions(options));
     }
 
 export const getGetMasterDeckAssetUrl = (params: GetMasterDeckAssetParams,) => {

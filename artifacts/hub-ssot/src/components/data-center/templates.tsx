@@ -39,7 +39,7 @@ import { DATA_I18N } from "../../i18n/data";
 import { DeckReviewDrawer } from "./deck-review";
 
 const MAX_PART_BYTES = 100 * 1024 * 1024;
-const MAX_PARTS = 5;
+const MAX_PARTS = 8;
 const ACTIVE_STATUSES = ["uploaded", "parsing", "clustering", "proposing"];
 
 function errorMessageOf(err: unknown): string | null {

@@ -473,6 +473,9 @@ export interface DataStrings {
       dismissedBadge: string;
       noHarvest: string;
       actionFailed: string;
+      addAll: (n: number) => string;
+      dismissAll: (n: number) => string;
+      bulkWorking: string;
     };
   };
 }
@@ -941,7 +944,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     deckIntake: {
       introTitle: "Turn the corporate master deck into governed layouts",
       introDesc:
-        "Upload the slimmed master deck (up to 5 parts, 100 MB each). The pipeline reads every slide, groups recurring designs into families and proposes reusable layouts — nothing goes live without Brand-admin approval.",
+        "Upload the slimmed master deck (up to 8 parts, 100 MB each). The pipeline reads every slide, groups recurring designs into families and proposes reusable layouts — nothing goes live without Brand-admin approval.",
       guideButton: "Slimming guide (PDF)",
       uploadTitle: "Upload deck parts",
       deckNameLabel: "Deck name",
@@ -950,7 +953,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (images only)",
       chooseFiles: "Choose files",
-      filesHint: "Up to 5 files, 100 MB each",
+      filesHint: "Up to 8 files, 100 MB each",
       selectedFiles: (n) => (n === 1 ? "1 file selected" : `${n} files selected`),
       fileTooLarge: (name) => `"${name}" is larger than 100 MB — see the slimming guide.`,
       startExtraction: "Start extraction",
@@ -1014,6 +1017,9 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         dismissedBadge: "Dismissed",
         noHarvest: "No reusable images were found in this deck.",
         actionFailed: "The action could not be completed.",
+        addAll: (n) => `Add all ${n} to library`,
+        dismissAll: (n) => `Dismiss all ${n}`,
+        bulkWorking: "Applying to all pending images…",
       },
     },
   },
@@ -1486,7 +1492,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     deckIntake: {
       introTitle: "Convierte el master corporativo en layouts gobernados",
       introDesc:
-        "Sube el master aligerado (hasta 5 partes de 100 MB). El pipeline lee cada diapositiva, agrupa los diseños recurrentes en familias y propone layouts reutilizables — nada se publica sin la aprobación del admin de Marca.",
+        "Sube el master aligerado (hasta 8 partes de 100 MB). El pipeline lee cada diapositiva, agrupa los diseños recurrentes en familias y propone layouts reutilizables — nada se publica sin la aprobación del admin de Marca.",
       guideButton: "Guía para aligerar (PDF)",
       uploadTitle: "Subir partes del deck",
       deckNameLabel: "Nombre del deck",
@@ -1495,7 +1501,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (solo imágenes)",
       chooseFiles: "Elegir archivos",
-      filesHint: "Hasta 5 archivos de 100 MB",
+      filesHint: "Hasta 8 archivos de 100 MB",
       selectedFiles: (n) => (n === 1 ? "1 archivo seleccionado" : `${n} archivos seleccionados`),
       fileTooLarge: (name) => `"${name}" supera los 100 MB — consulta la guía.`,
       startExtraction: "Iniciar extracción",
@@ -1563,6 +1569,9 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         dismissedBadge: "Descartada",
         noHarvest: "No se encontraron imágenes reutilizables en este deck.",
         actionFailed: "No se pudo completar la acción.",
+        addAll: (n) => `Añadir las ${n} a la biblioteca`,
+        dismissAll: (n) => `Descartar las ${n}`,
+        bulkWorking: "Aplicando a todas las imágenes pendientes…",
       },
     },
   },
@@ -2031,7 +2040,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     deckIntake: {
       introTitle: "Das Corporate-Masterdeck in governte Layouts verwandeln",
       introDesc:
-        "Lade das verschlankte Masterdeck hoch (bis zu 5 Teile à 100 MB). Die Pipeline liest jede Folie, gruppiert wiederkehrende Designs zu Familien und schlägt wiederverwendbare Layouts vor — nichts geht ohne Freigabe des Marken-Admins live.",
+        "Lade das verschlankte Masterdeck hoch (bis zu 8 Teile à 100 MB). Die Pipeline liest jede Folie, gruppiert wiederkehrende Designs zu Familien und schlägt wiederverwendbare Layouts vor — nichts geht ohne Freigabe des Marken-Admins live.",
       guideButton: "Leitfaden zum Verschlanken (PDF)",
       uploadTitle: "Deck-Teile hochladen",
       deckNameLabel: "Deck-Name",
@@ -2040,7 +2049,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (nur Bilder)",
       chooseFiles: "Dateien auswählen",
-      filesHint: "Bis zu 5 Dateien à 100 MB",
+      filesHint: "Bis zu 8 Dateien à 100 MB",
       selectedFiles: (n) => (n === 1 ? "1 Datei ausgewählt" : `${n} Dateien ausgewählt`),
       fileTooLarge: (name) => `"${name}" ist größer als 100 MB — siehe Leitfaden.`,
       startExtraction: "Extraktion starten",
@@ -2108,6 +2117,9 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         dismissedBadge: "Verworfen",
         noHarvest: "In diesem Deck wurden keine wiederverwendbaren Bilder gefunden.",
         actionFailed: "Die Aktion konnte nicht abgeschlossen werden.",
+        addAll: (n) => `Alle ${n} zur Bibliothek hinzufügen`,
+        dismissAll: (n) => `Alle ${n} verwerfen`,
+        bulkWorking: "Wird auf alle ausstehenden Bilder angewendet…",
       },
     },
   },
@@ -2578,7 +2590,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
     deckIntake: {
       introTitle: "Transformar o master corporativo em layouts governados",
       introDesc:
-        "Carregue o master aligeirado (até 5 partes de 100 MB). O pipeline lê cada diapositivo, agrupa os designs recorrentes em famílias e propõe layouts reutilizáveis — nada entra em produção sem aprovação do admin de Marca.",
+        "Carregue o master aligeirado (até 8 partes de 100 MB). O pipeline lê cada diapositivo, agrupa os designs recorrentes em famílias e propõe layouts reutilizáveis — nada entra em produção sem aprovação do admin de Marca.",
       guideButton: "Guia para aligeirar (PDF)",
       uploadTitle: "Carregar partes do deck",
       deckNameLabel: "Nome do deck",
@@ -2587,7 +2599,7 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       formatPptx: "PowerPoint (.pptx)",
       formatPdf: "PDF (apenas imagens)",
       chooseFiles: "Escolher ficheiros",
-      filesHint: "Até 5 ficheiros de 100 MB",
+      filesHint: "Até 8 ficheiros de 100 MB",
       selectedFiles: (n) => (n === 1 ? "1 ficheiro selecionado" : `${n} ficheiros selecionados`),
       fileTooLarge: (name) => `"${name}" excede os 100 MB — consulte o guia.`,
       startExtraction: "Iniciar extração",
@@ -2655,6 +2667,9 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         dismissedBadge: "Descartada",
         noHarvest: "Não foram encontradas imagens reutilizáveis neste deck.",
         actionFailed: "Não foi possível concluir a ação.",
+        addAll: (n) => `Adicionar as ${n} à biblioteca`,
+        dismissAll: (n) => `Descartar as ${n}`,
+        bulkWorking: "Aplicando a todas as imagens pendentes…",
       },
     },
   },

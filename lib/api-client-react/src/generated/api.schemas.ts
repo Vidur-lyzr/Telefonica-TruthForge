@@ -4098,7 +4098,7 @@ export interface MasterDeckJobCreateInput {
   kind: MasterDeckJobCreateInputKind;
   /**
      * @minItems 1
-     * @maxItems 5
+     * @maxItems 8
      */
   parts: MasterDeckJobCreateInputPartsItem[];
 }
@@ -4362,6 +4362,26 @@ export interface DismissMasterDeckHarvestBody {
   roleId: string;
   jobId: string;
   itemId: string;
+}
+
+export type MasterDeckHarvestBulkBodyAction = typeof MasterDeckHarvestBulkBodyAction[keyof typeof MasterDeckHarvestBulkBodyAction];
+
+
+export const MasterDeckHarvestBulkBodyAction = {
+  confirm: 'confirm',
+  dismiss: 'dismiss',
+} as const;
+
+export interface MasterDeckHarvestBulkBody {
+  roleId: string;
+  jobId: string;
+  action: MasterDeckHarvestBulkBodyAction;
+}
+
+export interface MasterDeckHarvestBulkResponse {
+  job: MasterDeckJob;
+  processed: number;
+  skipped: number;
 }
 
 export type GetCorpusStatsParams = {

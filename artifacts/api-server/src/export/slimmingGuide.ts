@@ -82,7 +82,7 @@ export async function slimmingGuidePdf(): Promise<Buffer> {
     {
       title: "Split if still above 100 MB",
       body:
-        "Save section-by-section copies (delete the other sections in each copy). Up to five parts can be " +
+        "Save section-by-section copies (delete the other sections in each copy). Up to eight parts can be " +
         "uploaded together as one extraction job.",
     },
     {

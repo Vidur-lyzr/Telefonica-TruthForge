@@ -767,8 +767,21 @@ export async function parsePptxPart(
 /** Merge one parsed part into the accumulating deck. */
 export function mergeIntoDeck(deck: ParsedDeck, part: ParsePartResult): void {
   deck.slides.push(...part.slides);
-  // Cross-part dedupe happens at harvest time via sha256; keep all here.
-  deck.media.push(...part.media);
+  // Dedupe by content hash while merging so a logo repeated across hundreds
+  // of slides (or shared across split parts) holds its bytes in memory once.
+  // Slide references are merged so harvest labelling still sees every use.
+  const bySha = new Map(deck.media.map((m) => [m.sha256, m]));
+  for (const media of part.media) {
+    const existing = bySha.get(media.sha256);
+    if (existing) {
+      for (const s of media.slides) {
+        if (!existing.slides.includes(s)) existing.slides.push(s);
+      }
+      continue;
+    }
+    deck.media.push(media);
+    bySha.set(media.sha256, media);
+  }
   deck.dropped.tables += part.dropped.tables;
   deck.dropped.charts += part.dropped.charts;
   deck.dropped.other += part.dropped.other;

@@ -7,7 +7,7 @@ import type { ParsedDeck, MediaAsset } from "./pptxParse";
 
 const MIN_DIM_PX = 200;
 const MIN_BYTES = 8 * 1024;
-const MAX_ITEMS = 24;
+const MAX_ITEMS = 200;
 
 export interface HarvestCandidate {
   /** Server-assigned asset key inside the job's asset map. */

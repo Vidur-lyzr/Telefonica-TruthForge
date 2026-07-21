@@ -18,7 +18,7 @@ export interface MasterDeckJobCreateInput {
   kind: MasterDeckJobCreateInputKind;
   /**
      * @minItems 1
-     * @maxItems 5
+     * @maxItems 8
      */
   parts: MasterDeckJobCreateInputPartsItem[];
 }

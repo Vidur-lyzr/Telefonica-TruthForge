@@ -28,6 +28,8 @@ import {
   ConfirmMasterDeckHarvestItemResponse,
   DismissMasterDeckHarvestItemBody,
   DismissMasterDeckHarvestItemResponse,
+  BulkMasterDeckHarvestBody,
+  BulkMasterDeckHarvestResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { fetchObjectBytes } from "../lib/imageBytes";
@@ -495,6 +497,99 @@ router.post("/data/master-decks/harvest/dismiss", (req, res) => {
     if (h) h.status = "dismissed";
   });
   res.json(DismissMasterDeckHarvestItemResponse.parse(toJobDto(updated)));
+});
+
+router.post("/data/master-decks/harvest/bulk", (req, res) => {
+  const parsed = BulkMasterDeckHarvestBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body.", code: "invalid_body" });
+    return;
+  }
+  const grant = requireDeckAdmin(req, res, parsed.data.roleId);
+  if (!grant) return;
+  const job = getDeckJob(parsed.data.jobId);
+  if (!job) {
+    res.status(404).json({ error: "Unknown extraction job.", code: "unknown_job" });
+    return;
+  }
+  const pending = job.harvest.filter((h) => h.status === "pending");
+  if (pending.length === 0) {
+    res.status(400).json({
+      error: "There are no pending images left in this job.",
+      code: "nothing_pending",
+    });
+    return;
+  }
+  const { action } = parsed.data;
+  let processed = 0;
+  let skipped = 0;
+  try {
+    const updated = updateDeckJob(job.id, (j) => {
+      for (const h of j.harvest) {
+        if (h.status !== "pending") continue;
+        if (action === "dismiss") {
+          h.status = "dismissed";
+          processed += 1;
+          continue;
+        }
+        const objectPath = j.assets[h.key];
+        if (!objectPath) {
+          skipped += 1;
+          continue;
+        }
+        try {
+          const image = registerBrandImage({
+            objectPath,
+            filename: h.filename,
+            contentType: h.contentType,
+            width: h.width,
+            height: h.height,
+            label: h.suggestedLabel,
+            tags: h.suggestedTags,
+            uploadedBy: grant.role.name,
+          });
+          h.status = "added";
+          h.imageId = image.id;
+          processed += 1;
+        } catch (err) {
+          req.log.warn(
+            { err, jobId: j.id, itemId: h.id },
+            "master-decks: bulk harvest item failed",
+          );
+          skipped += 1;
+        }
+      }
+    });
+    req.log.info(
+      { jobId: job.id, action, processed, skipped },
+      "master-decks: bulk harvest applied",
+    );
+    observe(req, {
+      kind: "config_change",
+      page: "/data",
+      roleId: grant.role.id,
+      roleLabel: grant.role.name,
+      summary:
+        action === "confirm"
+          ? `Added ${processed} harvested deck images to the brand library`
+          : `Dismissed ${processed} harvested deck images`,
+      status: "applied",
+      detail: {
+        change: action === "confirm" ? "brand_images_added_bulk" : "harvest_dismissed_bulk",
+        source: `master deck "${job.deckName}"`,
+        processed: String(processed),
+        skipped: String(skipped),
+      },
+    });
+    res.json(
+      BulkMasterDeckHarvestResponse.parse({ job: toJobDto(updated), processed, skipped }),
+    );
+  } catch (err) {
+    if (!sendKnownError(res, err)) {
+      req.log.error({ err }, "master-decks: bulk harvest failed");
+      res.status(500).json({ error: "Failed to apply the bulk decision." });
+    }
+  }
 });
 
 // ---- Assets & guide -------------------------------------------------------------
