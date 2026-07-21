@@ -112,6 +112,30 @@ const cardStyle: React.CSSProperties = {
   borderRadius: skinVars.borderRadii.container,
 };
 
+// Render audit detail metadata with human labels. Export events carry the
+// formats produced, the destination and the template used — surface them
+// clearly instead of raw key:value pairs.
+function detailEntry(key: string, value: string): { label: string; value: string } {
+  switch (key) {
+    case "format":
+      return {
+        label: value.includes(",") ? "Formats" : "Format",
+        value: value
+          .split(",")
+          .map((f) => f.trim().toUpperCase())
+          .join(", "),
+      };
+    case "destination":
+      return { label: "Destination", value };
+    case "templateId":
+      return { label: "Template", value };
+    case "source":
+      return { label: "Source", value };
+    default:
+      return { label: key, value };
+  }
+}
+
 function EventRow({ event }: { event: ObservatoryEvent }) {
   const [expanded, setExpanded] = React.useState(false);
   const hasBody = Boolean(event.summary || event.response);
@@ -192,11 +216,14 @@ function EventRow({ event }: { event: ObservatoryEvent }) {
                   </Text1>
                 )}
                 {event.detail &&
-                  Object.entries(event.detail).map(([k, v]) => (
-                    <Text1 key={k} regular color={skinVars.colors.textSecondary}>
-                      {k}: {v}
-                    </Text1>
-                  ))}
+                  Object.entries(event.detail).map(([k, v]) => {
+                    const d = detailEntry(k, String(v));
+                    return (
+                      <Text1 key={k} regular color={skinVars.colors.textSecondary}>
+                        {d.label}: {d.value}
+                      </Text1>
+                    );
+                  })}
               </Inline>
             </Stack>
           </div>

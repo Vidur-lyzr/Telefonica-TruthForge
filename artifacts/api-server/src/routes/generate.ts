@@ -761,7 +761,12 @@ router.post("/generate/export", async (req, res) => {
       page: "/generate",
       summary: draft.title,
       docIds: [draft.id],
-      detail: { format, destination, source: "generate" },
+      detail: {
+        format,
+        destination,
+        source: "generate",
+        ...(result.templateId ? { templateId: result.templateId } : {}),
+      },
     });
     res.setHeader("Content-Type", result.contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
@@ -799,7 +804,12 @@ router.post("/generate/export/pack", async (req, res) => {
       page: "/generate",
       summary: draft.title,
       docIds: [draft.id],
-      detail: { format: formats.join(","), destination, source: "generate_pack" },
+      detail: {
+        format: formats.join(","),
+        destination,
+        source: "generate_pack",
+        ...(result.templateId ? { templateId: result.templateId } : {}),
+      },
     });
     res.setHeader("Content-Type", result.contentType);
     res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
