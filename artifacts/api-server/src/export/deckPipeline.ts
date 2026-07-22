@@ -19,7 +19,7 @@ import {
   type ParsedDeck,
 } from "./deckExtract/pptxParse";
 import { clusterSlides } from "./deckExtract/cluster";
-import { proposeLayout } from "./deckExtract/propose";
+import { proposeLayout, assessCluster } from "./deckExtract/propose";
 import { renderOpsPng, renderWireframePng } from "./deckExtract/opsSvg";
 import { collectHarvestCandidates, type HarvestCandidate } from "./deckExtract/harvest";
 import { parsePdfPartMedia } from "./deckExtract/pdfHarvest";
@@ -128,7 +128,7 @@ async function proposeFamiliesFromDeck(
   deck: ParsedDeck,
   deckName: string,
   assets: Record<string, string>,
-): Promise<DeckIntakeJob["families"]> {
+): Promise<{ families: DeckIntakeJob["families"]; skippedFamilies: number }> {
   updateDeckJob(jobId, (j) => {
     j.status = "clustering";
     j.progress = `Grouping ${deck.slides.length} slides into layout families`;
@@ -143,13 +143,22 @@ async function proposeFamiliesFromDeck(
   });
 
   const families: DeckIntakeJob["families"] = [];
+  let skippedFamilies = 0;
   let familyIdx = 0;
   for (const cluster of kept) {
     const proposal = proposeLayout(cluster, deckName, familyIdx);
     if (!proposal) {
+      skippedFamilies += 1;
+      const rejection = assessCluster(cluster);
       logger.info(
-        { jobId, slides: cluster.slideIndexes.length, label: cluster.label },
-        "deck-pipeline: family skipped (no usable text content)",
+        {
+          jobId,
+          slides: cluster.slideIndexes.length,
+          label: cluster.label,
+          reason: rejection?.reason ?? "invalid_spec",
+          detail: rejection?.detail,
+        },
+        "deck-pipeline: family skipped",
       );
       continue;
     }
@@ -192,7 +201,9 @@ async function proposeFamiliesFromDeck(
 
     families.push({
       id: famId,
-      label: cluster.label,
+      // Human structural name, not raw shape counts — the spec name is
+      // "<structure> — <deck>", the family label shows just the structure.
+      label: proposal.spec.name.split(" — ")[0] ?? proposal.spec.name,
       slideIndexes: cluster.slideIndexes,
       ...(assets[thumbKey] ? { thumbKey } : {}),
       ...(assets[previewKey] ? { previewKey } : {}),
@@ -209,7 +220,7 @@ async function proposeFamiliesFromDeck(
       "deck-pipeline: family list truncated",
     );
   }
-  return families;
+  return { families, skippedFamilies };
 }
 
 // PDF fallback: harvest-only. PDFs carry no reusable layout semantics, so no
@@ -395,8 +406,11 @@ async function extractZipDeck(jobId: string): Promise<void> {
 
   const assets: Record<string, string> = {};
   let families: DeckIntakeJob["families"] = [];
+  let skippedFamilies = 0;
   if (deck.slides.length > 0) {
-    families = await proposeFamiliesFromDeck(jobId, deck, job.deckName, assets);
+    const proposed = await proposeFamiliesFromDeck(jobId, deck, job.deckName, assets);
+    families = proposed.families;
+    skippedFamilies = proposed.skippedFamilies;
   }
 
   setProgress(jobId, "Collecting images for the harvest queue");
@@ -418,6 +432,11 @@ async function extractZipDeck(jobId: string): Promise<void> {
       `${deck.slides.length} slide${deck.slides.length === 1 ? "" : "s"} analysed`,
       `${families.length} layout famil${families.length === 1 ? "y" : "ies"} proposed`,
     );
+    if (skippedFamilies > 0) {
+      summaryBits.push(
+        `${skippedFamilies} content-dense famil${skippedFamilies === 1 ? "y" : "ies"} skipped (not reusable layouts)`,
+      );
+    }
   }
   if (pdfPages > 0) {
     summaryBits.push(`${pdfPages} PDF page${pdfPages === 1 ? "" : "s"} scanned`);
@@ -483,7 +502,12 @@ async function extractDeck(jobId: string): Promise<void> {
 
   // ---- Cluster + propose ------------------------------------------------------
   const assets: Record<string, string> = {};
-  const families = await proposeFamiliesFromDeck(jobId, deck, job.deckName, assets);
+  const { families, skippedFamilies } = await proposeFamiliesFromDeck(
+    jobId,
+    deck,
+    job.deckName,
+    assets,
+  );
 
   // ---- Harvest ---------------------------------------------------------------
   setProgress(jobId, "Collecting images for the harvest queue");
@@ -497,6 +521,11 @@ async function extractDeck(jobId: string): Promise<void> {
   const summaryBits: string[] = [
     `${deck.slides.length} slide${deck.slides.length === 1 ? "" : "s"} analysed`,
     `${families.length} layout famil${families.length === 1 ? "y" : "ies"} proposed`,
+    ...(skippedFamilies > 0
+      ? [
+          `${skippedFamilies} content-dense famil${skippedFamilies === 1 ? "y" : "ies"} skipped (not reusable layouts)`,
+        ]
+      : []),
     `${harvest.length} image${harvest.length === 1 ? "" : "s"} harvested`,
   ];
   updateDeckJob(jobId, (j) => {

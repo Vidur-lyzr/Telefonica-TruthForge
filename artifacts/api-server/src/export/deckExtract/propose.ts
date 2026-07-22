@@ -80,14 +80,93 @@ function clampFrame(box: Box): { x: number; y: number; w: number; h: number } | 
   return { x, y, w, h };
 }
 
+// ---- Quality gates ----------------------------------------------------------------
+//
+// A reusable layout is structurally SPARSE: a handful of text areas, at most a
+// few images, and background furniture that is bands/panels — not dozens of
+// scattered boxes. Content-dense pages (agendas, mood boards, palette/style
+// pages full of color chips) are honest content, not templates, and proposing
+// them produces garbage layouts. They are rejected outright.
+
+const MAX_SOURCE_TEXTS = 8;
+const MAX_SOURCE_IMAGES = 5;
+const MAX_SOURCE_FILLS = 14;
+
+/** Slot budget of a professional layout — small on purpose. */
+const MAX_TEXT_SLOTS = 4;
+const MAX_BULLET_SLOTS = 2;
+const MAX_IMAGE_SLOTS = 3;
+const MAX_TOTAL_SLOTS = 7;
+
+export type ClusterRejection =
+  | { reason: "content_dense"; detail: string }
+  | { reason: "no_text"; detail: string };
+
+/** Why a cluster cannot become a layout, or null when it is a valid candidate. */
+export function assessCluster(cluster: SlideCluster): ClusterRejection | null {
+  const rep = cluster.representative;
+  const texts = rep.shapes.filter((s) => s.kind === "text").length;
+  const images = rep.shapes.filter((s) => s.kind === "image").length;
+  const fills = rep.shapes.filter((s) => s.kind === "fill").length;
+  if (texts === 0) {
+    return { reason: "no_text", detail: "no usable text content" };
+  }
+  if (texts > MAX_SOURCE_TEXTS || images > MAX_SOURCE_IMAGES || fills > MAX_SOURCE_FILLS) {
+    return {
+      reason: "content_dense",
+      detail: `${texts} text boxes, ${images} images, ${fills} decorative shapes — a content page, not a reusable layout`,
+    };
+  }
+  return null;
+}
+
 // ---- Slot naming ----------------------------------------------------------------
 
-const TEXT_KEYS = ["title", "subtitle", "body", "bodyTwo", "bodyThree", "bodyFour"];
-const TEXT_LABELS = ["Title", "Subtitle", "Body copy", "Second body block", "Third body block", "Fourth body block"];
-const BULLET_KEYS = ["bullets", "bulletsTwo", "bulletsThree"];
-const BULLET_LABELS = ["Bullet points", "Second bullet list", "Third bullet list"];
-const IMAGE_KEYS = ["image", "imageTwo", "imageThree", "imageFour"];
-const IMAGE_LABELS = ["Supporting image", "Second image", "Third image", "Fourth image"];
+const TEXT_KEYS = ["title", "subtitle", "body", "bodyTwo"];
+const TEXT_LABELS = ["Title", "Subtitle", "Body copy", "Second body block"];
+const BULLET_KEYS = ["bullets", "bulletsTwo"];
+const BULLET_LABELS = ["Bullet points", "Second bullet list"];
+const IMAGE_KEYS = ["image", "imageTwo", "imageThree"];
+const IMAGE_LABELS = ["Supporting image", "Second image", "Third image"];
+
+function overlapArea(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+): number {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
+/**
+ * Human layout name derived from the KEPT slot structure — never from raw
+ * source shape counts ("28 text blocks" is a diagnosis, not a template name).
+ */
+function structuralName(slots: ExtractedLayoutSpec["slots"], bgIsDark: boolean): string {
+  const textSlots = slots.filter((s) => s.kind === "text");
+  const bulletCount = slots.filter((s) => s.kind === "bullets").length;
+  const imageSlots = slots.filter((s) => s.kind === "image");
+  if (imageSlots.length >= 2) {
+    return textSlots.length + bulletCount > 0 ? "Image gallery with text" : "Image gallery";
+  }
+  if (imageSlots.length === 1) {
+    const img = imageSlots[0]!.frame;
+    if (img.w * img.h >= SLIDE_W * SLIDE_H * 0.4) return "Hero image";
+    if (img.w >= SLIDE_W * 0.4) return "Image + text split";
+    return "Text with image";
+  }
+  if (bulletCount >= 1) return textSlots.length >= 1 ? "Title + bullet list" : "Bullet list";
+  if (textSlots.length === 1) return bgIsDark ? "Chapter divider" : "Statement";
+  const bodies = textSlots.slice(1);
+  if (bodies.length === 2) {
+    const [a, b] = [bodies[0]!.frame, bodies[1]!.frame];
+    const yOverlap = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+    const xDisjoint = a.x + a.w <= b.x + 0.2 || b.x + b.w <= a.x + 0.2;
+    if (yOverlap > Math.min(a.h, b.h) * 0.5 && xDisjoint) return "Two-column text";
+  }
+  if (textSlots.length === 2) return "Title + text";
+  return "Title + text blocks";
+}
 
 function positionHint(f: { x: number; y: number; w: number; h: number }): string {
   const cx = f.x + f.w / 2;
@@ -132,7 +211,8 @@ export function proposeLayout(
   const fills = rep.shapes.filter((s): s is FillShape => s.kind === "fill");
   const lines = rep.shapes.filter((s): s is LineShape => s.kind === "line");
 
-  if (texts.length === 0) return null; // schema demands a non-image slot
+  // Content-dense pages never become layouts — see assessCluster.
+  if (assessCluster(cluster) !== null) return null;
 
   // ---- Background ----------------------------------------------------------
   const bgSnap = snapColor(rep.bgColorHex, THEME_COLORS.background);
@@ -150,49 +230,9 @@ export function proposeLayout(
   }
 
   const sortedFills = [...fills].sort((a, b) => b.w * b.h - a.w * a.h);
-  for (const fill of sortedFills) {
-    if (background.length >= 36) {
-      addNote("Some decorative shapes were dropped — the background op budget (40) was reached.");
-      break;
-    }
-    const snap = snapColor(fill.colorHex, THEME_COLORS.backgroundAlt);
-    // Skip fills that just repeat the background.
-    if (snap.hex === bgSnap.hex && fill.w * fill.h > SLIDE_W * SLIDE_H * 0.9) continue;
-    if (fill.gradient) {
-      addNote("A gradient-filled panel was flattened to its first stop, snapped to the brand palette.");
-    }
-    if (snap.distance > 90 && fill.colorHex) {
-      addNote(`Panel color ${fill.colorHex} was snapped to the brand token "${snap.token}".`);
-    }
-    const x = Math.max(-EPS, Math.min(fill.x, SLIDE_W));
-    const y = Math.max(-EPS, Math.min(fill.y, SLIDE_H));
-    const w = Math.max(0.01, Math.min(fill.w, SLIDE_W + 2 * EPS));
-    const h = Math.max(0.01, Math.min(fill.h, SLIDE_H + 2 * EPS));
-    const alpha = fill.alpha < 1 ? Math.max(0.04, Math.min(1, fill.alpha)) : undefined;
-    background.push({
-      op: "rect",
-      x: Math.round(x * 100) / 100,
-      y: Math.round(y * 100) / 100,
-      w: Math.round(w * 100) / 100,
-      h: Math.round(h * 100) / 100,
-      fill: snap.hex,
-      ...(alpha != null ? { alpha } : {}),
-    });
-  }
-  for (const line of lines) {
-    if (background.length >= 40) break;
-    const snap = snapColor(line.colorHex, THEME_COLORS.divider);
-    const x = Math.max(-EPS, Math.min(line.x, SLIDE_W - 0.05));
-    const w = Math.max(0.05, Math.min(line.w, SLIDE_W));
-    background.push({
-      op: "line",
-      x: Math.round(x * 100) / 100,
-      y: Math.round(Math.max(-EPS, Math.min(line.y, SLIDE_H)) * 100) / 100,
-      w: Math.round(w * 100) / 100,
-      color: snap.hex,
-      pt: Math.max(0.25, Math.min(8, line.pt)),
-    });
-  }
+  // Decorative fills and lines are appended AFTER slot selection, so only
+  // structural furniture (bands, edge bars, panels backing kept slots)
+  // survives — color swatches and orphan boxes are dropped.
 
   // ---- Slots ---------------------------------------------------------------
   const slots: ExtractedLayoutSpec["slots"] = [];
@@ -218,11 +258,12 @@ export function proposeLayout(
     return b.w * b.h - a.w * a.h;
   });
 
+  const imageReserve = Math.min(images.length, MAX_IMAGE_SLOTS);
   let textIdx = 0;
   let bulletIdx = 0;
   for (const t of orderedTexts) {
-    if (slots.length >= 12 - Math.min(images.length, 2)) {
-      addNote("Some minor text areas were dropped — a layout supports at most 12 slots.");
+    if (slots.length >= MAX_TOTAL_SLOTS - imageReserve) {
+      addNote("Some minor text areas were dropped — a clean layout keeps only its main content areas.");
       break;
     }
     const frame = clampFrame(t);
@@ -287,7 +328,7 @@ export function proposeLayout(
 
   let imageIdx = 0;
   for (const img of [...images].sort((a, b) => b.w * b.h - a.w * a.h)) {
-    if (slots.length >= 12 || imageIdx >= IMAGE_KEYS.length) {
+    if (slots.length >= MAX_TOTAL_SLOTS || imageIdx >= IMAGE_KEYS.length) {
       if (images.length > imageIdx) addNote("Additional image frames were dropped to stay within the slot budget.");
       break;
     }
@@ -303,6 +344,80 @@ export function proposeLayout(
       fallbackFill: THEME_COLORS.brandLow,
     });
     imageIdx += 1;
+  }
+
+  // ---- Decorative furniture (filtered) --------------------------------------
+  // Keep only structural fills: full-width/height bands, large panels, edge
+  // bars, and panels that visually back a kept slot. Small floating rectangles
+  // (color swatches, orphan boxes from dropped content) are discarded.
+  const slotFrames = slots.map((s) => s.frame);
+  const slideArea = SLIDE_W * SLIDE_H;
+  let droppedDecor = 0;
+  for (const fill of sortedFills) {
+    if (background.length >= 30) break;
+    const snap = snapColor(fill.colorHex, THEME_COLORS.backgroundAlt);
+    // Skip fills that just repeat the background.
+    if (snap.hex === bgSnap.hex && fill.w * fill.h > slideArea * 0.9) continue;
+    const area = fill.w * fill.h;
+    const isBand =
+      fill.w >= SLIDE_W * 0.55 || fill.h >= SLIDE_H * 0.55 || area >= slideArea * 0.18;
+    const backsSlot =
+      area >= 0.8 &&
+      slotFrames.some((k) => overlapArea(fill, k) >= 0.55 * k.w * k.h);
+    if (!isBand && !backsSlot) {
+      droppedDecor += 1;
+      continue;
+    }
+    if (fill.gradient) {
+      addNote("A gradient-filled panel was flattened to its first stop, snapped to the brand palette.");
+    }
+    if (snap.distance > 90 && fill.colorHex) {
+      addNote(`Panel color ${fill.colorHex} was snapped to the brand token "${snap.token}".`);
+    }
+    const x = Math.max(-EPS, Math.min(fill.x, SLIDE_W));
+    const y = Math.max(-EPS, Math.min(fill.y, SLIDE_H));
+    const w = Math.max(0.01, Math.min(fill.w, SLIDE_W + 2 * EPS));
+    const h = Math.max(0.01, Math.min(fill.h, SLIDE_H + 2 * EPS));
+    const alpha = fill.alpha < 1 ? Math.max(0.04, Math.min(1, fill.alpha)) : undefined;
+    background.push({
+      op: "rect",
+      x: Math.round(x * 100) / 100,
+      y: Math.round(y * 100) / 100,
+      w: Math.round(w * 100) / 100,
+      h: Math.round(h * 100) / 100,
+      fill: snap.hex,
+      ...(alpha != null ? { alpha } : {}),
+    });
+  }
+  for (const line of lines) {
+    if (background.length >= 36) break;
+    // Keep only structural rules: long dividers, or underlines attached to a
+    // kept slot. Short floating dashes are dropped.
+    const underlinesSlot = slotFrames.some((k) => {
+      const xOverlap = Math.min(line.x + line.w, k.x + k.w) - Math.max(line.x, k.x);
+      const nearY = line.y >= k.y - 0.35 && line.y <= k.y + k.h + 0.35;
+      return xOverlap >= line.w * 0.5 && nearY;
+    });
+    if (line.w < SLIDE_W * 0.3 && !underlinesSlot) {
+      droppedDecor += 1;
+      continue;
+    }
+    const snap = snapColor(line.colorHex, THEME_COLORS.divider);
+    const x = Math.max(-EPS, Math.min(line.x, SLIDE_W - 0.05));
+    const w = Math.max(0.05, Math.min(line.w, SLIDE_W));
+    background.push({
+      op: "line",
+      x: Math.round(x * 100) / 100,
+      y: Math.round(Math.max(-EPS, Math.min(line.y, SLIDE_H)) * 100) / 100,
+      w: Math.round(w * 100) / 100,
+      color: snap.hex,
+      pt: Math.max(0.25, Math.min(8, line.pt)),
+    });
+  }
+  if (droppedDecor > 0) {
+    addNote(
+      `${droppedDecor} decorative shape${droppedDecor === 1 ? "" : "s"} from the source slide (small boxes, swatches, stray rules) were dropped — only structural bands and panels behind content are kept.`,
+    );
   }
 
   // ---- Notes ---------------------------------------------------------------
@@ -321,7 +436,8 @@ export function proposeLayout(
   // ---- Identity ------------------------------------------------------------
   const slug = slugify(deckName);
   const id = `xl-${slug}-f${familyIndex + 1}`.slice(0, 63);
-  const name = `${cluster.label} — ${deckName}`.slice(0, 80);
+  const structure = structuralName(slots, bgIsDark);
+  const name = `${structure} — ${deckName}`.slice(0, 80);
   const footer: ExtractedLayoutSpec["footer"] =
     orderedTexts[0]?.phType === "ctrTitle" ? "none" : bgIsDark ? "dark" : "light";
 
@@ -333,7 +449,7 @@ export function proposeLayout(
   if (bulletSlotCount > 0) pieces.push(`${bulletSlotCount} bullet list${bulletSlotCount === 1 ? "" : "s"}`);
   if (imageSlotCount > 0) pieces.push(`${imageSlotCount} image panel${imageSlotCount === 1 ? "" : "s"}`);
   const purpose =
-    `Use for ${cluster.label.toLowerCase()} content with ${pieces.join(", ")}. ` +
+    `${structure} layout with ${pieces.join(", ")}. ` +
     `Extracted from the master deck "${deckName}" (family of ${cluster.slideIndexes.length} slide${cluster.slideIndexes.length === 1 ? "" : "s"}).`;
 
   const raw = {

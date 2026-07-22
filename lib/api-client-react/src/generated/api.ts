@@ -163,6 +163,8 @@ import type {
   MasterDeckJob,
   MasterDeckJobCreateInput,
   MasterDeckJobsView,
+  MasterDeckLayoutRemoveInput,
+  MasterDeckLayoutRemoveResult,
   MasterDeckProposalApproveInput,
   MasterDeckProposalApproveResult,
   MasterDeckProposalRejectInput,
@@ -10019,6 +10021,77 @@ export function useDownloadSlimmingGuide<TData = Awaited<ReturnType<typeof downl
 
 
 
+
+export const getRemoveMasterDeckLayoutUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/layouts/remove`
+}
+
+/**
+ * Deletes an admin-approved extracted layout so the generate agent can no longer pick it. Coded layouts cannot be removed. Audit-logs a config change. Gated by manage_brand_room (Marca area).
+ * @summary Remove an approved extracted layout from the live registry
+ */
+export const removeMasterDeckLayout = async (masterDeckLayoutRemoveInput: MasterDeckLayoutRemoveInput, options?: RequestInit): Promise<MasterDeckLayoutRemoveResult> => {
+
+  return customFetch<MasterDeckLayoutRemoveResult>(getRemoveMasterDeckLayoutUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(masterDeckLayoutRemoveInput)
+  }
+);}
+
+
+
+
+export const getRemoveMasterDeckLayoutMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeMasterDeckLayout>>, TError,{data: BodyType<MasterDeckLayoutRemoveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeMasterDeckLayout>>, TError,{data: BodyType<MasterDeckLayoutRemoveInput>}, TContext> => {
+
+const mutationKey = ['removeMasterDeckLayout'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeMasterDeckLayout>>, {data: BodyType<MasterDeckLayoutRemoveInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  removeMasterDeckLayout(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveMasterDeckLayoutMutationResult = NonNullable<Awaited<ReturnType<typeof removeMasterDeckLayout>>>
+    export type RemoveMasterDeckLayoutMutationBody = BodyType<MasterDeckLayoutRemoveInput>
+    export type RemoveMasterDeckLayoutMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Remove an approved extracted layout from the live registry
+ */
+export const useRemoveMasterDeckLayout = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeMasterDeckLayout>>, TError,{data: BodyType<MasterDeckLayoutRemoveInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeMasterDeckLayout>>,
+        TError,
+        {data: BodyType<MasterDeckLayoutRemoveInput>},
+        TContext
+      > => {
+      return useMutation(getRemoveMasterDeckLayoutMutationOptions(options));
+    }
 
 export const getGetBrandTemplatesUrl = (params?: GetBrandTemplatesParams,) => {
   const normalizedParams = new URLSearchParams();

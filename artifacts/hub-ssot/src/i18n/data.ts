@@ -479,6 +479,15 @@ export interface DataStrings {
       dismissAll: (n: number) => string;
       bulkWorking: string;
     };
+    library: {
+      title: string;
+      desc: string;
+      empty: string;
+      fromDeck: (deck: string) => string;
+      remove: string;
+      removing: string;
+      removeFailed: string;
+    };
   };
 }
 
@@ -1025,6 +1034,15 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         addAll: (n) => `Add all ${n} to library`,
         dismissAll: (n) => `Dismiss all ${n}`,
         bulkWorking: "Applying to all pending images…",
+      },
+      library: {
+        title: "Live extracted layouts",
+        desc: "Extracted layouts currently available to Generate. Removing one takes it out of the template pool immediately.",
+        empty: "No extracted layouts are live yet. Approve proposals from a ready extraction job to add them.",
+        fromDeck: (deck) => `From "${deck}"`,
+        remove: "Remove",
+        removing: "Removing…",
+        removeFailed: "Could not remove the layout.",
       },
     },
   },
@@ -1581,6 +1599,15 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         dismissAll: (n) => `Descartar las ${n}`,
         bulkWorking: "Aplicando a todas las imágenes pendientes…",
       },
+      library: {
+        title: "Layouts extraídos activos",
+        desc: "Layouts extraídos disponibles ahora en Generar. Al eliminar uno, sale del pool de plantillas inmediatamente.",
+        empty: "Aún no hay layouts extraídos activos. Aprueba propuestas de un trabajo de extracción listo para añadirlos.",
+        fromDeck: (deck) => `De "${deck}"`,
+        remove: "Eliminar",
+        removing: "Eliminando…",
+        removeFailed: "No se pudo eliminar el layout.",
+      },
     },
   },
   DE: {
@@ -2131,6 +2158,15 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         addAll: (n) => `Alle ${n} zur Bibliothek hinzufügen`,
         dismissAll: (n) => `Alle ${n} verwerfen`,
         bulkWorking: "Wird auf alle ausstehenden Bilder angewendet…",
+      },
+      library: {
+        title: "Aktive extrahierte Layouts",
+        desc: "Extrahierte Layouts, die Generieren derzeit zur Verfügung stehen. Beim Entfernen verschwindet das Layout sofort aus dem Vorlagen-Pool.",
+        empty: "Noch keine extrahierten Layouts aktiv. Genehmigen Sie Vorschläge aus einem fertigen Extraktionsauftrag, um sie hinzuzufügen.",
+        fromDeck: (deck) => `Aus "${deck}"`,
+        remove: "Entfernen",
+        removing: "Wird entfernt…",
+        removeFailed: "Das Layout konnte nicht entfernt werden.",
       },
     },
   },
@@ -2684,6 +2720,15 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
         addAll: (n) => `Adicionar as ${n} à biblioteca`,
         dismissAll: (n) => `Descartar as ${n}`,
         bulkWorking: "Aplicando a todas as imagens pendentes…",
+      },
+      library: {
+        title: "Layouts extraídos ativos",
+        desc: "Layouts extraídos disponíveis agora no Gerar. Remover um layout retira-o do pool de modelos imediatamente.",
+        empty: "Ainda não há layouts extraídos ativos. Aprove propostas de um trabalho de extração pronto para adicioná-los.",
+        fromDeck: (deck) => `De "${deck}"`,
+        remove: "Remover",
+        removing: "Removendo…",
+        removeFailed: "Não foi possível remover o layout.",
       },
     },
   },

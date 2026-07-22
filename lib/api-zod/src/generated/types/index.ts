@@ -279,6 +279,8 @@ export * from './masterDeckJobSummary';
 export * from './masterDeckJobSummaryKind';
 export * from './masterDeckJobSummaryStatus';
 export * from './masterDeckJobsView';
+export * from './masterDeckLayoutRemoveInput';
+export * from './masterDeckLayoutRemoveResult';
 export * from './masterDeckLayoutSpec';
 export * from './masterDeckLayoutSpecBackgroundItem';
 export * from './masterDeckLayoutSpecFooter';

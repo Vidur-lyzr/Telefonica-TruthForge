@@ -226,17 +226,70 @@ function buildSlotSchema(spec: ExtractedLayoutSpec): z.ZodType<Record<string, un
   return z.object(shape).strict() as z.ZodType<Record<string, unknown>>;
 }
 
+function frameOverlap(
+  a: { x: number; y: number; w: number; h: number },
+  b: { x: number; y: number; w: number; h: number },
+): number {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
 function composeSlots(
   spec: ExtractedLayoutSpec,
   slots: Record<string, unknown>,
   ctx: ComposeCtx,
 ): DrawOp[] {
-  // Background first — fresh objects each call so no caller can mutate the spec.
-  const ops: DrawOp[] = spec.background.map((op) => ({ ...op }));
+  // Which slots actually carry content this time? Unfilled OPTIONAL slots
+  // must leave no trace on the slide — no empty fallback boxes, no orphan
+  // backing panels.
+  const filled = new Set<string>();
+  for (const slot of spec.slots) {
+    const v = slots[slot.key];
+    if (slot.kind === "bullets") {
+      if (Array.isArray(v) && v.length > 0) filled.add(slot.key);
+    } else if (typeof v === "string" && v.trim().length > 0) {
+      filled.add(slot.key);
+    }
+  }
+  const unfilledFrames = spec.slots
+    .filter((s) => !s.required && !filled.has(s.key))
+    .map((s) => s.frame);
+  const filledFrames = spec.slots
+    .filter((s) => s.required || filled.has(s.key))
+    .map((s) => s.frame);
+
+  // Background first — fresh objects each call so no caller can mutate the
+  // spec. Small panels whose only job was to back a slot that stayed empty
+  // are skipped; structural bands and full-bleed panels always stay.
+  const ops: DrawOp[] = spec.background
+    .filter((op) => {
+      if (op.op !== "rect" || unfilledFrames.length === 0) return true;
+      const area = op.w * op.h;
+      if (op.w >= SLIDE_W * 0.55 || op.h >= SLIDE_H * 0.55 || area >= SLIDE_W * SLIDE_H * 0.18) {
+        return true;
+      }
+      const backsUnfilled = unfilledFrames.some(
+        (f) => frameOverlap(op, f) >= 0.5 * Math.min(area, f.w * f.h),
+      );
+      if (!backsUnfilled) return true;
+      const backsFilled = filledFrames.some(
+        (f) => frameOverlap(op, f) >= 0.25 * Math.min(area, f.w * f.h),
+      );
+      return backsFilled;
+    })
+    .map((op) => ({ ...op }));
   for (const slot of spec.slots) {
     const { x, y, w, h } = slot.frame;
     if (slot.kind === "image") {
-      ops.push(...imageOrFallback(ctx.images[slot.key] ?? null, x, y, w, h, slot.fallbackFill));
+      const requested = filled.has(slot.key);
+      const resolved = ctx.images[slot.key] ?? null;
+      // An optional image slot nobody asked to fill draws NOTHING — an empty
+      // placeholder box is debris, not honesty. A slot that WAS requested but
+      // failed to resolve still renders the honest fallback (never a silent
+      // substitute), and required slots always render.
+      if (!resolved && !requested && !slot.required) continue;
+      ops.push(...imageOrFallback(resolved, x, y, w, h, slot.fallbackFill));
       continue;
     }
     const value = slots[slot.key];

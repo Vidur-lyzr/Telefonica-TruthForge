@@ -3328,6 +3328,35 @@ paths:
                 type: string
                 format: binary
 
+  /data/master-decks/layouts/remove:
+    post:
+      operationId: removeMasterDeckLayout
+      tags: [data]
+      summary: Remove an approved extracted layout from the live registry
+      description: >
+        Deletes an admin-approved extracted layout so the generate agent can
+        no longer pick it. Coded layouts cannot be removed. Audit-logs a
+        config change. Gated by manage_brand_room (Marca area).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterDeckLayoutRemoveInput"
+      responses:
+        "200":
+          description: The removed layout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckLayoutRemoveResult"
+        "404":
+          description: Unknown extracted layout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /brand/templates:
     get:
       operationId: getBrandTemplates
@@ -11181,6 +11210,22 @@ components:
           type: string
           minLength: 1
           maxLength: 300
+    MasterDeckLayoutRemoveInput:
+      type: object
+      required: [roleId, layoutId]
+      properties:
+        roleId:
+          type: string
+        layoutId:
+          type: string
+    MasterDeckLayoutRemoveResult:
+      type: object
+      required: [layoutId, name]
+      properties:
+        layoutId:
+          type: string
+        name:
+          type: string
     ConfirmMasterDeckHarvestBody:
       type: object
       required: [roleId, jobId, itemId, label, tags]

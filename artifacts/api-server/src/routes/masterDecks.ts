@@ -21,6 +21,8 @@ import {
   CreateMasterDeckJobResponse,
   GetMasterDeckJobResponse,
   ApproveMasterDeckProposalBody,
+  RemoveMasterDeckLayoutBody,
+  RemoveMasterDeckLayoutResponse,
   ApproveMasterDeckProposalResponse,
   RejectMasterDeckProposalBody,
   RejectMasterDeckProposalResponse,
@@ -42,7 +44,11 @@ import {
   type DeckIntakeJob,
   type DeckPart,
 } from "../data/deckIntakeStore";
-import { approveExtractedLayout } from "../data/extractedLayoutStore";
+import {
+  approveExtractedLayout,
+  getApprovedLayout,
+  removeExtractedLayout,
+} from "../data/extractedLayoutStore";
 import { ExtractedLayoutError } from "../export/extractedLayouts";
 import { registerBrandImage, ImageLibraryError } from "../data/imageLibraryStore";
 import { runDeckPipeline } from "../export/deckPipeline";
@@ -355,6 +361,52 @@ router.post("/data/master-decks/proposals/approve", (req, res) => {
     if (!sendKnownError(res, err)) {
       req.log.error({ err }, "master-decks: approve failed");
       res.status(500).json({ error: "Failed to approve the proposal." });
+    }
+  }
+});
+
+router.post("/data/master-decks/layouts/remove", (req, res) => {
+  const parsed = RemoveMasterDeckLayoutBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body.", code: "invalid_body" });
+    return;
+  }
+  const grant = requireDeckAdmin(req, res, parsed.data.roleId);
+  if (!grant) return;
+  const existing = getApprovedLayout(parsed.data.layoutId);
+  if (!existing) {
+    res.status(404).json({ error: "Unknown extracted layout.", code: "unknown_layout" });
+    return;
+  }
+  try {
+    const removed = removeExtractedLayout(parsed.data.layoutId);
+    req.log.info(
+      { layoutId: removed.spec.id, name: removed.spec.name },
+      "master-decks: extracted layout removed",
+    );
+    observe(req, {
+      kind: "config_change",
+      page: "/data",
+      roleId: grant.role.id,
+      roleLabel: grant.role.name,
+      summary: `Removed extracted layout "${removed.spec.name}"`,
+      status: "applied",
+      detail: {
+        change: "extracted_layout_removed",
+        layout: removed.spec.id,
+        deck: removed.sourceJobId,
+      },
+    });
+    res.json(
+      RemoveMasterDeckLayoutResponse.parse({
+        layoutId: removed.spec.id,
+        name: removed.spec.name,
+      }),
+    );
+  } catch (err) {
+    if (!sendKnownError(res, err)) {
+      req.log.error({ err }, "master-decks: layout removal failed");
+      res.status(500).json({ error: "Failed to remove the layout." });
     }
   }
 });

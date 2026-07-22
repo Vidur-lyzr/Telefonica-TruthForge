@@ -11,6 +11,9 @@ import {
   createMasterDeckJob,
   useListMasterDeckJobs,
   getListMasterDeckJobsQueryKey,
+  useGetVisualLayoutPool,
+  getGetVisualLayoutPoolQueryKey,
+  removeMasterDeckLayout,
 } from "@workspace/api-client-react";
 import type { MasterDeckJobSummary } from "@workspace/api-client-react";
 import {
@@ -27,6 +30,7 @@ import {
   Text1,
   Text2,
   Title3,
+  ButtonDanger,
   skinVars,
   IconCloudUploadRegular,
   IconDownloadRegular,
@@ -110,6 +114,91 @@ function JobCard({
         </Stack>
       </Box>
     </Boxed>
+  );
+}
+
+function ExtractedLayoutLibrary() {
+  const { lang, roleId } = useApp();
+  const t = DATA_I18N[lang].deckIntake.library;
+  const queryClient = useQueryClient();
+
+  const { data } = useGetVisualLayoutPool({
+    query: { queryKey: getGetVisualLayoutPoolQueryKey() },
+  });
+  const extracted = (data?.layouts ?? []).filter((l) => l.source === "extracted");
+
+  const [removing, setRemoving] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleRemove = async (layoutId: string) => {
+    if (removing) return;
+    setRemoving(layoutId);
+    setError(null);
+    try {
+      await removeMasterDeckLayout({ roleId, layoutId });
+      await queryClient.invalidateQueries({ queryKey: getGetVisualLayoutPoolQueryKey() });
+    } catch (err) {
+      setError(errorMessageOf(err) ?? t.removeFailed);
+    } finally {
+      setRemoving(null);
+    }
+  };
+
+  return (
+    <Stack space={12}>
+      <Title3>{t.title}</Title3>
+      <Text1 regular color={skinVars.colors.textSecondary}>
+        {t.desc}
+      </Text1>
+      {error && (
+        <Callout
+          asset={<IconInformationRegular color={skinVars.colors.error} />}
+          title={t.removeFailed}
+          description={error}
+        />
+      )}
+      {extracted.length === 0 ? (
+        <Boxed>
+          <Box padding={24}>
+            <Text1 regular color={skinVars.colors.textSecondary}>
+              {t.empty}
+            </Text1>
+          </Box>
+        </Boxed>
+      ) : (
+        <Stack space={12}>
+          {extracted.map((layout) => (
+            <Boxed key={layout.id}>
+              <Box padding={16}>
+                <Inline space={16} alignItems="center" wrap>
+                  <div style={{ flex: 1, minWidth: 220 }}>
+                    <Stack space={4}>
+                      <Text2 medium color={skinVars.colors.textPrimary}>
+                        {layout.name}
+                      </Text2>
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        {layout.purpose}
+                      </Text1>
+                      <Text1 regular color={skinVars.colors.textSecondary}>
+                        {layout.deckName ? `${t.fromDeck(layout.deckName)} · ` : ""}
+                        {layout.approvedAt ? formatTimestamp(layout.approvedAt, lang) : ""}
+                      </Text1>
+                    </Stack>
+                  </div>
+                  <ButtonDanger
+                    small
+                    onPress={() => handleRemove(layout.id)}
+                    disabled={removing !== null}
+                  >
+                    {removing === layout.id ? t.removing : t.remove}
+                  </ButtonDanger>
+                </Inline>
+              </Box>
+            </Boxed>
+          ))}
+        </Stack>
+      )}
+    </Stack>
   );
 }
 
@@ -337,6 +426,8 @@ export default function TemplatesArea() {
           </Stack>
         )}
       </Stack>
+
+      <ExtractedLayoutLibrary />
 
       {reviewJob && (
         <DeckReviewDrawer

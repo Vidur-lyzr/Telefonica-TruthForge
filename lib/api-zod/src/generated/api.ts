@@ -8744,6 +8744,21 @@ export const DownloadSlimmingGuideResponse = zod.unknown()
 
 
 /**
+ * Deletes an admin-approved extracted layout so the generate agent can no longer pick it. Coded layouts cannot be removed. Audit-logs a config change. Gated by manage_brand_room (Marca area).
+ * @summary Remove an approved extracted layout from the live registry
+ */
+export const RemoveMasterDeckLayoutBody = zod.object({
+  "roleId": zod.string(),
+  "layoutId": zod.string()
+})
+
+export const RemoveMasterDeckLayoutResponse = zod.object({
+  "layoutId": zod.string(),
+  "name": zod.string()
+})
+
+
+/**
  * The brand-approved document templates. Templates are internal brand governance material, so a lower-clearance persona receives an empty set with a blocked count rather than the templates themselves (fail-closed).
  * @summary Governed document templates, permission-filtered by persona clearance
  */
