@@ -32,6 +32,8 @@ import {
   DismissMasterDeckHarvestItemResponse,
   BulkMasterDeckHarvestBody,
   BulkMasterDeckHarvestResponse,
+  RebuildMasterDeckJobBody,
+  RebuildMasterDeckJobResponse,
 } from "@workspace/api-zod";
 import { ObjectStorageService, ObjectNotFoundError } from "../lib/objectStorage";
 import { fetchObjectBytes } from "../lib/imageBytes";
@@ -51,7 +53,7 @@ import {
 } from "../data/extractedLayoutStore";
 import { ExtractedLayoutError } from "../export/extractedLayouts";
 import { registerBrandImage, ImageLibraryError } from "../data/imageLibraryStore";
-import { runDeckPipeline } from "../export/deckPipeline";
+import { runDeckPipeline, rebuildDeckLayouts, DeckExtractionError } from "../export/deckPipeline";
 import { slimmingGuidePdf } from "../export/slimmingGuide";
 import { requireCapability, type CapabilityGrant } from "../data/accessControl";
 import { observe } from "../lib/observe";
@@ -288,6 +290,91 @@ router.get("/data/master-decks/job", (req, res) => {
     return;
   }
   res.json(GetMasterDeckJobResponse.parse(toJobDto(job)));
+});
+
+// ---- Rebuild ---------------------------------------------------------------
+
+router.post("/data/master-decks/jobs/rebuild", (req, res) => {
+  const parsed = RebuildMasterDeckJobBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body.", code: "invalid_body" });
+    return;
+  }
+  const grant = requireDeckAdmin(req, res, parsed.data.roleId);
+  if (!grant) return;
+  const job = getDeckJob(parsed.data.jobId);
+  if (!job) {
+    res.status(404).json({ error: "Unknown extraction job.", code: "unknown_job" });
+    return;
+  }
+  if (job.kind === "pdf") {
+    res.status(400).json({
+      error: "PDF jobs carry no layout proposals to rebuild.",
+      code: "rebuild_unsupported",
+    });
+    return;
+  }
+  // "failed" is deliberately allowed: a crash mid-run marks the job failed at
+  // boot, but the original parts are still in object storage — rebuild is
+  // exactly the no-reupload recovery path for that case.
+  if (job.status !== "ready" && job.status !== "failed") {
+    res.status(400).json({
+      error: "This job is still processing — wait for it to finish.",
+      code: "rebuild_unavailable",
+    });
+    return;
+  }
+
+  // Fire-and-forget like the intake pipeline: rebuildDeckLayouts flips the
+  // job to "parsing" synchronously (before its first await), so the DTO we
+  // return already shows the job re-running and a concurrent second rebuild
+  // request is rejected by the status guard above.
+  const rebuild = rebuildDeckLayouts(job.id);
+  rebuild
+    .then((summary) => {
+      req.log.info(
+        {
+          jobId: job.id,
+          upgraded: summary.upgraded.map((u) => u.id),
+          removed: summary.removed.map((r) => r.id),
+        },
+        "master-decks: rebuild finished",
+      );
+      observe(req, {
+        kind: "config_change",
+        page: "/data",
+        roleId: grant.role.id,
+        roleLabel: grant.role.name,
+        summary: `Rebuilt extracted layouts for "${job.deckName}" — ${summary.upgraded.length} upgraded, ${summary.removed.length} removed`,
+        status: "applied",
+        detail: {
+          change: "extracted_layouts_rebuilt",
+          job: job.deckName,
+          proposed: String(summary.families),
+          skipped: String(summary.skippedFamilies),
+          upgraded: summary.upgraded.map((u) => u.id).join(", ") || "none",
+          removed: summary.removed.map((r) => `${r.name} (${r.id})`).join(", ") || "none",
+        },
+      });
+    })
+    .catch((err: unknown) => {
+      req.log.error({ err, jobId: job.id }, "master-decks: rebuild failed");
+      observe(req, {
+        kind: "config_change",
+        page: "/data",
+        roleId: grant.role.id,
+        roleLabel: grant.role.name,
+        summary: `Rebuild of extracted layouts for "${job.deckName}" failed`,
+        status: "failed",
+        detail: {
+          change: "extracted_layouts_rebuilt",
+          job: job.deckName,
+          error: err instanceof DeckExtractionError ? err.message : "unexpected failure",
+        },
+      });
+    });
+
+  res.json(RebuildMasterDeckJobResponse.parse(toJobDto(getDeckJob(job.id) ?? job)));
 });
 
 // ---- Proposal review ---------------------------------------------------------

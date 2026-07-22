@@ -4438,6 +4438,11 @@ export interface MasterDeckProposalRejectInput {
   reason: string;
 }
 
+export interface MasterDeckJobRebuildInput {
+  roleId: string;
+  jobId: string;
+}
+
 export interface MasterDeckLayoutRemoveInput {
   roleId: string;
   layoutId: string;

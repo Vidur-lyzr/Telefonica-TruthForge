@@ -3328,6 +3328,46 @@ paths:
                 type: string
                 format: binary
 
+  /data/master-decks/jobs/rebuild:
+    post:
+      operationId: rebuildMasterDeckJob
+      tags: [data]
+      summary: Rebuild a finished job's layout proposals with the current quality rules
+      description: >
+        Re-runs clustering and proposal on the job's original uploaded files
+        (still in object storage) using the current extraction quality rules,
+        then auto-repairs the approved layouts that came from this job:
+        matching families replace the approved spec in place (same layout id),
+        families rejected under the current rules remove the stale layout from
+        the live registry. Harvest items and their decisions are untouched.
+        Runs asynchronously — poll the job. Audit-logs a config change. Gated
+        by manage_brand_room (Marca area).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterDeckJobRebuildInput"
+      responses:
+        "200":
+          description: The job, now re-running extraction
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDeckJob"
+        "400":
+          description: Job cannot be rebuilt (wrong kind or not ready)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Unknown extraction job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /data/master-decks/layouts/remove:
     post:
       operationId: removeMasterDeckLayout
@@ -11210,6 +11250,14 @@ components:
           type: string
           minLength: 1
           maxLength: 300
+    MasterDeckJobRebuildInput:
+      type: object
+      required: [roleId, jobId]
+      properties:
+        roleId:
+          type: string
+        jobId:
+          type: string
     MasterDeckLayoutRemoveInput:
       type: object
       required: [roleId, layoutId]

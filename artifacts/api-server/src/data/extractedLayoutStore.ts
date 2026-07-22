@@ -145,3 +145,24 @@ export function removeExtractedLayout(id: string): ApprovedLayoutRecord {
   writer.schedule();
   return rec;
 }
+
+/**
+ * Replace an approved layout's spec in place (rebuild pipeline). The layout
+ * keeps its id — anything referencing it stays valid — but its slots,
+ * background and name come from the freshly re-proposed spec. Approval
+ * provenance is preserved. Throws ExtractedLayoutError.
+ */
+export function replaceExtractedLayoutSpec(id: string, raw: unknown): ApprovedLayoutRecord {
+  const rec = records[id];
+  if (!rec) throw new ExtractedLayoutError("Unknown extracted layout.", "unknown_layout");
+  const spec = parseExtractedLayoutSpec(raw);
+  if (spec.id !== id) {
+    throw new ExtractedLayoutError("Replacement spec id does not match the layout being replaced.");
+  }
+  // Compile BEFORE committing — same invariant as approval.
+  compileExtractedLayout(spec);
+  rec.spec = spec;
+  recompile();
+  writer.schedule();
+  return rec;
+}

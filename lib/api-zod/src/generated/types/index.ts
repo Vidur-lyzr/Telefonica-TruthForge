@@ -274,6 +274,7 @@ export * from './masterDeckJobCreateInput';
 export * from './masterDeckJobCreateInputKind';
 export * from './masterDeckJobCreateInputPartsItem';
 export * from './masterDeckJobKind';
+export * from './masterDeckJobRebuildInput';
 export * from './masterDeckJobStatus';
 export * from './masterDeckJobSummary';
 export * from './masterDeckJobSummaryKind';

@@ -8744,6 +8744,89 @@ export const DownloadSlimmingGuideResponse = zod.unknown()
 
 
 /**
+ * Re-runs clustering and proposal on the job's original uploaded files (still in object storage) using the current extraction quality rules, then auto-repairs the approved layouts that came from this job: matching families replace the approved spec in place (same layout id), families rejected under the current rules remove the stale layout from the live registry. Harvest items and their decisions are untouched. Runs asynchronously — poll the job. Audit-logs a config change. Gated by manage_brand_room (Marca area).
+ * @summary Rebuild a finished job's layout proposals with the current quality rules
+ */
+export const RebuildMasterDeckJobBody = zod.object({
+  "roleId": zod.string(),
+  "jobId": zod.string()
+})
+
+export const RebuildMasterDeckJobResponse = zod.object({
+  "id": zod.string(),
+  "deckName": zod.string(),
+  "kind": zod.enum(['pptx', 'pdf', 'zip']),
+  "status": zod.enum(['uploaded', 'parsing', 'clustering', 'proposing', 'ready', 'failed']),
+  "progress": zod.string(),
+  "slideCount": zod.number().optional(),
+  "partCount": zod.number(),
+  "createdBy": zod.string(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "error": zod.string().optional(),
+  "families": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string(),
+  "slideIndexes": zod.array(zod.number()),
+  "thumbKey": zod.string().optional(),
+  "previewKey": zod.string().optional(),
+  "proposal": zod.object({
+  "specVersion": zod.number(),
+  "id": zod.string(),
+  "name": zod.string(),
+  "purpose": zod.string(),
+  "footer": zod.enum(['light', 'dark', 'none']),
+  "background": zod.array(zod.record(zod.string(), zod.unknown())),
+  "slots": zod.array(zod.object({
+  "key": zod.string(),
+  "kind": zod.enum(['text', 'bullets', 'image']),
+  "label": zod.string(),
+  "required": zod.boolean(),
+  "frame": zod.object({
+  "x": zod.number(),
+  "y": zod.number(),
+  "w": zod.number(),
+  "h": zod.number()
+}),
+  "size": zod.number().optional(),
+  "color": zod.string().optional(),
+  "bold": zod.boolean().optional(),
+  "align": zod.enum(['left', 'center', 'right']).optional(),
+  "valign": zod.enum(['top', 'middle']).optional(),
+  "lineSpacing": zod.number().optional(),
+  "maxChars": zod.number().optional(),
+  "maxItems": zod.number().optional(),
+  "maxCharsPerItem": zod.number().optional(),
+  "hint": zod.string().optional(),
+  "fallbackFill": zod.string().optional()
+})),
+  "confidenceNotes": zod.array(zod.string()).optional()
+}),
+  "confidenceNotes": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "decidedBy": zod.string().optional(),
+  "decidedAt": zod.string().optional(),
+  "rejectReason": zod.string().optional(),
+  "layoutId": zod.string().optional()
+})),
+  "harvest": zod.array(zod.object({
+  "id": zod.string(),
+  "key": zod.string(),
+  "filename": zod.string(),
+  "contentType": zod.string(),
+  "width": zod.number(),
+  "height": zod.number(),
+  "bytes": zod.number(),
+  "sourceSlide": zod.number(),
+  "suggestedLabel": zod.string(),
+  "suggestedTags": zod.array(zod.string()),
+  "status": zod.enum(['pending', 'added', 'dismissed']),
+  "imageId": zod.string().optional()
+}))
+})
+
+
+/**
  * Deletes an admin-approved extracted layout so the generate agent can no longer pick it. Coded layouts cannot be removed. Audit-logs a config change. Gated by manage_brand_room (Marca area).
  * @summary Remove an approved extracted layout from the live registry
  */

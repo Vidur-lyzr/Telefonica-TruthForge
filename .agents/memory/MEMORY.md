@@ -58,5 +58,6 @@
 - [PDF image harvest](pdf-image-harvest.md) — unpdf extractImages + minimal zlib PNG encoder (no sharp); cap pixels ~16M, sync deflate stalls the loop; dedupe by hash.
 - [Longform per-section compose](longform-per-section-compose.md) — multi-page templates compose one governed call per section; skipped sections noted on the draft.
 - [Governed-ref fallbacks](governed-ref-fallbacks.md) — unresolvable agent-supplied ids (chartId/imageId) must render honest absence, never silently substitute another governed item.
-- [Chaptered deck composition](chaptered-deck-composition.md) — long decks: per-chapter governed retrieval + deterministic frame; refine splices only the target chapter; citations renumber across chapters.
+- [Chaptered deck composition](chaptered-deck-composition.md) — per-chapter governed retrieval + deterministic frame; refine splices one chapter; citations renumber across chapters.
+- [Deck rebuild asset keys & recovery](deck-rebuild-asset-keys.md) — pipeline re-runs need NEW versioned asset keys (1h cache) and must accept crash-"failed" jobs, restoring prev status on failure.
 - [Deck-extraction quality gates](deck-extract-quality-gates.md) — never templatize content-dense slides; filter decoration after slot selection; approved junk needs an audited remove route.

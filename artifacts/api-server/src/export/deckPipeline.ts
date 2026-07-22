@@ -8,6 +8,11 @@
 
 import { logger } from "../lib/logger";
 import { getDeckJob, updateDeckJob, type DeckIntakeJob } from "../data/deckIntakeStore";
+import {
+  listApprovedLayouts,
+  replaceExtractedLayoutSpec,
+  removeExtractedLayout,
+} from "../data/extractedLayoutStore";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { compileExtractedLayout } from "./extractedLayouts";
 import { type ComposeCtx } from "./visualLayouts";
@@ -128,6 +133,10 @@ async function proposeFamiliesFromDeck(
   deck: ParsedDeck,
   deckName: string,
   assets: Record<string, string>,
+  // Suffix for rendered asset keys. Rebuilds pass a fresh marker so the new
+  // thumbnails get NEW keys — the asset route serves long-lived cache headers,
+  // so overwriting the old keys would show stale previews for up to an hour.
+  assetSuffix = "",
 ): Promise<{ families: DeckIntakeJob["families"]; skippedFamilies: number }> {
   updateDeckJob(jobId, (j) => {
     j.status = "clustering";
@@ -165,8 +174,8 @@ async function proposeFamiliesFromDeck(
     setProgress(jobId, `Rendering proposals — family ${familyIdx + 1}`);
 
     const famId = `fam-${familyIdx + 1}`;
-    const thumbKey = `thumb-${famId}.png`;
-    const previewKey = `preview-${famId}.png`;
+    const thumbKey = `thumb-${famId}${assetSuffix}.png`;
+    const previewKey = `preview-${famId}${assetSuffix}.png`;
 
     try {
       const thumbPng = renderWireframePng(cluster.representative);
@@ -539,6 +548,251 @@ async function extractDeck(jobId: string): Promise<void> {
     { jobId, slides: deck.slides.length, families: families.length, harvest: harvest.length },
     "deck-pipeline: extraction complete",
   );
+}
+
+// ---- Rebuild ---------------------------------------------------------------
+//
+// Re-runs clustering + proposal on a finished job's ORIGINAL uploaded parts
+// (still in object storage) with the current quality rules, then repairs the
+// approved layouts that came from this job:
+//   - an approved layout whose slide family is re-proposed gets its spec
+//     replaced IN PLACE (same id — existing references stay valid) with the
+//     freshly derived slots, background and structural name;
+//   - an approved layout whose family is now rejected (content-dense junk
+//     under the current gates) is removed from the live registry.
+// Harvest queue and its review decisions are left untouched — only layout
+// families are rebuilt.
+
+export interface DeckRebuildSummary {
+  slides: number;
+  families: number;
+  skippedFamilies: number;
+  upgraded: { id: string; name: string }[];
+  removed: { id: string; name: string }[];
+}
+
+/** Share of the smaller slide set that must overlap to call two families "the same". */
+const REBUILD_MATCH_MIN = 0.5;
+
+function slideOverlapScore(a: number[], b: number[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  const setA = new Set(a);
+  let inter = 0;
+  for (const x of b) if (setA.has(x)) inter += 1;
+  return inter / Math.min(a.length, b.length);
+}
+
+async function parseJobDeckOnly(jobId: string): Promise<ParsedDeck> {
+  const job = getDeckJob(jobId);
+  if (!job) throw new DeckExtractionError("The extraction job no longer exists.");
+  const deck = emptyParsedDeck();
+  if (job.kind === "zip") {
+    let deckFileCount = 0;
+    for (let i = 0; i < job.parts.length; i++) {
+      const part = job.parts[i]!;
+      setProgress(jobId, `Re-reading bundle — part ${i + 1} of ${job.parts.length}`);
+      const bytes = await downloadPart(jobId, part);
+      let bundle: ZipBundleResult;
+      try {
+        bundle = await unpackZipBundle(bytes, `p${i + 1}`);
+      } catch (err) {
+        logger.error({ err, jobId, filename: part.filename }, "deck-rebuild: zip unpack failed");
+        if (err instanceof ZipBundleError) throw new DeckExtractionError(err.message);
+        throw new DeckExtractionError(
+          `The stored file "${part.filename}" could not be read as a zip archive.`,
+        );
+      }
+      await breathe();
+      for (const d of bundle.decks) {
+        deckFileCount += 1;
+        setProgress(jobId, `Re-reading slides — ${d.name}`);
+        try {
+          const parsed = await parsePptxPart(
+            d.bytes,
+            deck.slides.length,
+            d.name,
+            `p${i + 1}d${deckFileCount}`,
+          );
+          mergeIntoDeck(deck, parsed);
+        } catch (err) {
+          logger.error({ err, jobId, name: d.name }, "deck-rebuild: bundled deck parse failed");
+        }
+        await breathe();
+      }
+    }
+  } else {
+    for (let i = 0; i < job.parts.length; i++) {
+      const part = job.parts[i]!;
+      setProgress(
+        jobId,
+        job.parts.length === 1
+          ? "Re-reading slides from the stored deck"
+          : `Re-reading slides — part ${i + 1} of ${job.parts.length}`,
+      );
+      const bytes = await downloadPart(jobId, part);
+      const parsed = await parsePptxPart(bytes, deck.slides.length, part.filename, `p${i + 1}`);
+      mergeIntoDeck(deck, parsed);
+      await breathe();
+    }
+  }
+  return deck;
+}
+
+/**
+ * Rebuild a ready job's layout families with the current quality rules and
+ * auto-repair its approved layouts. Synchronously flips the job to "parsing"
+ * before the first await, so a concurrent second call sees the guard status.
+ * On failure the job returns to its previous status with its families intact.
+ */
+export async function rebuildDeckLayouts(jobId: string): Promise<DeckRebuildSummary> {
+  const job = getDeckJob(jobId);
+  if (!job) throw new DeckExtractionError("The extraction job no longer exists.");
+  if (job.kind === "pdf") {
+    throw new DeckExtractionError("PDF jobs carry no layout proposals to rebuild.");
+  }
+  // "failed" is allowed on purpose: a restart mid-run marks interrupted jobs
+  // failed at boot, but the original parts are still in object storage — the
+  // whole point of rebuild is fixing things without a re-upload.
+  if (job.status !== "ready" && job.status !== "failed") {
+    throw new DeckExtractionError("This extraction is still running — wait for it to finish.");
+  }
+
+  const prevStatus = job.status;
+  const prevError = job.error;
+  const prevFamilies = job.families;
+  const prevProgress = job.progress;
+  updateDeckJob(jobId, (j) => {
+    j.status = "parsing";
+    j.error = undefined;
+    j.progress = "Rebuilding layout proposals with the current quality rules";
+  });
+
+  try {
+    const deck = await parseJobDeckOnly(jobId);
+    if (deck.slides.length === 0) {
+      throw new DeckExtractionError("No slides could be read back from the stored parts.");
+    }
+    updateDeckJob(jobId, (j) => {
+      j.slideCount = deck.slides.length;
+    });
+
+    const assets: Record<string, string> = { ...job.assets };
+    const { families, skippedFamilies } = await proposeFamiliesFromDeck(
+      jobId,
+      deck,
+      job.deckName,
+      assets,
+      `-r${Date.now().toString(36)}`,
+    );
+
+    // ---- Repair approved layouts from this job --------------------------------
+    const approvedOld = listApprovedLayouts().filter((r) => r.sourceJobId === jobId);
+    const consumed = new Set<string>();
+    const upgraded: { id: string; name: string }[] = [];
+    const removed: { id: string; name: string }[] = [];
+
+    for (const rec of approvedOld) {
+      const oldFamily = prevFamilies.find((f) => f.layoutId === rec.spec.id);
+      let best: { famId: string; score: number } | null = null;
+      if (oldFamily) {
+        for (const fam of families) {
+          if (consumed.has(fam.id)) continue;
+          const score = slideOverlapScore(oldFamily.slideIndexes, fam.slideIndexes);
+          if (score >= REBUILD_MATCH_MIN && (!best || score > best.score)) {
+            best = { famId: fam.id, score };
+          }
+        }
+      }
+      const fam = best ? families.find((f) => f.id === best.famId) : undefined;
+      if (fam) {
+        try {
+          replaceExtractedLayoutSpec(rec.spec.id, { ...fam.proposal, id: rec.spec.id });
+          consumed.add(fam.id);
+          fam.status = "approved";
+          fam.layoutId = rec.spec.id;
+          fam.decidedBy = oldFamily?.decidedBy ?? rec.approvedBy;
+          fam.decidedAt = new Date().toISOString();
+          upgraded.push({ id: rec.spec.id, name: fam.proposal.name });
+          continue;
+        } catch (err) {
+          logger.error(
+            { err, jobId, layoutId: rec.spec.id },
+            "deck-rebuild: spec replacement failed — removing the stale layout instead",
+          );
+        }
+      }
+      // No surviving family under the current rules — the layout was junk
+      // (or the replacement failed validation): take it out of the registry.
+      try {
+        removeExtractedLayout(rec.spec.id);
+        removed.push({ id: rec.spec.id, name: rec.spec.name });
+      } catch (err) {
+        logger.error({ err, jobId, layoutId: rec.spec.id }, "deck-rebuild: layout removal failed");
+      }
+    }
+
+    const summaryBits: string[] = [
+      `Rebuilt — ${deck.slides.length} slide${deck.slides.length === 1 ? "" : "s"} analysed`,
+      `${families.length} layout famil${families.length === 1 ? "y" : "ies"} proposed`,
+      ...(skippedFamilies > 0
+        ? [
+            `${skippedFamilies} content-dense famil${skippedFamilies === 1 ? "y" : "ies"} skipped (not reusable layouts)`,
+          ]
+        : []),
+      ...(upgraded.length > 0
+        ? [`${upgraded.length} approved layout${upgraded.length === 1 ? "" : "s"} upgraded`]
+        : []),
+      ...(removed.length > 0
+        ? [`${removed.length} outdated layout${removed.length === 1 ? "" : "s"} removed`]
+        : []),
+    ];
+    updateDeckJob(jobId, (j) => {
+      j.status = "ready";
+      j.progress = summaryBits.join(" · ");
+      j.families = families;
+      j.assets = assets;
+    });
+    logger.info(
+      {
+        jobId,
+        slides: deck.slides.length,
+        families: families.length,
+        skippedFamilies,
+        upgraded: upgraded.map((u) => u.id),
+        removed: removed.map((r) => r.id),
+      },
+      "deck-rebuild: complete",
+    );
+    return {
+      slides: deck.slides.length,
+      families: families.length,
+      skippedFamilies,
+      upgraded,
+      removed,
+    };
+  } catch (err) {
+    const message =
+      err instanceof DeckExtractionError
+        ? err.message
+        : "Rebuild failed unexpectedly — see the server log.";
+    if (!(err instanceof DeckExtractionError)) {
+      logger.error({ err, jobId }, "deck-rebuild: unexpected failure");
+    }
+    // Put the job back exactly as it was before the rebuild, with the failure
+    // surfaced in the progress line. Approved layouts were only touched after
+    // a successful re-proposal, so they are intact here.
+    try {
+      updateDeckJob(jobId, (j) => {
+        j.status = prevStatus;
+        if (prevError !== undefined) j.error = prevError;
+        j.families = prevFamilies;
+        j.progress = `Rebuild failed: ${message} Previous proposals kept. (${prevProgress})`;
+      });
+    } catch (storeErr) {
+      logger.error({ err: storeErr, jobId }, "deck-rebuild: state restore failed");
+    }
+    throw err instanceof DeckExtractionError ? err : new DeckExtractionError(message);
+  }
 }
 
 export async function runDeckPipeline(jobId: string): Promise<void> {

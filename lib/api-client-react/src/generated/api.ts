@@ -162,6 +162,7 @@ import type {
   MasterDeckHarvestBulkResponse,
   MasterDeckJob,
   MasterDeckJobCreateInput,
+  MasterDeckJobRebuildInput,
   MasterDeckJobsView,
   MasterDeckLayoutRemoveInput,
   MasterDeckLayoutRemoveResult,
@@ -10021,6 +10022,77 @@ export function useDownloadSlimmingGuide<TData = Awaited<ReturnType<typeof downl
 
 
 
+
+export const getRebuildMasterDeckJobUrl = () => {
+
+
+
+
+  return `/api/data/master-decks/jobs/rebuild`
+}
+
+/**
+ * Re-runs clustering and proposal on the job's original uploaded files (still in object storage) using the current extraction quality rules, then auto-repairs the approved layouts that came from this job: matching families replace the approved spec in place (same layout id), families rejected under the current rules remove the stale layout from the live registry. Harvest items and their decisions are untouched. Runs asynchronously — poll the job. Audit-logs a config change. Gated by manage_brand_room (Marca area).
+ * @summary Rebuild a finished job's layout proposals with the current quality rules
+ */
+export const rebuildMasterDeckJob = async (masterDeckJobRebuildInput: MasterDeckJobRebuildInput, options?: RequestInit): Promise<MasterDeckJob> => {
+
+  return customFetch<MasterDeckJob>(getRebuildMasterDeckJobUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(masterDeckJobRebuildInput)
+  }
+);}
+
+
+
+
+export const getRebuildMasterDeckJobMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rebuildMasterDeckJob>>, TError,{data: BodyType<MasterDeckJobRebuildInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rebuildMasterDeckJob>>, TError,{data: BodyType<MasterDeckJobRebuildInput>}, TContext> => {
+
+const mutationKey = ['rebuildMasterDeckJob'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rebuildMasterDeckJob>>, {data: BodyType<MasterDeckJobRebuildInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  rebuildMasterDeckJob(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RebuildMasterDeckJobMutationResult = NonNullable<Awaited<ReturnType<typeof rebuildMasterDeckJob>>>
+    export type RebuildMasterDeckJobMutationBody = BodyType<MasterDeckJobRebuildInput>
+    export type RebuildMasterDeckJobMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Rebuild a finished job's layout proposals with the current quality rules
+ */
+export const useRebuildMasterDeckJob = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rebuildMasterDeckJob>>, TError,{data: BodyType<MasterDeckJobRebuildInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rebuildMasterDeckJob>>,
+        TError,
+        {data: BodyType<MasterDeckJobRebuildInput>},
+        TContext
+      > => {
+      return useMutation(getRebuildMasterDeckJobMutationOptions(options));
+    }
 
 export const getRemoveMasterDeckLayoutUrl = () => {
 

@@ -14,6 +14,7 @@ import {
   useGetVisualLayoutPool,
   getGetVisualLayoutPoolQueryKey,
   removeMasterDeckLayout,
+  rebuildMasterDeckJob,
 } from "@workspace/api-client-react";
 import type { MasterDeckJobSummary } from "@workspace/api-client-react";
 import {
@@ -69,8 +70,31 @@ function JobCard({
   job: MasterDeckJobSummary;
   onReview: (job: MasterDeckJobSummary) => void;
 }) {
-  const { lang } = useApp();
+  const { lang, roleId } = useApp();
   const t = DATA_I18N[lang].deckIntake;
+  const queryClient = useQueryClient();
+
+  const [rebuilding, setRebuilding] = React.useState(false);
+  const [rebuildError, setRebuildError] = React.useState<string | null>(null);
+
+  const handleRebuild = async () => {
+    if (rebuilding) return;
+    setRebuilding(true);
+    setRebuildError(null);
+    try {
+      await rebuildMasterDeckJob({ roleId, jobId: job.id });
+      // The job flips to "parsing" server-side; the list poll takes over and
+      // the layout pool refreshes once repairs land.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getListMasterDeckJobsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetVisualLayoutPoolQueryKey() }),
+      ]);
+    } catch (err) {
+      setRebuildError(errorMessageOf(err) ?? t.rebuildFailed);
+    } finally {
+      setRebuilding(false);
+    }
+  };
 
   const summaryBits: string[] = [t.partCount(job.partCount)];
   if (typeof job.slideCount === "number") summaryBits.push(t.slideCount(job.slideCount));
@@ -104,11 +128,23 @@ function JobCard({
               {t.byUser(job.createdBy)} · {formatTimestamp(job.updatedAt, lang)}
             </Text1>
           </Inline>
-          {job.status === "ready" && (
-            <Inline space={12}>
-              <ButtonSecondary small onPress={() => onReview(job)}>
-                {t.review.open}
-              </ButtonSecondary>
+          {(job.status === "ready" || (job.status === "failed" && job.kind !== "pdf")) && (
+            <Inline space={12} alignItems="center" wrap>
+              {job.status === "ready" && (
+                <ButtonSecondary small onPress={() => onReview(job)}>
+                  {t.review.open}
+                </ButtonSecondary>
+              )}
+              {job.kind !== "pdf" && (
+                <ButtonSecondary small onPress={handleRebuild} disabled={rebuilding}>
+                  {rebuilding ? t.rebuilding : t.rebuild}
+                </ButtonSecondary>
+              )}
+              {rebuildError && (
+                <Text1 regular color={skinVars.colors.error}>
+                  {rebuildError}
+                </Text1>
+              )}
             </Inline>
           )}
         </Stack>

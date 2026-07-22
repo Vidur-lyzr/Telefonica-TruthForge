@@ -436,6 +436,9 @@ export interface DataStrings {
     familiesSummary: (total: number, pending: number) => string;
     harvestSummary: (total: number, pending: number) => string;
     byUser: (who: string) => string;
+    rebuild: string;
+    rebuilding: string;
+    rebuildFailed: string;
     review: {
       open: string;
       title: (deck: string) => string;
@@ -991,6 +994,9 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
       harvestSummary: (total, pending) =>
         pending > 0 ? `${total} harvested images (${pending} pending)` : `${total} harvested images`,
       byUser: (who) => `by ${who}`,
+      rebuild: "Rebuild proposals",
+      rebuilding: "Rebuilding…",
+      rebuildFailed: "Rebuild failed",
       review: {
         open: "Review proposals",
         title: (deck) => `Review — ${deck}`,
@@ -1555,6 +1561,9 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
           ? `${total} imágenes extraídas (${pending} pendientes)`
           : `${total} imágenes extraídas`,
       byUser: (who) => `por ${who}`,
+      rebuild: "Reconstruir propuestas",
+      rebuilding: "Reconstruyendo…",
+      rebuildFailed: "La reconstrucción falló",
       review: {
         open: "Revisar propuestas",
         title: (deck) => `Revisión — ${deck}`,
@@ -2115,6 +2124,9 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
           ? `${total} extrahierte Bilder (${pending} offen)`
           : `${total} extrahierte Bilder`,
       byUser: (who) => `von ${who}`,
+      rebuild: "Vorschläge neu erstellen",
+      rebuilding: "Wird neu erstellt…",
+      rebuildFailed: "Neuaufbau fehlgeschlagen",
       review: {
         open: "Vorschläge prüfen",
         title: (deck) => `Prüfung — ${deck}`,
@@ -2677,6 +2689,9 @@ export const DATA_I18N: Record<Lang, DataStrings> = {
           ? `${total} imagens extraídas (${pending} pendentes)`
           : `${total} imagens extraídas`,
       byUser: (who) => `por ${who}`,
+      rebuild: "Reconstruir propostas",
+      rebuilding: "A reconstruir…",
+      rebuildFailed: "A reconstrução falhou",
       review: {
         open: "Rever propostas",
         title: (deck) => `Revisão — ${deck}`,
