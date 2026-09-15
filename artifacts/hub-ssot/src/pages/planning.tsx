@@ -139,7 +139,7 @@ export default function Planning() {
   );
   const { data: axes } = useListAxes();
 
-  const todayISO = overview?.today ?? "2026-07-07";
+  const todayISO = overview?.today ?? "2026-09-15";
   const [anchor, setAnchor] = React.useState<Date | null>(null);
   const currentAnchor = anchor ?? parseDate(todayISO);
 

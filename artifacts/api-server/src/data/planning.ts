@@ -8,7 +8,7 @@ import type { Clearance, Area } from "./corpus";
 // The calendar is anchored to a fixed "today" so the demo always has activity
 // in view and the 10-day forecast is deterministic, independent of the real
 // server clock.
-export const PLANNING_TODAY = "2026-07-07";
+export const PLANNING_TODAY = "2026-09-15";
 
 export type PlanningType = "campaign" | "milestone" | "event" | "publication";
 export type PlanningStatus =
@@ -68,8 +68,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-mwc-recap-deck",
     title: "MWC 2026 recap deck",
-    startDate: "2026-06-27",
-    endDate: "2026-06-27",
+    startDate: "2026-09-05",
+    endDate: "2026-09-05",
     area: "Comunicación",
     type: "publication",
     status: "done",
@@ -84,8 +84,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-sustainability-teaser",
     title: "Sustainability report teaser",
-    startDate: "2026-07-02",
-    endDate: "2026-07-02",
+    startDate: "2026-09-10",
+    endDate: "2026-09-10",
     area: "Comunicación",
     type: "publication",
     status: "done",
@@ -100,8 +100,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-vivo-fibre-milestone",
     title: "Vivo fibre 25M homes milestone",
-    startDate: "2026-07-06",
-    endDate: "2026-07-06",
+    startDate: "2026-09-14",
+    endDate: "2026-09-14",
     area: "Comunicación",
     type: "milestone",
     status: "live",
@@ -116,8 +116,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-mwc-public-recap",
     title: "MWC public keynote recap",
-    startDate: "2026-07-08",
-    endDate: "2026-07-08",
+    startDate: "2026-09-16",
+    endDate: "2026-09-16",
     area: "Comunicación",
     type: "publication",
     status: "live",
@@ -132,8 +132,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-crisis-drill",
     title: "Crisis simulation drill",
-    startDate: "2026-07-09",
-    endDate: "2026-07-09",
+    startDate: "2026-09-17",
+    endDate: "2026-09-17",
     area: "Comunicación",
     type: "event",
     status: "planned",
@@ -147,9 +147,9 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   },
   {
     id: "evt-q2-preclose",
-    title: "Q2 pre-close press note",
-    startDate: "2026-07-11",
-    endDate: "2026-07-11",
+    title: "Q3 pre-close press note",
+    startDate: "2026-09-19",
+    endDate: "2026-09-19",
     area: "Comunicación",
     type: "publication",
     status: "planned",
@@ -163,9 +163,9 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   },
   {
     id: "evt-movistar-summer-pricing",
-    title: "Movistar summer pricing launch",
-    startDate: "2026-07-14",
-    endDate: "2026-07-20",
+    title: "Movistar autumn pricing launch",
+    startDate: "2026-09-22",
+    endDate: "2026-09-28",
     area: "Marca",
     type: "campaign",
     status: "planned",
@@ -175,13 +175,13 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
     brand: "Movistar",
     source: "Asana",
     confidentiality: "private",
-    description: "Summer pricing and loyalty campaign for existing Movistar customers in Spain.",
+    description: "Autumn pricing and loyalty campaign for existing Movistar customers in Spain.",
   },
   {
     id: "evt-fibre-press-briefing",
     title: "Fibre network press briefing",
-    startDate: "2026-07-14",
-    endDate: "2026-07-14",
+    startDate: "2026-09-22",
+    endDate: "2026-09-22",
     area: "Comunicación",
     type: "event",
     status: "planned",
@@ -196,8 +196,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-sustainability-launch",
     title: "Sustainability report launch",
-    startDate: "2026-07-15",
-    endDate: "2026-07-15",
+    startDate: "2026-09-23",
+    endDate: "2026-09-23",
     area: "Comunicación",
     type: "publication",
     status: "planned",
@@ -212,8 +212,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-atlas-board-update",
     title: "Project Atlas board update",
-    startDate: "2026-07-16",
-    endDate: "2026-07-16",
+    startDate: "2026-09-24",
+    endDate: "2026-09-24",
     area: "Gabinete",
     type: "milestone",
     status: "planned",
@@ -228,8 +228,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-o2-5g-campaign",
     title: "O2 5G coverage campaign",
-    startDate: "2026-07-20",
-    endDate: "2026-07-31",
+    startDate: "2026-09-28",
+    endDate: "2026-10-09",
     area: "Marca",
     type: "campaign",
     status: "planned",
@@ -244,8 +244,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-townhall-summer",
     title: "Employee town hall",
-    startDate: "2026-07-23",
-    endDate: "2026-07-23",
+    startDate: "2026-10-01",
+    endDate: "2026-10-01",
     area: "Comunicación",
     type: "event",
     status: "planned",
@@ -260,8 +260,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-brand-guidelines-v2",
     title: "Brand guidelines v2 publication",
-    startDate: "2026-07-27",
-    endDate: "2026-07-27",
+    startDate: "2026-10-05",
+    endDate: "2026-10-05",
     area: "Marca",
     type: "publication",
     status: "planned",
@@ -276,8 +276,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-o2-brand-refresh",
     title: "O2 brand refresh teaser",
-    startDate: "2026-07-28",
-    endDate: "2026-08-05",
+    startDate: "2026-10-06",
+    endDate: "2026-10-14",
     area: "Marca",
     type: "campaign",
     status: "planned",
@@ -292,8 +292,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-uk-b2b-webinar",
     title: "UK B2B cyber webinar",
-    startDate: "2026-07-30",
-    endDate: "2026-07-30",
+    startDate: "2026-10-08",
+    endDate: "2026-10-08",
     area: "Comunicación",
     type: "event",
     status: "planned",
@@ -308,8 +308,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-vivo-digital-campaign",
     title: "Vivo digital services campaign",
-    startDate: "2026-08-03",
-    endDate: "2026-08-12",
+    startDate: "2026-10-12",
+    endDate: "2026-10-21",
     area: "Marca",
     type: "campaign",
     status: "planned",
@@ -324,8 +324,8 @@ export const PLANNING_EVENTS: PlanningEvent[] = [
   {
     id: "evt-copper-retirement-milestone",
     title: "Copper retirement phase gate",
-    startDate: "2026-08-07",
-    endDate: "2026-08-07",
+    startDate: "2026-10-16",
+    endDate: "2026-10-16",
     area: "Comunicación",
     type: "milestone",
     status: "planned",
@@ -343,7 +343,7 @@ export const EXTERNAL_SIGNALS: ExternalSignal[] = [
   {
     id: "sig-mwc-followup",
     title: "MWC follow-up industry summit",
-    date: "2026-07-10",
+    date: "2026-09-18",
     kind: "sector",
     market: "Germany",
     description: "Sector summit where operators reiterate 5G and AI roadmaps.",
@@ -351,34 +351,34 @@ export const EXTERNAL_SIGNALS: ExternalSignal[] = [
   {
     id: "sig-claronet-launch",
     title: "Competitor ClaroNet fibre launch",
-    date: "2026-07-13",
+    date: "2026-09-21",
     kind: "competitor",
     market: "Brazil",
     description: "A Brazilian competitor is expected to launch a new fibre offer.",
   },
   {
     id: "sig-movecorp-results",
-    title: "Competitor MoveCorp Q2 results",
-    date: "2026-07-15",
+    title: "Competitor MoveCorp Q3 trading update",
+    date: "2026-09-23",
     kind: "competitor",
     market: "Spain",
-    description: "A Spanish competitor publishes quarterly results, drawing press attention.",
+    description: "A Spanish competitor publishes a quarterly trading update, drawing press attention.",
   },
   {
     id: "sig-eu-networks-act",
     title: "EU Digital Networks Act milestone",
-    date: "2026-07-22",
+    date: "2026-09-30",
     kind: "regulatory",
     market: "Group",
     description: "A regulatory milestone likely to prompt sector-wide media coverage.",
   },
   {
-    id: "sig-ifa-berlin",
-    title: "IFA Berlin technology fair",
-    date: "2026-09-04",
+    id: "sig-black-friday",
+    title: "Black Friday campaign season opens",
+    date: "2026-11-13",
     kind: "seasonal",
     market: "Germany",
-    description: "Major consumer-technology fair; a recurring seasonal press moment.",
+    description: "Retail promotional season opens across the market; a recurring seasonal press moment.",
   },
 ];
 

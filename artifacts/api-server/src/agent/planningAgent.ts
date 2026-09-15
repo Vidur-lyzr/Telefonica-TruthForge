@@ -459,7 +459,7 @@ export async function runPlanningAskAgent(
       });
       if (GREETING_RE.test(input.question.trim())) {
         return conversationalResult(
-          `Hello — I am the calendar agent of the Hub. Ask me about governed planning activity and I will answer with cited evidence, scoped to your persona "${role.label}". For example: "What is planned in Spain in July?" or "Which campaigns are live this week?"`,
+          `Hello — I am the calendar agent of the Hub. Ask me about governed planning activity and I will answer with cited evidence, scoped to your persona "${role.label}". For example: "What is planned in Spain in September?" or "Which campaigns are live this week?"`,
         );
       }
       return noEvidenceResult();
