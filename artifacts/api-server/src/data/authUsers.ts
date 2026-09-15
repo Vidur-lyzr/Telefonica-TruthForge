@@ -95,6 +95,12 @@ export const AUTH_USERS: AuthUser[] = [
     passwordHash:
       "scrypt:81a8f60a29b6907d24870cdc2a100c00:87d52f518e442fd444b3a177946acb54c67cbcf0696e95e914532f6db1380d14",
   },
+  {
+    email: "a.viguera.rodriguez@accenture.com",
+    team: "accenture",
+    passwordHash:
+      "scrypt:aa6edbe2796223fb99ba0e318508e0a5:d28bd34f4649e427b306ce66f6fc3d1b48a94e81a0c647b289b63b00910d4e50",
+  },
 ];
 
 // Anyone with an email on an official Lyzr domain may sign in with the shared
